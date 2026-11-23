@@ -40,6 +40,21 @@ flags may change in minor releases.
   and links no SQLite driver: the binary grows by about 50 KB, where a pure-Go
   driver would add about 5 MB. `--out` writes mode 0600; the file lists attack
   paths. Schema and example queries: `docs/sql.md`.
+- MCP tool `check_answerable` (`question_kind`, `subject`): before an agent
+  gives an answer, says whether gop could see the facts that answer depends
+  on. Deterministic, no model: for the part of the graph the named tool's
+  answer depends on (the subject and everything upstream for `who_can_reach`,
+  everything the subject reaches for `blast_radius` and `paths`, the whole
+  enterprise for `top_risks`, `what_if` and `fix_plan`) it reads coverage
+  entries, `not_visible` edges, attributes and nodes, and audit facts older
+  than 90 days, and returns `answerable` (`yes`, `partial` for a lower bound,
+  or `no` when the subject or its org's repositories are not visible), the
+  missing facts with scope, reason and fix, and a confidence note. It never
+  says `yes` when a required fact is not visible. The required facts per
+  question kind live in one table, listed in `docs/mcp-clients.md`. The
+  server now sends instructions on initialize, and they and the
+  `explain_path` prompt ask the agent to call `check_answerable` before giving
+  a security conclusion.
 - Action input `fail-on-reach-increase` (default `"false"`) with
   `baseline-artifact` (default `gop-posture`): compares the run's graph with
   the artifact of the previous successful run of the same workflow on the

@@ -128,6 +128,7 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 | `fix_plan` | Concrete change steps for one fix (`fix`, or `suggestion_rank` from `suggest_fixes`): every workflow line to edit with a one-line diff, or the org setting with its REST call as text. gop never runs the steps. |
 | `explain` | Why an edge exists: evidence, `source_api`, `observed_at` and attributes, the `rule` of an `inferred` edge, and `age_days` and `stale` of an `audit` edge. |
 | `coverage` | What the token could not see, and the access that would make it visible. |
+| `check_answerable` | Before an answer is trusted: whether gop could see the facts a query tool's answer about a subject depends on (`yes`, `partial` for a lower bound, or `no`), with each missing fact, its scope and the access that fixes it. Deterministic; the server instructions ask agents to call it before giving a security conclusion. Required facts per question: [docs/mcp-clients.md](docs/mcp-clients.md#check-before-you-answer). |
 | `diff` | What changed since a baseline snapshot (`gop serve --graph new.json --baseline old.json`): new and removed paths, settings, edges, score deltas and coverage, filterable by principal and target kind. Same report as `gop diff --format json`; lost visibility is never reported as a fix. |
 
 ### MCP resources and prompts

@@ -16,10 +16,25 @@ const evidenceNote = " Confirmed means every hop was read live from the API, inf
 	"Possible means at least one hop is not_visible: the token could not read that fact, so the path " +
 	"may exist but is unproven (unknown, not absent). Headline numbers count confirmed reach only."
 
+// serverInstructions is sent to the client on initialize.
+const serverInstructions = "gop answers who can make code run where in a GitHub Enterprise, from one read-only " +
+	"snapshot (graph.json). Every answer keeps confirmed reach (every hop observed) apart from possible reach " +
+	"(at least one hop not_visible: unknown, not absent). Before you give a security conclusion to a human, call " +
+	"check_answerable with the question kind and subject: if it says partial, present the answer as a lower bound " +
+	"and name what was missing; if it says no, ask for the missing access instead of answering."
+
+// checkAnswerableDescription is the check_answerable tool description.
+const checkAnswerableDescription = "Before you trust or give an answer, check whether gop could see the facts it depends on. " +
+	"Pass question_kind (who_can_reach, blast_radius, paths, top_risks, what_if or fix_plan) and subject (the node ID " +
+	"or org the question is about). Returns answerable: yes (every required fact was visible), partial (the answer is a " +
+	"lower bound) or no (gop cannot see the subject's data), the missing facts with their scope, reason and fix, and a " +
+	"confidence note. Deterministic: it reads coverage, not_visible facts and stale audit facts, never a model."
+
 // NewServerWith builds an MCP server over g. The graph is indexed once and only read.
 func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Server {
 	e := NewEngine(g)
-	s := mcp.NewServer(&mcp.Implementation{Name: "gop", Title: "gop: who can make code run where", Version: version}, nil)
+	s := mcp.NewServer(&mcp.Implementation{Name: "gop", Title: "gop: who can make code run where", Version: version},
+		&mcp.ServerOptions{Instructions: serverInstructions})
 
 	addTool(s, "who_can_reach",
 		"List the principals (org members, users, teams, apps) that can make code run in a target "+
@@ -60,6 +75,8 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 		e.Coverage, func(o CoverageOutput) string { return o.Summary })
 	addTool(s, "diff", diffDescription, newDiffer(g, opts.Baseline).Diff, func(o DiffOutput) string { return o.Summary })
 	addFixPlanTool(s, e)
+	addTool(s, "check_answerable", checkAnswerableDescription, e.CheckAnswerable,
+		func(o CheckAnswerableOutput) string { return o.Summary })
 	addResources(s, e, opts.clock())
 	addPrompts(s, e, opts.clock())
 	return s
