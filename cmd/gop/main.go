@@ -56,6 +56,8 @@ Usage:
               [--fail-on confirmed-increase|any-new-path] [--force]
   gop fix-plan --graph graph.json | --demo  --pin <action> | --lower-default-perm <org> [--to read|none]
               | --restrict-token <workflow> | --harden-trigger <workflow> [--format text|markdown|json]
+  gop sarif   --graph graph.json | --demo  --out gop.sarif | --split-by-repo DIR [--top N]
+              [--min-severity low|medium|high|critical] [--include-possible]
   gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
               [--github-url URL] [--format diff|text|json]
   gop mcp-config --client claude|cursor|vscode --graph graph.json
@@ -86,6 +88,9 @@ diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or 
 --graph - reads the graph from stdin (report, paths, who): gop demo | gop report --graph - --out -
 fix-plan prints the change steps for one fix (workflow lines with diffs, settings
 with their REST call as text). gop never runs them or calls write APIs.
+sarif writes one SARIF 2.1.0 result per fixable edge (GOP001 mutable action
+ref, GOP002 default permission). It lists attack paths: uploading it to code
+scanning shows them to everyone with alert access. gop never uploads it.
 pin resolves an action ref to a commit SHA with read-only GET requests (token
 from GITHUB_TOKEN or GH_TOKEN) and, with --graph, prints a git apply diff for
 every consuming workflow. It writes to stdout only.
@@ -165,6 +170,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdFixPlan(rest)
 	case "pin":
 		err = a.cmdPin(rest)
+	case "sarif":
+		err = a.cmdSARIF(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":
