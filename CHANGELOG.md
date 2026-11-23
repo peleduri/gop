@@ -45,6 +45,14 @@ flags may change in minor releases.
   `--split-by-repo DIR` writes one file per repo. gop never uploads SARIF;
   [docs/sarif.md](docs/sarif.md) warns that code scanning shows the attack
   paths to everyone with alert access on the repo.
+- Container image: each release publishes `ghcr.io/peleduri/gop:<version>`
+  (and `:latest` for stable releases) for linux/amd64 and linux/arm64, built
+  by goreleaser from `gcr.io/distroless/static-debian12:nonroot` pinned by
+  digest. The image has no shell, runs as `65532:65532` with `ENTRYPOINT
+  ["/gop"]`, and carries OCI labels. The release workflow signs it keyless by
+  digest with cosign (same identity as `checksums.txt`), attaches a signed
+  SPDX SBOM and pushes SLSA build provenance to the registry. CI checks the
+  snapshot images on every PR. See docs/install.md#container.
 
 ## [0.3.0] - 2026-11-24
 

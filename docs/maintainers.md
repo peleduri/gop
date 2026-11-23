@@ -4,6 +4,12 @@
 
 Push a `vX.Y.Z` tag. [`.github/workflows/release.yml`](../.github/workflows/release.yml) runs goreleaser, which builds the archives, signs `checksums.txt` keyless with cosign, attaches SBOMs, creates the GitHub release, and (once the tap is set up) pushes the Homebrew cask. The `release-snapshot` job in CI builds the same config on every PR with `--snapshot` and publishes nothing.
 
+The same run pushes the container image `ghcr.io/peleduri/gop` (multi-arch index from the root `Dockerfile`), then signs it by digest with cosign, attaches a signed SPDX SBOM (`cosign attest`) and pushes SLSA provenance to the registry. Only the release job has `packages: write`. The CI snapshot job loads the per-arch images locally and checks that the amd64 image runs `gop version` as `65532:65532` with no shell.
+
+### Container image: one-time setup
+
+GHCR creates the `gop` package on the first release that pushes it. If it shows as private, open the package settings (your profile, Packages, `gop`, Package settings), set visibility to **Public**, and check that `peleduri/gop` is listed under "Manage Actions access" with the **Write** role. Anonymous `docker pull` and `cosign verify` fail until the package is public.
+
 ## Homebrew tap: one-time setup
 
 `.goreleaser.yaml` has a `homebrew_casks` block for `peleduri/homebrew-tap`. Its `skip_upload` is templated on the `HOMEBREW_TAP_TOKEN` environment variable: without it, goreleaser still renders the cask into `dist/homebrew/Casks/gop.rb` but never pushes it. So releases keep working before this setup, in forks, and in the snapshot CI job.

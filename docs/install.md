@@ -5,7 +5,7 @@ gop is one static binary. Pick one way to install it, then [verify what you run]
 - [Homebrew](#homebrew-coming-soon) (macOS and Linux, tap coming soon)
 - [Release archive](#release-archive) (every platform, with checksum, signature and provenance checks)
 - [`go install`](#go-install) (builds from source)
-- [Container](#container) (planned)
+- [Container](#container) (`ghcr.io/peleduri/gop`, signed, for Kubernetes jobs and locked-down CI)
 
 After installing, connect your agent: [docs/mcp-clients.md](mcp-clients.md).
 
@@ -52,7 +52,43 @@ This builds from source with your Go toolchain (the version in `go.mod`, fetched
 
 ## Container
 
-A signed container image is planned, see [issue #38](https://github.com/peleduri/gop/issues/38). This section will link to it once it ships.
+Every release after v0.3.0 also publishes `ghcr.io/peleduri/gop:<version>` (and `:latest` for stable releases) for `linux/amd64` and `linux/arm64`. The image is the release binary at `/gop` on `gcr.io/distroless/static-debian12:nonroot`: no shell, no package manager, and it runs as `65532:65532`. It is signed keyless by digest with the same release workflow identity as `checksums.txt`, and carries a signed SPDX SBOM and SLSA build provenance.
+
+**Pin the image by digest**, not by tag: a tag can be moved, a digest cannot. Look up the digest of a release and pin it:
+
+```sh
+VERSION=0.4.0
+docker buildx imagetools inspect "ghcr.io/peleduri/gop:${VERSION}" --format '{{json .Manifest.Digest}}'
+```
+
+Then verify that digest before you give the container a token. The identity is the release workflow at that release's tag:
+
+```sh
+IMAGE=ghcr.io/peleduri/gop@sha256:<digest>
+cosign verify "$IMAGE" \
+  --certificate-identity "https://github.com/peleduri/gop/.github/workflows/release.yml@refs/tags/v${VERSION}" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+gh attestation verify "oci://$IMAGE" --repo peleduri/gop \
+  --signer-workflow peleduri/gop/.github/workflows/release.yml
+cosign verify-attestation "$IMAGE" --type spdxjson \
+  --certificate-identity "https://github.com/peleduri/gop/.github/workflows/release.yml@refs/tags/v${VERSION}" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com > /dev/null
+```
+
+Run a collection, writing `graph.json` to the current directory:
+
+```sh
+docker run --rm -e GITHUB_TOKEN -v "$PWD:/work" -w /work \
+  ghcr.io/peleduri/gop@sha256:<digest> collect --enterprise acme --out graph.json
+```
+
+`-e GITHUB_TOKEN` passes the variable from your shell without putting the token on the command line. The container runs as uid 65532, so on Linux the mounted directory must be writable by it; add `--user "$(id -u):$(id -g)"` to write as yourself instead.
+
+The MCP server works over stdio as long as stdin stays open, so use `-i` (and no `-t`):
+
+```sh
+docker run --rm -i -v "$PWD:/work" -w /work ghcr.io/peleduri/gop@sha256:<digest> serve --graph graph.json
+```
 
 ## Verify what you run
 

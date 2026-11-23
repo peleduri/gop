@@ -56,6 +56,43 @@ signs:
       - "${artifact}"
       - "--yes"
 
+# Container image: ghcr.io/peleduri/gop:<version> (and :latest for stable
+# releases) for linux/amd64 and linux/arm64, from the distroless nonroot base
+# pinned in Dockerfile. buildx builds and pushes the multi-arch index in the
+# publish phase; release.yml then signs it keyless by digest with cosign and
+# attaches a signed SPDX SBOM and SLSA provenance. A snapshot build loads one
+# image per platform locally instead (tags <version>-amd64 and -arm64) and
+# pushes nothing. sbom is off here because the buildx SBOM attestation is
+# unsigned and cannot be loaded into a local daemon; release.yml attaches a
+# signed one instead.
+dockers_v2:
+  - id: gop
+    ids: [gop]
+    dockerfile: Dockerfile
+    images:
+      - ghcr.io/peleduri/gop
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    sbom: "false"
+    labels:
+      "org.opencontainers.image.title": "{{ .ProjectName }}"
+      "org.opencontainers.image.description": "Read-only evidence graph of who can make code run where in a GitHub Enterprise."
+      "org.opencontainers.image.source": "https://github.com/peleduri/gop"
+      "org.opencontainers.image.url": "https://github.com/peleduri/gop"
+      "org.opencontainers.image.revision": "{{ .FullCommit }}"
+      "org.opencontainers.image.version": "{{ .Version }}"
+      "org.opencontainers.image.created": "{{ .CommitDate }}"
+      "org.opencontainers.image.licenses": "Apache-2.0"
+    annotations:
+      # Shown on the GHCR package page, which reads the index. Empty (so
+      # dropped) in snapshot builds, which load single-platform images where
+      # an index annotation is not allowed.
+      "index:org.opencontainers.image.description": '{{ if not .IsSnapshot }}Read-only evidence graph of who can make code run where in a GitHub Enterprise.{{ end }}'
+
 changelog:
   sort: asc
   filters:
