@@ -130,6 +130,19 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 | `coverage` | What the token could not see, and the access that would make it visible. |
 | `diff` | What changed since a baseline snapshot (`gop serve --graph new.json --baseline old.json`): new and removed paths, settings, edges, score deltas and coverage, filterable by principal and target kind. Same report as `gop diff --format json`; lost visibility is never reported as a fix. |
 
+### MCP resources and prompts
+
+Resources give an agent cheap context before its first tool call:
+
+| Resource | Contents |
+|---|---|
+| `gop://graph/summary` | Enterprise, `collected_at`, age in hours, schema, node and edge counts by kind, evidence mix (live, audit, not_visible), orgs with `default_perm`, `two_factor` and `sso`, and the top 5 principals by confirmed score (JSON). |
+| `gop://graph/coverage` | The `coverage` tool's answer (JSON). |
+| `gop://graph/schema` | Node ID conventions and edge semantics: [docs/schema.md](docs/schema.md) (Markdown). |
+| `gop://node/{+id}` | One node with its in and out edges, e.g. `gop://node/repo:acme-app/web` (JSON; the ID may be raw or percent-encoded). |
+
+Prompts start a guided flow: `triage_enterprise` (optional `focus`: `oidc`, `secrets`, `runners` or `all`), `review_action` (`action`, e.g. `action:acme-actions/deploy@main`) and `explain_path` (`from`, `to`). Each keeps confirmed and possible apart and never reports a not-visible fact as off. When the snapshot is more than 7 days old, the summary and every prompt say "snapshot is N days old".
+
 ### CLI
 
 ```

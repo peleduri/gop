@@ -1,0 +1,188 @@
+{
+  "enterprise": "acme",
+  "collected_at": "2026-11-20T10:00:00Z",
+  "age_hours": 30,
+  "schema": "gop.graph/v1",
+  "nodes": 52,
+  "edges": 46,
+  "nodes_by_kind": {
+    "action_ref": 4,
+    "enterprise": 1,
+    "identity": 2,
+    "oidc": 2,
+    "org": 4,
+    "org_members": 4,
+    "repo": 16,
+    "runner": 1,
+    "secret": 2,
+    "workflow": 16
+  },
+  "edges_by_kind": {
+    "CAN_PUSH": 6,
+    "DEFINED_IN": 16,
+    "EXECUTES_WITH": 5,
+    "MEMBER_OF": 2,
+    "RESOLVES_TO": 4,
+    "USES": 13
+  },
+  "evidence": {
+    "edges": {
+      "live": 43,
+      "audit": 2,
+      "not_visible": 1
+    },
+    "nodes": {
+      "live": 49,
+      "audit": 2,
+      "not_visible": 1
+    }
+  },
+  "coverage_gaps": 2,
+  "orgs": [
+    {
+      "id": "org:acme-actions",
+      "name": "acme-actions",
+      "evidence": "live",
+      "default_perm": "write",
+      "two_factor": "not_required",
+      "sso": "configured"
+    },
+    {
+      "id": "org:acme-app",
+      "name": "acme-app",
+      "evidence": "live",
+      "default_perm": "read",
+      "two_factor": "required",
+      "sso": "enforced"
+    },
+    {
+      "id": "org:acme-legacy",
+      "name": "acme-legacy",
+      "evidence": "live",
+      "default_perm": "write",
+      "two_factor": "not_required",
+      "sso": "none"
+    },
+    {
+      "id": "org:acme-secure",
+      "name": "acme-secure",
+      "evidence": "live",
+      "default_perm": "read",
+      "two_factor": "required",
+      "sso": "enforced"
+    }
+  ],
+  "top_principals": [
+    {
+      "principal": "identity:bob",
+      "confirmed": {
+        "repos": 12,
+        "orgs": 2,
+        "workflows": 12,
+        "secrets": 1,
+        "oidc": 1,
+        "runners": 1
+      },
+      "possible": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "multiplier": 2.25,
+      "score": 85.5,
+      "possible_score": 0
+    },
+    {
+      "principal": "members:acme-actions",
+      "confirmed": {
+        "repos": 12,
+        "orgs": 2,
+        "workflows": 12,
+        "secrets": 1,
+        "oidc": 1,
+        "runners": 1
+      },
+      "possible": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "multiplier": 2.25,
+      "score": 85.5,
+      "possible_score": 0
+    },
+    {
+      "principal": "identity:alice",
+      "confirmed": {
+        "repos": 1,
+        "orgs": 1,
+        "workflows": 1,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "possible": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "multiplier": 1,
+      "score": 3.5,
+      "possible_score": 0
+    },
+    {
+      "principal": "members:acme-legacy",
+      "confirmed": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "possible": {
+        "repos": 1,
+        "orgs": 1,
+        "workflows": 1,
+        "secrets": 1,
+        "oidc": 0,
+        "runners": 0
+      },
+      "multiplier": 2.25,
+      "score": 0,
+      "possible_score": 19.125
+    },
+    {
+      "principal": "members:acme-app",
+      "confirmed": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "possible": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "multiplier": 1,
+      "score": 0,
+      "possible_score": 0
+    }
+  ],
+  "note": "Confirmed reach means every hop was read live or from the audit log; possible reach has at least one not_visible hop. not_visible means the token could not read the fact: it is unknown, not absent or off. top_principals is ranked by confirmed score."
+}

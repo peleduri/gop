@@ -24,6 +24,8 @@ type ServerOptions struct {
 	// with. When nil, the diff tool is still listed but returns an error
 	// naming the --baseline flag.
 	Baseline *graph.Graph
+	// Now is the clock for snapshot age in resources and prompts; nil means time.Now.
+	Now func() time.Time
 }
 
 // NewServer builds an MCP server over g with no baseline.

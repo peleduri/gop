@@ -55,6 +55,8 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 		e.Coverage, func(o CoverageOutput) string { return o.Summary })
 	addTool(s, "diff", diffDescription, newDiffer(g, opts.Baseline).Diff, func(o DiffOutput) string { return o.Summary })
 	addFixPlanTool(s, e)
+	addResources(s, e, opts.clock())
+	addPrompts(s, e, opts.clock())
 	return s
 }
 
