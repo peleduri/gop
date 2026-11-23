@@ -89,46 +89,10 @@ runs:
       env:
         GOP_VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ github.token }} # only used to resolve and download the public release
-      run: |
-        set -euo pipefail
-        case "${RUNNER_OS}" in
-          Linux) os=linux ;;
-          macOS) os=darwin ;;
-          *) echo "gop action: unsupported runner OS ${RUNNER_OS} (use Linux or macOS)"; exit 1 ;;
-        esac
-        case "${RUNNER_ARCH}" in
-          X64) arch=amd64 ;;
-          ARM64) arch=arm64 ;;
-          *) echo "gop action: unsupported runner arch ${RUNNER_ARCH}"; exit 1 ;;
-        esac
-        tag="${GOP_VERSION}"
-        if [ "${tag}" = "latest" ]; then
-          tag="$(gh release view --repo peleduri/gop --json tagName --jq .tagName)"
-        fi
-        if ! printf '%s' "${tag}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
-          echo "gop action: invalid version"; exit 1
-        fi
-        ver="${tag#v}"
-        archive="gop_${ver}_${os}_${arch}.tar.gz"
-        work="${RUNNER_TEMP}/gop-bin"
-        mkdir -p "${work}"
-        cd "${work}"
-        gh release download "${tag}" --repo peleduri/gop \
-          --pattern "${archive}" --pattern checksums.txt --pattern checksums.txt.sigstore.json --clobber
-        if command -v cosign >/dev/null 2>&1; then
-          cosign verify-blob checksums.txt \
-            --bundle checksums.txt.sigstore.json \
-            --certificate-identity "https://github.com/peleduri/gop/.github/workflows/release.yml@refs/tags/${tag}" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com
-          echo "gop action: cosign signature on checksums.txt verified"
-        else
-          echo "gop action: cosign not installed, skipping signature check (checksum is still verified)"
-        fi
-        grep -E "  ${archive}\$" checksums.txt > expected.sha256
-        if command -v sha256sum >/dev/null 2>&1; then sha256sum -c expected.sha256; else shasum -a 256 -c expected.sha256; fi
-        tar -xzf "${archive}" gop
-        chmod +x gop
-        echo "${work}" >> "${GITHUB_PATH}"
+        GOP_INSTALL: ${{ github.action_path }}/install-gop.sh
+      # Run through bash, not the file's mode bit: on Windows (Git Bash) the
+      # action path is a Windows path and checkouts may drop the exec bit.
+      run: bash "${GOP_INSTALL}"
 
     - name: Collect and report
       shell: bash
@@ -182,13 +146,17 @@ runs:
           echo "gop action: cannot read this workflow run; fail-on-reach-increase needs 'actions: read' in the workflow permissions"
           exit 1
         fi
+        # Strip any CR so the same parsing works in Git Bash on Windows.
+        workflow_id="${workflow_id%$'\r'}"
         branch="$(gh api "repos/${repo}" --jq .default_branch)"
+        branch="${branch%$'\r'}"
         run_id=""
         for id in $(gh api -X GET "repos/${repo}/actions/workflows/${workflow_id}/runs" \
-            -f status=success -f branch="${branch}" -f per_page=30 --jq '.workflow_runs[].id'); do
+            -f status=success -f branch="${branch}" -f per_page=30 --jq '.workflow_runs[].id' | tr -d '\r'); do
           if [ "${id}" = "${GITHUB_RUN_ID}" ]; then continue; fi
           n="$(gh api -X GET "repos/${repo}/actions/runs/${id}/artifacts" -f name="${GOP_BASELINE_NAME}" \
             --jq '[.artifacts[] | select(.expired | not)] | length')"
+          n="${n%$'\r'}"
           if [ "${n}" -gt 0 ]; then run_id="${id}"; break; fi
         done
         if [ -z "${run_id}" ]; then
@@ -225,7 +193,7 @@ runs:
           echo "result=skipped" >> "${GITHUB_OUTPUT}"
           exit 0
         fi
-        result="$("${GOP_GATE}" "${RUNNER_TEMP}/gop-baseline/graph.json" "${GOP_OUT}/graph.json" "${GOP_OUT}")"
+        result="$(bash "${GOP_GATE}" "${RUNNER_TEMP}/gop-baseline/graph.json" "${GOP_OUT}/graph.json" "${GOP_OUT}")"
         echo "result=${result}" >> "${GITHUB_OUTPUT}"
         case "${result}" in
           clean) echo "gop action: confirmed reach did not increase" ;;

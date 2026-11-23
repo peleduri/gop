@@ -1,0 +1,73 @@
+name: action-smoke
+
+# Runs the Action's shell scripts on every runner OS it supports, against the
+# latest public release. No enterprise token or App key is used: the only
+# credential is this workflow's read-only GITHUB_TOKEN, which gh needs to
+# download the public release assets.
+on:
+  pull_request:
+    paths:
+      - "action/**"
+      - ".github/workflows/action-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - "action/**"
+      - ".github/workflows/action-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  action-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        # The Action's steps use bash on every OS (Git Bash on Windows).
+        shell: bash
+    steps:
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        if: runner.os == 'Linux'
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download and verify gop (the Action's first step)
+        env:
+          GOP_VERSION: latest
+          GH_TOKEN: ${{ github.token }} # only used to resolve and download the public release
+        run: bash action/install-gop.sh
+      - name: gop version (bash)
+        run: gop version
+      - name: gop version (PowerShell, checks the GITHUB_PATH entry is in Windows form)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: gop version
+      - name: Reach gate (action/diff-gate.sh)
+        run: |
+          set -uo pipefail
+          gate() { # case, want result, want exit code
+            out="${RUNNER_TEMP}/gate-$1"
+            result="$(bash action/diff-gate.sh "internal/diff/testdata/$1/old.json" "internal/diff/testdata/$1/new.json" "${out}")"
+            rc=$?
+            if [ "${result}" != "$2" ] || [ "${rc}" -ne "$3" ]; then
+              echo "gate $1: got ${result} (exit ${rc}), want $2 (exit $3)"; exit 1
+            fi
+            if [ ! -s "${out}/diff.md" ] || [ ! -s "${out}/diff.json" ]; then
+              echo "gate $1: diff.md or diff.json missing"; exit 1
+            fi
+            echo "gate $1: ${result}"
+          }
+          gate identical clean 0
+          gate ref-unpinned increase 1
+          gate default-perm-raised increase 1

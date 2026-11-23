@@ -33,6 +33,21 @@ flags may change in minor releases.
   GCP attribute mapping or Azure federated credentials (see
   `docs/cartography.md`).
 
+- The Action runs on Windows runners (x64 and ARM64): the download step
+  (now `action/install-gop.sh`) fetches the `.zip` release, verifies it with
+  `sha256sum` from Git Bash, extracts `gop.exe` with `unzip` (or the Windows
+  `tar.exe`) and adds its directory to `GITHUB_PATH` in Windows form. The
+  reach gate runs `diff-gate.sh` through `bash`, and the baseline lookup
+  strips any CR from `gh` output. Steps keep `shell: bash`; self-hosted
+  Windows runners need Git for Windows and `gh`. A new `action-smoke` workflow
+  (PRs touching `action/`) runs the download step, `gop version` and the gate
+  against the latest release on Ubuntu, macOS and Windows, with no enterprise
+  credential.
+- `docs/github-app-token.md`: creating a read-only GitHub App for gop, what
+  each permission unlocks and what goes `not_visible` without it, installing
+  it per org, App mode vs minting a token with `actions/create-github-app-token`,
+  where to keep the private key, and owner-token vs App coverage. Linked from
+  the README's Action section.
 ### Fixed
 
 - `fix_plan`, `gop fix-plan --pin`, `gop pin` and the report's "Pinned, still
