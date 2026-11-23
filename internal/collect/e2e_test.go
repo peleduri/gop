@@ -2,8 +2,10 @@ package collect
 
 import (
 	"bytes"
+	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -179,12 +181,13 @@ func TestEdgePositions(t *testing.T) {
 		// composite action step, read at the parent's ref
 		"action:acme-actions/deploy@main\x00action:acme-actions/setup@main": {
 			graph.AttrFile: "action.yml", graph.AttrFileRef: "main", graph.AttrLine: "6", graph.AttrCol: "13"},
-		// workflow-level id-token: write
+		// workflow-level id-token: write, inherited by its one job
 		"workflow:acme-app/billing/.github/workflows/deploy.yml\x00oidc:acme-app/billing": {
-			graph.AttrFile: ".github/workflows/deploy.yml", graph.AttrLine: "5"},
+			graph.AttrFile: ".github/workflows/deploy.yml", graph.AttrLine: "5", graph.AttrJobs: "deploy",
+			graph.AttrRepository: "acme-app/billing", graph.AttrRepositoryOwner: "acme-app"},
 		// job-level id-token: write
 		"workflow:acme-app/search/.github/workflows/index.yaml\x00oidc:acme-app/search": {
-			graph.AttrFile: ".github/workflows/index.yaml", graph.AttrLine: "8"},
+			graph.AttrFile: ".github/workflows/index.yaml", graph.AttrLine: "8", graph.AttrJobs: "index"},
 		// self-hosted runs-on
 		"workflow:acme-app/infra/.github/workflows/apply.yml\x00runner:acme-app/infra": {
 			graph.AttrFile: ".github/workflows/apply.yml", graph.AttrLine: "5"},
@@ -203,5 +206,72 @@ func TestEdgePositions(t *testing.T) {
 	}
 	for k := range want {
 		t.Errorf("edge not collected: %q", k)
+	}
+}
+
+// TestOIDCClaimInputs plants the testdata/oidc workflows into the acme
+// fixture and checks the claim inputs on their OIDC edges.
+func TestOIDCClaimInputs(t *testing.T) {
+	f := newFakeGitHub(t)
+	for name, file := range map[string]string{
+		"acme-app/web/deploy.yml":            "environments.yml",
+		"acme-app/web/promote.yml":           "dynamic.yml",
+		"acme-app/web/lint.yml":              "override.yml",
+		"acme-app/web/release.yml":           "caller.yml",
+		"acme-actions/setup/oidc-deploy.yml": "reusable.yml",
+	} {
+		b, err := os.ReadFile(filepath.Join("testdata", "oidc", file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.extraWorkflows[name] = string(b)
+	}
+	ix := collectFake(t, f)
+	const web = "workflow:acme-app/web/.github/workflows/"
+	repo := map[string]string{graph.AttrRepository: "acme-app/web", graph.AttrRepositoryOwner: "acme-app"}
+	want := map[string]map[string]string{
+		web + "deploy.yml":  {graph.AttrJobs: "deploy", graph.AttrEnvironments: "prod", graph.AttrLine: "13"},
+		web + "promote.yml": {graph.AttrJobs: "promote", graph.AttrEnvironments: graph.EnvDynamic, graph.AttrLine: "8"},
+		web + "release.yml": {graph.AttrJobs: "release", graph.AttrEnvironments: "prod",
+			graph.AttrJobWorkflowRef: "acme-actions/setup/.github/workflows/oidc-deploy.yml@refs/heads/main"},
+	}
+	for wid, attrs := range want {
+		e := ix.mustEdge(t, wid, "oidc:acme-app/web", graph.ExecutesWith)
+		for k, v := range repo {
+			attrs[k] = v
+		}
+		for k, v := range attrs {
+			if e.Attrs[k] != v {
+				t.Errorf("%s: attr %s = %q, want %q", wid, k, e.Attrs[k], v)
+			}
+		}
+		if _, ok := attrs[graph.AttrJobWorkflowRef]; !ok && e.Attrs[graph.AttrJobWorkflowRef] != "" {
+			t.Errorf("%s: unexpected job_workflow_ref %q", wid, e.Attrs[graph.AttrJobWorkflowRef])
+		}
+	}
+	// Job-level permissions replace the workflow's write-all.
+	ix.noEdge(t, web+"lint.yml", "oidc:acme-app/web", graph.ExecutesWith)
+	// The reusable workflow read as a top-level workflow of its own repo has
+	// no caller, so no job_workflow_ref.
+	e := ix.mustEdge(t, "workflow:acme-actions/setup/.github/workflows/oidc-deploy.yml", "oidc:acme-actions/setup", graph.ExecutesWith)
+	if e.Attrs[graph.AttrJobWorkflowRef] != "" || e.Attrs[graph.AttrRepository] != "acme-actions/setup" {
+		t.Errorf("oidc-deploy.yml top-level edge attrs = %v", e.Attrs)
+	}
+
+	// Graphs without the new attrs reach the same targets.
+	stripped := *ix.g
+	stripped.Edges = slices.Clone(ix.g.Edges)
+	for i, se := range stripped.Edges {
+		if se.Kind != graph.ExecutesWith {
+			continue
+		}
+		attrs := maps.Clone(se.Attrs)
+		for _, k := range []string{graph.AttrJobs, graph.AttrEnvironments, graph.AttrJobWorkflowRef, graph.AttrRepository, graph.AttrRepositoryOwner} {
+			delete(attrs, k)
+		}
+		stripped.Edges[i].Attrs = attrs
+	}
+	if got, want := graph.NewIndex(&stripped).Scores(), graph.NewIndex(ix.g).Scores(); !reflect.DeepEqual(got, want) {
+		t.Errorf("reach changed without the claim attrs:\n got %+v\nwant %+v", got, want)
 	}
 }

@@ -1,0 +1,10 @@
+name: release
+on: push
+jobs:
+  release:
+    permissions:
+      contents: read
+      id-token: write
+    uses: acme-actions/setup/.github/workflows/oidc-deploy.yml@main
+  notes:
+    uses: acme-actions/setup/.github/workflows/build.yml@main

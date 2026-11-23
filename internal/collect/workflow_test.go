@@ -1,8 +1,12 @@
 package collect
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/peleduri/gop/internal/graph"
 )
 
 func TestRefKind(t *testing.T) {
@@ -275,5 +279,180 @@ func TestParseWorkflowTokenPermissions(t *testing.T) {
 				t.Errorf("scopes = %v, want %v", f.TokenScopes, tc.scopes)
 			}
 		})
+	}
+}
+
+func TestParseWorkflowIDTokenJobs(t *testing.T) {
+	fixture := func(name string) string {
+		t.Helper()
+		b, err := os.ReadFile(filepath.Join("testdata", "oidc", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	cases := []struct {
+		name   string
+		src    string
+		jobs   []IDTokenJob
+		scopes []string
+		lines  map[string]int
+		envs   []string
+	}{
+		{
+			name:  "workflow write-all overridden by the only job",
+			src:   fixture("override.yml"),
+			lines: map[string]int{},
+		},
+		{
+			name: "workflow write-all overridden by one job of two",
+			src: `permissions: write-all
+jobs:
+  a:
+    runs-on: x
+    permissions:
+      contents: read
+  b:
+    runs-on: x
+`,
+			jobs:   []IDTokenJob{{Job: "b", Line: 1}},
+			scopes: []string{"workflow"},
+			lines:  map[string]int{"workflow": 1},
+		},
+		{
+			name: "workflow id-token with no job overrides",
+			src: `permissions:
+  id-token: write
+jobs:
+  a:
+    runs-on: x
+  b:
+    runs-on: x
+`,
+			jobs:   []IDTokenJob{{Job: "a", Line: 2}, {Job: "b", Line: 2}},
+			scopes: []string{"workflow"},
+			lines:  map[string]int{"workflow": 2},
+		},
+		{
+			name: "workflow id-token with no jobs",
+			src: `permissions:
+  id-token: write
+jobs: {}
+`,
+			lines: map[string]int{},
+		},
+		{
+			name: "empty job permissions remove a workflow grant",
+			src: `permissions:
+  id-token: write
+jobs:
+  a:
+    runs-on: x
+    permissions: {}
+`,
+			lines: map[string]int{},
+		},
+		{
+			name: "job-level grant next to a workflow-level one",
+			src: `permissions:
+  id-token: write
+jobs:
+  a:
+    runs-on: x
+  b:
+    runs-on: x
+    permissions:
+      id-token: write
+  c:
+    runs-on: x
+    permissions: read-all
+`,
+			jobs:   []IDTokenJob{{Job: "a", Line: 2}, {Job: "b", Line: 9}},
+			scopes: []string{"workflow", "b"},
+			lines:  map[string]int{"workflow": 2, "b": 9},
+		},
+		{
+			name:   "environment on the id-token job only",
+			src:    fixture("environments.yml"),
+			jobs:   []IDTokenJob{{Job: "deploy", Environment: "prod", Line: 13}},
+			scopes: []string{"deploy"},
+			lines:  map[string]int{"deploy": 13},
+			envs:   []string{"prod"},
+		},
+		{
+			name: "environment mapping form, and an environment without id-token",
+			src: `jobs:
+  a:
+    runs-on: x
+    environment: {name: staging, url: https://acme.example}
+    permissions: {id-token: write}
+  b:
+    runs-on: x
+    environment: prod
+`,
+			jobs:   []IDTokenJob{{Job: "a", Environment: "staging", Line: 5}},
+			scopes: []string{"a"},
+			lines:  map[string]int{"a": 5},
+			envs:   []string{"staging"},
+		},
+		{
+			name:   "environment expression is dynamic",
+			src:    fixture("dynamic.yml"),
+			jobs:   []IDTokenJob{{Job: "promote", Environment: "${{ inputs.target }}", EnvironmentDynamic: true, Line: 8}},
+			scopes: []string{"workflow"},
+			lines:  map[string]int{"workflow": 8},
+			envs:   []string{graph.EnvDynamic},
+		},
+		{
+			name: "environment through an alias",
+			src: `x: &env {name: prod}
+jobs:
+  a:
+    runs-on: x
+    environment: *env
+    permissions: write-all
+`,
+			jobs:   []IDTokenJob{{Job: "a", Environment: "prod", Line: 6}},
+			scopes: []string{"a"},
+			lines:  map[string]int{"a": 6},
+			envs:   []string{"prod"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f, err := ParseWorkflow([]byte(tc.src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if f.IDTokenWrite != (len(tc.jobs) > 0) {
+				t.Errorf("IDTokenWrite = %v, want %v", f.IDTokenWrite, len(tc.jobs) > 0)
+			}
+			if !reflect.DeepEqual(f.IDTokenJobs, tc.jobs) {
+				t.Errorf("IDTokenJobs = %+v, want %+v", f.IDTokenJobs, tc.jobs)
+			}
+			if !reflect.DeepEqual(f.IDTokenScopes, tc.scopes) {
+				t.Errorf("IDTokenScopes = %q, want %q", f.IDTokenScopes, tc.scopes)
+			}
+			if !reflect.DeepEqual(f.IDTokenLines, tc.lines) {
+				t.Errorf("IDTokenLines = %v, want %v", f.IDTokenLines, tc.lines)
+			}
+			if got := f.IDTokenEnvironments(); !reflect.DeepEqual(got, tc.envs) {
+				t.Errorf("IDTokenEnvironments = %q, want %q", got, tc.envs)
+			}
+		})
+	}
+}
+
+func TestClaimRef(t *testing.T) {
+	cases := map[[2]string]string{
+		{"main", "branch"}:            "refs/heads/main",
+		{"v1", "tag"}:                 "refs/tags/v1",
+		{testSHA, "sha"}:              testSHA,
+		{"refs/heads/main", "branch"}: "refs/heads/main",
+	}
+	for in, want := range cases {
+		if got := claimRef(in[0], in[1]); got != want {
+			t.Errorf("claimRef(%q, %q) = %q, want %q", in[0], in[1], got, want)
+		}
 	}
 }

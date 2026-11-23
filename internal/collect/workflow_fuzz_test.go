@@ -20,7 +20,7 @@ import (
 // edge cases: alias bombs, deep nesting, every shape of `on:`, non-UTF-8.
 func fuzzSeeds(t testing.TB) [][]byte {
 	var out [][]byte
-	for _, dir := range []string{"testdata/workflows", "testdata/actions"} {
+	for _, dir := range []string{"testdata/workflows", "testdata/actions", "testdata/oidc"} {
 		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err
@@ -145,6 +145,7 @@ func FuzzParseWorkflow(f *testing.F) {
 				t.Fatalf("not sorted: %q", l)
 			}
 		}
+		checkIDTokenJobs(t, facts)
 		for i, s := range facts.Secrets {
 			if i > 0 && facts.Secrets[i-1] == s {
 				t.Fatalf("duplicate secret %q in %q", s, facts.Secrets)
@@ -154,6 +155,48 @@ func FuzzParseWorkflow(f *testing.F) {
 			}
 		}
 	})
+}
+
+// checkIDTokenJobs checks that the id-token jobs are a sorted subset of the
+// workflow's jobs and agree with IDTokenWrite, scopes and lines.
+func checkIDTokenJobs(t *testing.T, facts *WorkflowFacts) {
+	t.Helper()
+	if !sort.StringsAreSorted(facts.Jobs) {
+		t.Fatalf("jobs not sorted: %q", facts.Jobs)
+	}
+	jobs := map[string]bool{}
+	for _, j := range facts.Jobs {
+		if jobs[j] {
+			t.Fatalf("duplicate job %q", j)
+		}
+		jobs[j] = true
+	}
+	if facts.IDTokenWrite != (len(facts.IDTokenJobs) > 0) {
+		t.Fatalf("IDTokenWrite %v with id-token jobs %+v", facts.IDTokenWrite, facts.IDTokenJobs)
+	}
+	ids := facts.IDTokenJobIDs()
+	if !sort.StringsAreSorted(ids) {
+		t.Fatalf("id-token jobs not sorted: %q", ids)
+	}
+	for i, j := range facts.IDTokenJobs {
+		if !jobs[j.Job] || (i > 0 && ids[i-1] == j.Job) {
+			t.Fatalf("id-token job %q is not a distinct job of %q", j.Job, facts.Jobs)
+		}
+		if j.Line < 1 {
+			t.Fatalf("id-token job %q has line %d", j.Job, j.Line)
+		}
+		if j.EnvironmentDynamic != strings.Contains(j.Environment, "${{") {
+			t.Fatalf("id-token job %q environment %q dynamic=%v", j.Job, j.Environment, j.EnvironmentDynamic)
+		}
+	}
+	if (len(facts.IDTokenJobs) == 0) != (len(facts.IDTokenScopes) == 0) {
+		t.Fatalf("id-token scopes %q with jobs %+v", facts.IDTokenScopes, facts.IDTokenJobs)
+	}
+	for _, s := range facts.IDTokenScopes {
+		if facts.IDTokenLines[s] < 1 {
+			t.Fatalf("id-token scope %q has no line in %v", s, facts.IDTokenLines)
+		}
+	}
 }
 
 func FuzzParseCompositeAction(f *testing.F) {

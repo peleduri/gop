@@ -113,8 +113,10 @@ type collector struct {
 	// entHidden is set when the token cannot read the enterprise; orgs then
 	// come from cfg.Orgs or discovery (orgscope.go).
 	entHidden     bool
-	orgsSrc       string            // source API of the org list
-	unknownOwners map[string]string // lower login -> login of action owners with in_enterprise=unknown
+	orgsSrc       string                 // source API of the org list
+	unknownOwners map[string]string      // lower login -> login of action owners with in_enterprise=unknown
+	oidcEdges     []*oidcEdge            // OIDC edges that call reusable workflows (oidcclaims.go)
+	calledOIDC    map[string]*calledOIDC // action id -> reusable workflow that mints a token
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -196,6 +198,7 @@ func (k *collector) run(ctx context.Context) error {
 	if err := k.expandNested(ctx); err != nil {
 		return err
 	}
+	k.linkJobWorkflowRefs()
 	k.coverUnknownOwners()
 	if err := k.collectActionsAccess(ctx); err != nil {
 		return err
@@ -1031,9 +1034,10 @@ func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {
 	if f.IDTokenWrite {
 		id := "oidc:" + full
 		k.node(id, graph.KindOIDC, full+" OIDC token")
-		attrs := map[string]string{"permission": "id-token: write", "scopes": strings.Join(f.IDTokenScopes, ",")}
+		attrs := oidcAttrs(full, f)
 		locate(attrs, f.File, f.FileRef, f.IDTokenLine(), 0)
 		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, attrs)
+		k.trackOIDCEdge(f, attrs)
 	}
 	if f.HasSecrets() {
 		id := "secret:" + full
@@ -1155,6 +1159,7 @@ func (k *collector) expandNested(ctx context.Context) error {
 				continue
 			}
 			facts.SetFile(path, u.Ref)
+			k.noteCalledOIDC(q.id, u, facts)
 			nested = facts.Uses
 		} else {
 			uses, using, perr := ParseCompositeAction(data)
