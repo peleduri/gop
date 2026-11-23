@@ -9,6 +9,15 @@ flags may change in minor releases.
 
 ### Added
 
+- HTML report filters and per-org views. The report embeds the paths, fixes,
+  org settings and coverage as one JSON block and a small inline script adds a
+  filter bar (evidence, terminal kind, org, principal, action ref kind) whose
+  state lives in the URL hash (`#org=acme-app&ev=confirmed&kind=oidc`), plus a
+  per-org view at `#/org/<org>` with settings and their evidence (unseen
+  settings read "unknown", never "off"), inbound and outbound reach, fixes and
+  coverage gaps. A CSP meta tag pins the one style and one script by hash, so
+  the file cannot load anything remote. With JavaScript off the report reads as
+  before. Embedded paths are capped at 500 per target org, with a note when cut.
 - `gop pin --action owner/repo@ref` resolves an action ref to its commit SHA
   with read-only GET requests (the commit, then whether the ref is a tag or a
   branch) and prints the pinned `uses:` value. With `--graph`, it reads each

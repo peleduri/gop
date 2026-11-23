@@ -45,11 +45,12 @@ func TestRenderHTML(t *testing.T) {
 		}
 	}
 	lower := strings.ToLower(out)
-	for _, bad := range []string{"<script", "<link", "src=", "@import", "http://", "https://"} {
+	for _, bad := range []string{"<link", "src=", "@import", "http://", "https://"} {
 		if strings.Contains(lower, bad) {
 			t.Errorf("HTML must be self-contained, found %q", bad)
 		}
 	}
+	assertOnlyOwnScripts(t, out)
 	// The legacy org's ip_allow_list is "unknown": shown as not visible, never off.
 	if strings.Contains(lower, ">off<") {
 		t.Error("HTML shows a setting as off")
@@ -88,8 +89,12 @@ func TestRenderEscapes(t *testing.T) {
 		Coverage: []graph.Coverage{{Scope: "org:<b>x</b>", Fact: "repositories", Reason: "<i>r</i>", NeedsFix: "<b>fix</b>"}},
 	}
 	html := render(t, g, "html")
-	if strings.Contains(html, "<b>") || strings.Contains(html, "<script") || strings.Contains(html, "<i>") {
+	if strings.Contains(html, "<b>") || strings.Contains(html, "<i>") || strings.Contains(html, "<script>alert") {
 		t.Error("HTML did not escape node values")
+	}
+	assertOnlyOwnScripts(t, html)
+	if raw := embeddedJSON(t, html); strings.ContainsAny(raw, "<>") {
+		t.Error("embedded JSON holds a raw < or >")
 	}
 	if !strings.Contains(html, "&lt;b&gt;") {
 		t.Error("HTML should contain the escaped name")

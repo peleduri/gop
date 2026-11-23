@@ -2,6 +2,7 @@ package report
 
 import (
 	"bytes"
+	"encoding/json"
 	"regexp"
 	"testing"
 
@@ -20,7 +21,16 @@ func TestGoldenReportHTML(t *testing.T) {
 	}
 	out := buf.Bytes()
 	assertSelfContained(t, out)
-	testutil.Golden(t, "report.html", out, ver)
+	// The embedded data is one JSON line; it gets its own indented golden so
+	// diffs stay readable, and report.html holds a placeholder in its place.
+	raw := embeddedJSON(t, string(out))
+	var pretty bytes.Buffer
+	if err := json.Indent(&pretty, []byte(raw), "", "  "); err != nil {
+		t.Fatal(err)
+	}
+	pretty.WriteByte('\n')
+	testutil.Golden(t, "report.html", bytes.Replace(out, []byte(raw), []byte("@@report.data.json@@"), 1), ver)
+	testutil.Golden(t, "report.data.json", pretty.Bytes(), ver)
 }
 
 func TestGoldenReportMarkdown(t *testing.T) {
