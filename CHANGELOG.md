@@ -7,6 +7,8 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-23
+
 ### Added
 
 - `gop mcp-config --client claude|cursor|vscode --graph PATH` prints the MCP
