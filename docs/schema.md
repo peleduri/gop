@@ -1,8 +1,8 @@
-# Graph schema: gop.graph/v1
+# Graph schema: gop.graph/v2
 
 `gop collect` writes a single JSON document (graph.json). The Go source of truth is [`internal/graph/types.go`](../internal/graph/types.go); this page describes the serialized form. Breaking changes bump `schema` (see [Versioning](#versioning)).
 
-The machine-checkable contract is the JSON Schema (draft 2020-12) [`schema/gop.graph.v1.schema.json`](../schema/gop.graph.v1.schema.json), `$id` `https://github.com/peleduri/gop/schema/gop.graph.v1.schema.json`. Check a file with:
+The machine-checkable contract is the JSON Schema (draft 2020-12) [`schema/gop.graph.v2.schema.json`](../schema/gop.graph.v2.schema.json), `$id` `https://github.com/peleduri/gop/schema/gop.graph.v2.schema.json`. Documents written before v2 follow [`schema/gop.graph.v1.schema.json`](../schema/gop.graph.v1.schema.json); gop still reads and validates them (see [Changes](#changes)). Check a file with:
 
 ```
 gop validate --graph graph.json [--format text|json]
@@ -14,12 +14,13 @@ gop validate --graph graph.json [--format text|json]
 
 | Field | Type | Meaning |
 |---|---|---|
-| `schema` | string | Always `gop.graph/v1` for this version. |
+| `schema` | string | `gop.graph/v2` for this version (gop also reads `gop.graph/v1`). |
 | `collected_at` | RFC 3339 time | When collection finished. |
 | `enterprise` | string | Enterprise slug, e.g. `acme`. |
 | `nodes` | Node[] | Vertices. |
 | `edges` | Edge[] | Directed facts. |
 | `coverage` | Coverage[] | What the token could not see, and how to fix it. |
+| `audit_retention_days` | integer | Optional. The audit log retention the `audit` facts were read under. When set, an `audit` edge older than half of it is stale (see [Evidence](#evidence)). |
 
 ## Evidence
 
@@ -28,8 +29,9 @@ Every node and edge has `evidence`:
 | Value | Meaning |
 |---|---|
 | `live` | Read from current state through the API. |
-| `audit` | Inferred from the audit log (bounded retention, may be stale). |
-| `supplied` | Read from a file the user supplied (a cloud OIDC trust policy given to `gop enrich --oidc-trust`); gop did not observe it live. Counts as confirmed reach (the user asserts the file reflects what is deployed), but a path through it has `supplied: true` and every summary of it says "cloud hop from supplied trust file <file>, not read from the cloud". A supplied edge has `source_api` `supplied:<file>` and `attrs.file`. Ranked between `audit` and `not_visible`: a path's evidence is its weakest hop, `live` > `audit` > `supplied` > `not_visible`. |
+| `inferred` | Derived from other observed facts by a documented rule, named in the edge's `attrs.rule`. Counts as confirmed reach. Rules: `default_perm` (members of an org push to every repo of it, from the org's default repository permission `write` or `admin`; not read from each repo's permission list) and `org_owner` (an org owner is admin on every repo of the org, from the owner list). New in v2. |
+| `audit` | Read from the audit log (bounded retention, may be stale). An `audit` edge whose `observed_at` is older than the maximum audit age before `collected_at` is **stale**: the engine treats the hop as `not_visible` (possible reach only, never a fix suggestion) and marks it (`Hop.stale`, `Path.stale`; text output `[audit, stale]`). The maximum age is half of `audit_retention_days` when set, else 90 days; `graph.Options.MaxAuditAge` overrides it. An edge without `observed_at` is never stale. |
+| `supplied` | Read from a file the user supplied (a cloud OIDC trust policy given to `gop enrich --oidc-trust`); gop did not observe it live. Counts as confirmed reach (the user asserts the file reflects what is deployed), but a path through it has `supplied: true` and every summary of it says "cloud hop from supplied trust file <file>, not read from the cloud". A supplied edge has `source_api` `supplied:<file>` and `attrs.file`. Ranked between `audit` and `not_visible`: a path's evidence is its weakest hop, `live` > `inferred` > `audit` > `supplied` > `not_visible`. |
 | `not_visible` | The token can't read this fact. The hop is unknown, not absent. |
 
 ## Node
@@ -155,8 +157,8 @@ Every `CAN_PUSH` edge carries `attrs.via`, so fixes know which edges they remove
 
 | `via` | From | Source | `permission` |
 |---|---|---|---|
-| `default_perm` | org_members | The org's default repository permission (`write` or `admin`). | the default permission |
-| `org_owner` | identity | An `Owner` role in the consumed licenses: owners are admin on every repo of the org. | `admin` |
+| `default_perm` | org_members | The org's default repository permission (`write` or `admin`). Evidence `inferred`, `attrs.rule=default_perm`. | the default permission |
+| `org_owner` | identity | An `Owner` role in the consumed licenses: owners are admin on every repo of the org. Evidence `inferred`, `attrs.rule=org_owner`. | `admin` |
 | `direct` | identity | A direct collaborator grant with push (`GET /repos/{owner}/{repo}/collaborators?affiliation=direct`, `permissions.push`, `maintain` or `admin`). | `role_name`, e.g. `write`, `maintain`, or a custom role such as `deployer` (then `attrs.base_role` holds its base role when the token can read the org's custom roles) |
 | `outside_collaborator` | identity | Same as `direct`, for a user listed by `GET /orgs/{org}/outside_collaborators` (not an org member). | as for `direct` |
 | `team` | team | A team repository grant with push (`GET /orgs/{org}/teams/{slug}/repos`, `permissions.push`, `maintain` or `admin`). | `role_name`, including custom roles |
@@ -268,7 +270,7 @@ The hop starts at the workflow, not at the repo's shared `oidc` node, because ea
 
 ```json
 {
-  "schema": "gop.graph/v1",
+  "schema": "gop.graph/v2",
   "collected_at": "2026-01-01T00:00:00Z",
   "enterprise": "acme",
   "nodes": [
@@ -294,20 +296,31 @@ The hop starts at the workflow, not at the repo's shared `oidc` node, because ea
 
 `schema` names the contract a file follows. Consumers should check it before reading anything else.
 
-Non-breaking within `gop.graph/v1` (no version change):
+Non-breaking within `gop.graph/v2` (no version change):
 
 - new optional fields on the top level, nodes, edges or coverage entries;
 - new attribute keys in `attrs` or `attr_evidence`;
 - new `coverage` facts and new `source_api` strings.
 
-Breaking, bumps `schema` to `gop.graph/v2`:
+Breaking, bumps `schema` to `gop.graph/v3`:
 
 - removing or renaming a field;
 - making an optional field required, or changing a field's type;
 - adding, removing or changing the meaning of an `evidence`, node `kind` or edge `kind` value;
 - changing ID conventions (prefixes or the shape after them).
 
-The JSON Schema allows unknown fields and attribute keys for this reason. Consumers must ignore attributes and fields they don't know rather than reject the file. A new major version ships as a new schema file (`schema/gop.graph.v2.schema.json`); `gop validate` keeps validating every version it lists as known.
+The JSON Schema allows unknown fields and attribute keys for this reason. Consumers must ignore attributes and fields they don't know rather than reject the file. A new major version ships as a new schema file (`schema/gop.graph.v2.schema.json` for v2); `gop validate` keeps validating every version it lists as known.
+
+## Changes
+
+### gop.graph/v1 -> gop.graph/v2
+
+v2 adds the evidence value `inferred`, the top-level field `audit_retention_days` and the edge attribute `rule`. Nothing was removed or renamed, so every v1 document is a valid v2 document.
+
+- Readers must accept `inferred` and count it as confirmed reach, ranked between `live` and `audit`. A v1 reader rejects a v2 graph that contains `inferred` (gop releases before v2 check evidence values).
+- v2 readers load v1: `graph.Load` accepts `gop.graph/v1`, upgrades it in memory (`schema` becomes `gop.graph/v2`, nothing else changes), and rejects a document that claims v1 but contains `inferred`. `gop validate` checks a v1 document against the v1 JSON Schema.
+- Collectors now write `default_perm` and `org_owner` `CAN_PUSH` edges as `inferred` with `attrs.rule`; they were `live` in v1. Confirmed reach is unchanged.
+- `audit` edges can be stale by age (see [Evidence](#evidence)). gop does not collect audit facts yet.
 
 ## Changelog
 
@@ -323,3 +336,4 @@ The JSON Schema allows unknown fields and attribute keys for this reason. Consum
 | `gop.graph/v1` | unreleased | Additive: node kind `external` (`external:anyone`), edge kind `CAN_TRIGGER` with `trigger`, `exec`, `job` and `detail`, `risky_triggers` on workflow nodes, coverage fact `triggering_principals`. New kinds would normally bump the version (see above); they stay in v1 because `graph.Load` does not check kinds and the engine ignores edge kinds it does not know, so older gop releases load the file and only miss these paths (an older `gop validate` reports the new kinds). |
 | `gop.graph/v1` | unreleased | Additive, still `gop.graph/v1` (before the first release that writes them): evidence value `supplied`; edge kind `CAN_ASSUME` (workflow → cloud_target) with `file`, `pointer`, `provider`, `oidc`, `matched_sub`, `claims`, `trust`, `reason`; `cloud_target` node attrs `provider`, `account`, `role`, `warnings`; coverage fact `cloud_trust`. Graphs without supplied trust files are unchanged. `graph.Load` checks evidence values, so a gop release older than this change rejects an enriched graph (run it on the graph from before `gop enrich`); the engine treats an edge kind it does not know as absent. |
 | `gop.graph/v1` | unreleased | Additive: `file`, `file_ref` and `line` on `CAN_TRIGGER` edges. |
+| `gop.graph/v2` | unreleased | Breaking: evidence value `inferred` (with edge attr `rule`), top-level `audit_retention_days`, stale `audit` facts. See [Changes](#changes). |

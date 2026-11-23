@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XD5I3NSRvK2iKx2Cu2n+sRSED5RmvnysfdjBJQWnJoE='; style-src 'sha256-MGdsLifK8Nbdii7KVq9HcbG04wqMmd/7vLm9vWHWEyE='; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-cFRRvmjrXxSywdJ2C65s9/Ul2S2lUfi9CdxwAO8Bkm0='; style-src 'sha256-XvxELaGM4TFoS2hjZ3nFOKpMDyxrubNBtdl6uR44HNc='; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>gop report: acme</title>
 <style>
@@ -34,7 +34,7 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertic
 th{color:var(--muted);font-weight:600}td.n{text-align:right;font-variant-numeric:tabular-nums}
 code{font:.85em ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
 .badge{display:inline-block;padding:0 6px;border-radius:10px;font-size:.75rem;font-weight:600;white-space:nowrap}
-.live{color:var(--live);background:var(--live-bg)}.audit{color:var(--audit);background:var(--audit-bg)}
+.live{color:var(--live);background:var(--live-bg)}.inferred{color:var(--live);background:var(--live-bg);border:1px dashed var(--live)}.audit{color:var(--audit);background:var(--audit-bg)}
 .nv{color:var(--nv);background:var(--nv-bg);border:1px dashed var(--nv)}
 .supplied{color:var(--accent);background:var(--card);border:1px solid var(--accent)}
 .path{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0}
@@ -63,7 +63,7 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 <section class="headline">
 <p class="big">Members of acme-actions can push code that runs in 12 repos across 2 orgs (confirmed), including 1 cloud OIDC trust, 1 secret scope, 1 self-hosted runner pool.</p>
 <p>Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 72% of confirmed reach.</p>
-<p class="note">Confirmed means every hop was read live or from the audit log. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent.</p>
+<p class="note">Confirmed means every hop was read live, <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent.</p>
 </section>
 
 <h2 id="top-risks">Top risks</h2>
@@ -117,21 +117,21 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 <h3><code>members:acme-actions</code></h3>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>oidc:acme-app/web</code></div>
-<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/orgs/{org}</span></li>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> <span class="src">rest:/orgs/{org}</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>workflow:acme-app/web/.github/workflows/ci.yml</code> → <code>oidc:acme-app/web</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>secret:acme-app/billing</code></div>
-<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/orgs/{org}</span></li>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> <span class="src">rest:/orgs/{org}</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>workflow:acme-app/billing/.github/workflows/ci.yml</code> → <code>secret:acme-app/billing</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>runner:acme-app/worker</code></div>
-<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/orgs/{org}</span></li>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> <span class="src">rest:/orgs/{org}</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>workflow:acme-app/worker/.github/workflows/ci.yml</code> → <code>runner:acme-app/worker</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
@@ -265,7 +265,7 @@ function code(t){return h("code","",t);}
 function clear(e){while(e.firstChild){e.removeChild(e.firstChild);}}
 function icon(t){var e=h("span","",t);e.setAttribute("aria-hidden","true");return e;}
 function badge(cls,t,txt){return h("span","badge "+cls,icon(t)," "+txt);}
-function evBadge(ev){var c=ev==="live"?"live":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv";return badge(c,c==="supplied"?"≡":c==="nv"?"?":"✓",ev);}
+function evBadge(ev){var c=ev==="live"?"live":ev==="inferred"?"inferred":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv";return badge(c,c==="supplied"?"≡":c==="inferred"?"≈":c==="nv"?"?":"✓",ev);}
 function pathBadge(p){return p.ev==="confirmed"?badge("live","✓","confirmed"):badge("nv","?","possible: a hop is not visible");}
 function table(cap,heads,tb){
 var tr=h("tr");

@@ -18,7 +18,7 @@ The demo snapshots in [`internal/diff/testdata`](../internal/diff/testdata) are 
 ```
 $ gop diff internal/diff/testdata/ref-unpinned/old.json internal/diff/testdata/ref-unpinned/new.json
 Since 2026-11-13: 2 new confirmed paths (1 to OIDC).
-acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
+acme (gop.graph/v2): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
 Confirmed (principal, repo) pairs: 3 → 4 (+1). Possible pairs: 0 → 0 (+0).
 
 Paths (2):
@@ -79,7 +79,7 @@ gop never turns "couldn't see" into "off". A setting that goes from a value to `
 ```
 $ gop diff internal/diff/testdata/lost-visibility/old.json internal/diff/testdata/lost-visibility/new.json
 Since 2026-11-13: 0 new confirmed paths, 3 lost visibility; acme-actions two_factor required → not visible (lost visibility).
-acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
+acme (gop.graph/v2): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
 Confirmed (principal, repo) pairs: 3 → 1 (-2). Possible pairs: 0 → 0 (+0). 2 confirmed pairs lost visibility or became possible: unknown, not fixed.
 ...
 Settings (1):

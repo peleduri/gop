@@ -18,10 +18,10 @@ Real output from the synthetic enterprise in [`testdata/acme/graph.json`](testda
 $ gop paths --graph testdata/acme/graph.json --from members:acme-actions
 members:acme-actions has confirmed paths to 29 nodes; 0 more possible
 
-Confirmed (every hop live or audit) (29):
+Confirmed (every hop live, inferred, audit or supplied) (29):
   ...
   members:acme-actions -> oidc:acme-app/web  [confirmed]
-      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/web/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> oidc:acme-app/web  source: contents:.github/workflows
@@ -126,7 +126,7 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 | `what_if` | Reach before and after hypothetical fixes: `pin_ref` (pin an action to a SHA), `lower_default_perm` (set an org's default permission to read or none), `restrict_token` (set a workflow's `GITHUB_TOKEN` to `contents: read`) or `harden_trigger` (stop a workflow from running attacker-controlled code on its risky triggers). |
 | `suggest_fixes` | A greedy plan: the fixes that remove the most confirmed (principal, repo) pairs, with the cumulative percentage. |
 | `fix_plan` | Concrete change steps for one fix (`fix`, or `suggestion_rank` from `suggest_fixes`): every workflow line to edit with a one-line diff, or the org setting with its REST call as text. gop never runs the steps. |
-| `explain` | Why an edge exists: evidence, `source_api`, `observed_at` and attributes. |
+| `explain` | Why an edge exists: evidence, `source_api`, `observed_at` and attributes, the `rule` of an `inferred` edge, and `age_days` and `stale` of an `audit` edge. |
 | `coverage` | What the token could not see, and the access that would make it visible. |
 | `diff` | What changed since a baseline snapshot (`gop serve --graph new.json --baseline old.json`): new and removed paths, settings, edges, score deltas and coverage, filterable by principal and target kind. Same report as `gop diff --format json`; lost visibility is never reported as a fix. |
 
@@ -136,7 +136,7 @@ Resources give an agent cheap context before its first tool call:
 
 | Resource | Contents |
 |---|---|
-| `gop://graph/summary` | Enterprise, `collected_at`, age in hours, schema, node and edge counts by kind, evidence mix (live, audit, not_visible), orgs with `default_perm`, `two_factor` and `sso`, and the top 5 principals by confirmed score (JSON). |
+| `gop://graph/summary` | Enterprise, `collected_at`, age in hours, schema, node and edge counts by kind, evidence mix (live, inferred, audit, not_visible), orgs with `default_perm`, `two_factor` and `sso`, and the top 5 principals by confirmed score (JSON). |
 | `gop://graph/coverage` | The `coverage` tool's answer (JSON). |
 | `gop://graph/schema` | Node ID conventions and edge semantics: [docs/schema.md](docs/schema.md) (Markdown). |
 | `gop://node/{+id}` | One node with its in and out edges, e.g. `gop://node/repo:acme-app/web` (JSON; the ID may be raw or percent-encoded). |
@@ -186,11 +186,12 @@ Every node and edge in the graph carries an evidence level:
 | Evidence | Meaning |
 |---|---|
 | `live` | Read from current state through the GitHub API. |
-| `audit` | Inferred from the enterprise audit log. Retention is bounded, so it may be stale or incomplete. The schema and engine support it; the collector does not read the audit log yet (planned). |
+| `inferred` | Derived from other observed facts by a documented rule, named in the edge's `rule` attribute. Members' push access from an org's default permission (`default_perm`) and an org owner's admin access to every repo (`org_owner`) are inferred: gop read the setting, not each repo's permission list. Counts as confirmed; double-check these hops first. |
+| `audit` | Read from the enterprise audit log. Retention is bounded, so it may be stale or incomplete: an audit fact older than half the recorded retention (90 days by default) counts as `not_visible`, and paths through it are marked stale. The schema and engine support it; the collector does not read the audit log yet (planned). |
 | `supplied` | Read from a file you supplied (a cloud OIDC trust policy, see [Paths out of GitHub](#paths-out-of-github)). gop did not observe it live. |
 | `not_visible` | The token cannot read this fact. The hop is **unknown, not absent**. |
 
-gop never turns "couldn't see" into "off". A path with any `not_visible` hop is **possible** reach and is never counted in headline numbers, scores or fix suggestions. A path where every hop is `live`, `audit` or `supplied` is **confirmed**; a path with a `supplied` hop is flagged and every summary of it names the file. The `coverage` list says what was missing and the access that would close the gap, for example "org owner on acme-legacy (SSO enforced: join through the identity provider first)".
+gop never turns "couldn't see" into "off". A path with any `not_visible` hop is **possible** reach and is never counted in headline numbers, scores or fix suggestions. A path where every hop is `live`, `inferred`, (recent) `audit` or `supplied` is **confirmed**; a path with a `supplied` hop is flagged and every summary of it names the file. The `coverage` list says what was missing and the access that would close the gap, for example "org owner on acme-legacy (SSO enforced: join through the identity provider first)".
 
 How the engine reasons, briefly: push access controls a repo; a repo controls the workflows defined in it and every Action it hosts on a mutable ref (a branch, a tag, or a ref gop could not classify: it never assumes a pin it did not see); an Action controls every workflow and composite Action that uses it; a controlled workflow runs in its repo's CI with that workflow's secrets, OIDC token and runners. Running CI in a repo is counted as reach, not as push access to it. The rules are documented at the top of [`internal/graph/reach.go`](internal/graph/reach.go).
 
@@ -355,7 +356,7 @@ See [docs/threat-model.md](docs/threat-model.md) and [docs/schema.md](docs/schem
 
 ![gop collect writes graph.json; the engine reads it and serves the MCP server, the CLI and the HTML report](docs/assets/architecture.svg)
 
-`gop collect` writes one JSON document (`gop.graph/v1`, [schema](docs/schema.md), [JSON Schema](schema/gop.graph.v1.schema.json); check a file with `gop validate`). Everything else reads that file: the engine indexes it once and answers reach, scoring, what-if and fix-planning queries for the MCP server, the CLI and the report. The fix planner is a budgeted greedy over grouped fixes, not an exact min-cut, and it never suggests a fix whose edges are all `not_visible`.
+`gop collect` writes one JSON document (`gop.graph/v2`, [schema](docs/schema.md), [JSON Schema](schema/gop.graph.v2.schema.json); check a file with `gop validate`; v1 graphs still load). Everything else reads that file: the engine indexes it once and answers reach, scoring, what-if and fix-planning queries for the MCP server, the CLI and the report. The fix planner is a budgeted greedy over grouped fixes, not an exact min-cut, and it never suggests a fix whose edges are all `not_visible`.
 
 Contributors: [docs/architecture.md](docs/architecture.md) has the package map, the data flow, the control-graph rules and the invariants to keep.
 
@@ -376,7 +377,7 @@ Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first: commi
 
 ## Status
 
-Alpha. The graph schema (`gop.graph/v1`) and CLI flags may change before v1.0.
+Alpha. The graph schema (`gop.graph/v2`) and CLI flags may change before v1.0.
 
 ## License
 

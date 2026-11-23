@@ -39,7 +39,7 @@ th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertic
 th{color:var(--muted);font-weight:600}td.n{text-align:right;font-variant-numeric:tabular-nums}
 code{font:.85em ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
 .badge{display:inline-block;padding:0 6px;border-radius:10px;font-size:.75rem;font-weight:600;white-space:nowrap}
-.live{color:var(--live);background:var(--live-bg)}.audit{color:var(--audit);background:var(--audit-bg)}
+.live{color:var(--live);background:var(--live-bg)}.inferred{color:var(--live);background:var(--live-bg);border:1px dashed var(--live)}.audit{color:var(--audit);background:var(--audit-bg)}
 .nv{color:var(--nv);background:var(--nv-bg);border:1px dashed var(--nv)}
 .supplied{color:var(--accent);background:var(--card);border:1px solid var(--accent)}
 .path{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0}
@@ -125,7 +125,7 @@ function code(t){return h("code","",t);}
 function clear(e){while(e.firstChild){e.removeChild(e.firstChild);}}
 function icon(t){var e=h("span","",t);e.setAttribute("aria-hidden","true");return e;}
 function badge(cls,t,txt){return h("span","badge "+cls,icon(t)," "+txt);}
-function evBadge(ev){var c=ev==="live"?"live":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv";return badge(c,c==="supplied"?"≡":c==="nv"?"?":"✓",ev);}
+function evBadge(ev){var c=ev==="live"?"live":ev==="inferred"?"inferred":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv";return badge(c,c==="supplied"?"≡":c==="inferred"?"≈":c==="nv"?"?":"✓",ev);}
 function pathBadge(p){return p.ev==="confirmed"?badge("live","✓","confirmed"):badge("nv","?","possible: a hop is not visible");}
 function table(cap,heads,tb){
 var tr=h("tr");

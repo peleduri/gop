@@ -13,7 +13,7 @@ import (
 // scoring principal. The optimized SuggestFixes must return exactly this.
 func suggestFixesNaive(ix *Index, budget int) []FixSuggestion {
 	pairs := func(fixes []Fix) int {
-		cg := ix.control(fixes)
+		cg := ix.control(fixes, 0)
 		n := 0
 		for _, p := range ix.ScoringPrincipals() {
 			n += len(ix.reach(cg, p).Confirmed.Repos)

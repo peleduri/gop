@@ -437,3 +437,37 @@ func diffLines(a, b string) string {
 	}
 	return out.String()
 }
+
+func TestInferredConfirmedStaleAuditNot(t *testing.T) {
+	at := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	wf := "workflow:acme/web/.github/workflows/ci.yml"
+	g := &graph.Graph{Schema: graph.SchemaVersion, CollectedAt: at, Enterprise: "acme",
+		Nodes: []graph.Node{
+			{ID: "members:acme", Kind: graph.KindOrgMembers, Name: "acme members", Evidence: graph.Live},
+			{ID: "identity:bob", Kind: graph.KindIdentity, Name: "bob", Evidence: graph.Live},
+			{ID: "repo:acme/web", Kind: graph.KindRepo, Name: "web", Evidence: graph.Live},
+			{ID: wf, Kind: graph.KindWorkflow, Name: "ci.yml", Evidence: graph.Live},
+			{ID: "secret:acme/web", Kind: graph.KindSecret, Name: "web", Evidence: graph.Live},
+		},
+		Edges: []graph.Edge{
+			{From: "members:acme", To: "repo:acme/web", Kind: graph.CanPush, Evidence: graph.Inferred, SourceAPI: "rest:/orgs/{org}",
+				ObservedAt: at, Attrs: map[string]string{graph.AttrVia: graph.ViaDefaultPerm, graph.AttrRule: graph.RuleDefaultPerm}},
+			{From: "identity:bob", To: "repo:acme/web", Kind: graph.CanPush, Evidence: graph.Audit, SourceAPI: "audit:repo.add_member",
+				ObservedAt: at.Add(-200 * 24 * time.Hour), Attrs: map[string]string{graph.AttrVia: graph.ViaDirect}},
+			{From: wf, To: "repo:acme/web", Kind: graph.DefinedIn, Evidence: graph.Live, SourceAPI: "test", ObservedAt: at},
+			{From: wf, To: "secret:acme/web", Kind: graph.ExecutesWith, Evidence: graph.Live, SourceAPI: "test", ObservedAt: at},
+		}}
+	out := export(t, g, Options{})
+	if !regexp.MustCompile(`evidence: 'inferred', confirmed: true,[^\n]*attr_rule: 'default_perm'`).MatchString(out) {
+		t.Errorf("inferred edge is not confirmed with its rule:\n%s", out)
+	}
+	if !regexp.MustCompile(`evidence: 'audit', confirmed: false, stale: true`).MatchString(out) {
+		t.Errorf("stale audit edge is not unconfirmed and stale:\n%s", out)
+	}
+	if !regexp.MustCompile(`\{from: 'identity:bob', to: 'secret:acme/web', props: \{confirmed: false,[^\n]*stale: true`).MatchString(out) {
+		t.Errorf("reach through the stale edge is not possible and stale:\n%s", out)
+	}
+	if !regexp.MustCompile(`\{from: 'members:acme', to: 'secret:acme/web', props: \{confirmed: true, evidence: 'inferred'`).MatchString(out) {
+		t.Errorf("reach through the inferred edge is not confirmed:\n%s", out)
+	}
+}

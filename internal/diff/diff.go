@@ -543,6 +543,8 @@ type edgeKey struct {
 func evRank(e graph.Evidence) int {
 	switch e {
 	case graph.Live:
+		return 3
+	case graph.Inferred:
 		return 2
 	case graph.Audit:
 		return 1

@@ -11,7 +11,10 @@ import (
 // WritePath prints one path as indented hops, each with its evidence and source.
 func WritePath(w io.Writer, p graph.Path) {
 	status := "confirmed"
-	if p.Unverified {
+	switch {
+	case p.Unverified && p.Stale:
+		status = "possible: a hop is not visible or stale"
+	case p.Unverified:
 		status = "possible: a hop is not visible"
 	}
 	fmt.Fprintf(w, "  %s -> %s  [%s]\n", p.From, p.To, status)
@@ -27,7 +30,7 @@ func WritePath(w io.Writer, p graph.Path) {
 		if h.SourceAPI != "" {
 			src = "  source: " + h.SourceAPI
 		}
-		fmt.Fprintf(w, "      %s =[%s, %s]=> %s%s\n", h.From, kind, EvidenceLabel(h.Evidence), h.To, src)
+		fmt.Fprintf(w, "      %s =[%s, %s]=> %s%s\n", h.From, kind, HopEvidenceLabel(h), h.To, src)
 		if h.Reason != "" {
 			fmt.Fprintf(w, "        undecided: %s\n", h.Reason)
 		}
@@ -52,7 +55,7 @@ func WriteWho(w io.Writer, o WhoCanReachOutput) {
 }
 
 // confirmedTitle heads the confirmed group in text output.
-const confirmedTitle = "Confirmed (every hop live, audit or supplied)"
+const confirmedTitle = "Confirmed (every hop live, inferred, audit or supplied)"
 
 // WritePaths prints a paths answer as text.
 func WritePaths(w io.Writer, o PathsOutput) {

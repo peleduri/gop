@@ -252,7 +252,8 @@ func refOf(actionID string) string {
 // graph rewrites g in the current mode.
 func (r *redactor) graph(g *graph.Graph) *graph.Graph {
 	out := &graph.Graph{Schema: g.Schema, Enterprise: r.enterprise(g.Enterprise), CollectedAt: r.time(g.CollectedAt),
-		Nodes: make([]graph.Node, 0, len(g.Nodes)), Edges: make([]graph.Edge, 0, len(g.Edges)), Coverage: make([]graph.Coverage, 0, len(g.Coverage))}
+		AuditRetentionDays: g.AuditRetentionDays,
+		Nodes:              make([]graph.Node, 0, len(g.Nodes)), Edges: make([]graph.Edge, 0, len(g.Edges)), Coverage: make([]graph.Coverage, 0, len(g.Coverage))}
 	for _, n := range g.Nodes {
 		out.Nodes = append(out.Nodes, r.node(n))
 	}

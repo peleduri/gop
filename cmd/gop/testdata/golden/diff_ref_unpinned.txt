@@ -1,5 +1,5 @@
 Since 2026-11-13: 2 new confirmed paths (1 to OIDC).
-acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
+acme (gop.graph/v2): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
 Confirmed (principal, repo) pairs: 3 → 4 (+1). Possible pairs: 0 → 0 (+0).
 
 Paths (2):

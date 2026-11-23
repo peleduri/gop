@@ -1,7 +1,7 @@
 Explain how members:acme-actions can make code run in oidc:acme-app/web, one hop at a time, with the gop tools.
 
 Rules for every answer:
-- Keep confirmed and possible separate. Confirmed means every hop was read live or from the audit log. Possible means at least one hop is not_visible: the path may exist but is unproven. Say which one each path is.
+- Keep confirmed and possible separate. Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not_visible: the path may exist but is unproven. Say which one each path is.
 - Never say a hop or setting is off or absent when it is not_visible. not_visible means the token could not read it: say "unknown (not visible)" and name the access that would make it visible (see the coverage tool).
 
 Steps:

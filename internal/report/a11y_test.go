@@ -31,7 +31,7 @@ func a11yPages(t *testing.T) map[string]string {
 	}
 }
 
-var evidenceClasses = []string{"live", "audit", "nv", "supplied"}
+var evidenceClasses = []string{"live", "inferred", "audit", "nv", "supplied"}
 
 func TestA11yStructure(t *testing.T) {
 	for name, page := range a11yPages(t) {

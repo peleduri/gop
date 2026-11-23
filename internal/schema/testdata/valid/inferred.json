@@ -1,0 +1,16 @@
+{
+  "schema": "gop.graph/v2",
+  "collected_at": "2026-11-20T10:00:00Z",
+  "enterprise": "acme",
+  "audit_retention_days": 180,
+  "nodes": [
+    {"id": "members:acme-app", "kind": "org_members", "name": "acme-app members", "evidence": "live"},
+    {"id": "repo:acme-app/web", "kind": "repo", "name": "web", "evidence": "live"},
+    {"id": "workflow:acme-app/web/.github/workflows/ci.yml", "kind": "workflow", "name": "ci.yml", "evidence": "audit"}
+  ],
+  "edges": [
+    {"from": "members:acme-app", "to": "repo:acme-app/web", "kind": "CAN_PUSH", "evidence": "inferred", "source_api": "rest:/orgs/{org}", "observed_at": "2026-11-20T10:00:00Z", "attrs": {"via": "default_perm", "rule": "default_perm", "permission": "write"}},
+    {"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "repo:acme-app/web", "kind": "DEFINED_IN", "evidence": "audit", "source_api": "rest:/repos/{owner}/{repo}/actions/workflows", "observed_at": "2026-06-01T10:00:00Z"}
+  ],
+  "coverage": []
+}

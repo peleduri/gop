@@ -1,5 +1,5 @@
 // Package schema validates graph.json against the published JSON Schema
-// (schema/gop.graph.v1.schema.json) plus the cross-references a schema can't
+// (schema/gop.graph.v2.schema.json, or v1 for older documents) plus the cross-references a schema can't
 // express. Validation is opt-in: graph.Load does not call it.
 package schema
 
@@ -41,7 +41,8 @@ type Result struct {
 
 // Known maps each schema version gop understands to its JSON Schema document.
 var Known = map[string][]byte{
-	graph.SchemaVersion: pub.GraphV1,
+	graph.SchemaVersion: pub.GraphV2,
+	graph.SchemaV1:      pub.GraphV1,
 }
 
 // KnownVersions returns the supported schema versions, sorted.

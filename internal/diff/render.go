@@ -74,6 +74,8 @@ func evLabel(ev graph.Evidence) string {
 	switch ev {
 	case graph.Live:
 		return "live"
+	case graph.Inferred:
+		return "inferred"
 	case graph.Audit:
 		return "audit"
 	case graph.Supplied:

@@ -18,7 +18,9 @@ import (
 // via=ref_bypass CAN_PUSH edges into action host repos,
 // parallel edges and cycles through nested USES, and actions_access levels on
 // action host repos. A few edge endpoints are left
-// undeclared so kind inference from the ID is exercised too.
+// undeclared so kind inference from the ID is exercised too. Audit edges get
+// random ages (some older than the maximum audit age, so they are stale), and
+// some graphs record an audit log retention that moves that maximum.
 //
 // ref_kind on USES edges always agrees with the ref in the action ID (a 40-hex
 // ref is "sha", "v1" is "tag", "main" is "branch") or is absent, as the
@@ -29,6 +31,9 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		size = 5
 	}
 	g := &Graph{Schema: SchemaVersion, Enterprise: "acme", CollectedAt: genTime}
+	if r.IntN(3) == 0 {
+		g.AuditRetentionDays = 400 // maximum audit age 200 days instead of 90
+	}
 	declared := map[string]bool{}
 	node := func(id string, kind NodeKind, attrs map[string]string) {
 		if declared[id] {
@@ -42,15 +47,19 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		}
 		g.Nodes = append(g.Nodes, Node{ID: id, Kind: kind, Name: id, Attrs: attrs, Evidence: Live})
 	}
-	evs := []Evidence{Live, Live, Live, Audit, Supplied, NotVisible, NotVisible}
+	evs := []Evidence{Live, Live, Live, Inferred, Audit, Audit, Supplied, NotVisible, NotVisible}
 	ev := func() Evidence { return evs[r.IntN(len(evs))] }
+	auditAges := []time.Duration{0, 10 * 24 * time.Hour, 120 * 24 * time.Hour, 300 * 24 * time.Hour}
 	edge := func(from, to string, kind EdgeKind, attrs map[string]string) {
 		src := fmt.Sprintf("test:%s:%d", kind, r.IntN(3))
 		if kind == CanAssume {
 			src = fmt.Sprintf("%strust/t%d.json", SourceSupplied, r.IntN(3))
 		}
-		g.Edges = append(g.Edges, Edge{From: from, To: to, Kind: kind, Evidence: ev(),
-			SourceAPI: src, ObservedAt: genTime, Attrs: attrs})
+		e := Edge{From: from, To: to, Kind: kind, Evidence: ev(), SourceAPI: src, ObservedAt: genTime, Attrs: attrs}
+		if e.Evidence == Audit {
+			e.ObservedAt = genTime.Add(-auditAges[r.IntN(len(auditAges))])
+		}
+		g.Edges = append(g.Edges, e)
 	}
 	pick := func(ids []string) string { return ids[r.IntN(len(ids))] }
 

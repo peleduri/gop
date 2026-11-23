@@ -8,17 +8,22 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
-// Load decodes a serialized Graph and checks its schema version.
+// Load decodes a serialized Graph and checks its schema version. It reads
+// SchemaVersion and SchemaV1 documents; a v1 document is upgraded in memory
+// (Schema becomes SchemaVersion, nothing else changes) and may not use the
+// inferred evidence level, which v1 does not define.
 func Load(r io.Reader) (*Graph, error) {
 	var g Graph
 	dec := json.NewDecoder(r)
 	if err := dec.Decode(&g); err != nil {
 		return nil, fmt.Errorf("graph: decode: %w", err)
 	}
-	if g.Schema != SchemaVersion {
-		return nil, fmt.Errorf("graph: unsupported schema %q (want %q)", g.Schema, SchemaVersion)
+	v1 := g.Schema == SchemaV1
+	if g.Schema != SchemaVersion && !v1 {
+		return nil, fmt.Errorf("graph: unsupported schema %q (want %q or %q)", g.Schema, SchemaVersion, SchemaV1)
 	}
 	for i, e := range g.Edges {
 		if e.From == "" || e.To == "" || e.Kind == "" {
@@ -26,10 +31,19 @@ func Load(r io.Reader) (*Graph, error) {
 		}
 		switch e.Evidence {
 		case Live, Audit, Supplied, NotVisible:
+		case Inferred:
+			if v1 {
+				return nil, fmt.Errorf("graph: edge %d (%s %s %s): evidence %q needs schema %q, the document claims %q",
+					i, e.From, e.Kind, e.To, e.Evidence, SchemaVersion, SchemaV1)
+			}
 		default:
 			return nil, fmt.Errorf("graph: edge %d (%s %s %s): bad evidence %q", i, e.From, e.Kind, e.To, e.Evidence)
 		}
 	}
+	if g.AuditRetentionDays < 0 {
+		return nil, fmt.Errorf("graph: audit_retention_days %d is negative", g.AuditRetentionDays)
+	}
+	g.Schema = SchemaVersion
 	return &g, nil
 }
 
@@ -50,7 +64,7 @@ type Index struct {
 	nodes map[string]Node
 	out   map[string][]Edge
 	in    map[string][]Edge
-	base  *controlGraph // control graph with no fixes applied
+	base  *controlGraph // control graph with no fixes applied, default audit age
 	gates []usesGate    // actions access gate per g.Edges index; nil when no repo has actions_access
 
 	fastOnce sync.Once
@@ -77,7 +91,7 @@ func NewIndex(g *Graph) *Index {
 		}
 	}
 	ix.gates = ix.usesGates()
-	ix.base = ix.buildControl(nil)
+	ix.base = ix.buildControl(nil, ix.MaxAuditAge(0))
 	return ix
 }
 
@@ -233,10 +247,13 @@ func sortedKeys(m map[string]bool) []string {
 	return out
 }
 
-// evRank orders evidence: not_visible (and unknown) < supplied < audit < live.
+// evRank orders evidence: not_visible (and unknown) < supplied < audit <
+// inferred < live.
 func evRank(e Evidence) int {
 	switch e {
 	case Live:
+		return 4
+	case Inferred:
 		return 3
 	case Audit:
 		return 2
@@ -247,9 +264,58 @@ func evRank(e Evidence) int {
 }
 
 // Verified reports whether a hop with this evidence counts toward confirmed
-// reach: live, audit, or supplied (from a user-supplied file; such paths
-// carry Path.Supplied).
-func Verified(e Evidence) bool { return e == Live || e == Audit || e == Supplied }
+// reach: live, inferred, audit, or supplied (from a user-supplied file; such
+// paths carry Path.Supplied). It is the single evidence test; an audit edge
+// can still be stale by age (see Index.EdgeVerified).
+func Verified(e Evidence) bool { return e == Live || e == Inferred || e == Audit || e == Supplied }
+
+// DefaultMaxAuditAge is how old an audit fact may be, relative to the graph's
+// CollectedAt, before it counts as stale when the graph does not record its
+// audit log retention.
+const DefaultMaxAuditAge = 90 * 24 * time.Hour
+
+// MaxAuditAge is the effective maximum audit age: override when it is
+// positive, else half of the graph's AuditRetentionDays when set, else
+// DefaultMaxAuditAge.
+func (ix *Index) MaxAuditAge(override time.Duration) time.Duration {
+	switch {
+	case override > 0:
+		return override
+	case ix.g.AuditRetentionDays > 0:
+		return time.Duration(ix.g.AuditRetentionDays) * 24 * time.Hour / 2
+	}
+	return DefaultMaxAuditAge
+}
+
+// AuditStale reports whether e is an audit edge observed more than maxAge
+// before the graph's CollectedAt. An edge or graph without a timestamp is
+// never stale: gop does not guess an age it did not record.
+func (ix *Index) AuditStale(e Edge, maxAge time.Duration) bool {
+	if e.Evidence != Audit || e.ObservedAt.IsZero() || ix.g.CollectedAt.IsZero() || maxAge <= 0 {
+		return false
+	}
+	return e.ObservedAt.Before(ix.g.CollectedAt.Add(-maxAge))
+}
+
+// AuditAgeDays is the whole number of days between e's ObservedAt and the
+// graph's CollectedAt (never negative), and false when either is unknown.
+func (ix *Index) AuditAgeDays(e Edge) (int, bool) {
+	if e.ObservedAt.IsZero() || ix.g.CollectedAt.IsZero() {
+		return 0, false
+	}
+	d := ix.g.CollectedAt.Sub(e.ObservedAt)
+	if d < 0 {
+		d = 0
+	}
+	return int(d / (24 * time.Hour)), true
+}
+
+// EdgeVerified reports whether the evidence edge counts toward confirmed
+// reach with the default audit age: Verified evidence, and not a stale audit
+// fact.
+func (ix *Index) EdgeVerified(e Edge) bool {
+	return Verified(e.Evidence) && !ix.AuditStale(e, ix.MaxAuditAge(0))
+}
 
 func weakest(a, b Evidence) Evidence {
 	if evRank(a) <= evRank(b) {

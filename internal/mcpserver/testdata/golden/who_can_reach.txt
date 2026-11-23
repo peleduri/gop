@@ -50,7 +50,7 @@
           "kind": "CAN_PUSH",
           "from": "members:acme-actions",
           "to": "repo:acme-actions/deploy",
-          "evidence": "live",
+          "evidence": "inferred",
           "source_api": "rest:/orgs/{org}"
         },
         {
@@ -77,7 +77,7 @@
           "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow"
         }
       ],
-      "evidence": "live",
+      "evidence": "inferred",
       "unverified": false
     }
   ],

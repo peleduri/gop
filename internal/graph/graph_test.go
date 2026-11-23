@@ -893,3 +893,155 @@ func TestSuggestFixesPicksRestrictToken(t *testing.T) {
 		t.Errorf("after %s alice reaches %v", sug[0].FixID, r.Confirmed.Repos)
 	}
 }
+
+func TestLoadV1V2(t *testing.T) {
+	// v1 documents load unchanged and are upgraded in memory.
+	v1, err := LoadFile("../../testdata/acme/graph.v1.json")
+	if err != nil {
+		t.Fatalf("v1 fixture: %v", err)
+	}
+	if v1.Schema != SchemaVersion {
+		t.Errorf("v1 schema after load = %q, want %q", v1.Schema, SchemaVersion)
+	}
+	v2 := loadAcme(t)
+	inferred := 0
+	for _, e := range v2.Edges {
+		if e.Evidence == Inferred {
+			inferred++
+		}
+	}
+	if inferred == 0 {
+		t.Fatal("v2 fixture should carry inferred edges")
+	}
+	if len(v1.Edges) != len(v2.Edges) || len(v1.Nodes) != len(v2.Nodes) {
+		t.Errorf("v1 and v2 fixtures differ in size: %d/%d edges, %d/%d nodes", len(v1.Edges), len(v2.Edges), len(v1.Nodes), len(v2.Nodes))
+	}
+
+	edge := `{"from":"members:acme","to":"repo:acme/web","kind":"CAN_PUSH","evidence":"inferred","source_api":"rest:/orgs/{org}","attrs":{"via":"default_perm","rule":"default_perm"}}`
+	if _, err := Load(strings.NewReader(`{"schema":"gop.graph/v2","edges":[` + edge + `]}`)); err != nil {
+		t.Errorf("v2 with inferred: %v", err)
+	}
+	_, err = Load(strings.NewReader(`{"schema":"gop.graph/v1","edges":[` + edge + `]}`))
+	if err == nil || !strings.Contains(err.Error(), `evidence "inferred" needs schema "gop.graph/v2"`) || !strings.Contains(err.Error(), `claims "gop.graph/v1"`) {
+		t.Errorf("v1 with inferred: err = %v", err)
+	}
+	if _, err := Load(strings.NewReader(`{"schema":"gop.graph/v2","audit_retention_days":-1}`)); err == nil {
+		t.Error("negative audit_retention_days accepted")
+	}
+}
+
+func TestInferredIsConfirmed(t *testing.T) {
+	g := loadAcme(t)
+	before := Reach(g, "members:acme-actions", Options{})
+	// The same graph with every inferred edge read live: confirmed reach is
+	// the same, only the evidence label differs.
+	live := *g
+	live.Edges = append([]Edge(nil), g.Edges...)
+	for i := range live.Edges {
+		if live.Edges[i].Evidence == Inferred {
+			live.Edges[i].Evidence = Live
+		}
+	}
+	after := Reach(&live, "members:acme-actions", Options{})
+	if !reflect.DeepEqual(before.Confirmed, after.Confirmed) || !reflect.DeepEqual(before.Possible, after.Possible) {
+		t.Errorf("inferred changed reach: confirmed %+v vs %+v", before.Confirmed, after.Confirmed)
+	}
+	p := before.Paths["repo:acme-actions/deploy"]
+	if p.Unverified || p.Evidence != Inferred || len(p.Hops) != 1 || p.Hops[0].Evidence != Inferred {
+		t.Errorf("default-perm path = %+v, want one confirmed inferred hop", p)
+	}
+	if !Verified(Inferred) || evRank(Inferred) <= evRank(Audit) || evRank(Inferred) >= evRank(Live) {
+		t.Error("inferred must be verified and rank between audit and live")
+	}
+	if weakest(Live, Inferred) != Inferred || weakest(Inferred, Audit) != Audit {
+		t.Error("weakest does not order inferred between live and audit")
+	}
+}
+
+// staleGraph: identity:bob -CAN_PUSH(audit, observed age before collection)->
+// repo:acme/web <-DEFINED_IN(live)- workflow -EXECUTES_WITH(live)-> secret.
+func staleGraph(age time.Duration, retentionDays int) *Graph {
+	at := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	wf := "workflow:acme/web/.github/workflows/ci.yml"
+	return &Graph{Schema: SchemaVersion, CollectedAt: at, Enterprise: "acme", AuditRetentionDays: retentionDays,
+		Edges: []Edge{
+			{From: "identity:bob", To: "repo:acme/web", Kind: CanPush, Evidence: Audit, SourceAPI: "audit:repo.add_member",
+				ObservedAt: at.Add(-age), Attrs: map[string]string{AttrVia: ViaDirect}},
+			{From: wf, To: "repo:acme/web", Kind: DefinedIn, Evidence: Live, SourceAPI: "test", ObservedAt: at},
+			{From: wf, To: "secret:acme/web", Kind: ExecutesWith, Evidence: Live, SourceAPI: "test", ObservedAt: at},
+		}}
+}
+
+func TestStaleAuditIsPossible(t *testing.T) {
+	const day = 24 * time.Hour
+	stale := Reach(staleGraph(200*day, 0), "identity:bob", Options{MaxAuditAge: 90 * day})
+	if len(stale.Confirmed.Repos) != 0 || !slices.Equal(stale.Possible.Repos, []string{"repo:acme/web"}) ||
+		!slices.Equal(stale.Possible.Secrets, []string{"secret:acme/web"}) {
+		t.Errorf("200d audit: confirmed %+v possible %+v, want everything possible", stale.Confirmed, stale.Possible)
+	}
+	p := stale.Paths["repo:acme/web"]
+	if !p.Stale || !p.Unverified || len(p.Hops) != 1 || !p.Hops[0].Stale || p.Hops[0].Evidence != NotVisible {
+		t.Errorf("stale path = %+v", p)
+	}
+	if !stale.Paths["secret:acme/web"].Stale {
+		t.Errorf("downstream path should be stale: %+v", stale.Paths["secret:acme/web"])
+	}
+
+	fresh := Reach(staleGraph(10*day, 0), "identity:bob", Options{MaxAuditAge: 90 * day})
+	if !slices.Equal(fresh.Confirmed.Repos, []string{"repo:acme/web"}) || len(fresh.Possible.Repos) != 0 {
+		t.Errorf("10d audit: confirmed %+v possible %+v, want confirmed", fresh.Confirmed, fresh.Possible)
+	}
+	if p := fresh.Paths["repo:acme/web"]; p.Stale || p.Unverified || p.Evidence != Audit {
+		t.Errorf("fresh path = %+v", p)
+	}
+
+	// Defaults: 90 days, or half the recorded audit retention.
+	if r := Reach(staleGraph(100*day, 0), "identity:bob", Options{}); len(r.Confirmed.Repos) != 0 {
+		t.Errorf("100d audit with the 90d default is confirmed: %+v", r.Confirmed)
+	}
+	if r := Reach(staleGraph(100*day, 400), "identity:bob", Options{}); len(r.Confirmed.Repos) != 1 {
+		t.Errorf("100d audit with 400d retention (200d max) is not confirmed: %+v", r.Possible)
+	}
+	if r := Reach(staleGraph(100*day, 400), "identity:bob", Options{MaxAuditAge: 30 * day}); len(r.Confirmed.Repos) != 0 {
+		t.Errorf("MaxAuditAge overrides the retention: %+v", r.Confirmed)
+	}
+	// No timestamp, no age: never stale.
+	g := staleGraph(200*day, 0)
+	g.Edges[0].ObservedAt = time.Time{}
+	if r := Reach(g, "identity:bob", Options{}); len(r.Confirmed.Repos) != 1 {
+		t.Errorf("audit edge without observed_at should stay confirmed: %+v", r.Possible)
+	}
+
+	// acme-legacy's audit facts are recent: same classification as before
+	// (possible through the not_visible push hop, never stale).
+	for id, lp := range Reach(loadAcme(t), "members:acme-legacy", Options{}).Paths {
+		if lp.Stale {
+			t.Errorf("acme-legacy path to %s is stale: %+v", id, lp)
+		}
+	}
+}
+
+func TestCandidatesSkipStaleAudit(t *testing.T) {
+	const day = 24 * time.Hour
+	at := time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC)
+	g := func(age time.Duration) *Graph {
+		return &Graph{Schema: SchemaVersion, CollectedAt: at, Edges: []Edge{
+			{From: "members:acme", To: "repo:acme/web", Kind: CanPush, Evidence: Audit, SourceAPI: "audit:org.update_default_repository_permission",
+				ObservedAt: at.Add(-age), Attrs: map[string]string{AttrVia: ViaDefaultPerm}},
+		}}
+	}
+	has := func(fs []Fix) bool {
+		for _, f := range fs {
+			if f.ID() == "default_perm:org:acme->read" {
+				return true
+			}
+		}
+		return false
+	}
+	if !has(NewIndex(g(10 * day)).Candidates()) {
+		t.Error("fresh audit edge: lower default perm should be a candidate")
+	}
+	if has(NewIndex(g(200 * day)).Candidates()) {
+		t.Error("stale audit edge: lower default perm must not be a candidate")
+	}
+}

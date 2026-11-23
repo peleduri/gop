@@ -4,11 +4,14 @@ import "html/template"
 
 // evIcon is the icon shown before every evidence label, so evidence never
 // depends on color alone: a check for what was read, a question mark for
-// what was not visible, a page for a supplied file.
+// what was not visible, a page for a supplied file, an approximately-equal
+// sign for a fact inferred from other observed facts.
 func evIcon(class string) string {
 	switch class {
 	case "live", "audit":
 		return "✓"
+	case "inferred":
+		return "≈"
 	case "supplied":
 		return "≡"
 	}
@@ -61,7 +64,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{if .FixLine}}<p>{{.FixLine}}</p>{{end}}
 {{- if .PinLine}}
 <p>{{.PinLine}}</p>{{end}}
-<p class="note">Confirmed means every hop was read live or from the audit log{{if .HasCloud}}, or (a cloud hop) from a <span class="badge supplied"><span aria-hidden="true">≡</span> supplied file</span>: a cloud trust policy you supplied, not read from the cloud{{end}}. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent.</p>
+<p class="note">Confirmed means every hop was read live, <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> from other observed facts by a documented rule, or read from a recent audit log entry{{if .HasCloud}}, or (a cloud hop) from a <span class="badge supplied"><span aria-hidden="true">≡</span> supplied file</span>: a cloud trust policy you supplied, not read from the cloud{{end}}. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent.</p>
 </section>
 
 <h2 id="top-risks">Top risks</h2>

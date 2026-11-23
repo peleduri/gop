@@ -10,12 +10,12 @@ Since 2026-11-13: 0 new confirmed paths, 3 lost visibility; acme-actions two_fac
     "old": {
       "enterprise": "acme",
       "collected_at": "2026-11-13T10:00:00Z",
-      "schema": "gop.graph/v1"
+      "schema": "gop.graph/v2"
     },
     "new": {
       "enterprise": "acme",
       "collected_at": "2026-11-20T10:00:00Z",
-      "schema": "gop.graph/v1"
+      "schema": "gop.graph/v2"
     },
     "paths": [
       {

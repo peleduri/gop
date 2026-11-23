@@ -111,7 +111,7 @@ func (ix *Index) buildFast() *fastIndex {
 		tags  []string
 	}
 	ov := map[ckey]*overlay{}
-	ix.buildControlRec(nil, func(ce cedge, e Edge) {
+	ix.buildControlRec(nil, ix.MaxAuditAge(0), func(ce cedge, e Edge) {
 		if !Verified(ce.hop.Evidence) {
 			return
 		}

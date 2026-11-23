@@ -242,8 +242,8 @@ func Generate(opts Options) *graph.Graph {
 			continue
 		}
 		for _, r := range repos[o] {
-			g.edge("members:"+o, graph.CanPush, r, graph.Live, ruleDefault,
-				map[string]string{graph.AttrVia: graph.ViaDefaultPerm, "permission": "write"})
+			g.edge("members:"+o, graph.CanPush, r, graph.Inferred, ruleDefault,
+				map[string]string{graph.AttrVia: graph.ViaDefaultPerm, graph.AttrRule: graph.RuleDefaultPerm, "permission": "write"})
 		}
 	}
 

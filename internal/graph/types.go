@@ -6,7 +6,12 @@ package graph
 import "time"
 
 // SchemaVersion is bumped on any breaking change to the serialized Graph.
-const SchemaVersion = "gop.graph/v1"
+// v2 added the inferred evidence level; Load still reads SchemaV1 documents.
+const SchemaVersion = "gop.graph/v2"
+
+// SchemaV1 is the previous version. Load accepts it and upgrades it in memory:
+// a v1 document is a valid v2 document, except that it may not use inferred.
+const SchemaV1 = "gop.graph/v1"
 
 // Evidence says how a fact was observed. gop never turns "couldn't see" into "off".
 type Evidence string
@@ -14,7 +19,14 @@ type Evidence string
 const (
 	// Live: read from the current state through the API.
 	Live Evidence = "live"
-	// Audit: inferred from the audit log (bounded retention, may be stale).
+	// Inferred: derived from other observed facts by a documented rule (the
+	// edge's Attrs[AttrRule] names it), e.g. members' push access from the
+	// org's default repository permission. Counts toward confirmed reach.
+	// Ranked between live and audit. Requires gop.graph/v2.
+	Inferred Evidence = "inferred"
+	// Audit: read from the audit log (bounded retention, may be stale). An
+	// audit edge older than the graph's maximum audit age (see Options.MaxAuditAge)
+	// is stale: it counts as not visible, so it can give possible reach only.
 	Audit Evidence = "audit"
 	// NotVisible: the token can't read this fact. The hop is unknown, not absent.
 	NotVisible Evidence = "not_visible"
@@ -123,6 +135,9 @@ type Graph struct {
 	Nodes       []Node     `json:"nodes"`
 	Edges       []Edge     `json:"edges"`
 	Coverage    []Coverage `json:"coverage"`
+	// AuditRetentionDays is the audit log retention the audit facts were read
+	// under. When set, audit edges older than half of it are stale by default.
+	AuditRetentionDays int `json:"audit_retention_days,omitempty"`
 }
 
 // Org attribute keys (Node.Attrs on KindOrg). Values are strings for a flat JSON shape.
@@ -220,6 +235,14 @@ const (
 	ViaRefBypass           = "ref_bypass"           // may land code alone on a protected branch (Attrs[AttrRef]): a ruleset bypass actor, a classic bypass allowance or push restriction, or a repo admin when admins are not enforced
 	ViaTokenWrite          = "token_write"          // workflow -> its own repo: the workflow's GITHUB_TOKEN has contents: write (Attrs["jobs"] lists the jobs)
 	ViaUnknown             = "unknown"              // not_visible edge: members of a host org may push to a repo gop did not collect (outside --orgs, archived or not listed for the token)
+)
+
+// AttrRule on an inferred edge names the rule that derived it. Rule IDs are
+// the CAN_PUSH via values they come from.
+const (
+	AttrRule        = "rule"
+	RuleDefaultPerm = ViaDefaultPerm // members:X -CAN_PUSH-> every repo of X, from the org's default permission write or admin
+	RuleOrgOwner    = ViaOrgOwner    // identity -CAN_PUSH-> every repo of an org it owns
 )
 
 // Branch protection of mutable action refs (on action_ref nodes with

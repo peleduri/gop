@@ -176,6 +176,20 @@ flags may change in minor releases.
 
 ### Changed
 
+- Graph schema `gop.graph/v2` (breaking): a new evidence level `inferred` for
+  facts derived from other observed facts by a documented rule, named in the
+  edge's `rule` attribute. Members' push access from an org's default
+  permission (`rule=default_perm`) and org owners' admin access to every repo
+  (`rule=org_owner`) are now `inferred` instead of `live`; confirmed reach is
+  unchanged. gop still loads and validates `gop.graph/v1` graphs (upgraded in
+  memory) and rejects a v1 document that uses `inferred`. JSON Schema:
+  `schema/gop.graph.v2.schema.json`. Migration notes in `docs/schema.md`.
+- `audit` facts now age out: an audit edge older than the maximum audit age
+  (half of the new optional `audit_retention_days`, else 90 days; override
+  with `graph.Options.MaxAuditAge`) counts as not visible, so it gives
+  possible reach only, is never a fix candidate, and its path is marked
+  `stale` (text output `[audit, stale]`). `explain` prints the `rule` of an
+  inferred edge and `age_days` and `stale` of an audit edge.
 - `--github-url` on `gop doctor` and `gop pin` now takes the instance URL
   (`https://HOST`); a REST root ending in `/api/v3` still works.
 - `gop diff` refuses snapshots from different GitHub hosts (enterprise

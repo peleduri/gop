@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/peleduri/gop/schema/gop.graph.v2.schema.json",
+  "title": "gop evidence graph (gop.graph/v2)",
+  "description": "graph.json written by gop collect. The Go source of truth is internal/graph/types.go. Unknown fields and attribute keys are allowed so additive changes stay within v2; consumers must ignore what they do not know.",
+  "type": "object",
+  "required": ["schema", "collected_at", "enterprise", "nodes", "edges", "coverage"],
+  "properties": {
+    "schema": {
+      "description": "Schema version of this document.",
+      "const": "gop.graph/v2"
+    },
+    "collected_at": {
+      "description": "When collection finished (RFC 3339).",
+      "type": "string",
+      "format": "date-time"
+    },
+    "enterprise": {
+      "description": "Enterprise slug, e.g. acme.",
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/Node"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/Edge"}
+    },
+    "coverage": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/Coverage"}
+    },
+    "audit_retention_days": {
+      "description": "Audit log retention (days) the audit facts were read under. When set, audit edges older than half of it are stale by default.",
+      "type": "integer"
+    }
+  },
+  "$defs": {
+    "Evidence": {
+      "description": "How a fact was observed. inferred means derived from other observed facts by a documented rule (attrs.rule names it); it counts as confirmed. not_visible means unknown, not absent. supplied means read from a file the user supplied (a cloud OIDC trust policy); gop did not observe it live.",
+      "type": "string",
+      "enum": ["live", "inferred", "audit", "supplied", "not_visible"]
+    },
+    "NodeKind": {
+      "type": "string",
+      "enum": ["enterprise", "org", "org_members", "identity", "repo", "workflow", "action_ref", "secret", "oidc", "runner", "cloud_target", "external"]
+    },
+    "EdgeKind": {
+      "type": "string",
+      "enum": ["CAN_PUSH", "USES", "RESOLVES_TO", "DEFINED_IN", "EXECUTES_WITH", "MEMBER_OF", "CAN_TRIGGER", "CAN_ASSUME"]
+    },
+    "Attrs": {
+      "description": "Flat string attributes. Unknown keys are allowed.",
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "Node": {
+      "type": "object",
+      "required": ["id", "kind", "name", "evidence"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"$ref": "#/$defs/NodeKind"},
+        "name": {"type": "string"},
+        "attrs": {"$ref": "#/$defs/NodeAttrs"},
+        "evidence": {"$ref": "#/$defs/Evidence"},
+        "attr_evidence": {
+          "description": "Per-attribute evidence where it differs from evidence.",
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/Evidence"}
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "enterprise"}}}, "then": {"properties": {"id": {"pattern": "^enterprise:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "org"}}}, "then": {"properties": {"id": {"pattern": "^org:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "org_members"}}}, "then": {"properties": {"id": {"pattern": "^members:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "identity"}}}, "then": {"properties": {"id": {"pattern": "^(identity:.+|team:[^/]+/[^/]+)$"}}}},
+        {"if": {"properties": {"kind": {"const": "repo"}}}, "then": {"properties": {"id": {"pattern": "^repo:[^/]+/[^/]+$"}}}},
+        {"if": {"properties": {"kind": {"const": "workflow"}}}, "then": {"properties": {"id": {"pattern": "^workflow:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "action_ref"}}}, "then": {"properties": {"id": {"pattern": "^action:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "secret"}}}, "then": {"properties": {"id": {"pattern": "^secret:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "oidc"}}}, "then": {"properties": {"id": {"pattern": "^oidc:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "runner"}}}, "then": {"properties": {"id": {"pattern": "^runner:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "cloud_target"}}}, "then": {"properties": {"id": {"pattern": "^cloud:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "external"}}}, "then": {"properties": {"id": {"pattern": "^external:.+"}}}}
+      ]
+    },
+    "Edge": {
+      "type": "object",
+      "required": ["from", "to", "kind", "evidence", "source_api", "observed_at"],
+      "properties": {
+        "from": {"type": "string", "minLength": 1},
+        "to": {"type": "string", "minLength": 1},
+        "kind": {"$ref": "#/$defs/EdgeKind"},
+        "evidence": {"$ref": "#/$defs/Evidence"},
+        "source_api": {"type": "string"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "attrs": {"$ref": "#/$defs/EdgeAttrs"}
+      }
+    },
+    "NodeAttrs": {
+      "description": "Node attributes. Known keys are typed below; unknown keys are allowed.",
+      "allOf": [{"$ref": "#/$defs/Attrs"}],
+      "properties": {
+        "ref_protected": {"description": "action_ref on a branch: whether branch protection stops a pusher from changing it alone.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "ref_protection": {"description": "Comma list of the branch's rules, e.g. reviews,dismiss_stale,status_checks.", "type": "string", "minLength": 1},
+        "bypass": {"description": "Comma list of principal IDs that can land code on the protected branch, or move the immutable tag, alone; none, or unknown.", "type": "string", "minLength": 1},
+        "ref_kind_source": {"description": "action_ref: api when ref_kind was looked up, name when it is the name heuristic (a fallback).", "type": "string", "enum": ["api", "name"]},
+        "ref_ambiguous": {"description": "action_ref: the ref name is both a tag and a branch (ref_kind is then branch).", "type": "string", "enum": ["true"]},
+        "ref_immutable": {"description": "action_ref with ref_kind=tag from the API: whether pushing alone cannot move the tag.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "ref_immutable_reason": {"description": "Why ref_immutable is true: an immutable release, or a tag ruleset with update and deletion rules.", "type": "string", "enum": ["immutable_release", "tag_ruleset"]},
+        "token_write": {"description": "workflow: whether its GITHUB_TOKEN has contents: write on its own repo (unknown when the default workflow permissions are not visible).", "type": "string", "enum": ["true", "false", "unknown"]},
+        "token_scopes": {"description": "workflow: comma list of the token's other write scopes, e.g. id-token,packages, or write-all. Display only.", "type": "string", "minLength": 1},
+        "risky_triggers": {"description": "workflow: comma list of its triggers that run in the base repo's context on events people without push access can cause (pull_request_target, workflow_run, issue_comment, ...).", "type": "string", "minLength": 1},
+        "actions_access": {"description": "Repo hosting a referenced action: its Actions access setting (who outside the repo may use its actions), public for public repos, or unknown.", "type": "string", "enum": ["none", "user", "organization", "enterprise", "public", "unknown"]},
+        "provider": {"description": "cloud_target: aws, gcp or azure.", "type": "string", "enum": ["aws", "gcp", "azure"]},
+        "source": {"description": "Where the node's facts came from: the API label on an org found outside the enterprise listing; cartography on a cloud_target that a CAN_ASSUME edge from a Cartography export points to.", "type": "string", "minLength": 1},
+        "account": {"description": "cloud_target: AWS account, GCP project or Azure subscription, when the trust file names it.", "type": "string", "minLength": 1},
+        "role": {"description": "cloud_target: role name, GCP service account or Azure identity.", "type": "string", "minLength": 1},
+        "warnings": {"description": "cloud_target: comma list of risk codes from the trust, e.g. no_sub_condition, no_aud_condition, wildcard_owner, unparsed_condition.", "type": "string", "minLength": 1}
+      }
+    },
+    "EdgeAttrs": {
+      "description": "Edge attributes. Known keys are typed below; unknown keys are allowed.",
+      "allOf": [{"$ref": "#/$defs/Attrs"}],
+      "properties": {
+        "rule": {"description": "Inferred edges: the rule that derived the fact from other observed facts, e.g. default_perm, org_owner.", "type": "string", "minLength": 1},
+        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator, team, ref_bypass, token_write, unknown (not_visible edges to repos gop did not collect). New values may be added within v2.", "type": "string", "minLength": 1},
+        "jobs": {"description": "Comma list of job ids: those a via=token_write CAN_PUSH edge comes from, or those that can mint the token on an EXECUTES_WITH edge to oidc.", "type": "string", "minLength": 1},
+        "environments": {"description": "EXECUTES_WITH to oidc: comma list of the id-token jobs' environment names; *dynamic* for an expression.", "type": "string", "minLength": 1},
+        "job_workflow_ref": {"description": "EXECUTES_WITH to oidc: comma list of called reusable workflows that mint the token, as owner/repo/path@ref.", "type": "string", "minLength": 1},
+        "repository": {"description": "EXECUTES_WITH to oidc: the token's repository claim, owner/repo.", "type": "string", "minLength": 1},
+        "repository_owner": {"description": "EXECUTES_WITH to oidc: the token's repository_owner claim.", "type": "string", "minLength": 1},
+        "ref": {"description": "Branch or tag a via=ref_bypass CAN_PUSH edge applies to.", "type": "string", "minLength": 1},
+        "ref_kind": {"type": "string", "enum": ["sha", "tag", "branch"]},
+        "file": {"description": "Repo-relative path of the workflow or action file the edge was read from.", "type": "string", "minLength": 1},
+        "file_ref": {"description": "Commit or branch the file was read at, when known.", "type": "string"},
+        "line": {"description": "1-based line, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
+        "col": {"description": "1-based column, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
+        "trigger": {"description": "CAN_TRIGGER: the risky trigger the principal can cause, e.g. pull_request_target.", "type": "string", "minLength": 1},
+        "exec": {"description": "CAN_TRIGGER: how the workflow runs attacker input.", "type": "string", "enum": ["checkout", "injection"]},
+        "consumer_org": {"description": "USES edge into an enterprise-hosted action: org of the using workflow or action.", "type": "string", "minLength": 1},
+        "matched_sub": {"description": "CAN_ASSUME: comma list of the trust's sub patterns that matched.", "type": "string", "minLength": 1},
+        "claims": {"description": "CAN_ASSUME: comma list of the claims the trust checks.", "type": "string", "minLength": 1},
+        "pointer": {"description": "CAN_ASSUME: JSON pointer of the trust inside the supplied file.", "type": "string"},
+        "provider": {"description": "CAN_ASSUME: aws, gcp or azure.", "type": "string", "enum": ["aws", "gcp", "azure"]},
+        "oidc": {"description": "CAN_ASSUME: the oidc node whose token the trust matches.", "type": "string", "pattern": "^oidc:.+"},
+        "reason": {"description": "CAN_ASSUME with evidence not_visible: why gop cannot decide the match.", "type": "string", "minLength": 1},
+        "trust": {"description": "CAN_ASSUME: the trust's own target when it names more than the cloud_target (an Azure federated credential).", "type": "string", "minLength": 1},
+        "source": {"description": "CAN_ASSUME: cartography when the trust came from a Cartography export (gop enrich --cartography); absent for trust files.", "type": "string", "minLength": 1},
+        "observed_use": {"description": "CAN_ASSUME: CloudTrail, through a Cartography export, saw a workflow of this repo assume the role.", "type": "string", "enum": ["true"]},
+        "times_used": {"description": "CAN_ASSUME with observed_use: number of AssumeRoleWithWebIdentity calls in Cartography's CloudTrail window, integer as string.", "type": "string", "pattern": "^[0-9]+$"},
+        "last_used": {"description": "CAN_ASSUME with observed_use: time of the last such call, as the export gives it.", "type": "string", "minLength": 1}
+      }
+    },
+    "Coverage": {
+      "type": "object",
+      "required": ["scope", "fact", "reason", "needs_fix"],
+      "properties": {
+        "scope": {"type": "string"},
+        "fact": {"type": "string"},
+        "reason": {"type": "string"},
+        "needs_fix": {"type": "string"}
+      }
+    }
+  }
+}

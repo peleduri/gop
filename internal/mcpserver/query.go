@@ -1,7 +1,7 @@
 // Package mcpserver answers gop's graph questions. Engine holds the query
 // logic shared by the MCP server (NewServer, Serve) and the CLI (gop paths,
-// gop who). Every answer keeps confirmed reach (every hop live, audit or
-// supplied) apart from possible reach (at least one hop not_visible);
+// gop who). Every answer keeps confirmed reach (every hop live, inferred,
+// fresh audit or supplied) apart from possible reach (at least one hop not_visible);
 // summaries lead with confirmed numbers. A summary that includes a path
 // through a supplied trust file says so (graph.Path.SuppliedNote).
 package mcpserver
@@ -202,7 +202,7 @@ type WhoCanReachInput struct {
 type WhoCanReachOutput struct {
 	Summary   string       `json:"summary"`
 	Target    string       `json:"target"`
-	Confirmed []graph.Path `json:"confirmed" jsonschema:"principals with a path where every hop is live, audit or supplied"`
+	Confirmed []graph.Path `json:"confirmed" jsonschema:"principals with a path where every hop is live, inferred, audit or supplied"`
 	Possible  []graph.Path `json:"possible" jsonschema:"principals whose only path has at least one not_visible hop"`
 }
 
@@ -528,6 +528,9 @@ type EdgeOut struct {
 	ObservedAt string            `json:"observed_at"`
 	Attrs      map[string]string `json:"attrs,omitempty"`
 	Reversed   bool              `json:"reversed,omitempty" jsonschema:"true when the evidence edge points the other way from the hop asked about"`
+	Rule       string            `json:"rule,omitempty" jsonschema:"inferred edges: the rule that derived the fact from other observed facts, e.g. default_perm"`
+	AgeDays    *int              `json:"age_days,omitempty" jsonschema:"audit edges: whole days between the audit fact and the snapshot"`
+	Stale      *bool             `json:"stale,omitempty" jsonschema:"audit edges: true when the fact is older than the maximum audit age, so it counts as not visible (possible reach only)"`
 }
 
 // ExplainOutput lists matching evidence edges.
@@ -536,13 +539,24 @@ type ExplainOutput struct {
 	Edges   []EdgeOut `json:"edges"`
 }
 
-func edgeOut(ed graph.Edge, rev bool) EdgeOut {
+func edgeOut(ix *graph.Index, ed graph.Edge, rev bool) EdgeOut {
 	at := ""
 	if !ed.ObservedAt.IsZero() {
 		at = ed.ObservedAt.UTC().Format(time.RFC3339)
 	}
-	return EdgeOut{From: ed.From, To: ed.To, Kind: string(ed.Kind), Evidence: string(ed.Evidence),
+	out := EdgeOut{From: ed.From, To: ed.To, Kind: string(ed.Kind), Evidence: string(ed.Evidence),
 		SourceAPI: ed.SourceAPI, ObservedAt: at, Attrs: ed.Attrs, Reversed: rev}
+	if ed.Evidence == graph.Inferred {
+		out.Rule = ed.Attrs[graph.AttrRule]
+	}
+	if ed.Evidence == graph.Audit {
+		if d, ok := ix.AuditAgeDays(ed); ok {
+			out.AgeDays = &d
+		}
+		stale := ix.AuditStale(ed, ix.MaxAuditAge(0))
+		out.Stale = &stale
+	}
+	return out
 }
 
 // EvidenceLabel is the human label for an evidence level. not_visible is
@@ -551,12 +565,23 @@ func EvidenceLabel(ev graph.Evidence) string {
 	switch ev {
 	case graph.Live:
 		return "live"
+	case graph.Inferred:
+		return "inferred"
 	case graph.Audit:
 		return "audit"
 	case graph.Supplied:
 		return "supplied file"
 	}
 	return "not visible"
+}
+
+// HopEvidenceLabel is EvidenceLabel for a path hop: a hop demoted for a stale
+// audit fact reads "audit, stale".
+func HopEvidenceLabel(h graph.Hop) string {
+	if h.Stale {
+		return string(graph.Audit) + ", stale"
+	}
+	return EvidenceLabel(h.Evidence)
 }
 
 // Explain returns the evidence edges between two nodes. Path hops traverse
@@ -577,7 +602,7 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 	collect := func(a, b string, rev bool) {
 		for _, ed := range e.ix.Out(a) {
 			if ed.To == b && (kind == "" || string(ed.Kind) == kind) {
-				out.Edges = append(out.Edges, edgeOut(ed, rev))
+				out.Edges = append(out.Edges, edgeOut(e.ix, ed, rev))
 			}
 		}
 	}
@@ -600,6 +625,22 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 		EvidenceLabel(graph.Evidence(first.Evidence)), first.SourceAPI, first.ObservedAt)
 	if loc := fileLine(first.Attrs); loc != "" {
 		out.Summary += ", at " + loc
+	}
+	if first.Evidence == string(graph.Inferred) {
+		rule := first.Rule
+		if rule == "" {
+			rule = "unknown"
+		}
+		out.Summary += ", rule " + rule
+	}
+	if first.Stale != nil {
+		if first.AgeDays != nil {
+			out.Summary += fmt.Sprintf(", age_days %d", *first.AgeDays)
+		}
+		out.Summary += fmt.Sprintf(", stale=%t", *first.Stale)
+		if *first.Stale {
+			out.Summary += " (older than the maximum audit age: counts as not visible)"
+		}
 	}
 	if strings.HasPrefix(first.SourceAPI, graph.SourceSupplied) {
 		out.Summary += ", read from a supplied file, not from the cloud"

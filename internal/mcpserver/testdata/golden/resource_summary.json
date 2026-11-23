@@ -2,7 +2,7 @@
   "enterprise": "acme",
   "collected_at": "2026-11-20T10:00:00Z",
   "age_hours": 30,
-  "schema": "gop.graph/v1",
+  "schema": "gop.graph/v2",
   "nodes": 53,
   "edges": 49,
   "nodes_by_kind": {
@@ -27,12 +27,14 @@
   },
   "evidence": {
     "edges": {
-      "live": 46,
+      "live": 44,
+      "inferred": 2,
       "audit": 2,
       "not_visible": 1
     },
     "nodes": {
       "live": 50,
+      "inferred": 0,
       "audit": 2,
       "not_visible": 1
     }
@@ -184,5 +186,5 @@
       "possible_score": 0
     }
   ],
-  "note": "Confirmed reach means every hop was read live or from the audit log; possible reach has at least one not_visible hop. not_visible means the token could not read the fact: it is unknown, not absent or off. top_principals is ranked by confirmed score."
+  "note": "Confirmed reach means every hop was read live, inferred by a documented rule, or read from a recent audit log entry; possible reach has at least one not_visible hop. not_visible means the token could not read the fact: it is unknown, not absent or off. top_principals is ranked by confirmed score."
 }

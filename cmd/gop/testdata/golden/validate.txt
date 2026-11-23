@@ -1,1 +1,1 @@
-../../testdata/acme/graph.json: valid (gop.graph/v1, 0 errors, 0 warnings)
+../../testdata/acme/graph.json: valid (gop.graph/v2, 0 errors, 0 warnings)
