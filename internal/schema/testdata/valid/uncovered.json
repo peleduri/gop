@@ -1,0 +1,14 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "members:acme-legacy", "kind": "org_members", "name": "acme-legacy members", "evidence": "live"},
+    {"id": "repo:acme-legacy/old-api", "kind": "repo", "name": "old-api", "evidence": "not_visible"}
+  ],
+  "edges": [
+    {"from": "members:acme-legacy", "to": "repo:acme-legacy/old-api", "kind": "CAN_PUSH", "evidence": "not_visible",
+     "source_api": "rest:/orgs/{org}", "observed_at": "2026-01-01T00:00:00Z"}
+  ],
+  "coverage": []
+}

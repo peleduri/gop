@@ -1,6 +1,14 @@
 # Graph schema: gop.graph/v1
 
-`gop collect` writes a single JSON document (graph.json). The Go source of truth is [`internal/graph/types.go`](../internal/graph/types.go); this page describes the serialized form. Breaking changes bump `schema`.
+`gop collect` writes a single JSON document (graph.json). The Go source of truth is [`internal/graph/types.go`](../internal/graph/types.go); this page describes the serialized form. Breaking changes bump `schema` (see [Versioning](#versioning)).
+
+The machine-checkable contract is the JSON Schema (draft 2020-12) [`schema/gop.graph.v1.schema.json`](../schema/gop.graph.v1.schema.json), `$id` `https://github.com/peleduri/gop/schema/gop.graph.v1.schema.json`. Check a file with:
+
+```
+gop validate --graph graph.json [--format text|json]
+```
+
+`gop validate` checks that `schema` is a version gop knows, that the document conforms to that version's JSON Schema, and that every edge endpoint is a declared node. A `not_visible` node, attribute or edge with no `coverage` entry for itself or its org is a warning, not an error. Every problem names its JSON pointer, e.g. `/edges/3/evidence`. Exit codes: 0 valid (warnings allowed), 1 invalid, 2 usage error. The other commands load graph.json without running these checks.
 
 ## Top level
 
@@ -27,7 +35,7 @@ Every node and edge has `evidence`:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `id` | string | Stable, human-readable: `org:acme-actions`, `repo:acme-app/web`, `action:acme-actions/deploy@main`. |
+| `id` | string | Stable, human-readable: `org:acme-actions`, `repo:acme-app/web`, `action:acme-actions/deploy@main`. The prefix follows the kind (see below). |
 | `kind` | NodeKind | See below. |
 | `name` | string | Display name. |
 | `attrs` | map[string]string | Optional. Flat string attributes. |
@@ -36,23 +44,23 @@ Every node and edge has `evidence`:
 
 ### Node kinds
 
-| Kind | Meaning |
-|---|---|
-| `enterprise` | The enterprise. |
-| `org` | An organization. |
-| `org_members` | The set of members of one org, as a single principal. |
-| `identity` | A user, team or app. |
-| `repo` | A repository. |
-| `workflow` | A workflow file. |
-| `action_ref` | `owner/repo[/path]@ref` as consumed by workflows. |
-| `secret` | A secrets scope reachable by a workflow. |
-| `oidc` | `id-token: write` (cloud OIDC). |
-| `runner` | A self-hosted runner pool. |
-| `cloud_target` | A cloud account or role trusted through OIDC. |
+| Kind | ID | Meaning |
+|---|---|---|
+| `enterprise` | `enterprise:acme` | The enterprise. |
+| `org` | `org:acme-actions` | An organization. |
+| `org_members` | `members:acme-actions` | The set of members of one org, as a single principal. |
+| `identity` | `identity:alice` | A user, team or app. |
+| `repo` | `repo:acme-app/web` | A repository (exactly `owner/name`). |
+| `workflow` | `workflow:acme-app/web/.github/workflows/ci.yml` | A workflow file. |
+| `action_ref` | `action:acme-actions/deploy@main` | `owner/repo[/path]@ref` as consumed by workflows. |
+| `secret` | `secret:acme-app/billing` | A secrets scope reachable by a workflow. |
+| `oidc` | `oidc:acme-app/web` | `id-token: write` (cloud OIDC). |
+| `runner` | `runner:acme-app/worker` | A self-hosted runner pool. |
+| `cloud_target` | `cloud:...` | A cloud account or role trusted through OIDC. |
 
 ### Attributes
 
-Values are strings to keep the JSON flat.
+Values are strings to keep the JSON flat. Other keys may appear; consumers must ignore keys they don't know.
 
 | Key | On | Values |
 |---|---|---|
@@ -115,7 +123,7 @@ When an identity is both an owner and a direct collaborator on a repo, the `dire
 
 `who_can_reach`, `reach` and `blast_radius` accept every principal: each `org_members` node and each `identity` node. Totals (`top_paths`, `what_if`, `suggest_fixes`) sum over the scoring principals only: every `org_members` node, plus identities with at least one `CAN_PUSH` edge or a `MEMBER_OF` edge to something that is not an org (a team). An identity whose only edges are org memberships reaches exactly what `members:X` reaches, so counting it again would multiply the `(principal, repo)` pair totals by the number of licensed users.
 
-A reach path reads, for example: `org_members:acme-actions -CAN_PUSH-> repo:acme-actions/deploy <-RESOLVES_TO- action:acme-actions/deploy@main <-USES- workflow:acme-app/web/.github/workflows/release.yml -EXECUTES_WITH-> oidc:...`.
+A reach path reads, for example: `members:acme-actions -CAN_PUSH-> repo:acme-actions/deploy <-RESOLVES_TO- action:acme-actions/deploy@main <-USES- workflow:acme-app/web/.github/workflows/release.yml -EXECUTES_WITH-> oidc:...`.
 
 ## Coverage
 
@@ -151,3 +159,29 @@ A reach path reads, for example: `org_members:acme-actions -CAN_PUSH-> repo:acme
   ]
 }
 ```
+
+## Versioning
+
+`schema` names the contract a file follows. Consumers should check it before reading anything else.
+
+Non-breaking within `gop.graph/v1` (no version change):
+
+- new optional fields on the top level, nodes, edges or coverage entries;
+- new attribute keys in `attrs` or `attr_evidence`;
+- new `coverage` facts and new `source_api` strings.
+
+Breaking, bumps `schema` to `gop.graph/v2`:
+
+- removing or renaming a field;
+- making an optional field required, or changing a field's type;
+- adding, removing or changing the meaning of an `evidence`, node `kind` or edge `kind` value;
+- changing ID conventions (prefixes or the shape after them).
+
+The JSON Schema allows unknown fields and attribute keys for this reason. Consumers must ignore attributes and fields they don't know rather than reject the file. A new major version ships as a new schema file (`schema/gop.graph.v2.schema.json`); `gop validate` keeps validating every version it lists as known.
+
+## Changelog
+
+| Version | gop release | Change |
+|---|---|---|
+| `gop.graph/v1` | v0.1.0 | First version. |
+| `gop.graph/v1` | unreleased | Additive: JSON Schema published in `schema/gop.graph.v1.schema.json`; `file`, `file_ref`, `line`, `col` on `USES` and `EXECUTES_WITH` edges; `identity` nodes for licensed users; `CAN_PUSH` `via` values `org_owner`, `direct`, `outside_collaborator`. |

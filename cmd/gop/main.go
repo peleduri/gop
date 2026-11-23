@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
 	"github.com/peleduri/gop/internal/report"
+	"github.com/peleduri/gop/internal/schema"
 )
 
 // Set by goreleaser: -X main.version=... -X main.commit=... -X main.date=...
@@ -41,10 +43,13 @@ Usage:
   gop report  --graph graph.json --out report.html [--format html|md] [--top N]
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
+  gop validate --graph graph.json [--format text|json]
   gop version
 
 collect reads the token from GITHUB_TOKEN (or GH_TOKEN). It only reads.
 serve runs an MCP server over stdio.
+validate checks graph.json against the published JSON Schema and that every
+edge endpoint is a node. Exit 0 valid, 1 invalid, 2 usage error.
 Confirmed reach: every hop live or audit. Possible reach: at least one hop not visible.
 `
 
@@ -88,6 +93,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdPaths(rest)
 	case "who":
 		err = a.cmdWho(rest)
+	case "validate":
+		err = a.cmdValidate(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":
@@ -317,4 +324,60 @@ func (a *app) cmdWho(args []string) error {
 	}
 	mcpserver.WriteWho(a.stdout, out)
 	return nil
+}
+
+func (a *app) cmdValidate(args []string) error {
+	fs := a.flags("validate")
+	gp := graphFlag(fs)
+	format := fs.String("format", "text", "text or json")
+	if err := parse(fs, args); err != nil {
+		return err
+	}
+	if err := required("validate", "graph", *gp); err != nil {
+		return err
+	}
+	f := strings.ToLower(*format)
+	if f != "text" && f != "json" {
+		return usagef("validate: --format must be text or json, got %q", *format)
+	}
+	data, err := os.ReadFile(*gp)
+	if err != nil {
+		return err
+	}
+	res, err := schema.Validate(data)
+	if err != nil {
+		return err
+	}
+	if f == "json" {
+		enc := json.NewEncoder(a.stdout)
+		enc.SetIndent("", "  ")
+		enc.SetEscapeHTML(false)
+		if err := enc.Encode(res); err != nil {
+			return err
+		}
+	} else {
+		writeValidation(a.stdout, *gp, res)
+	}
+	if !res.Valid {
+		return fmt.Errorf("%s is invalid (%d errors)", *gp, len(res.Errors))
+	}
+	return nil
+}
+
+func writeValidation(w io.Writer, path string, res *schema.Result) {
+	state := "valid"
+	if !res.Valid {
+		state = "invalid"
+	}
+	version := res.Schema
+	if version == "" {
+		version = "unknown schema"
+	}
+	fmt.Fprintf(w, "%s: %s (%s, %d errors, %d warnings)\n", path, state, version, len(res.Errors), len(res.Warnings))
+	for _, p := range res.Errors {
+		fmt.Fprintf(w, "error   %s\n", p)
+	}
+	for _, p := range res.Warnings {
+		fmt.Fprintf(w, "warning %s\n", p)
+	}
 }

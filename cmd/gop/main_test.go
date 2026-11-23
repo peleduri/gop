@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -53,6 +54,9 @@ func TestUsageErrors(t *testing.T) {
 		{"who", "--graph", fixture, "extra", "--target"}, // positional arg
 		{"serve"},
 		{"collect", "--enterprise", "acme"}, // missing --out
+		{"validate"},                        // missing --graph
+		{"validate", "--graph", fixture, "--format", "yaml"},
+		{"validate", "--graph", fixture, "extra"},
 	} {
 		if r := runApp(t, nil, nil, args...); r.code != exitUsage {
 			t.Errorf("%v: code %d, want 2 (stderr %q)", args, r.code, r.stderr)
@@ -127,5 +131,45 @@ func TestCollectTokenFromEnvOnly(t *testing.T) {
 	r = runApp(t, map[string]string{"GITHUB_TOKEN": tok}, failing, "collect", "--enterprise", "acme", "--out", out)
 	if r.code != exitRuntime || strings.Contains(r.stderr+r.stdout, tok) {
 		t.Fatalf("token leaked or wrong code: %+v", r)
+	}
+}
+
+func TestValidate(t *testing.T) {
+	r := runApp(t, nil, nil, "validate", "--graph", fixture)
+	if r.code != exitOK || !strings.Contains(r.stdout, ": valid (gop.graph/v1, 0 errors, 0 warnings)") {
+		t.Fatalf("valid fixture: %+v", r)
+	}
+
+	bad := "../../internal/schema/testdata/invalid/missing-node.json"
+	r = runApp(t, nil, nil, "validate", "--graph", bad)
+	if r.code != exitRuntime || !strings.Contains(r.stdout, "error   /edges/0/to: ") || !strings.Contains(r.stderr, "invalid") {
+		t.Fatalf("invalid fixture: %+v", r)
+	}
+
+	r = runApp(t, nil, nil, "validate", "--graph", "../../internal/schema/testdata/invalid/wrong-schema.json", "--format", "json")
+	if r.code != exitRuntime {
+		t.Fatalf("wrong schema: %+v", r)
+	}
+	var res struct {
+		Valid  bool `json:"valid"`
+		Errors []struct {
+			Pointer string `json:"pointer"`
+		} `json:"errors"`
+	}
+	if err := json.Unmarshal([]byte(r.stdout), &res); err != nil {
+		t.Fatalf("json output: %v\n%s", err, r.stdout)
+	}
+	if res.Valid || len(res.Errors) != 1 || res.Errors[0].Pointer != "/schema" {
+		t.Fatalf("json result: %+v", res)
+	}
+
+	// Warnings alone keep the exit code 0.
+	r = runApp(t, nil, nil, "validate", "--graph", "../../internal/schema/testdata/valid/uncovered.json")
+	if r.code != exitOK || !strings.Contains(r.stdout, "warning /nodes/1/evidence") {
+		t.Fatalf("warnings only: %+v", r)
+	}
+
+	if r = runApp(t, nil, nil, "validate", "--graph", filepath.Join(t.TempDir(), "missing.json")); r.code != exitRuntime {
+		t.Fatalf("missing file: %+v", r)
 	}
 }

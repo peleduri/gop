@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/schema"
 )
 
 // TestEndToEndAcme runs the whole pipeline on the synthetic acme enterprise:
@@ -20,6 +21,16 @@ func TestEndToEndAcme(t *testing.T) {
 	var buf bytes.Buffer
 	if err := WriteGraph(&buf, ix.g); err != nil {
 		t.Fatalf("WriteGraph: %v", err)
+	}
+	vres, err := schema.Validate(buf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !vres.Valid {
+		t.Fatalf("collected graph does not validate: %v", vres.Errors)
+	}
+	for _, w := range vres.Warnings {
+		t.Logf("validate warning: %s", w)
 	}
 	g, err := graph.Load(&buf)
 	if err != nil {

@@ -1,0 +1,3 @@
+{"collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "repo:acme-app/web", "kind": "repo", "name": "web", "evidence": "live"}, {"id": "workflow:acme-app/web/.github/workflows/ci.yml", "kind": "workflow", "name": "ci.yml", "evidence": "live"}],
+ "edges": [], "coverage": []}
