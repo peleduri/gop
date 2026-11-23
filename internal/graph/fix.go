@@ -1,9 +1,6 @@
 package graph
 
-import (
-	"sort"
-	"strings"
-)
+import "sort"
 
 // Fix is a hypothetical remediation. Each Fix is one grouped change (a set of
 // edges) with cost 1. Implementations: PinRef, LowerDefaultPerm, RestrictToken,
@@ -284,56 +281,9 @@ func (ix *Index) Candidates() []Fix {
 // when scoring, and fixes that touch only not_visible edges are never candidates.
 func SuggestFixes(g *Graph, budget int) []FixSuggestion { return NewIndex(g).SuggestFixes(budget) }
 
-// SuggestFixes on a prebuilt index.
-func (ix *Index) SuggestFixes(budget int) []FixSuggestion {
-	pairs := func(fixes []Fix) int {
-		cg := ix.control(fixes)
-		n := 0
-		for _, p := range ix.ScoringPrincipals() {
-			n += len(ix.reach(cg, p).Confirmed.Repos)
-		}
-		return n
-	}
-	baseline := pairs(nil)
-	cands := ix.Candidates()
-	var (
-		picked []Fix
-		out    []FixSuggestion
-	)
-	current := baseline
-	used := map[string]bool{}
-	for len(out) < budget && current > 0 {
-		bestIdx, bestAfter := -1, current
-		for i, c := range cands {
-			if used[c.ID()] {
-				continue
-			}
-			after := pairs(append(append([]Fix{}, picked...), c))
-			if after < bestAfter {
-				bestIdx, bestAfter = i, after
-			}
-		}
-		if bestIdx < 0 {
-			break
-		}
-		f := cands[bestIdx]
-		used[f.ID()] = true
-		picked = append(picked, f)
-		var es []string
-		for _, e := range f.edges(ix) {
-			es = append(es, strings.Join([]string{e.From, string(e.Kind), e.To}, " "))
-		}
-		removedTotal := baseline - bestAfter
-		out = append(out, FixSuggestion{
-			Fix: f, FixID: f.ID(), Edges: es,
-			Removed: current - bestAfter, CumulativeRemoved: removedTotal, Remaining: bestAfter,
-			CumulativePct: 100 * float64(removedTotal) / float64(baseline),
-			Caveat:        fixCaveat(ix, f),
-		})
-		current = bestAfter
-	}
-	return out
-}
+// SuggestFixes on a prebuilt index. The control graph is built once and each
+// candidate is scored as an overlay on it (see suggestFixes in suggest.go).
+func (ix *Index) SuggestFixes(budget int) []FixSuggestion { return ix.suggestFixes(budget) }
 
 // TotalsOf sums a set of scores (see Totals).
 func TotalsOf(scores []Score) Totals { return totalsOf(scores) }

@@ -29,6 +29,8 @@ jobs:
         run: go vet ./...
       - name: go test
         run: go test ./... -race -count=1
+      - name: engine benchmarks (smoke, one iteration, no thresholds)
+        run: go test -run='^$' -bench=. -benchtime=1x ./internal/graph
 
   fuzz:
     # Short fuzz runs of the parsers that read attacker-controlled input

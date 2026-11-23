@@ -86,6 +86,23 @@ flags may change in minor releases.
   plus an icon (never color alone), WCAG AA contrast checked in light and
   dark themes, and an `aria-live` result count. Tested by parsing the
   rendered HTML (`golang.org/x/net/html`, a new test-only dependency).
+- Engine benchmarks on a generated 10k-repo enterprise (`BenchmarkNewIndex`,
+  `BenchmarkReach`, `BenchmarkWhoCanReach`, `BenchmarkTopPaths`,
+  `BenchmarkSuggestFixes`), run once per CI build as a smoke test.
+
+### Changed
+
+- `SuggestFixes` (`suggest_fixes`, `fix_plan` and the report's suggested
+  fixes) is incremental: the control graph is built once and each candidate
+  fix is scored as an overlay of removed edges, counting only confirmed
+  repos, recomputing only the principals a fix can affect, and evaluating
+  principals in parallel. On the 10k-repo benchmark a budget of 10 takes
+  about 1 s on 4 cores (about 27 h before, extrapolated). `WhoCanReach`
+  (`who_can_reach`, `gop who`) walks back from the target first and
+  traverses forward only from principals that can reach it: about 10 ms
+  instead of 4 s. Output is unchanged; property tests check both against the
+  previous implementations on 200 generated graphs.
+
 ### Fixed
 
 - `fix_plan`, `gop fix-plan --pin`, `gop pin` and the report's "Pinned, still
