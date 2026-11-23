@@ -178,6 +178,7 @@ How the engine reasons, briefly: push access controls a repo; a repo controls th
 - `identity:` nodes for licensed users with `MEMBER_OF` their orgs, and `CAN_PUSH` from org owners (every repo in the org), direct collaborators and outside collaborators with push (including custom repository roles). When a repo's collaborators can't be listed, license-listed repo grants become `not_visible` (possible) edges.
 - `team:` nodes with nested teams (`MEMBER_OF` the parent team), direct team members (`MEMBER_OF` the team), and `CAN_PUSH` from each team repository grant with push. Members of a child team reach the parent's repos through the nesting. A non-owner token can't see secret teams; that gap is recorded in coverage.
 - Workflow files: the Actions and reusable workflows they use, `id-token: write`, secrets and self-hosted runners. Composite Actions and reusable workflows are expanded recursively at the referenced ref.
+- The Actions access setting of each private or internal repo that hosts a referenced Action. A workflow in another org can only use the Action when the setting allows it; when the setting can't be read (it needs repo admin), cross-org paths through the Action are possible, not confirmed.
 
 Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, audit log facts, branch protection and environment rules, a GitHub Enterprise Server endpoint flag, and resumable collection.
 

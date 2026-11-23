@@ -344,6 +344,7 @@
       "kind": "repo",
       "name": "acme-actions/deploy",
       "attrs": {
+        "actions_access": "enterprise",
         "archived": "false",
         "default_branch": "main",
         "fork": "false",
@@ -358,6 +359,7 @@
       "kind": "repo",
       "name": "acme-actions/setup",
       "attrs": {
+        "actions_access": "organization",
         "archived": "false",
         "default_branch": "main",
         "fork": "false",
@@ -501,10 +503,14 @@
       "kind": "repo",
       "name": "acme-legacy/hidden-tool",
       "attrs": {
+        "actions_access": "unknown",
         "collected": "false",
         "org": "acme-legacy"
       },
-      "evidence": "live"
+      "evidence": "live",
+      "attr_evidence": {
+        "actions_access": "not_visible"
+      }
     },
     {
       "id": "repo:acme-legacy/old-site",
@@ -817,6 +823,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "13",
+        "consumer_org": "acme-actions",
         "file": "action.yml",
         "file_ref": "0123456789abcdef0123456789abcdef01234567",
         "level": "step",
@@ -841,6 +848,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "13",
+        "consumer_org": "acme-actions",
         "file": "action.yml",
         "file_ref": "main",
         "level": "step",
@@ -865,6 +873,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "13",
+        "consumer_org": "acme-actions",
         "file": "action.yml",
         "file_ref": "v1",
         "level": "step",
@@ -889,6 +898,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-actions",
         "file": ".github/workflows/build.yml",
         "file_ref": "main",
         "job": "build",
@@ -914,6 +924,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "13",
+        "consumer_org": "acme-actions",
         "file": "action.yaml",
         "file_ref": "main",
         "level": "step",
@@ -1381,6 +1392,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-actions",
         "file": ".github/workflows/build.yml",
         "file_ref": "main",
         "job": "build",
@@ -1406,6 +1418,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/deploy.yml",
         "job": "deploy",
         "level": "step",
@@ -1443,6 +1456,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/release.yml",
         "job": "tag",
         "level": "step",
@@ -1481,6 +1495,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/deploy.yml",
         "job": "deploy",
         "level": "step",
@@ -1529,6 +1544,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "11",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/build.yml",
         "job": "build",
         "level": "job",
@@ -1579,6 +1595,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/apply.yml",
         "job": "apply",
         "level": "step",
@@ -1627,6 +1644,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/release.yml",
         "job": "release",
         "level": "step",
@@ -1694,6 +1712,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/index.yaml",
         "job": "index",
         "level": "step",
@@ -1731,6 +1750,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/ci.yml",
         "job": "build",
         "level": "step",
@@ -1784,6 +1804,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-app",
         "file": ".github/workflows/deploy.yml",
         "job": "deploy",
         "level": "step",
@@ -1821,6 +1842,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-legacy",
         "file": ".github/workflows/ci.yml",
         "job": "build",
         "level": "step",
@@ -1845,6 +1867,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-secure",
         "file": ".github/workflows/ci.yml",
         "job": "build",
         "level": "step",
@@ -1861,6 +1884,7 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "col": "15",
+        "consumer_org": "acme-secure",
         "file": ".github/workflows/ci.yml",
         "job": "build",
         "level": "step",
@@ -1917,6 +1941,12 @@
       "fact": "nested_uses",
       "reason": "action.yaml not found at v2 (missing, or repository not visible to the token)",
       "needs_fix": "read access to contents on acme-legacy/hidden-tool"
+    },
+    {
+      "scope": "repo:acme-legacy/hidden-tool",
+      "fact": "actions_access",
+      "reason": "could not read the Actions access setting of acme-legacy/hidden-tool: github api GET /repos/acme-legacy/hidden-tool/actions/permissions/access: HTTP 404: Not Found",
+      "needs_fix": "admin on acme-legacy/hidden-tool (or org owner)"
     }
   ]
 }

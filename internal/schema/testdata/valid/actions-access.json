@@ -1,0 +1,36 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "repo:acme-actions/deploy", "kind": "repo", "name": "acme-actions/deploy", "evidence": "live",
+     "attrs": {"visibility": "internal", "actions_access": "enterprise"}},
+    {"id": "repo:acme-actions/setup", "kind": "repo", "name": "acme-actions/setup", "evidence": "live",
+     "attrs": {"visibility": "internal", "actions_access": "unknown"},
+     "attr_evidence": {"actions_access": "not_visible"}},
+    {"id": "repo:acme-app/web", "kind": "repo", "name": "acme-app/web", "evidence": "live"},
+    {"id": "action:acme-actions/deploy@main", "kind": "action_ref", "name": "acme-actions/deploy@main", "evidence": "live",
+     "attrs": {"ref": "main", "ref_kind": "branch"}},
+    {"id": "action:acme-actions/setup@main", "kind": "action_ref", "name": "acme-actions/setup@main", "evidence": "live",
+     "attrs": {"ref": "main", "ref_kind": "branch"}},
+    {"id": "workflow:acme-app/web/.github/workflows/ci.yml", "kind": "workflow", "name": "acme-app/web ci.yml", "evidence": "live"}
+  ],
+  "edges": [
+    {"from": "action:acme-actions/deploy@main", "to": "repo:acme-actions/deploy", "kind": "RESOLVES_TO", "evidence": "live",
+     "source_api": "derived:workflow.uses+graphql:enterprise.organizations", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "action:acme-actions/setup@main", "to": "repo:acme-actions/setup", "kind": "RESOLVES_TO", "evidence": "live",
+     "source_api": "derived:workflow.uses+graphql:enterprise.organizations", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "repo:acme-app/web", "kind": "DEFINED_IN", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "action:acme-actions/deploy@main", "kind": "USES", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"ref_kind": "branch", "consumer_org": "acme-app"}},
+    {"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "action:acme-actions/setup@main", "kind": "USES", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"ref_kind": "branch", "consumer_org": "acme-app"}}
+  ],
+  "coverage": [
+    {"scope": "repo:acme-actions/setup", "fact": "actions_access",
+     "reason": "could not read the Actions access setting of acme-actions/setup: HTTP 403", "needs_fix": "admin on acme-actions/setup (or org owner)"}
+  ]
+}

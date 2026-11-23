@@ -1,0 +1,4 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "repo:acme-actions/deploy", "kind": "repo", "name": "acme-actions/deploy", "evidence": "live",
+            "attrs": {"visibility": "internal", "actions_access": "everyone"}}],
+ "edges": [], "coverage": []}

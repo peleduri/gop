@@ -191,6 +191,8 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		f.customRoles(w, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/custom-repository-roles"))
 	case strings.HasPrefix(p, "/repos/") && strings.HasSuffix(p, "/collaborators"):
 		f.collaborators(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/repos/"), "/collaborators"))
+	case strings.HasPrefix(p, "/repos/") && strings.HasSuffix(p, "/actions/permissions/access"):
+		f.actionsAccess(w, strings.TrimSuffix(strings.TrimPrefix(p, "/repos/"), "/actions/permissions/access"))
 	case strings.HasPrefix(p, "/repos/") && f.branchProtection(w, r):
 	case strings.HasPrefix(p, "/user/"):
 		f.user(w, strings.TrimPrefix(p, "/user/"))
@@ -252,6 +254,8 @@ func (f *fakeGitHub) repos(w http.ResponseWriter, r *http.Request, org string) {
 			delete(m, "branch_rules")
 			delete(m, "branch_protection")
 			delete(m, "rulesets")
+			delete(m, "actions_access")
+			delete(m, "actions_access_forbidden")
 			if _, ok := m["archived"]; !ok {
 				m["archived"] = false
 			}

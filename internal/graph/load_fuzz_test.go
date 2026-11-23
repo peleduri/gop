@@ -25,6 +25,7 @@ func FuzzLoad(f *testing.F) {
 		`{"schema":"gop.graph/v1","edges":[{"from":"a","to":"a","kind":"USES","evidence":"not_visible"},{"from":"a","to":"a","kind":"RESOLVES_TO","evidence":"audit"}]}`,
 		`{"schema":"gop.graph/v1","edges":[{"from":"identity:x","to":"org:","kind":"MEMBER_OF","evidence":"live"},{"from":"members:","to":"repo:/","kind":"CAN_PUSH","evidence":"live","attrs":{"via":"default_perm"}}]}`,
 		`{"schema":"gop.graph/v1","nodes":[{"id":"org:acme","kind":"org","attrs":{"default_perm":"write","sso":"none","two_factor":"not_required"}},{"id":"org:acme","kind":"repo"}]}`,
+		`{"schema":"gop.graph/v1","nodes":[{"id":"repo:x/a","kind":"repo","attrs":{"actions_access":"unknown"}}],"edges":[{"from":"action:x/a@main","to":"repo:x/a","kind":"RESOLVES_TO","evidence":"live"},{"from":"workflow:y/b/w.yml","to":"action:x/a@main","kind":"USES","evidence":"live"},{"from":"action:@","to":"action:x/a@main","kind":"USES","evidence":"live"}]}`,
 		"{\"schema\":\"gop.graph/v1\",\"edges\":[{\"from\":\"\xff\",\"to\":\"x\",\"kind\":\"USES\",\"evidence\":\"live\"}]}",
 	} {
 		f.Add([]byte(s))

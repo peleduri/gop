@@ -54,6 +54,21 @@ flags may change in minor releases.
   (kept as a `cel` pattern and treated as possible). No cloud API calls; the
   graph wiring follows separately.
 
+### Changed
+
+- Cross-org `USES` now depends on the Actions access setting of the repo that
+  hosts the action. The collector reads
+  `GET /repos/{owner}/{repo}/actions/permissions/access` once per private or
+  internal repo that hosts a referenced enterprise action, and records
+  `actions_access` (`none`, `user`, `organization`, `enterprise`, `public` for
+  public repos, or `unknown` (`not_visible`) with a coverage entry when the
+  setting is refused). `USES` edges into enterprise actions carry
+  `consumer_org`. The engine drops a `USES` hop the setting forbids (for
+  example a workflow in `acme-app` using an action in an `acme-actions` repo
+  set to `organization`), and makes a cross-org hop `not_visible` (possible,
+  not confirmed) when the setting is unknown. Graphs without `actions_access`
+  give the same results as before.
+
 ## [0.2.0] - 2026-11-23
 
 ### Added

@@ -101,7 +101,8 @@
         "ref_protection": {"description": "Comma list of the branch's rules, e.g. reviews,dismiss_stale,status_checks.", "type": "string", "minLength": 1},
         "bypass": {"description": "Comma list of principal IDs that can land code on the protected branch alone, none, or unknown.", "type": "string", "minLength": 1},
         "token_write": {"description": "workflow: whether its GITHUB_TOKEN has contents: write on its own repo (unknown when the default workflow permissions are not visible).", "type": "string", "enum": ["true", "false", "unknown"]},
-        "token_scopes": {"description": "workflow: comma list of the token's other write scopes, e.g. id-token,packages, or write-all. Display only.", "type": "string", "minLength": 1}
+        "token_scopes": {"description": "workflow: comma list of the token's other write scopes, e.g. id-token,packages, or write-all. Display only.", "type": "string", "minLength": 1},
+        "actions_access": {"description": "Repo hosting a referenced action: its Actions access setting (who outside the repo may use its actions), public for public repos, or unknown.", "type": "string", "enum": ["none", "user", "organization", "enterprise", "public", "unknown"]}
       }
     },
     "EdgeAttrs": {
@@ -115,7 +116,8 @@
         "file": {"description": "Repo-relative path of the workflow or action file the edge was read from.", "type": "string", "minLength": 1},
         "file_ref": {"description": "Commit or branch the file was read at, when known.", "type": "string"},
         "line": {"description": "1-based line, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
-        "col": {"description": "1-based column, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"}
+        "col": {"description": "1-based column, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
+        "consumer_org": {"description": "USES edge into an enterprise-hosted action: org of the using workflow or action.", "type": "string", "minLength": 1}
       }
     },
     "Coverage": {

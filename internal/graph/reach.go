@@ -39,10 +39,14 @@ import (
 //	                                     of an on: push workflow with the repo's secrets.
 //	action    -USES->         workflow   (reversed) whoever controls an action's content controls
 //	action    -USES->         action     every workflow or composite action that uses it. This
-//	                                     hop is always open: a sha-pinned action that itself USES
+//	                                     hop ignores the ref: a sha-pinned action that itself USES
 //	                                     a nested branch/tag action stays controllable through the
 //	                                     nested one. A sha pin only blocks a path when the whole
-//	                                     nested chain is immutable.
+//	                                     nested chain is immutable. The only gate is the host
+//	                                     repo's actions_access (Actions "Access" setting), checked
+//	                                     against the consumer's repo by actionsAccessAllows: a
+//	                                     disallowed hop is dropped, and an unknown setting makes a
+//	                                     cross-org hop not_visible. No attr: the hop is unchanged.
 //	workflow  -EXECUTES_WITH-> secret|oidc|runner   terminal impact
 type controlGraph struct {
 	out map[string][]cedge
@@ -210,7 +214,7 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 		best[k] = ce
 	}
 	mutable := map[string]bool{}
-	for _, e := range ix.g.Edges {
+	for i, e := range ix.g.Edges {
 		switch e.Kind {
 		case CanPush:
 			if fs.removesPush(e) {
@@ -232,6 +236,14 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 				ix.addResolves(e, add)
 			}
 		case Uses:
+			if ix.gates != nil {
+				switch ix.gates[i] {
+				case gateClosed:
+					continue
+				case gateHidden:
+					e.Evidence = NotVisible
+				}
+			}
 			add(e.To, e.From, e, true, false)
 		case ExecutesWith:
 			add(e.From, e.To, e, false, false)

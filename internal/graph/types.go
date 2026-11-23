@@ -163,3 +163,11 @@ const (
 	AttrBypass        = "bypass"         // comma list of principal IDs that can land code alone, "none", or "unknown" (not_visible)
 	AttrRef           = "ref"            // branch name on via=ref_bypass edges; the ref on action_ref nodes
 )
+
+// Actions access of repos that host enterprise-internal actions, and the
+// consumer side of USES edges into them. The engine gates the reverse USES hop
+// on these (see actionsAccessAllows).
+const (
+	AttrActionsAccess = "actions_access" // repo: none | user | organization | enterprise | public | unknown (not_visible)
+	AttrConsumerOrg   = "consumer_org"   // USES edge into an enterprise-hosted action: org login of the using workflow or action
+)

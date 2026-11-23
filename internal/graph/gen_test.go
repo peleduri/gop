@@ -10,7 +10,8 @@ import (
 // synthetic names (org:acme-o3, repo:acme-o3/r17, identity:u5, ...). It uses
 // every EdgeKind, every Evidence value, random ref_kind and via attributes
 // (including workflow -CAN_PUSH-> repo with via=token_write),
-// parallel edges and cycles through nested USES. A few edge endpoints are left
+// parallel edges and cycles through nested USES, and actions_access levels on
+// action host repos. A few edge endpoints are left
 // undeclared so kind inference from the ID is exercised too.
 //
 // ref_kind on USES edges always agrees with the ref in the action ID (a 40-hex
@@ -92,7 +93,13 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		// Host repos are named a<N> so the action ID reads like the issue's examples.
 		owner := orgOf(r.IntN(nOrgs))
 		host := fmt.Sprintf("repo:%s/a%d", owner, i)
-		node(host, KindRepo, nil)
+		// About half the host repos carry an Actions access level, so USES
+		// hops are dropped, kept or made not_visible by the access gate.
+		var hostAttrs map[string]string
+		if l := accessLevels[r.IntN(len(accessLevels))]; l != "" {
+			hostAttrs = map[string]string{AttrActionsAccess: l}
+		}
+		node(host, KindRepo, hostAttrs)
 		repos = append(repos, host)
 		ref := refs[r.IntN(len(refs))]
 		id := fmt.Sprintf("action:%s/a%d@%s", owner, i, ref)
@@ -194,5 +201,7 @@ func genGraph(r *rand.Rand, size int) *Graph {
 	}
 	return g
 }
+
+var accessLevels = []string{"", "", "", "", "", "", AccessNone, AccessUser, AccessOrganization, AccessEnterprise, AccessPublic, AccessUnknown}
 
 var genTime = time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
