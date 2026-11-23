@@ -299,6 +299,62 @@ func TestCaseVariants(t *testing.T) {
 	}
 }
 
+func TestCartographyAttrs(t *testing.T) {
+	g := enrichedAcme(t)
+	var orig string
+	for i, e := range g.Edges {
+		if e.Kind == graph.CanAssume {
+			g.Edges[i].Attrs[graph.AttrSource] = graph.SourceCartography
+			g.Edges[i].Attrs[graph.AttrObservedUse] = "true"
+			g.Edges[i].Attrs[graph.AttrTimesUsed] = "42"
+			g.Edges[i].Attrs[graph.AttrLastUsed] = "2026-11-20T08:00:00Z"
+			orig = g.Edges[i].Attrs[graph.AttrLastUsed]
+			break
+		}
+	}
+	res := redact(t, g, "salt-one")
+	want := mustTime(t, orig).Add(redactOffset(t, g, res)).Format(time.RFC3339)
+	found := false
+	for _, e := range res.Graph.Edges {
+		if e.Attrs[graph.AttrObservedUse] != "true" {
+			continue
+		}
+		found = true
+		if e.Attrs[graph.AttrSource] != graph.SourceCartography || e.Attrs[graph.AttrTimesUsed] != "20" || e.Attrs[graph.AttrLastUsed] != want {
+			t.Errorf("attrs = %v, want last_used %s", e.Attrs, want)
+		}
+	}
+	if !found {
+		t.Fatal("observed_use edge missing")
+	}
+	if v, err := schema.Validate(marshal(t, res.Graph)); err != nil || !v.Valid {
+		t.Errorf("validate: %v %+v", err, v)
+	}
+	for _, in := range []string{"1700000000", "1700000000000", "2026-11-20"} {
+		if _, _, ok := timeAttr(&redactor{offset: -time.Hour * 48}, attrCtx{}, in); !ok {
+			t.Errorf("timeAttr(%s) dropped", in)
+		}
+	}
+	if _, _, ok := timeAttr(&redactor{}, attrCtx{}, "last tuesday"); ok {
+		t.Error("timeAttr kept an unparsed value")
+	}
+}
+
+func mustTime(t *testing.T, s string) time.Time {
+	t.Helper()
+	ts, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ts
+}
+
+// redactOffset is the shift applied to collected_at.
+func redactOffset(t *testing.T, g *graph.Graph, res *Result) time.Duration {
+	t.Helper()
+	return res.Graph.CollectedAt.Sub(g.CollectedAt)
+}
+
 func TestBucket(t *testing.T) {
 	for in, want := range map[string]string{"0": "0", "1": "1", "3": "2", "7": "5", "12": "10", "40": "20", "120": "100",
 		"75": "50", "999": "500", "1000": "1000", "unknown": "unknown"} {

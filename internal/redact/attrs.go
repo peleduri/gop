@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/peleduri/gop/internal/graph"
 )
@@ -38,6 +39,7 @@ func init() {
 		graph.AttrVia, graph.AttrRefProtected, graph.AttrRefProtection, graph.AttrBypass, graph.AttrRef,
 		graph.AttrRefKindSource, graph.AttrRefAmbiguous, graph.AttrRefImmutable, graph.AttrRefImmutableBy,
 		graph.AttrActionsAccess, graph.AttrConsumerOrg,
+		graph.AttrSource, graph.AttrObservedUse, graph.AttrTimesUsed, graph.AttrLastUsed,
 		// documented in the JSON Schema
 		"token_write", "token_scopes", "risky_triggers", "trigger", "exec",
 		// named by the redaction itself
@@ -190,6 +192,27 @@ func sourceAPIAttr(r *redactor, _ attrCtx, v string) (string, bool, bool) {
 	return out, out == v, true
 }
 
+// timeLayouts are the timestamp forms timeAttr understands.
+var timeLayouts = []string{time.RFC3339Nano, time.RFC3339, "2006-01-02 15:04:05", "2006-01-02T15:04:05", "2006-01-02"}
+
+// timeAttr shifts a timestamp by the redaction's offset, keeping its layout
+// (unix seconds or milliseconds stay numbers). An unparsed value is dropped.
+func timeAttr(r *redactor, _ attrCtx, v string) (string, bool, bool) {
+	for _, l := range timeLayouts {
+		if t, err := time.Parse(l, v); err == nil {
+			return t.Add(r.offset).Format(l), true, true
+		}
+	}
+	if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+		unit := int64(time.Second)
+		if n > 1e12 {
+			unit = int64(time.Millisecond)
+		}
+		return strconv.FormatInt(n+int64(r.offset)/unit, 10), true, true
+	}
+	return "", false, false
+}
+
 var policies = map[string]policy{
 	graph.AttrSSO:             enum("enforced", "configured", "none", "unknown"),
 	graph.AttrTwoFactor:       enum("required", "not_required", "unknown"),
@@ -236,6 +259,10 @@ var policies = map[string]policy{
 	graph.AttrRefImmutableBy: enum(graph.RefImmutableRelease, graph.RefImmutableRuleset),
 	graph.AttrActionsAccess:  enum("none", "user", "organization", "enterprise", "public", "unknown"),
 	graph.AttrConsumerOrg:    ownerAttr,
+	graph.AttrSource:         sourceAPIAttr,
+	graph.AttrObservedUse:    enum("true"),
+	graph.AttrTimesUsed:      bucket,
+	graph.AttrLastUsed:       timeAttr,
 	"token_write":            boolish,
 	"token_scopes":           words,
 	"risky_triggers":         words,
