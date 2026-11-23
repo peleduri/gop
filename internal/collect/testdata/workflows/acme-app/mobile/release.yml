@@ -1,0 +1,9 @@
+name: release
+on: [push]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: acme-actions/deploy@main
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}

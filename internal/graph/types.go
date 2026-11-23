@@ -27,7 +27,7 @@ const (
 	KindEnterprise  NodeKind = "enterprise"
 	KindOrg         NodeKind = "org"
 	KindOrgMembers  NodeKind = "org_members" // the set of members of one org, as a single principal
-	KindIdentity    NodeKind = "identity"    // a user, team or app
+	KindIdentity    NodeKind = "identity"    // a user, team or app; ID "identity:<login>"
 	KindRepo        NodeKind = "repo"
 	KindWorkflow    NodeKind = "workflow"
 	KindActionRef   NodeKind = "action_ref" // owner/repo[/path]@ref as consumed by workflows
@@ -43,7 +43,8 @@ type EdgeKind string
 const (
 	// CanPush: principal (org_members, identity) can push to repo.
 	CanPush EdgeKind = "CAN_PUSH"
-	// Uses: workflow -> action_ref. Attrs["ref_kind"] is sha|tag|branch.
+	// Uses: workflow -> action_ref, or action_ref -> action_ref for nested composite
+	// actions and reusable workflows. Attrs["ref_kind"] is sha|tag|branch.
 	Uses EdgeKind = "USES"
 	// ResolvesTo: action_ref -> repo that hosts the action.
 	ResolvesTo EdgeKind = "RESOLVES_TO"
@@ -112,4 +113,10 @@ const (
 	AttrArchived        = "archived"          // true | false
 	AttrRefKind         = "ref_kind"          // sha | tag | branch (on Uses edges and action_ref nodes)
 	AttrVisibility      = "visibility"        // public | private | internal (repos)
+)
+
+// CAN_PUSH provenance. Collectors set Attrs[AttrVia] so fixes know which edges they remove.
+const (
+	AttrVia        = "via"
+	ViaDefaultPerm = "default_perm" // granted by the org's default repository permission
 )

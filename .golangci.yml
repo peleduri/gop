@@ -1,0 +1,13 @@
+version: "2"
+linters:
+  settings:
+    errcheck:
+      # Writes to an io.Writer whose errors surface on Flush/Close are checked there.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [errcheck]

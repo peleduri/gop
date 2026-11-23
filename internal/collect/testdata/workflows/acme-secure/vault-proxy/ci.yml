@@ -1,0 +1,8 @@
+name: ci
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: acme-actions/deploy@0123456789abcdef0123456789abcdef01234567
+      - uses: acme-legacy/hidden-tool@v2

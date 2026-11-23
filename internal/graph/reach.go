@@ -1,0 +1,362 @@
+package graph
+
+import (
+	"regexp"
+	"sort"
+	"strings"
+)
+
+// The control graph is directed controller -> controlled. It is derived from the
+// evidence graph by these rules (attacker holds the left side, gains the right):
+//
+//	principal -CAN_PUSH->     repo       push access controls the repo
+//	identity  -MEMBER_OF->    members:X  an identity gets what all members of X get
+//	repo      -DEFINED_IN->   workflow   (reversed) code pushed to a repo changes its workflows
+//	workflow  -DEFINED_IN->   repo       a controlled workflow runs in that repo's CI. The repo
+//	                                     is counted as reached ("CI reach") but NOT expanded:
+//	                                     running CI is not the same as being able to push.
+//	repo      -RESOLVES_TO->  action     (reversed) pushing to the host repo changes the action,
+//	                                     only when the ref is mutable (branch or tag). A sha ref
+//	                                     (or a PinRef fix) blocks this hop.
+//	action    -USES->         workflow   (reversed) whoever controls an action's content controls
+//	action    -USES->         action     every workflow or composite action that uses it. This
+//	                                     hop is always open: a sha-pinned action that itself USES
+//	                                     a nested branch/tag action stays controllable through the
+//	                                     nested one. A sha pin only blocks a path when the whole
+//	                                     nested chain is immutable.
+//	workflow  -EXECUTES_WITH-> secret|oidc|runner   terminal impact
+type controlGraph struct {
+	out map[string][]cedge
+}
+
+type cedge struct {
+	to  string
+	hop Hop
+	ci  bool // reaches a repo's CI only; the target is recorded but not expanded
+}
+
+// Hop is one step of an attack path, in control order (From controls To).
+// Reverse is true when the underlying evidence edge points the other way
+// (DEFINED_IN, RESOLVES_TO and USES are traversed backwards).
+type Hop struct {
+	Kind      EdgeKind `json:"kind"`
+	From      string   `json:"from"`
+	To        string   `json:"to"`
+	Evidence  Evidence `json:"evidence"`
+	SourceAPI string   `json:"source_api,omitempty"`
+	Reverse   bool     `json:"reverse,omitempty"`
+}
+
+// Path is one shortest control path from a principal to a node. Evidence is the
+// weakest hop. Unverified is true when any hop is not_visible: such a path is
+// "possible" reach, never "confirmed".
+type Path struct {
+	From       string   `json:"from"`
+	To         string   `json:"to"`
+	Hops       []Hop    `json:"hops"`
+	Evidence   Evidence `json:"evidence"`
+	Unverified bool     `json:"unverified"`
+}
+
+// Reached lists node IDs by kind. Orgs are the orgs of the reached repos.
+type Reached struct {
+	Repos     []string `json:"repos"`
+	Workflows []string `json:"workflows"`
+	Actions   []string `json:"actions"`
+	Secrets   []string `json:"secrets"`
+	OIDC      []string `json:"oidc"`
+	Runners   []string `json:"runners"`
+	Orgs      []string `json:"orgs"`
+}
+
+// Result of Reach. Confirmed holds nodes reachable through a path where every hop
+// is live or audit. Possible holds nodes reachable only through paths with at least
+// one not_visible hop; it never overlaps Confirmed. Paths has one shortest path for
+// every node in either set (confirmed nodes get a fully verified path).
+type Result struct {
+	From      string          `json:"from"`
+	Confirmed Reached         `json:"confirmed"`
+	Possible  Reached         `json:"possible"`
+	Paths     map[string]Path `json:"paths"`
+}
+
+// Options tune a traversal.
+type Options struct {
+	// Fixes are applied hypothetically before traversal (see WhatIf).
+	Fixes []Fix
+}
+
+var shaRe = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+// actionMutable decides whether pushing to an action's host repo changes what
+// consumers run. Order: node attr ref_kind, then incoming USES ref_kind attrs
+// (any branch/tag wins), then the ref itself (40 hex = sha). Unknown is treated
+// as mutable: gop does not assume a pin it did not see.
+func (ix *Index) actionMutable(action string) bool {
+	if n, ok := ix.nodes[action]; ok {
+		switch n.Attrs[AttrRefKind] {
+		case "sha":
+			return false
+		case "branch", "tag":
+			return true
+		}
+	}
+	sawSha := false
+	for _, e := range ix.in[action] {
+		if e.Kind != Uses {
+			continue
+		}
+		switch e.Attrs[AttrRefKind] {
+		case "branch", "tag":
+			return true
+		case "sha":
+			sawSha = true
+		}
+	}
+	if sawSha {
+		return false
+	}
+	if i := strings.LastIndex(action, "@"); i >= 0 && shaRe.MatchString(action[i+1:]) {
+		return false
+	}
+	return true
+}
+
+func (ix *Index) membersOf(orgID string) string {
+	if strings.HasPrefix(orgID, "org:") {
+		return "members:" + strings.TrimPrefix(orgID, "org:")
+	}
+	return orgID
+}
+
+func (ix *Index) buildControl(fixes []Fix) *controlGraph {
+	var fs fixSet
+	for _, f := range fixes {
+		f.apply(&fs)
+	}
+	type key struct {
+		from, to string
+		ci       bool
+	}
+	best := map[key]cedge{}
+	add := func(from, to string, e Edge, reverse, ci bool) {
+		k := key{from, to, ci}
+		ce := cedge{to: to, ci: ci, hop: Hop{Kind: e.Kind, From: from, To: to, Evidence: e.Evidence, SourceAPI: e.SourceAPI, Reverse: reverse}}
+		if old, ok := best[k]; ok && evRank(old.hop.Evidence) >= evRank(e.Evidence) {
+			return
+		}
+		best[k] = ce
+	}
+	mutable := map[string]bool{}
+	for _, e := range ix.g.Edges {
+		switch e.Kind {
+		case CanPush:
+			if fs.removesPush(e) {
+				continue
+			}
+			add(e.From, e.To, e, false, false)
+		case MemberOf:
+			add(e.From, ix.membersOf(e.To), e, false, false)
+		case DefinedIn:
+			add(e.To, e.From, e, true, false)
+			add(e.From, e.To, e, false, true)
+		case ResolvesTo:
+			m, ok := mutable[e.From]
+			if !ok {
+				m = ix.actionMutable(e.From)
+				mutable[e.From] = m
+			}
+			if m && !fs.pinned[e.From] {
+				add(e.To, e.From, e, true, false)
+			}
+		case Uses:
+			add(e.To, e.From, e, true, false)
+		case ExecutesWith:
+			add(e.From, e.To, e, false, false)
+		}
+	}
+	cg := &controlGraph{out: map[string][]cedge{}}
+	for k, ce := range best {
+		cg.out[k.from] = append(cg.out[k.from], ce)
+	}
+	for _, es := range cg.out {
+		sort.Slice(es, func(i, j int) bool {
+			if es[i].to != es[j].to {
+				return es[i].to < es[j].to
+			}
+			return !es[i].ci && es[j].ci
+		})
+	}
+	return cg
+}
+
+func (ix *Index) control(fixes []Fix) *controlGraph {
+	if len(fixes) == 0 {
+		return ix.base
+	}
+	return ix.buildControl(fixes)
+}
+
+type visit struct {
+	path       []Hop // first (shortest) path found, reported
+	ctrlPath   []Hop // shortest path that gives full control (used for expansion)
+	controlled bool
+}
+
+func pathEvidence(hops []Hop) Evidence {
+	ev := Live
+	for _, h := range hops {
+		ev = weakest(ev, h.Evidence)
+	}
+	return ev
+}
+
+// bfs walks the control graph in layers. Among equally short candidate paths it
+// keeps the one with the strongest evidence (ties: first in sorted order), so the
+// output is deterministic. verifiedOnly skips not_visible hops.
+func (cg *controlGraph) bfs(from string, verifiedOnly bool) map[string]*visit {
+	seen := map[string]*visit{from: {controlled: true}}
+	frontier := []string{from}
+	type cand struct {
+		path []Hop
+		ev   Evidence
+		ctrl bool
+	}
+	for len(frontier) > 0 {
+		next := map[string]*cand{}
+		for _, u := range frontier {
+			base := seen[u].ctrlPath
+			for _, e := range cg.out[u] {
+				if verifiedOnly && !Verified(e.hop.Evidence) {
+					continue
+				}
+				if st := seen[e.to]; st != nil && (st.controlled || e.ci) {
+					continue
+				}
+				p := make([]Hop, len(base)+1)
+				copy(p, base)
+				p[len(base)] = e.hop
+				c := &cand{path: p, ev: pathEvidence(p), ctrl: !e.ci}
+				old := next[e.to]
+				if old == nil || (c.ctrl && !old.ctrl) || (c.ctrl == old.ctrl && evRank(c.ev) > evRank(old.ev)) {
+					next[e.to] = c
+				}
+			}
+		}
+		frontier = frontier[:0]
+		for _, v := range sortedCandKeys(next) {
+			c := next[v]
+			st := seen[v]
+			if st == nil {
+				st = &visit{path: c.path}
+				seen[v] = st
+			}
+			if c.ctrl {
+				st.controlled = true
+				st.ctrlPath = c.path
+				frontier = append(frontier, v)
+			}
+		}
+	}
+	return seen
+}
+
+func sortedCandKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// Reach is a BFS over the control graph from a principal (e.g. "members:acme-actions",
+// "identity:bob" or "repo:O/R"). The start node itself is not listed.
+func Reach(g *Graph, from string, opts Options) Result {
+	return NewIndex(g).Reach(from, opts)
+}
+
+// Reach on a prebuilt index.
+func (ix *Index) Reach(from string, opts Options) Result {
+	return ix.reach(ix.control(opts.Fixes), from)
+}
+
+func (ix *Index) reach(cg *controlGraph, from string) Result {
+	conf := cg.bfs(from, true)
+	all := cg.bfs(from, false)
+	res := Result{From: from, Paths: map[string]Path{}}
+	confOrgs, possOrgs := map[string]bool{}, map[string]bool{}
+	for _, id := range sortedCandKeys(all) {
+		if id == from {
+			continue
+		}
+		var (
+			hops []Hop
+			r    *Reached
+		)
+		if v, ok := conf[id]; ok {
+			hops, r = v.path, &res.Confirmed
+		} else {
+			hops, r = all[id].path, &res.Possible
+		}
+		ev := pathEvidence(hops)
+		res.Paths[id] = Path{From: from, To: id, Hops: hops, Evidence: ev, Unverified: !Verified(ev)}
+		switch ix.Kind(id) {
+		case KindRepo:
+			r.Repos = append(r.Repos, id)
+			if o := OrgOf(id); o != "" {
+				if r == &res.Confirmed {
+					confOrgs[o] = true
+				} else {
+					possOrgs[o] = true
+				}
+			}
+		case KindWorkflow:
+			r.Workflows = append(r.Workflows, id)
+		case KindActionRef:
+			r.Actions = append(r.Actions, id)
+		case KindSecret:
+			r.Secrets = append(r.Secrets, id)
+		case KindOIDC:
+			r.OIDC = append(r.OIDC, id)
+		case KindRunner:
+			r.Runners = append(r.Runners, id)
+		}
+	}
+	res.Confirmed.Orgs = sortedKeys(confOrgs)
+	for o := range confOrgs {
+		delete(possOrgs, o)
+	}
+	res.Possible.Orgs = sortedKeys(possOrgs)
+	return res
+}
+
+// WhoCanReach lists, for each principal that can control target (a repo, workflow,
+// action or terminal), one shortest path. Confirmed paths come first, then
+// unverified ones; within each group shorter paths first, then by principal ID.
+func WhoCanReach(g *Graph, target string) []Path {
+	return NewIndex(g).WhoCanReach(target)
+}
+
+// WhoCanReach on a prebuilt index.
+func (ix *Index) WhoCanReach(target string) []Path {
+	var out []Path
+	for _, p := range ix.Principals() {
+		if p == target {
+			continue
+		}
+		if path, ok := ix.reach(ix.base, p).Paths[target]; ok {
+			out = append(out, path)
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Unverified != out[j].Unverified {
+			return !out[i].Unverified
+		}
+		if len(out[i].Hops) != len(out[j].Hops) {
+			return len(out[i].Hops) < len(out[j].Hops)
+		}
+		return out[i].From < out[j].From
+	})
+	return out
+}

@@ -1,0 +1,6 @@
+name: docs
+on: [push]
+jobs:
+  build:
+    uses: acme-actions/setup/.github/workflows/build.yml@main
+    secrets: inherit

@@ -1,0 +1,7 @@
+name: setup
+description: synthetic composite setup action (cycles back to deploy)
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+    - uses: acme-actions/deploy@0123456789abcdef0123456789abcdef01234567
