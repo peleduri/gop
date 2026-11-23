@@ -1,0 +1,33 @@
+gop doctor: enterprise acme
+
+Token
+  kind    classic personal access token
+  user    alice
+  mode    (a) enterprise-owner token
+  scopes  read:audit_log, read:enterprise, read:org, repo
+  expires 2027-02-01 00:00:00 UTC
+
+Checks
+  PASS  token                  authenticated as alice (classic personal access token)
+  PASS  enterprise             ownerInfo readable for acme; 3 organizations
+  PASS  scope read:enterprise  present
+  PASS  scope read:org         present
+  PASS  scope repo             present
+  PASS  scope read:audit_log   present
+  PASS  write scopes           none beyond repo, which private contents require
+  PASS  expiry                 expires 2027-02-01 00:00:00 UTC
+  PASS  orgs                   3 of 3 organizations readable (from enterprise organizations)
+  PASS  rate limit             collect needs about 1314 REST requests and 4980 of 5000 remain
+
+Rate limit
+  REST    4980 of 5000 remaining, resets 2026-11-23T12:40:00Z
+  GraphQL 4995 of 5000 remaining, resets 2026-11-23T12:40:00Z
+
+Estimate for gop collect
+  3 orgs, 252 repos (GET /orgs/{org} counts), 3 workflows per repo assumed
+  about 1314 requests and 7 minutes
+
+Predicted not_visible
+  nothing predicted
+
+Result: all checks pass

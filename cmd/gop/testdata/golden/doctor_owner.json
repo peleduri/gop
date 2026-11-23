@@ -1,0 +1,107 @@
+{
+  "enterprise": "acme",
+  "mode": "a",
+  "mode_label": "(a) enterprise-owner token",
+  "token": {
+    "kind": "classic_pat",
+    "login": "alice",
+    "scopes": [
+      "read:audit_log",
+      "read:enterprise",
+      "read:org",
+      "repo"
+    ],
+    "scopes_known": true,
+    "expires": "2027-02-01 00:00:00 UTC"
+  },
+  "checks": [
+    {
+      "name": "token",
+      "status": "pass",
+      "detail": "authenticated as alice (classic personal access token)"
+    },
+    {
+      "name": "enterprise",
+      "status": "pass",
+      "detail": "ownerInfo readable for acme; 3 organizations"
+    },
+    {
+      "name": "scope read:enterprise",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "scope read:org",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "scope repo",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "scope read:audit_log",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "write scopes",
+      "status": "pass",
+      "detail": "none beyond repo, which private contents require"
+    },
+    {
+      "name": "expiry",
+      "status": "pass",
+      "detail": "expires 2027-02-01 00:00:00 UTC"
+    },
+    {
+      "name": "orgs",
+      "status": "pass",
+      "detail": "3 of 3 organizations readable (from enterprise organizations)"
+    },
+    {
+      "name": "rate limit",
+      "status": "pass",
+      "detail": "collect needs about 1314 REST requests and 4980 of 5000 remain"
+    }
+  ],
+  "orgs": [
+    {
+      "login": "acme",
+      "status": "ok",
+      "repos": 44
+    },
+    {
+      "login": "acme-actions",
+      "status": "ok",
+      "repos": 124
+    },
+    {
+      "login": "acme-app",
+      "status": "ok",
+      "repos": 84
+    }
+  ],
+  "orgs_total": 3,
+  "rate_limit_rest": {
+    "limit": 5000,
+    "remaining": 4980,
+    "reset": "2026-11-23T12:40:00Z"
+  },
+  "rate_limit_graphql": {
+    "limit": 5000,
+    "remaining": 4995,
+    "reset": "2026-11-23T12:40:00Z"
+  },
+  "estimate": {
+    "orgs": 3,
+    "orgs_uncounted": 0,
+    "repos": 252,
+    "assumed_workflows_per_repo": 3,
+    "requests": 1314,
+    "minutes": 7,
+    "rate_limit_waits": 0
+  },
+  "not_visible": []
+}

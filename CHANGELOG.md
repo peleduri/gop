@@ -17,6 +17,14 @@ flags may change in minor releases.
   repos where members lose push. Steps whose evidence is not visible are marked
   and listed last. Output as text, markdown checklist or JSON. gop never runs
   the steps or calls write APIs.
+- `gop doctor --enterprise SLUG [--github-url URL] [--orgs a,b] [--format text|json]`:
+  a read-only preflight for `collect`. It detects the token kind and mode
+  (a/b/c), checks classic scopes (`X-OAuth-Scopes`), write scopes broader than
+  gop needs and a classic token with no expiry, probes up to 100 orgs for
+  SAML SSO authorization gaps (`X-GitHub-SSO`), reads `GET /rate_limit`,
+  estimates requests and minutes for `collect`, and lists the predicted
+  `not_visible` areas, each check with its fix. Exit 0 all pass, 1 any fail,
+  3 warnings only. It never prints the token or a header value.
 
 ## [0.2.0] - 2026-11-23
 

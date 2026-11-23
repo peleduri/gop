@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/peleduri/gop/internal/collect"
 	"github.com/peleduri/gop/internal/demo"
@@ -40,6 +41,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b]
+  gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
   gop serve   --graph graph.json | --demo  [--baseline old.json]
   gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
@@ -58,6 +60,9 @@ When the token cannot read the enterprise (an org-scoped App installation
 token, a non-owner token, or no read:enterprise), collect builds the graph
 per org: from --orgs, or else the token's own orgs. Enterprise-level facts
 are then not_visible and listed in coverage.
+doctor is a read-only preflight for collect: token mode, scopes, SSO
+authorization gaps, rate limit, a time estimate and what will come out
+not_visible. Exit 0 all pass, 1 any fail, 3 warnings only.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
 validate checks graph.json against the published JSON Schema and that every
@@ -79,6 +84,7 @@ type app struct {
 	getenv         func(string) string
 	collect        collector
 	serve          func(ctx context.Context, g *graph.Graph, version string, opts mcpserver.ServerOptions) error
+	now            func() time.Time // nil means time.Now
 }
 
 func main() {
@@ -111,6 +117,8 @@ func (a *app) run(args []string) int {
 	switch cmd {
 	case "collect":
 		err = a.cmdCollect(rest)
+	case "doctor":
+		err = a.cmdDoctor(rest)
 	case "demo":
 		err = a.cmdDemo(rest)
 	case "serve":
