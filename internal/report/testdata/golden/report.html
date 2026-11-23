@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-lyqwqPKeRt8K4zByNBn0Qvqq2rxXna1WycoT4q+jUok='; style-src 'sha256-PumST8eNh5hK3/wMnF0CoTe7gDzRq3o9Wy9YdFhEcAY='; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XD5I3NSRvK2iKx2Cu2n+sRSED5RmvnysfdjBJQWnJoE='; style-src 'sha256-MGdsLifK8Nbdii7KVq9HcbG04wqMmd/7vLm9vWHWEyE='; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>gop report: acme</title>
 <style>
@@ -14,12 +14,20 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1080px;margin:0 auto;padding:24px 16px 48px}
+header,nav,main,footer{max-width:1080px;margin:0 auto;padding-left:16px;padding-right:16px}
+header{padding-top:24px}
 a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.skip{position:absolute;left:-9999px;top:8px}.skip:focus{left:16px;background:var(--bg);padding:4px 8px}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+nav ul{list-style:none;display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 0;padding:0;font-size:.9rem}
 h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1.1rem;margin:32px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
 .meta,.note{color:var(--muted);font-size:.9rem}
 .headline{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:6px;padding:12px 16px;margin:16px 0}
-.headline p{margin:4px 0}.headline .big{font-size:1.15rem;font-weight:600}
+.headline p{margin:4px 0}.headline .big,.banner .big{font-size:1.15rem;font-weight:600}
+.banner{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0}
+.banner h2{margin:0 0 4px;padding:0;border:0}.banner p{margin:4px 0}.banner h3{font-size:.95rem;margin:12px 0 4px}
+.banner ul{margin:0;padding-left:20px}.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.9rem}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -39,24 +47,29 @@ code{font:.85em ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all
 .filters fieldset{border:1px solid var(--line);border-radius:4px;margin:0;padding:2px 8px;font-size:.85rem}
 .filters fieldset label{display:inline;margin-right:8px;color:var(--fg)}
 .orglinks a{margin-right:12px}
-footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
 </style>
 </head>
 <body>
-<main>
-<div id="gop-static">
+<a class="skip" href="#main">Skip to the report</a>
+<header>
 <h1>gop: who can make code run where</h1>
 <p class="meta">Enterprise <strong>acme</strong> · collected 2026-11-20T10:00:00Z</p>
+</header>
+<nav aria-label="Report sections"><ul><li><a href="#top-risks">Top risks</a></li><li><a href="#fixes">Suggested fixes</a></li><li><a href="#top-paths">Top paths</a></li><li><a href="#org-settings">Org settings</a></li><li><a href="#coverage">Coverage</a></li></ul></nav>
+<main id="main">
+<div id="gop-static">
 
 <section class="headline">
 <p class="big">Members of acme-actions can push code that runs in 12 repos across 2 orgs (confirmed), including 1 cloud OIDC trust, 1 secret scope, 1 self-hosted runner pool.</p>
 <p>Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 72% of confirmed reach.</p>
-<p class="note">Confirmed means every hop was read live or from the audit log. Possible means at least one hop is <span class="badge nv">not visible</span> to the token: unknown, not absent.</p>
+<p class="note">Confirmed means every hop was read live or from the audit log. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent.</p>
 </section>
 
-<h2>Top risks</h2>
+<h2 id="top-risks">Top risks</h2>
 <div class="scroll"><table>
-<thead><tr><th>Principal</th><th>Confirmed repos</th><th>Orgs</th><th>OIDC</th><th>Secrets</th><th>Runners</th><th>Possible</th><th>Score</th></tr></thead>
+<caption class="vh">Top risks: confirmed reach per principal</caption>
+<thead><tr><th scope="col">Principal</th><th scope="col">Confirmed repos</th><th scope="col">Orgs</th><th scope="col">OIDC</th><th scope="col">Secrets</th><th scope="col">Runners</th><th scope="col">Possible</th><th scope="col">Score</th></tr></thead>
 <tbody><tr><td><code>identity:bob</code></td><td class="n">12</td><td class="n">2</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td class="n">0 repos</td><td class="n">86.6</td></tr>
 <tr><td><code>members:acme-actions</code></td><td class="n">12</td><td class="n">2</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td class="n">0 repos</td><td class="n">86.6</td></tr>
 <tr><td><code>identity:alice</code></td><td class="n">1</td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0 repos</td><td class="n">3.5</td></tr>
@@ -67,9 +80,10 @@ footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:v
 <p class="note">Score counts confirmed reach only. Possible reach depends on at least one fact gop could not see.</p>
 
 
-<h2>Suggested fixes</h2>
+<h2 id="fixes">Suggested fixes</h2>
 <div class="scroll"><table>
-<thead><tr><th>#</th><th>Fix</th><th>Confirmed pairs removed</th><th>Cumulative removed</th></tr></thead>
+<caption class="vh">Suggested fixes, in order</caption>
+<thead><tr><th scope="col">#</th><th scope="col">Fix</th><th scope="col">Confirmed pairs removed</th><th scope="col">Cumulative removed</th></tr></thead>
 <tbody><tr><td class="n">1</td><td>Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it<br><span class="src"><code>pin:action:acme-actions/deploy@main</code></span></td><td class="n">18</td><td class="n">72%</td></tr>
 <tr><td class="n">2</td><td>Lower the default repository permission of acme-actions to read<br><span class="src"><code>default_perm:org:acme-actions-&gt;read</code></span></td><td class="n">4</td><td class="n">88%</td></tr>
 <tr><td class="n">3</td><td>Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it<br><span class="src"><code>pin:action:acme-actions/deploy@v1</code></span></td><td class="n">1</td><td class="n">92%</td></tr>
@@ -77,86 +91,88 @@ footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:v
 <p class="note">Greedy pick by confirmed (principal, repo) pairs removed. Fixes that only touch not visible edges are never suggested.</p>
 
 
-<h2>Top paths</h2>
+<h2 id="top-paths">Top paths</h2>
 <h3><code>identity:bob</code></h3>
 <div class="path">
-<div><span class="badge live">confirmed</span> to <code>oidc:acme-app/web</code></div>
-<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
-<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>workflow:acme-app/web/.github/workflows/ci.yml</code> → <code>oidc:acme-app/web</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>oidc:acme-app/web</code></div>
+<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/web/.github/workflows/ci.yml</code> → <code>oidc:acme-app/web</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <div class="path">
-<div><span class="badge live">confirmed</span> to <code>secret:acme-app/billing</code></div>
-<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
-<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>workflow:acme-app/billing/.github/workflows/ci.yml</code> → <code>secret:acme-app/billing</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>secret:acme-app/billing</code></div>
+<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/billing/.github/workflows/ci.yml</code> → <code>secret:acme-app/billing</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <div class="path">
-<div><span class="badge live">confirmed</span> to <code>runner:acme-app/worker</code></div>
-<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
-<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>workflow:acme-app/worker/.github/workflows/ci.yml</code> → <code>runner:acme-app/worker</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>runner:acme-app/worker</code></div>
+<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/worker/.github/workflows/ci.yml</code> → <code>runner:acme-app/worker</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <h3><code>members:acme-actions</code></h3>
 <div class="path">
-<div><span class="badge live">confirmed</span> to <code>oidc:acme-app/web</code></div>
-<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/orgs/{org}</span></li>
-<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>workflow:acme-app/web/.github/workflows/ci.yml</code> → <code>oidc:acme-app/web</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>oidc:acme-app/web</code></div>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/web/.github/workflows/ci.yml</code> → <code>oidc:acme-app/web</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <div class="path">
-<div><span class="badge live">confirmed</span> to <code>secret:acme-app/billing</code></div>
-<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/orgs/{org}</span></li>
-<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>workflow:acme-app/billing/.github/workflows/ci.yml</code> → <code>secret:acme-app/billing</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>secret:acme-app/billing</code></div>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/billing/.github/workflows/ci.yml</code> → <code>secret:acme-app/billing</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <div class="path">
-<div><span class="badge live">confirmed</span> to <code>runner:acme-app/worker</code></div>
-<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/orgs/{org}</span></li>
-<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
-<li><code>workflow:acme-app/worker/.github/workflows/ci.yml</code> → <code>runner:acme-app/worker</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>runner:acme-app/worker</code></div>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/worker/.github/workflows/ci.yml</code> → <code>runner:acme-app/worker</code> <span class="src">EXECUTES_WITH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 <h3><code>identity:alice</code></h3>
 <div class="path">
-<div><span class="badge live">confirmed</span> to <code>repo:acme-app/infra</code></div>
-<ol><li><code>identity:alice</code> → <code>repo:acme-app/infra</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+<div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>repo:acme-app/infra</code></div>
+<ol><li><code>identity:alice</code> → <code>repo:acme-app/infra</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
 </ol></div>
 <h3><code>members:acme-legacy</code></h3>
 <div class="path">
-<div><span class="badge nv">possible: a hop is not visible</span> to <code>secret:acme-legacy/old-api</code></div>
-<ol><li><code>members:acme-legacy</code> → <code>repo:acme-legacy/old-api</code> <span class="src">CAN_PUSH</span> <span class="badge nv">not visible</span> <span class="src">rest:/orgs/{org}</span></li>
-<li><code>repo:acme-legacy/old-api</code> → <code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> <span class="src">DEFINED_IN (reversed)</span> <span class="badge audit">audit</span> <span class="src">rest:/repos/{owner}/{repo}/actions/workflows</span></li>
-<li><code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> → <code>secret:acme-legacy/old-api</code> <span class="src">EXECUTES_WITH</span> <span class="badge audit">audit</span> <span class="src">contents:.github/workflows</span></li>
+<div><span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span> to <code>secret:acme-legacy/old-api</code></div>
+<ol><li><code>members:acme-legacy</code> → <code>repo:acme-legacy/old-api</code> <span class="src">CAN_PUSH</span> <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-legacy/old-api</code> → <code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> <span class="src">DEFINED_IN (reversed)</span> <span class="badge audit"><span aria-hidden="true">✓</span> audit</span> <span class="src">rest:/repos/{owner}/{repo}/actions/workflows</span></li>
+<li><code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> → <code>secret:acme-legacy/old-api</code> <span class="src">EXECUTES_WITH</span> <span class="badge audit"><span aria-hidden="true">✓</span> audit</span> <span class="src">contents:.github/workflows</span></li>
 </ol></div>
 
 
-<h2>Org settings</h2>
+<h2 id="org-settings">Org settings</h2>
 <div class="scroll"><table>
-<thead><tr><th>Org</th><th>Default permission</th><th>2FA</th><th>SSO</th><th>IP allow list</th><th>Members</th></tr></thead>
-<tbody><tr><td><code>acme-actions</code></td><td>write</td><td>not_required</td><td>configured</td><td><span class="badge nv">unknown</span></td><td>40</td></tr>
-<tr><td><code>acme-app</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv">unknown</span></td><td>120</td></tr>
-<tr><td><code>acme-legacy</code></td><td>write</td><td>not_required</td><td>none</td><td><span class="badge nv">not visible</span></td><td><span class="badge nv">unknown</span></td></tr>
-<tr><td><code>acme-secure</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv">unknown</span></td><td>8</td></tr>
+<caption class="vh">Org settings; a setting gop could not see reads not visible or unknown</caption>
+<thead><tr><th scope="col">Org</th><th scope="col">Default permission</th><th scope="col">2FA</th><th scope="col">SSO</th><th scope="col">IP allow list</th><th scope="col">Members</th></tr></thead>
+<tbody><tr><td><code>acme-actions</code></td><td>write</td><td>not_required</td><td>configured</td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td><td>40</td></tr>
+<tr><td><code>acme-app</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td><td>120</td></tr>
+<tr><td><code>acme-legacy</code></td><td>write</td><td>not_required</td><td>none</td><td><span class="badge nv"><span aria-hidden="true">?</span> not visible</span></td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td></tr>
+<tr><td><code>acme-secure</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td><td>8</td></tr>
 </tbody></table></div>
 
-<h2>Coverage</h2>
+<h2 id="coverage">Coverage</h2>
 <div class="scroll"><table>
-<thead><tr><th>Scope</th><th>Not visible</th><th>Why</th><th>Access that fixes it</th></tr></thead>
-<tbody><tr><td><code>org:acme-legacy</code></td><td><span class="badge nv">repositories</span></td><td>token is not an org owner</td><td>org owner on acme-legacy (SAML enforced: join through the IdP first)</td></tr>
-<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv">ip_allow_list</span></td><td>token is not an org owner</td><td>org owner on acme-legacy</td></tr>
+<caption class="vh">Coverage: facts the token could not see</caption>
+<thead><tr><th scope="col">Scope</th><th scope="col">Not visible</th><th scope="col">Why</th><th scope="col">Access that fixes it</th></tr></thead>
+<tbody><tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> repositories</span></td><td>token is not an org owner</td><td>org owner on acme-legacy (SAML enforced: join through the IdP first)</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> ip_allow_list</span></td><td>token is not an org owner</td><td>org owner on acme-legacy</td></tr>
 </tbody></table></div>
 
 
 </div>
 
 <section id="gop-explore" hidden>
-<h2>Explore paths</h2>
+<h2 id="gop-explore-h" tabindex="-1">Explore paths</h2>
 <p class="note">Filter every embedded path. The view is saved in the address, so a link to it opens the same filters.</p>
 <form id="gop-filters" class="filters">
 <label>Evidence <select name="ev"><option value="">confirmed and possible</option><option value="confirmed">confirmed</option><option value="possible">possible</option></select></label>
@@ -167,7 +183,7 @@ footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:v
 <button type="button" id="gop-reset">Reset</button>
 </form>
 
-<p id="gop-count" class="note"></p>
+<p id="gop-count" class="note" role="status" aria-live="polite"></p>
 <div id="gop-paths"></div>
 <h3>Fixes for the selected orgs</h3>
 <div id="gop-fixes"></div>
@@ -176,9 +192,8 @@ footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:v
 </section>
 
 <section id="gop-orgview" hidden></section>
-
-<footer>Generated by gop vTEST. This file maps attack paths in your organization. Treat it as sensitive.</footer>
 </main>
+<footer>Generated by gop vTEST. This file maps attack paths in your organization. Treat it as sensitive.</footer>
 <script type="application/json" id="gop-data">@@report.data.json@@</script>
 <script>
 var GOP=(function(){
@@ -248,8 +263,15 @@ return e;
 }
 function code(t){return h("code","",t);}
 function clear(e){while(e.firstChild){e.removeChild(e.firstChild);}}
-function evBadge(ev){return h("span","badge "+(ev==="live"?"live":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv"),ev);}
-function pathBadge(p){return p.ev==="confirmed"?h("span","badge live","confirmed"):h("span","badge nv","possible: a hop is not visible");}
+function icon(t){var e=h("span","",t);e.setAttribute("aria-hidden","true");return e;}
+function badge(cls,t,txt){return h("span","badge "+cls,icon(t)," "+txt);}
+function evBadge(ev){var c=ev==="live"?"live":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv";return badge(c,c==="supplied"?"≡":c==="nv"?"?":"✓",ev);}
+function pathBadge(p){return p.ev==="confirmed"?badge("live","✓","confirmed"):badge("nv","?","possible: a hop is not visible");}
+function table(cap,heads,tb){
+var tr=h("tr");
+heads.forEach(function(t){var th=h("th","",t);th.scope="col";tr.appendChild(th);});
+return h("div","scroll",h("table","",h("caption","vh",cap),h("thead","",tr),tb));
+}
 function plural(n,one,many){return n+" "+(n===1?one:many);}
 function pathEl(p){
 var ol=h("ol");
@@ -268,7 +290,7 @@ function fixTable(box,fs,none){
 if(!fs.length){box.appendChild(h("p","note",none));return;}
 var tb=h("tbody");
 fs.forEach(function(x){tb.appendChild(h("tr","",h("td","n",x.n),h("td","",x.desc,h("br"),h("span","src",code(x.id))),h("td","n",x.removed),h("td","n",x.pct)));});
-box.appendChild(h("div","scroll",h("table","",h("thead","",h("tr","",h("th","","#"),h("th","","Fix"),h("th","","Confirmed pairs removed"),h("th","","Cumulative removed"))),tb)));
+box.appendChild(table("Suggested fixes for this view",["#","Fix","Confirmed pairs removed","Cumulative removed"],tb));
 }
 function counts(ps){
 var c=0,pr={};
@@ -310,12 +332,12 @@ var org=null;
 D.orgs.forEach(function(o){if(o.name===name){org=o;}});
 var back=h("a","","← Back to the full report");back.href="#";
 v.appendChild(h("p","",back));
-v.appendChild(h("h2","","Org ",code(name)));
+var hd=h("h2","","Org ",code(name));hd.tabIndex=-1;v.appendChild(hd);
 var st=section("Settings","A setting gop could not see reads unknown, never off.");
 if(org){
 var tb=h("tbody");
-org.settings.forEach(function(a){tb.appendChild(h("tr","",h("td","",a.title),h("td","",a.known?a.value:h("span","badge nv",a.value)),h("td","",evBadge(a.evidence))));});
-st.appendChild(h("div","scroll",h("table","",h("thead","",h("tr","",h("th","","Setting"),h("th","","Value"),h("th","","Evidence"))),tb)));
+org.settings.forEach(function(a){tb.appendChild(h("tr","",h("td","",a.title),h("td","",a.known?a.value:badge("nv","?",a.value)),h("td","",evBadge(a.evidence))));});
+st.appendChild(table("Settings of "+name,["Setting","Value","Evidence"],tb));
 }else{st.appendChild(h("p","note","gop has no org node for this name: every setting is unknown."));}
 v.appendChild(st);
 var inb=GOP.inbound(D,name),s1=section("Inbound reach","Principals from other orgs that reach this org's repos and their impact.");
@@ -326,16 +348,19 @@ var s3=section("Fixes that touch this org");fixTable(s3,GOP.fixesFor(D,[name]),"
 var cov=GOP.coverageFor(D,name),s4=section("Coverage gaps");
 if(cov.length){
 var cb=h("tbody");
-cov.forEach(function(x){cb.appendChild(h("tr","",h("td","",code(x.scope)),h("td","",h("span","badge nv",x.fact)),h("td","",x.reason),h("td","",x.needs_fix)));});
-s4.appendChild(h("div","scroll",h("table","",h("thead","",h("tr","",h("th","","Scope"),h("th","","Not visible"),h("th","","Why"),h("th","","Access that fixes it"))),cb)));
+cov.forEach(function(x){cb.appendChild(h("tr","",h("td","",code(x.scope)),h("td","",badge("nv","?",x.fact)),h("td","",x.reason),h("td","",x.needs_fix)));});
+s4.appendChild(table("Coverage gaps of "+name,["Scope","Not visible","Why","Access that fixes it"],cb));
 }else{s4.appendChild(h("p","note","No coverage gap recorded for this org."));}
 v.appendChild(s4);
+return hd;
 }
-function route(){
+function focusOn(e){if(e&&e.focus){e.focus();}}
+function route(moved){
 var s=GOP.parseHash(location.hash),isOrg=s.route==="org";
 $("gop-static").hidden=isOrg;$("gop-explore").hidden=isOrg;$("gop-orgview").hidden=!isOrg;
-if(isOrg){renderOrg(s.org);window.scrollTo(0,0);return;}
+if(isOrg){var hd=renderOrg(s.org);window.scrollTo(0,0);if(moved){focusOn(hd);}return;}
 writeForm(s.f);renderExplore(s.f);
+if(moved&&location.hash.indexOf("=")>0){focusOn($("gop-explore-h"));}
 }
 function onInput(){
 var f=readForm(),hs=GOP.toHash(f);
@@ -346,7 +371,7 @@ form.addEventListener("input",onInput);
 form.addEventListener("change",onInput);
 form.addEventListener("submit",function(e){e.preventDefault();});
 $("gop-reset").addEventListener("click",function(){writeForm(GOP.blank());onInput();});
-window.addEventListener("hashchange",route);
+window.addEventListener("hashchange",function(){route(true);});
 route();
 })();}
 </script>

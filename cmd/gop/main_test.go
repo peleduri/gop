@@ -74,6 +74,39 @@ func TestUsageErrors(t *testing.T) {
 	}
 }
 
+func TestReportPrevious(t *testing.T) {
+	const pair = "../../internal/diff/testdata/ref-unpinned/"
+	r := runApp(t, nil, nil, "report", "--graph", pair+"new.json", "--previous", pair+"old.json", "--out", "-")
+	if r.code != 0 {
+		t.Fatalf("report --previous: %+v", r)
+	}
+	for _, want := range []string{`<section id="changes"`, "Since 2026-11-13: 2 new confirmed paths (1 to OIDC).", `data-count="2"`} {
+		if !strings.Contains(r.stdout, want) {
+			t.Errorf("report --previous missing %q", want)
+		}
+	}
+	if r := runApp(t, nil, nil, "report", "--graph", pair+"new.json", "--out", "-"); strings.Contains(r.stdout, `id="changes"`) {
+		t.Error("report without --previous has a banner")
+	}
+
+	// A baseline of another enterprise is refused, as gop diff refuses it.
+	b, err := os.ReadFile(pair + "old.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := filepath.Join(t.TempDir(), "other.json")
+	if err := os.WriteFile(other, []byte(strings.Replace(string(b), `"enterprise": "acme"`, `"enterprise": "acme-other"`, 1)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r = runApp(t, nil, nil, "report", "--graph", pair+"new.json", "--previous", other, "--out", "-")
+	if r.code != exitUsage || !strings.Contains(r.stderr, "different enterprises") {
+		t.Errorf("report --previous of another enterprise: %+v", r)
+	}
+	if r = runApp(t, nil, nil, "report", "--graph", pair+"new.json", "--previous", "missing.json", "--out", "-"); r.code != exitUsage {
+		t.Errorf("report --previous missing file: %+v", r)
+	}
+}
+
 func TestReportWritesFile(t *testing.T) {
 	dir := t.TempDir()
 	for _, name := range []string{"report.html", "report.md"} {

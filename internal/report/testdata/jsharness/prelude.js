@@ -22,6 +22,8 @@ El.prototype.appendChild = function (c) {
   this.childNodes.push(c); return c;
 };
 El.prototype.removeChild = function (c) { this.childNodes.splice(this.childNodes.indexOf(c), 1); return c; };
+El.prototype.setAttribute = function (k, v) { (this.attrs = this.attrs || {})[k] = String(v); };
+El.prototype.focus = function () { global.focused = this; };
 El.prototype.addEventListener = function (t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); };
 El.prototype.fire = function (t) { (this.listeners[t] || []).forEach(function (f) { f({ preventDefault: function () {} }); }); };
 El.prototype.find = function (tag, out) {

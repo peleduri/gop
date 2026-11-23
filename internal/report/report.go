@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/peleduri/gop/internal/diff"
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
 )
@@ -21,6 +22,9 @@ type Options struct {
 	Top       int    // principals in the risks table and paths section (default 10)
 	FixBudget int    // suggested fixes (default 5)
 	Version   string // gop version for the footer
+	// Changes is diff.Compare(previous, current) (gop report --previous):
+	// the report opens with a "what changed" banner. Nil means no banner.
+	Changes *diff.Report
 }
 
 const maxPathsPerPrincipal = 3
@@ -67,6 +71,7 @@ type data struct {
 	Paths    []principalPaths
 	Orgs     []orgRow
 	Coverage []graph.Coverage
+	Banner   *banner // set only with Options.Changes
 
 	// HTML only: the data the filters and org views read, the org names
 	// for the filter bar, and a note when embedded paths were cut.
@@ -186,8 +191,11 @@ func build(g *graph.Graph, opts Options) data {
 		d.CollectedAt = g.CollectedAt.UTC().Format(time.RFC3339)
 	}
 	top := ix.TopPaths(opts.Top)
+	var pick *graph.Score
 	if len(top) > 0 && (top[0].Confirmed.Repos > 0 || top[0].Score > 0) {
-		d.Headline = headline(ix, headlinePick(ix, top))
+		s := headlinePick(ix, top)
+		pick = &s
+		d.Headline = headline(ix, s)
 	} else {
 		d.Headline = "No principal has confirmed reach into any repository in this graph."
 	}
@@ -238,6 +246,9 @@ func build(g *graph.Graph, opts Options) data {
 	}
 	sort.Slice(d.Orgs, func(i, j int) bool { return d.Orgs[i].Org < d.Orgs[j].Org })
 	d.Coverage = g.Coverage
+	if opts.Changes != nil {
+		d.Banner = buildBanner(opts.Changes, pick)
+	}
 	return d
 }
 

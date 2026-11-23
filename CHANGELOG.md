@@ -73,6 +73,19 @@ flags may change in minor releases.
   it per org, App mode vs minting a token with `actions/create-github-app-token`,
   where to keep the private key, and owner-token vs App coverage. Linked from
   the README's Action section.
+- `gop report --previous old.json`: the report opens with a "What changed"
+  banner built from `gop diff` (the same summary sentence, the dates, the top
+  principal's score delta, and new confirmed, removed, new possible, setting
+  and lost-visibility changes with exact counts), each item linking to its
+  filtered view or org view. Without `--previous` there is no banner. The
+  Action passes `--previous` when `fail-on-reach-increase` downloaded a
+  baseline. See `docs/report.md`.
+- Accessibility pass on the HTML report: `header`, `nav` and `main`
+  landmarks with a skip link, one `h1` and ordered headings, captions and
+  `th scope` on every table, a visible keyboard focus, evidence shown as text
+  plus an icon (never color alone), WCAG AA contrast checked in light and
+  dark themes, and an `aria-live` result count. Tested by parsing the
+  rendered HTML (`golang.org/x/net/html`, a new test-only dependency).
 ### Fixed
 
 - `fix_plan`, `gop fix-plan --pin`, `gop pin` and the report's "Pinned, still

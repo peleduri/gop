@@ -71,7 +71,8 @@ inputs:
       (diff.md and diff.json) goes only into the artifact; the log and step
       summary never name nodes. Needs "actions: read" in the workflow's
       permissions. With no previous artifact the gate logs "no baseline,
-      skipping" and passes. Off by default.
+      skipping" and passes. With a baseline, report.html also opens with what
+      changed since it. Off by default.
     required: false
     default: "false"
   baseline-artifact:
@@ -130,7 +131,6 @@ runs:
         else
           echo "gop action: set app-id and app-private-key (recommended), or token"; exit 1
         fi
-        gop report --graph "${GOP_OUT}/graph.json" --out "${GOP_OUT}/report.html"
 
     - name: Find baseline from the previous successful run
       id: baseline
@@ -200,6 +200,25 @@ runs:
           increase) echo "gop action: confirmed reach increased; see artifact (the job fails after the upload)" ;;
           *) echo "gop action: gop diff could not compare the graphs; see diff-stderr.txt in the artifact (the job fails after the upload)" ;;
         esac
+
+    - name: Render report
+      shell: bash
+      env:
+        GOP_OUT: ${{ inputs.output-dir }}
+        GOP_HAS_BASELINE: ${{ steps.baseline.outputs.found }}
+      run: |
+        set -euo pipefail
+        # With a downloaded baseline the report opens with what changed since
+        # it. A baseline gop cannot compare (another enterprise or schema)
+        # still gives the full report, without the banner.
+        prev="${RUNNER_TEMP}/gop-baseline/graph.json"
+        if [ "${GOP_HAS_BASELINE}" = "true" ] && [ -f "${prev}" ]; then
+          if gop report --graph "${GOP_OUT}/graph.json" --previous "${prev}" --out "${GOP_OUT}/report.html"; then
+            exit 0
+          fi
+          echo "gop action: cannot compare with the baseline; writing the report without the what-changed banner"
+        fi
+        gop report --graph "${GOP_OUT}/graph.json" --out "${GOP_OUT}/report.html"
 
     - name: Upload graph and report
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

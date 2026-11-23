@@ -44,6 +44,26 @@ func writeMarkdown(w io.Writer, d data) error {
 	if d.Enterprise != "" || d.CollectedAt != "" {
 		p("Enterprise **%s**, collected %s\n\n", md(d.Enterprise), md(d.CollectedAt))
 	}
+	if bn := d.Banner; bn != nil {
+		p("## What changed\n\nPrevious snapshot %s → this snapshot %s. %s\n\n", md(bn.Since), md(bn.Until), md(bn.Summary))
+		if bn.Score.Text != "" {
+			p("- Top principal: %s\n", md(bn.Score.Text))
+		}
+		for _, g := range bn.Groups {
+			p("- %s: %d\n", g.Title, g.Count)
+			for _, it := range g.Items {
+				ev := ""
+				if it.Ev != "" {
+					ev = it.Ev + ": "
+				}
+				p("  - %s%s\n", ev, md(it.Text))
+			}
+			if g.More > 0 {
+				p("  - and %d more: gop diff lists every change\n", g.More)
+			}
+		}
+		p("\n")
+	}
 	p("> %s\n", md(d.Headline))
 	if d.FixLine != "" {
 		p(">\n> %s\n", md(d.FixLine))
