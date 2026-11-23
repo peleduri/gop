@@ -252,7 +252,7 @@ func (k *collector) refProtection(ctx context.Context, repoID, branch string, te
 	}
 
 	var rules []apiRule
-	err := k.c.GetPages(ctx, branchPath(owner, repo, "rules/branches", branch)+"?per_page=100", func(page []byte) error {
+	err := k.cl(owner).GetPages(ctx, branchPath(owner, repo, "rules/branches", branch)+"?per_page=100", func(page []byte) error {
 		var batch []apiRule
 		if err := json.Unmarshal(page, &batch); err != nil {
 			return fmt.Errorf("decoding branch rules: %w", err)
@@ -264,7 +264,7 @@ func (k *collector) refProtection(ctx context.Context, repoID, branch string, te
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		return unknown("could not read rules for "+full+"@"+branch+": "+err.Error(), "read access to "+full), nil
+		return unknown("could not read rules for "+full+"@"+branch+": "+err.Error(), k.fixFor(err, "read access to "+full)), nil
 	}
 	// Rulesets that hold a protecting rule; their bypass actors are the bypassers.
 	strongSets := map[int64]bool{}
@@ -294,25 +294,25 @@ func (k *collector) refProtection(ctx context.Context, repoID, branch string, te
 	}
 
 	var br apiBranch
-	if err := k.c.GetJSON(ctx, branchPath(owner, repo, "branches", branch), &br); err != nil {
+	if err := k.cl(owner).GetJSON(ctx, branchPath(owner, repo, "branches", branch), &br); err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
 		if len(strongSets) == 0 {
-			return unknown("could not read branch "+full+"@"+branch+": "+err.Error(), "read access to "+full), nil
+			return unknown("could not read branch "+full+"@"+branch+": "+err.Error(), k.fixFor(err, "read access to "+full)), nil
 		}
 		// Rulesets already protect the branch; classic rules could only narrow the bypassers.
 	}
 	classicStrong := false
 	if br.Protected {
 		var cp apiClassicProtection
-		err := k.c.GetJSON(ctx, branchPath(owner, repo, "branches", branch)+"/protection", &cp)
+		err := k.cl(owner).GetJSON(ctx, branchPath(owner, repo, "branches", branch)+"/protection", &cp)
 		switch {
 		case err != nil && ctx.Err() != nil:
 			return nil, ctx.Err()
 		case err != nil && len(strongSets) == 0:
 			return unknown("branch "+full+"@"+branch+" has branch protection, but its rules are not visible: "+err.Error(),
-				"admin on "+full), nil
+				k.fixFor(err, "admin on "+full)), nil
 		case err == nil:
 			var grants []bypassGrant
 			classicStrong, grants = k.classicRules(owner, repoID, &cp, rp)
@@ -337,7 +337,7 @@ func (k *collector) refProtection(ctx context.Context, repoID, branch string, te
 	for _, id := range setIDs {
 		var rs apiRuleset
 		path := "/repos/" + url.PathEscape(owner) + "/" + url.PathEscape(repo) + "/rulesets/" + strconv.FormatInt(id, 10) + "?includes_parents=true"
-		if err := k.c.GetJSON(ctx, path, &rs); err != nil {
+		if err := k.cl(owner).GetJSON(ctx, path, &rs); err != nil {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
@@ -489,7 +489,7 @@ func (k *collector) resolveActor(ctx context.Context, org, repoID, typ string, i
 		if !ok {
 			slugs = map[int64]string{}
 			teamIDs[strings.ToLower(org)] = slugs
-			err := k.c.GetPages(ctx, "/orgs/"+url.PathEscape(org)+"/teams?per_page=100", func(page []byte) error {
+			err := k.cl(org).GetPages(ctx, "/orgs/"+url.PathEscape(org)+"/teams?per_page=100", func(page []byte) error {
 				var batch []struct {
 					ID   int64  `json:"id"`
 					Slug string `json:"slug"`
@@ -514,7 +514,7 @@ func (k *collector) resolveActor(ctx context.Context, org, repoID, typ string, i
 		var u struct {
 			Login string `json:"login"`
 		}
-		if err := k.c.GetJSON(ctx, "/user/"+strconv.FormatInt(id, 10), &u); err != nil || u.Login == "" {
+		if err := k.cl(org).GetJSON(ctx, "/user/"+strconv.FormatInt(id, 10), &u); err != nil || u.Login == "" {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}

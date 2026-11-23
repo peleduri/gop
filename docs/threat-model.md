@@ -16,7 +16,7 @@ Anything the token cannot read is recorded as `not_visible` with a `coverage` en
 
 ## What gop never does
 
-- **No writes.** gop makes no POST, PATCH, PUT or DELETE calls that change GitHub state.
+- **No writes.** gop makes no POST, PATCH, PUT or DELETE calls that change GitHub state. A guard in the API client refuses every non-GET REST request before it is sent, and refuses GraphQL mutations. The one allowlisted exception is GitHub App mode's `POST /app/installations/{id}/access_tokens`, which mints a short-lived read-only installation token and changes no repository or org state. A test walks a full App-mode collection and fails on any other write-method request.
 - **No telemetry.** gop sends nothing to the maintainer or any third party. The only network traffic is read requests to the GitHub API host you configure.
 - **No hidden storage.** gop writes only the files you ask for (graph.json, report.html). It does not cache the token.
 
@@ -27,7 +27,7 @@ Anything the token cannot read is recorded as `not_visible` with a `coverage` en
 | Mode | Coverage | Risk |
 |---|---|---|
 | (a) Enterprise-owner token, run locally | Full enterprise settings plus everything the owner can see | The most powerful credential. Keep it on the operator's machine, short-lived, never in CI secrets. |
-| (b) Per-org GitHub App installation tokens | No enterprise ownerInfo: enterprise settings collectors are skipped and marked `not_visible`. Needs an install in every org; uninstalled orgs are `not_visible`. | Installation tokens are short-lived and scoped, but the App private key in CI secrets is itself a high-value credential. |
+| (b) GitHub App (`collect.Config` `AppID` + `AppPrivateKeyPEM`): gop mints a read-only installation token per org | Enterprise APIs are not called. `not_visible` in this mode: enterprise ownerInfo settings (SSO state, enterprise 2FA policy and the other per-org settings lists, filled per org from `GET /orgs/{org}` where it returns them), the enterprise org list, consumed licenses (members and owners come from each org's members API instead) and the enterprise membership of `uses:` owners outside the installed orgs (`in_enterprise=unknown`). A selected org without an installation is a `not_visible` org node with coverage `installation`; a 403 from a missing App permission gives coverage naming it (`grant the App members:read`). | Installation tokens last an hour and are requested with read permissions only; gop refuses a token GitHub grants with any non-read permission. The App private key is the high-value credential: whoever holds it can mint tokens with every permission the App was granted. |
 | (c) A repository's `GITHUB_TOKEN` | One repository | Low risk, but gop is not useful in this mode. |
 
 ## Token storage guidance
@@ -37,6 +37,13 @@ Anything the token cannot read is recorded as `not_visible` with a `coverage` en
 - Pass the token through the environment (`GITHUB_TOKEN`) from a secret manager, not on the command line, where it lands in shell history and process listings.
 - **Do not store an enterprise-owner PAT in GitHub Actions secrets.** Anyone who can edit a workflow in that repository, or push to an Action it uses, can exfiltrate it. That is precisely the cross-repo code-execution path gop reports.
 - If you run the Action, use a dedicated private repository, restrict who can edit its workflows, pin the Action to a commit SHA, and keep the App private key there only.
+
+## GitHub App private key handling
+
+- The key reaches gop only from a file path or the `GOP_APP_PRIVATE_KEY` environment variable you give it (CLI flags follow the `collect.Config` support). gop parses it once and holds it in memory. It never logs, prints or writes the key, and key parse errors never echo key material.
+- The JWT is signed with the Go standard library (RS256, `iat` 60 seconds back, `exp` 9 minutes ahead) and sent only to `/app/*`; the JWT client refuses any other path.
+- Installation tokens are minted per org, requested with `metadata`, `contents`, `members`, `administration`, `actions` and `organization_administration` set to `read` (configurable, but every value must be `read`), re-minted when fewer than 5 minutes remain, and never logged or written to graph.json.
+- Grant the App read permissions only, and install it only on the orgs you want covered. Keep the key in a dedicated private repository or secret manager with restricted access.
 
 ## graph.json is sensitive
 

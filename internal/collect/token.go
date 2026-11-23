@@ -106,7 +106,7 @@ func (k *collector) collectWorkflowDefaults(ctx context.Context, o *orgState, re
 	var body struct {
 		Default string `json:"default_workflow_permissions"`
 	}
-	rerr := k.c.GetJSON(ctx, "/repos/"+url.PathEscape(owner)+"/"+url.PathEscape(name)+"/actions/permissions/workflow", &body)
+	rerr := k.cl(owner).GetJSON(ctx, "/repos/"+url.PathEscape(owner)+"/"+url.PathEscape(name)+"/actions/permissions/workflow", &body)
 	if rerr == nil && (body.Default == "read" || body.Default == "write") {
 		return body.Default, srcRepoWorkflowPerms, "", nil
 	}
@@ -121,7 +121,7 @@ func (k *collector) collectWorkflowDefaults(ctx context.Context, o *orgState, re
 		var ob struct {
 			Default string `json:"default_workflow_permissions"`
 		}
-		od.err = k.c.GetJSON(ctx, "/orgs/"+url.PathEscape(o.login)+"/actions/permissions/workflow", &ob)
+		od.err = k.cl(o.login).GetJSON(ctx, "/orgs/"+url.PathEscape(o.login)+"/actions/permissions/workflow", &ob)
 		if ctx.Err() != nil {
 			return "", "", "", ctx.Err()
 		}

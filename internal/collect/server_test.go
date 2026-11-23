@@ -97,6 +97,9 @@ type fakeGitHub struct {
 	// return 403 for every repo and org.
 	forbidWorkflowPerms bool
 	userIDs             map[int64]string // /user/{id} -> login
+	// app, when set, makes the fake a GitHub App host (app_server_test.go):
+	// /app/* takes the App JWT and every other path an installation token.
+	app *fakeApp
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -139,6 +142,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
+	if f.app != nil && !f.app.serve(f, w, r) {
+		return
+	}
 	if r.Header.Get("Authorization") != "Bearer "+testToken {
 		writeJSON(w, 401, map[string]string{"message": "Bad credentials"})
 		return

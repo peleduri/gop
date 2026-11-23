@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -58,11 +59,82 @@ type Client struct {
 	logf        func(string, ...any)
 	sleep       func(ctx context.Context, d time.Duration) error
 	now         func() time.Time
+	// tokens, when set, supplies the token per request instead of token
+	// (GitHub App JWTs and installation tokens that expire and are re-minted).
+	tokens TokenSource
+	// onlyPrefix, when set, limits the client to request paths under it: the
+	// App JWT client only ever calls /app/*.
+	onlyPrefix string
+}
+
+// TokenSource supplies the bearer token for a request. Token is called before
+// every attempt, so a source may refresh an expiring token. Its errors must
+// not contain a token or key.
+type TokenSource interface {
+	Token(ctx context.Context) (string, error)
+}
+
+// WithToken returns a copy of c that authenticates with tok. The copy shares
+// the HTTP client, retry settings, clock and logger.
+func (c *Client) WithToken(tok string) *Client {
+	cp := *c
+	cp.token = tok
+	cp.tokens = nil
+	return &cp
+}
+
+// WithTokenSource returns a copy of c that asks ts for the token before every
+// request attempt.
+func (c *Client) WithTokenSource(ts TokenSource) *Client {
+	cp := *c
+	cp.token = ""
+	cp.tokens = ts
+	return &cp
+}
+
+// authToken returns the bearer token for the next attempt.
+func (c *Client) authToken(ctx context.Context) (string, error) {
+	if c.tokens == nil {
+		return c.token, nil
+	}
+	return c.tokens.Token(ctx)
+}
+
+// mintPathRe matches the one non-GET REST call gop makes: minting a GitHub App
+// installation access token. It changes no repository or organization state.
+var mintPathRe = regexp.MustCompile(`^/app/installations/[0-9]+/access_tokens$`)
+
+// checkRequest is the read-only guard. It runs before any request is built,
+// so a refused request never leaves the process. Allowed: GET anywhere under
+// the API host, POST to the GraphQL endpoint (queries only, see GraphQL), and
+// POST /app/installations/{id}/access_tokens. Everything else is an error.
+func (c *Client) checkRequest(method string, u *url.URL) error {
+	if c.onlyPrefix != "" && !strings.HasPrefix(u.Path, c.onlyPrefix) {
+		return fmt.Errorf("collect: refusing %s %s: this client may only call %s*", method, redactedPath(u), c.onlyPrefix)
+	}
+	if method == http.MethodGet {
+		return nil
+	}
+	if method == http.MethodPost {
+		if g, err := url.Parse(c.graphqlURL); err == nil && g.Scheme == u.Scheme && g.Host == u.Host && g.Path == u.Path {
+			return nil
+		}
+		if u.Scheme == c.base.Scheme && u.Host == c.base.Host && strings.HasPrefix(u.Path, c.base.Path+"/") &&
+			mintPathRe.MatchString(strings.TrimPrefix(u.Path, c.base.Path)) {
+			return nil
+		}
+	}
+	return fmt.Errorf("collect: refusing %s %s: gop is read-only (only GET, GraphQL queries and the GitHub App installation-token POST are allowed)",
+		method, redactedPath(u))
 }
 
 // NewClient builds a Client from options.
-func NewClient(o ClientOptions) (*Client, error) {
-	if o.Token == "" {
+func NewClient(o ClientOptions) (*Client, error) { return newClient(o, true) }
+
+// newClient is NewClient; requireToken is false in GitHub App mode, where
+// every request gets its token from a TokenSource.
+func newClient(o ClientOptions, requireToken bool) (*Client, error) {
+	if requireToken && o.Token == "" {
 		return nil, errors.New("collect: token is required")
 	}
 	if o.BaseURL == "" {
@@ -188,11 +260,18 @@ const jsonAccept = "application/vnd.github+json"
 
 // doAccept is do with a custom Accept media type.
 func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body []byte, accept string) (*response, error) {
+	if err := c.checkRequest(method, u); err != nil {
+		return nil, err
+	}
 	var lastErr error
 	backoff := time.Second
 	for attempt := 1; attempt <= c.maxAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
+		}
+		tok, err := c.authToken(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("github api %s %s: %w", method, redactedPath(u), err)
 		}
 		var rd io.Reader
 		if body != nil {
@@ -202,7 +281,7 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 		if err != nil {
 			return nil, fmt.Errorf("github api %s %s: %w", method, redactedPath(u), err)
 		}
-		req.Header.Set("Authorization", "Bearer "+c.token)
+		req.Header.Set("Authorization", "Bearer "+tok)
 		req.Header.Set("Accept", accept)
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 		req.Header.Set("User-Agent", "gop-collector")
@@ -368,6 +447,29 @@ func (c *Client) GetJSONHeader(ctx context.Context, path string, out any) (http.
 	return r.header, nil
 }
 
+// postJSON sends one JSON POST to a REST path and decodes the response into
+// out. checkRequest allows it only for the installation-token mint.
+func (c *Client) postJSON(ctx context.Context, path string, in, out any) error {
+	u, err := c.resolve(path)
+	if err != nil {
+		return err
+	}
+	body, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	r, err := c.do(ctx, http.MethodPost, u, body)
+	if err != nil {
+		return err
+	}
+	if out != nil {
+		if err := json.Unmarshal(r.body, out); err != nil {
+			return fmt.Errorf("github api POST %s: decoding response", redactedPath(u))
+		}
+	}
+	return nil
+}
+
 // GetRaw fetches one REST resource with the given Accept media type (for
 // example application/vnd.github.sha or application/vnd.github.raw) and
 // returns the body as is. An empty accept means application/vnd.github+json.
@@ -483,6 +585,9 @@ func (e GraphQLErrors) HasType(t string) bool {
 // errors are returned as GraphQLErrors alongside a nil error. Transport and
 // HTTP failures are returned as error.
 func (c *Client) GraphQL(ctx context.Context, query string, vars map[string]any, out any) (GraphQLErrors, error) {
+	if isMutation(query) {
+		return nil, errors.New("collect: refusing a GraphQL mutation: gop is read-only")
+	}
 	u, err := url.Parse(c.graphqlURL)
 	if err != nil {
 		return nil, fmt.Errorf("collect: invalid GraphQL URL: %w", err)
@@ -523,4 +628,16 @@ func (c *Client) GraphQL(ctx context.Context, query string, vars map[string]any,
 		}
 		return env.Errors, nil
 	}
+}
+
+// isMutation reports whether a GraphQL document's first operation is a mutation
+// or subscription. gop only sends queries.
+func isMutation(query string) bool {
+	q := strings.TrimSpace(query)
+	for strings.HasPrefix(q, "#") { // skip comment lines
+		_, rest, _ := strings.Cut(q, "\n")
+		q = strings.TrimSpace(rest)
+	}
+	q = strings.ToLower(q)
+	return strings.HasPrefix(q, "mutation") || strings.HasPrefix(q, "subscription")
 }
