@@ -1,0 +1,29 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "repo:acme-app/web", "kind": "repo", "name": "acme-app/web", "evidence": "live"},
+    {"id": "repo:acme-legacy/old-site", "kind": "repo", "name": "acme-legacy/old-site", "evidence": "live"},
+    {"id": "workflow:acme-app/web/.github/workflows/ci.yml", "kind": "workflow", "name": "acme-app/web/.github/workflows/ci.yml",
+     "evidence": "live", "attrs": {"token_write": "true", "token_scopes": "id-token,packages"}},
+    {"id": "workflow:acme-legacy/old-site/.github/workflows/ci.yml", "kind": "workflow", "name": "acme-legacy/old-site/.github/workflows/ci.yml",
+     "evidence": "live", "attrs": {"token_write": "unknown"}, "attr_evidence": {"token_write": "not_visible"}}
+  ],
+  "edges": [
+    {"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "repo:acme-app/web", "kind": "CAN_PUSH", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "token_write", "permission": "contents: write", "jobs": "build,release"}},
+    {"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "repo:acme-app/web", "kind": "DEFINED_IN", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-legacy/old-site/.github/workflows/ci.yml", "to": "repo:acme-legacy/old-site", "kind": "CAN_PUSH", "evidence": "not_visible",
+     "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "token_write", "permission": "contents: write", "jobs": "build"}},
+    {"from": "workflow:acme-legacy/old-site/.github/workflows/ci.yml", "to": "repo:acme-legacy/old-site", "kind": "DEFINED_IN", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows", "observed_at": "2026-01-01T00:00:00Z"}
+  ],
+  "coverage": [
+    {"scope": "repo:acme-legacy/old-site", "fact": "default_workflow_permissions",
+     "reason": "could not read the default workflow permissions: 403", "needs_fix": "admin on acme-legacy/old-site (or org owner)"}
+  ]
+}

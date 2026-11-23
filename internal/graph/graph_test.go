@@ -64,8 +64,8 @@ func TestReach(t *testing.T) {
 		orgs          []string
 		possibleRepos []string
 	}{
-		{"members:acme-actions", actionsRepos, 11, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
-		{"identity:bob", actionsRepos, 11, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
+		{"members:acme-actions", actionsRepos, 12, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
+		{"identity:bob", actionsRepos, 12, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
 		{"identity:alice", appRepos("infra"), 1, nil, nil, nil, []string{"org:acme-app"}, nil},
 		{"members:acme-secure", nil, 0, nil, nil, nil, nil, nil},
 		{"members:acme-legacy", nil, 0, nil, nil, nil, nil, []string{"repo:acme-legacy/old-api"}},
@@ -115,7 +115,9 @@ func TestWhoCanReachOIDCRepo(t *testing.T) {
 	if len(got.Hops) < 4 || got.Unverified {
 		t.Fatalf("path = %+v, want a verified 4+ hop path", got.Hops)
 	}
-	want := []EdgeKind{CanPush, ResolvesTo, Uses, DefinedIn}
+	// The last hop is web's write GITHUB_TOKEN (via=token_write): control of
+	// the repo, not only its CI.
+	want := []EdgeKind{CanPush, ResolvesTo, Uses, CanPush}
 	for i, k := range want {
 		if got.Hops[i].Kind != k {
 			t.Errorf("hop %d = %s, want %s", i, got.Hops[i].Kind, k)
@@ -172,8 +174,8 @@ func TestNotVisibleIsPossibleNotConfirmed(t *testing.T) {
 func TestBlastRadiusAndTopPaths(t *testing.T) {
 	g := loadAcme(t)
 	s := BlastRadius(g, "members:acme-actions")
-	want := Counts{Repos: 12, Orgs: 2, Workflows: 11, Secrets: 1, OIDC: 1, Runners: 1}
-	if s.Confirmed != want || s.Multiplier != 2.25 || s.Score != 84.375 {
+	want := Counts{Repos: 12, Orgs: 2, Workflows: 12, Secrets: 1, OIDC: 1, Runners: 1}
+	if s.Confirmed != want || s.Multiplier != 2.25 || s.Score != 85.5 {
 		t.Fatalf("score = %+v", s)
 	}
 	if a := BlastRadius(g, "identity:alice"); a.Multiplier != 1 || a.Score != 3.5 {
@@ -541,5 +543,62 @@ func TestOrgOf(t *testing.T) {
 		if got := OrgOf(id); got != want {
 			t.Errorf("OrgOf(%q) = %q, want %q", id, got, want)
 		}
+	}
+}
+
+// TestTokenWriteControlsRepo: a workflow whose GITHUB_TOKEN can write contents
+// controls its repo, so whoever controls the workflow reaches every workflow
+// defined in that repo, not only the repo's CI.
+func TestTokenWriteControlsRepo(t *testing.T) {
+	g := loadAcme(t)
+	const (
+		web     = "repo:acme-app/web"
+		webCI   = "workflow:acme-app/web/.github/workflows/ci.yml"
+		nightly = "workflow:acme-app/web/.github/workflows/nightly.yml"
+	)
+	r := Reach(g, "members:acme-actions", Options{})
+	p := r.Paths[web]
+	if last := p.Hops[len(p.Hops)-1]; last.Kind != CanPush || last.From != webCI || p.Unverified {
+		t.Errorf("path to %s = %+v, want a verified final CAN_PUSH from %s", web, p.Hops, webCI)
+	}
+	if !slices.Contains(r.Confirmed.Workflows, nightly) {
+		t.Errorf("%s not reached: %v", nightly, r.Confirmed.Workflows)
+	}
+	if h := r.Paths[nightly].Hops; len(h) != 5 || h[4].Kind != DefinedIn || !h[4].Reverse {
+		t.Errorf("path to %s = %+v", nightly, h)
+	}
+
+	// Without the token edge the repo is CI reach only and nightly is unreached.
+	base := cloneGraph(g)
+	base.Edges = base.Edges[:0]
+	for _, e := range g.Edges {
+		if e.Attrs[AttrVia] != ViaTokenWrite {
+			base.Edges = append(base.Edges, e)
+		}
+	}
+	r0 := Reach(base, "members:acme-actions", Options{})
+	if slices.Contains(r0.Confirmed.Workflows, nightly) {
+		t.Errorf("base graph should not reach %s", nightly)
+	}
+	if h := r0.Paths[web].Hops; h[len(h)-1].Kind != DefinedIn {
+		t.Errorf("base path to %s = %+v, want CI reach", web, h)
+	}
+
+	// A workflow is never a principal.
+	for _, pr := range NewIndex(g).Principals() {
+		if KindFromID(pr) == KindWorkflow {
+			t.Errorf("principal %s", pr)
+		}
+	}
+	// A not_visible token edge makes control possible, never confirmed.
+	hidden := cloneGraph(g)
+	for i, e := range hidden.Edges {
+		if e.Attrs[AttrVia] == ViaTokenWrite {
+			hidden.Edges[i].Evidence = NotVisible
+		}
+	}
+	rh := Reach(hidden, "members:acme-actions", Options{})
+	if slices.Contains(rh.Confirmed.Workflows, nightly) || !slices.Contains(rh.Possible.Workflows, nightly) {
+		t.Errorf("hidden token edge: confirmed %v possible %v", rh.Confirmed.Workflows, rh.Possible.Workflows)
 	}
 }

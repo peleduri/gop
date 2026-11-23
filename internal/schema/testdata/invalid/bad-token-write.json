@@ -1,0 +1,4 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "workflow:acme-app/web/.github/workflows/ci.yml", "kind": "workflow", "name": "acme-app/web/.github/workflows/ci.yml", "evidence": "live",
+            "attrs": {"token_write": "default"}}],
+ "edges": [], "coverage": []}

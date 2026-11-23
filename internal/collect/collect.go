@@ -76,6 +76,8 @@ type orgState struct {
 	customRoles  map[string]string
 	rolesLoaded  bool
 	rest         *apiOrg // GET /orgs/{org}, read only when the enterprise is not visible
+	// workflowDefault caches the org's default workflow permissions (token.go).
+	workflowDefault *orgWorkflowDefault
 }
 
 // repoGrant is a repository-scoped role from the consumed-licenses list, e.g.
@@ -986,6 +988,7 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 		return nil
 	}
 	count := 0
+	var pending []tokenDefault
 	for _, e := range entries {
 		if e.Type != "file" || !isYAMLName(e.Name) {
 			continue
@@ -1012,9 +1015,10 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 		}
 		facts.SetFile(e.Path, repo.Attrs["default_branch"])
 		k.addWorkflowFacts(wid, full, facts)
+		pending = k.addTokenFacts(wid, wn, repo, facts, pending)
 	}
 	setAttr(repo, "workflows", strconv.Itoa(count), graph.Live)
-	return nil
+	return k.resolveTokenDefaults(ctx, o, repo, pending)
 }
 
 func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {

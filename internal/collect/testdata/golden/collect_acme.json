@@ -388,7 +388,7 @@
         "fork": "false",
         "org": "acme-app",
         "visibility": "private",
-        "workflows": "1"
+        "workflows": "2"
       },
       "evidence": "live"
     },
@@ -453,7 +453,7 @@
         "fork": "false",
         "org": "acme-app",
         "visibility": "private",
-        "workflows": "0"
+        "workflows": "2"
       },
       "evidence": "live"
     },
@@ -633,7 +633,8 @@
       "name": "acme-actions/deploy/.github/workflows/ci.yml",
       "attrs": {
         "path": ".github/workflows/ci.yml",
-        "repo": "acme-actions/deploy"
+        "repo": "acme-actions/deploy",
+        "token_write": "false"
       },
       "evidence": "live"
     },
@@ -643,7 +644,8 @@
       "name": "acme-actions/setup/.github/workflows/build.yml",
       "attrs": {
         "path": ".github/workflows/build.yml",
-        "repo": "acme-actions/setup"
+        "repo": "acme-actions/setup",
+        "token_write": "false"
       },
       "evidence": "live"
     },
@@ -653,7 +655,19 @@
       "name": "acme-app/api/.github/workflows/deploy.yml",
       "attrs": {
         "path": ".github/workflows/deploy.yml",
-        "repo": "acme-app/api"
+        "repo": "acme-app/api",
+        "token_write": "false"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/api/.github/workflows/release.yml",
+      "kind": "workflow",
+      "name": "acme-app/api/.github/workflows/release.yml",
+      "attrs": {
+        "path": ".github/workflows/release.yml",
+        "repo": "acme-app/api",
+        "token_write": "true"
       },
       "evidence": "live"
     },
@@ -663,7 +677,9 @@
       "name": "acme-app/billing/.github/workflows/deploy.yml",
       "attrs": {
         "path": ".github/workflows/deploy.yml",
-        "repo": "acme-app/billing"
+        "repo": "acme-app/billing",
+        "token_scopes": "id-token",
+        "token_write": "false"
       },
       "evidence": "live"
     },
@@ -673,7 +689,8 @@
       "name": "acme-app/docs/.github/workflows/build.yml",
       "attrs": {
         "path": ".github/workflows/build.yml",
-        "repo": "acme-app/docs"
+        "repo": "acme-app/docs",
+        "token_write": "true"
       },
       "evidence": "live"
     },
@@ -683,7 +700,8 @@
       "name": "acme-app/infra/.github/workflows/apply.yml",
       "attrs": {
         "path": ".github/workflows/apply.yml",
-        "repo": "acme-app/infra"
+        "repo": "acme-app/infra",
+        "token_write": "true"
       },
       "evidence": "live"
     },
@@ -693,7 +711,31 @@
       "name": "acme-app/mobile/.github/workflows/release.yml",
       "attrs": {
         "path": ".github/workflows/release.yml",
-        "repo": "acme-app/mobile"
+        "repo": "acme-app/mobile",
+        "token_write": "true"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/notify/.github/workflows/lint.yml",
+      "kind": "workflow",
+      "name": "acme-app/notify/.github/workflows/lint.yml",
+      "attrs": {
+        "path": ".github/workflows/lint.yml",
+        "repo": "acme-app/notify",
+        "token_scopes": "pull-requests",
+        "token_write": "false"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/notify/.github/workflows/sync.yml",
+      "kind": "workflow",
+      "name": "acme-app/notify/.github/workflows/sync.yml",
+      "attrs": {
+        "path": ".github/workflows/sync.yml",
+        "repo": "acme-app/notify",
+        "token_write": "true"
       },
       "evidence": "live"
     },
@@ -703,7 +745,9 @@
       "name": "acme-app/search/.github/workflows/index.yaml",
       "attrs": {
         "path": ".github/workflows/index.yaml",
-        "repo": "acme-app/search"
+        "repo": "acme-app/search",
+        "token_scopes": "id-token",
+        "token_write": "false"
       },
       "evidence": "live"
     },
@@ -713,7 +757,8 @@
       "name": "acme-app/web/.github/workflows/ci.yml",
       "attrs": {
         "path": ".github/workflows/ci.yml",
-        "repo": "acme-app/web"
+        "repo": "acme-app/web",
+        "token_write": "true"
       },
       "evidence": "live"
     },
@@ -723,7 +768,8 @@
       "name": "acme-app/worker/.github/workflows/deploy.yml",
       "attrs": {
         "path": ".github/workflows/deploy.yml",
-        "repo": "acme-app/worker"
+        "repo": "acme-app/worker",
+        "token_write": "true"
       },
       "evidence": "live"
     },
@@ -733,9 +779,13 @@
       "name": "acme-legacy/old-site/.github/workflows/ci.yml",
       "attrs": {
         "path": ".github/workflows/ci.yml",
-        "repo": "acme-legacy/old-site"
+        "repo": "acme-legacy/old-site",
+        "token_write": "unknown"
       },
-      "evidence": "live"
+      "evidence": "live",
+      "attr_evidence": {
+        "token_write": "not_visible"
+      }
     },
     {
       "id": "workflow:acme-secure/vault-proxy/.github/workflows/ci.yml",
@@ -743,7 +793,8 @@
       "name": "acme-secure/vault-proxy/.github/workflows/ci.yml",
       "attrs": {
         "path": ".github/workflows/ci.yml",
-        "repo": "acme-secure/vault-proxy"
+        "repo": "acme-secure/vault-proxy",
+        "token_write": "false"
       },
       "evidence": "live"
     }
@@ -1363,6 +1414,43 @@
       }
     },
     {
+      "from": "workflow:acme-app/api/.github/workflows/release.yml",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "tag",
+        "permission": "contents: write",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/release.yml",
+      "to": "repo:acme-app/api",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "0001-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/release.yml",
+      "to": "action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "col": "15",
+        "file": ".github/workflows/release.yml",
+        "job": "tag",
+        "level": "step",
+        "line": "11",
+        "ref_kind": "sha"
+      }
+    },
+    {
       "from": "workflow:acme-app/billing/.github/workflows/deploy.yml",
       "to": "repo:acme-app/billing",
       "kind": "DEFINED_IN",
@@ -1403,6 +1491,19 @@
     {
       "from": "workflow:acme-app/docs/.github/workflows/build.yml",
       "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "build",
+        "permission": "contents: write",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "repo:acme-app/docs",
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
@@ -1433,6 +1534,19 @@
         "level": "job",
         "line": "5",
         "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/infra/.github/workflows/apply.yml",
+      "to": "repo:acme-app/infra",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "apply",
+        "permission": "contents: write",
+        "via": "token_write"
       }
     },
     {
@@ -1475,6 +1589,19 @@
     {
       "from": "workflow:acme-app/mobile/.github/workflows/release.yml",
       "to": "repo:acme-app/mobile",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "release",
+        "permission": "contents: write",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/mobile/.github/workflows/release.yml",
+      "to": "repo:acme-app/mobile",
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
@@ -1506,6 +1633,35 @@
         "line": "7",
         "ref_kind": "branch"
       }
+    },
+    {
+      "from": "workflow:acme-app/notify/.github/workflows/lint.yml",
+      "to": "repo:acme-app/notify",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "0001-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/notify/.github/workflows/sync.yml",
+      "to": "repo:acme-app/notify",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "publish",
+        "permission": "contents: write",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/notify/.github/workflows/sync.yml",
+      "to": "repo:acme-app/notify",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "0001-01-01T00:00:00Z"
     },
     {
       "from": "workflow:acme-app/search/.github/workflows/index.yaml",
@@ -1543,6 +1699,19 @@
         "level": "step",
         "line": "12",
         "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "build",
+        "permission": "contents: write",
+        "via": "token_write"
       }
     },
     {
@@ -1588,6 +1757,19 @@
     {
       "from": "workflow:acme-app/worker/.github/workflows/deploy.yml",
       "to": "repo:acme-app/worker",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "deploy",
+        "permission": "contents: write",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/worker/.github/workflows/deploy.yml",
+      "to": "repo:acme-app/worker",
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
@@ -1607,6 +1789,19 @@
         "level": "step",
         "line": "7",
         "ref_kind": "tag"
+      }
+    },
+    {
+      "from": "workflow:acme-legacy/old-site/.github/workflows/ci.yml",
+      "to": "repo:acme-legacy/old-site",
+      "kind": "CAN_PUSH",
+      "evidence": "not_visible",
+      "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "build",
+        "permission": "contents: write",
+        "via": "token_write"
       }
     },
     {
@@ -1710,6 +1905,12 @@
       "fact": "can_push:teams",
       "reason": "token is not an org owner: secret teams and their grants are not listed",
       "needs_fix": "org owner on acme-legacy (SSO enforced: join through the identity provider first)"
+    },
+    {
+      "scope": "repo:acme-legacy/old-site",
+      "fact": "default_workflow_permissions",
+      "reason": "could not read the default workflow permissions: repo: github api GET /repos/acme-legacy/old-site/actions/permissions/workflow: HTTP 403: Must have admin rights to Repository.; org: github api GET /orgs/acme-legacy/actions/permissions/workflow: HTTP 403: Must have admin rights to Repository.",
+      "needs_fix": "admin on acme-legacy/old-site (or org owner)"
     },
     {
       "scope": "action:acme-legacy/hidden-tool@v2",

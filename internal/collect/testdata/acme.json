@@ -2,7 +2,7 @@
   "enterprise": "acme",
   "orgs": [
     {
-      "login": "acme-actions", "org_rest": {"default_repository_permission": "write", "two_factor_requirement_enabled": false, "members_can_create_repositories": true, "members_can_create_public_repositories": true, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": true, "members_can_fork_private_repositories": true}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "login": "acme-actions", "actions_workflow_permissions": "read", "org_rest": {"default_repository_permission": "write", "two_factor_requirement_enabled": false, "members_can_create_repositories": true, "members_can_create_public_repositories": true, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": true, "members_can_fork_private_repositories": true}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
       "settings": {
         "samlIdentityProviderSettingOrganizations": "CONFIGURED",
         "twoFactorRequiredSettingOrganizations": "false",
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "login": "acme-app", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true, "members_can_create_repositories": true, "members_can_create_public_repositories": false, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": false, "members_can_fork_private_repositories": false}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "login": "acme-app", "actions_workflow_permissions": "write", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true, "members_can_create_repositories": true, "members_can_create_public_repositories": false, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": false, "members_can_fork_private_repositories": false}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
       "settings": {
         "samlIdentityProviderSettingOrganizations": "CONFIGURED",
         "twoFactorRequiredSettingOrganizations": "true",
@@ -73,7 +73,7 @@
         {"name": "web", "visibility": "private", "collaborators": [
           {"login": "bob", "role_name": "write", "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}}
         ]},
-        {"name": "api", "visibility": "private", "collaborators": [
+        {"name": "api", "visibility": "private", "actions_workflow_permissions": "read", "collaborators": [
           {"login": "frank", "role_name": "deployer", "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}},
           {"login": "alice", "role_name": "admin", "permissions": {"pull": true, "triage": true, "push": true, "maintain": true, "admin": true}}
         ]},
@@ -111,7 +111,7 @@
       ]
     },
     {
-      "login": "acme-secure", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true}, "owner": true, "ip_allow_list": "ENABLED", "ip_entries": 3,
+      "login": "acme-secure", "actions_workflow_permissions": "read", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true}, "owner": true, "ip_allow_list": "ENABLED", "ip_entries": 3,
       "settings": {
         "samlIdentityProviderSettingOrganizations": "ENFORCED",
         "twoFactorRequiredSettingOrganizations": "true",
@@ -122,7 +122,7 @@
         "allowPrivateRepositoryForkingSettingOrganizations": "false"
       },
       "repos": [
-        {"name": "vault-proxy", "visibility": "private"}
+        {"name": "vault-proxy", "visibility": "private", "actions_workflow_permissions_forbidden": true}
       ]
     },
     {

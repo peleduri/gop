@@ -124,6 +124,27 @@ func FuzzParseWorkflow(f *testing.F) {
 		if !sort.StringsAreSorted(facts.Secrets) {
 			t.Fatalf("secrets not sorted: %q", facts.Secrets)
 		}
+		switch facts.TokenContentsWrite {
+		case TokenWrite:
+			if len(facts.TokenWriteJobs) == 0 {
+				t.Fatalf("token write with no write jobs")
+			}
+		case TokenDefault:
+			if len(facts.TokenWriteJobs) > 0 || len(facts.TokenDefaultJobs) == 0 {
+				t.Fatalf("token default with write jobs %q, default jobs %q", facts.TokenWriteJobs, facts.TokenDefaultJobs)
+			}
+		case TokenRead:
+			if len(facts.TokenWriteJobs) > 0 || len(facts.TokenDefaultJobs) > 0 {
+				t.Fatalf("token read with write jobs %q, default jobs %q", facts.TokenWriteJobs, facts.TokenDefaultJobs)
+			}
+		default:
+			t.Fatalf("token contents %q", facts.TokenContentsWrite)
+		}
+		for _, l := range [][]string{facts.TokenWriteJobs, facts.TokenDefaultJobs, facts.TokenScopes} {
+			if !sort.StringsAreSorted(l) {
+				t.Fatalf("not sorted: %q", l)
+			}
+		}
 		for i, s := range facts.Secrets {
 			if i > 0 && facts.Secrets[i-1] == s {
 				t.Fatalf("duplicate secret %q in %q", s, facts.Secrets)
@@ -209,6 +230,18 @@ func TestParseResourceBound(t *testing.T) {
 		"flat job keys":        fill("jobs:\n", "  jN: {}\n", 0, strconv.Itoa),
 		"flat keys in one job": fill("jobs:\n  a:\n", "    kN: 1\n", 0, strconv.Itoa),
 		"flat runs keys":       fill("runs:\n  using: composite\n", "  kN: 1\n", 0, strconv.Itoa),
+		"many permission keys, many jobs": func() []byte {
+			var b strings.Builder
+			b.WriteString("permissions:\n")
+			for i := 0; i < 15000; i++ {
+				b.WriteString("  s" + strconv.Itoa(i) + ": write\n")
+			}
+			b.WriteString("jobs:\n")
+			for i := 0; b.Len() < maxFileBytes-64; i++ {
+				b.WriteString("  j" + strconv.Itoa(i) + ": {}\n")
+			}
+			return []byte(b.String())
+		}(),
 	}
 	for name, data := range cases {
 		t.Run(name, func(t *testing.T) {

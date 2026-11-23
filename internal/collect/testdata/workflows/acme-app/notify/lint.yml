@@ -1,0 +1,12 @@
+name: lint
+on: [pull_request]
+permissions:
+  contents: write
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - run: make lint

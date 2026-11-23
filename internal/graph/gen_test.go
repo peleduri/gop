@@ -8,7 +8,8 @@ import (
 
 // genGraph builds a random but valid evidence graph of roughly size nodes over
 // synthetic names (org:acme-o3, repo:acme-o3/r17, identity:u5, ...). It uses
-// every EdgeKind, every Evidence value, random ref_kind and via attributes,
+// every EdgeKind, every Evidence value, random ref_kind and via attributes
+// (including workflow -CAN_PUSH-> repo with via=token_write),
 // parallel edges and cycles through nested USES. A few edge endpoints are left
 // undeclared so kind inference from the ID is exercised too.
 //
@@ -110,6 +111,10 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		node(id, KindWorkflow, nil)
 		workflows = append(workflows, id)
 		edge(id, repo, DefinedIn, nil)
+		if r.IntN(4) == 0 {
+			// A write GITHUB_TOKEN: the workflow controls its own repo.
+			edge(id, repo, CanPush, map[string]string{AttrVia: ViaTokenWrite})
+		}
 		if r.IntN(10) == 0 {
 			edge(id, pick(repos), DefinedIn, nil) // odd, but valid input
 		}
