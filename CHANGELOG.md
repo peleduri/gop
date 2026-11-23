@@ -44,6 +44,19 @@ flags may change in minor releases.
   skipped with coverage `not available on GHES <version>`, and the run
   succeeds. Actions whose owner is not an org on the instance get
   `source=github.com`. See `docs/ghes.md`.
+- `gop export --format cypher graph.json > gop.cypher` writes an idempotent
+  Neo4j Cypher script for Cartography users: gop nodes as `:GopNode` plus a
+  kind label (`:GopRepo`, `:GopWorkflow`, `:GopCloudRole`, ...), gop edges with
+  their kinds and `evidence`, `confirmed` and `gop_run`, and computed
+  `GOP_REACHES` edges from each scored principal to the secrets, OIDC tokens,
+  runners and cloud roles it controls, with the path. `SAME_AS` links join
+  `:GopOrg`, `:GopRepo` and AWS `:GopCloudRole` nodes to Cartography's
+  `GitHubOrganization`, `GitHubRepository` and `AWSRole` when those exist
+  (`--github-url` for GitHub Enterprise Server). A re-export replaces the
+  previous run of the same enterprise. Output is sorted and byte-identical
+  for the same graph; every graph value is an escaped string literal and
+  labels, relationship types and keys come from fixed lists. gop writes
+  text only and has no Neo4j dependency. See `docs/cartography.md`.
 
 - The Action runs on Windows runners (x64 and ARM64): the download step
   (now `action/install-gop.sh`) fetches the `.zip` release, verifies it with
