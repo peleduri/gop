@@ -171,6 +171,12 @@ func TestClientErrorsCarryNoToken(t *testing.T) {
 	if err == nil || strings.Contains(err.Error(), testToken) || !strings.Contains(err.Error(), "Bad credentials") {
 		t.Fatalf("err = %v", err)
 	}
+	// A per-org installation client (App mode) keeps its token out of errors too.
+	const instToken = "ghs_synthetic_installation"
+	err = c.WithToken(instToken).GetJSON(context.Background(), "/orgs/acme-app", nil)
+	if err == nil || strings.Contains(err.Error(), instToken) {
+		t.Fatalf("installation client err = %v", err)
+	}
 }
 
 func TestClientGraphQLPartialErrors(t *testing.T) {

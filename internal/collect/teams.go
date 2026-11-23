@@ -63,7 +63,7 @@ type teamState struct {
 // they really reach.
 func (k *collector) collectTeams(ctx context.Context, o *orgState) error {
 	var listed []apiTeam
-	err := k.c.GetPages(ctx, "/orgs/"+url.PathEscape(o.login)+"/teams?per_page=100", func(page []byte) error {
+	err := k.cl(o.login).GetPages(ctx, "/orgs/"+url.PathEscape(o.login)+"/teams?per_page=100", func(page []byte) error {
 		var batch []apiTeam
 		if err := json.Unmarshal(page, &batch); err != nil {
 			return fmt.Errorf("decoding teams: %w", err)
@@ -76,7 +76,7 @@ func (k *collector) collectTeams(ctx context.Context, o *orgState) error {
 			return ctx.Err()
 		}
 		setAttr(o.node, attrTeamsPartial, "true", graph.Live)
-		k.cover(o.node.ID, "can_push:teams", "could not list teams: "+err.Error(), k.ownerFix(o))
+		k.cover(o.node.ID, "can_push:teams", "could not list teams: "+err.Error(), k.fixFor(err, k.ownerFix(o)))
 		return nil
 	}
 	if !o.ownerVisible {
@@ -183,7 +183,7 @@ func teamID(o *orgState, slug string) string { return "team:" + o.login + "/" + 
 func (k *collector) collectTeamRepos(ctx context.Context, o *orgState, ts *teamState) error {
 	var repos []apiTeamRepo
 	path := "/orgs/" + url.PathEscape(o.login) + "/teams/" + url.PathEscape(ts.slug) + "/repos?per_page=100"
-	err := k.c.GetPages(ctx, path, func(page []byte) error {
+	err := k.cl(o.login).GetPages(ctx, path, func(page []byte) error {
 		var batch []apiTeamRepo
 		if err := json.Unmarshal(page, &batch); err != nil {
 			return fmt.Errorf("decoding team repos: %w", err)
@@ -197,7 +197,7 @@ func (k *collector) collectTeamRepos(ctx context.Context, o *orgState, ts *teamS
 		}
 		setAttr(ts.node, attrRepositories, "unknown", graph.NotVisible)
 		k.cover(o.node.ID, "team_repos:"+ts.slug, "could not list repositories of team "+ts.slug+": "+err.Error(),
-			k.ownerFix(o))
+			k.fixFor(err, k.ownerFix(o)))
 		return nil
 	}
 	for _, r := range repos {
@@ -226,7 +226,7 @@ func (k *collector) collectTeamRepos(ctx context.Context, o *orgState, ts *teamS
 func (k *collector) collectTeamMembers(ctx context.Context, o *orgState, ts *teamState) error {
 	ts.members = map[string]string{}
 	path := "/orgs/" + url.PathEscape(o.login) + "/teams/" + url.PathEscape(ts.slug) + "/members?role=all&per_page=100"
-	err := k.c.GetPages(ctx, path, func(page []byte) error {
+	err := k.cl(o.login).GetPages(ctx, path, func(page []byte) error {
 		var batch []struct {
 			Login string `json:"login"`
 		}
@@ -246,7 +246,7 @@ func (k *collector) collectTeamMembers(ctx context.Context, o *orgState, ts *tea
 		}
 		setAttr(ts.node, graph.AttrMembers, "unknown", graph.NotVisible)
 		k.cover(o.node.ID, "team_members:"+ts.slug, "could not list members of team "+ts.slug+": "+err.Error(),
-			k.ownerFix(o)+", or maintainer of team "+ts.slug)
+			k.fixFor(err, k.ownerFix(o)+", or maintainer of team "+ts.slug))
 		return nil
 	}
 	ts.membersOK = true

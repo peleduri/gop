@@ -225,7 +225,7 @@ Before a long first collection, run `GITHUB_TOKEN=... gop doctor --enterprise ac
 | Mode | What gop sees |
 |---|---|
 | (a) Enterprise-owner token, run locally | Full enterprise settings plus every org and repo the owner can see. **The intended mode.** |
-| (b) Per-org GitHub App installation tokens | No enterprise ownerInfo: enterprise settings collectors are skipped and marked `not_visible`, and gop collects per org: the `--orgs` list, or the owners of the installation's repositories. Settings the org API returns (`GET /orgs/{org}`: default permission, 2FA, repo creation, private forks) stay `live`; SSO is `not_visible`. Members come from the org members API. An `uses:` owner outside the collected orgs gets `in_enterprise=unknown`, not "outside". The App must be installed in every org you want covered; uninstalled orgs are `not_visible`. In CI the App private key is itself a high-value credential. |
+| (b) GitHub App, one read-only installation token per org | gop signs an App JWT, lists the App's installations and mints an installation token per org (`POST /app/installations/{id}/access_tokens`, read permissions only: the one non-GET REST call gop makes, which changes no repository or org state). Each org's requests carry that org's token, so one run covers every installed org and cross-org paths still join. Enterprise APIs are not called: enterprise ownerInfo settings, SSO state, the enterprise org list and consumed licenses are `not_visible` (members come from each org's members API). Settings the org API returns (`GET /orgs/{org}`: default permission, 2FA, repo creation, private forks) stay `live`. A `uses:` owner outside the installed orgs gets `in_enterprise=unknown`. An `--orgs` entry without an installation is `not_visible` with coverage "install the App on X with read-only permissions"; a missing App permission gives coverage naming it. The private key is read from a file or `GOP_APP_PRIVATE_KEY`, held in memory and never logged or written; in CI it is itself a high-value credential. (Library support in `collect.Config` today; CLI flags follow.) Without App credentials, a single installation token passed as the token still works for its one org. |
 | (c) A repository's `GITHUB_TOKEN` | One repository only. gop is not useful in this mode. |
 
 ### Rate limits
@@ -259,7 +259,7 @@ Read this before you set it up:
 
 ## Security and privacy
 
-- **Read-only.** gop makes no write calls to GitHub.
+- **Read-only.** gop makes no write calls to GitHub. The API client refuses every non-GET REST request and every GraphQL mutation before sending it; the only allowlisted exception is GitHub App mode minting a read-only installation token, which changes no repository or org state.
 - **No telemetry.** gop sends nothing anywhere except read requests to the GitHub API.
 - **Data stays local.** graph.json and the report are written to your disk with file mode 0600. Treat them as sensitive and never commit them.
 - **MCP answers go to your agent.** When you connect `gop serve` to an agent, its answers flow to that agent and to whichever model provider it uses. gop itself sends nothing anywhere.

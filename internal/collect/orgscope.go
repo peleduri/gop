@@ -3,6 +3,7 @@ package collect
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"sort"
@@ -35,6 +36,20 @@ const (
 
 // enterpriseFix is the access that closes every enterprise-level gap.
 const enterpriseFix = "enterprise owner token with read:enterprise"
+
+// appEnterpriseReason explains enterprise gaps in GitHub App mode.
+const appEnterpriseReason = "GitHub App mode: installation tokens cover one org each, so enterprise APIs are not called"
+
+// errAppMode stands in for an enterprise API that App mode does not call.
+var errAppMode = errors.New(appEnterpriseReason)
+
+// entGapReason starts the reason of every enterprise-level coverage entry.
+func (k *collector) entGapReason() string {
+	if k.app != nil {
+		return appEnterpriseReason
+	}
+	return "token cannot read enterprise " + k.enterprise
+}
 
 // apiOrg is the subset of GET /orgs/{org} that maps onto org attributes.
 // Pointer fields are absent when the token may not read them (owner-only).
@@ -83,26 +98,34 @@ func (k *collector) collectOrgsWithoutEnterprise(ctx context.Context, gqlErrs Gr
 	k.orgsSrc = src
 	k.logf("collect: token cannot read enterprise %s; collecting %d orgs from %s", k.enterprise, len(logins), src)
 	for _, login := range logins {
-		n := k.node("org:"+login, graph.KindOrg, login)
-		setAttr(n, attrInEnterpriseSource, inSrc, graph.Live)
-		setAttr(n, attrSource, src, graph.Live)
-		o := &orgState{login: login, node: n}
-		var ao apiOrg
-		if err := k.c.GetJSON(ctx, "/orgs/"+url.PathEscape(login), &ao); err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
-			setAttr(n, graph.AttrArchived, "unknown", graph.NotVisible)
-			k.cover(n.ID, "org", "could not read organization: "+err.Error(), "membership in "+login+", or check the org login")
-		} else {
-			o.rest = &ao
-			o.archived = ao.ArchivedAt != nil && *ao.ArchivedAt != ""
-			setAttr(n, graph.AttrArchived, strconv.FormatBool(o.archived), graph.Live)
+		if err := k.addRESTOrg(ctx, login, src, inSrc); err != nil {
+			return err
 		}
-		k.orgs = append(k.orgs, o)
-		k.byLower[strings.ToLower(login)] = o
-		k.entOrgs[strings.ToLower(login)] = login
 	}
+	return nil
+}
+
+// addRESTOrg adds one org to collect, read through GET /orgs/{org}.
+func (k *collector) addRESTOrg(ctx context.Context, login, src, inSrc string) error {
+	n := k.node("org:"+login, graph.KindOrg, login)
+	setAttr(n, attrInEnterpriseSource, inSrc, graph.Live)
+	setAttr(n, attrSource, src, graph.Live)
+	o := &orgState{login: login, node: n}
+	var ao apiOrg
+	if err := k.cl(login).GetJSON(ctx, "/orgs/"+url.PathEscape(login), &ao); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		setAttr(n, graph.AttrArchived, "unknown", graph.NotVisible)
+		k.cover(n.ID, "org", "could not read organization: "+err.Error(), "membership in "+login+", or check the org login")
+	} else {
+		o.rest = &ao
+		o.archived = ao.ArchivedAt != nil && *ao.ArchivedAt != ""
+		setAttr(n, graph.AttrArchived, strconv.FormatBool(o.archived), graph.Live)
+	}
+	k.orgs = append(k.orgs, o)
+	k.byLower[strings.ToLower(login)] = o
+	k.entOrgs[strings.ToLower(login)] = login
 	return nil
 }
 
@@ -171,7 +194,7 @@ func (k *collector) discoverOrgs(ctx context.Context) (logins []string, src, inS
 func (k *collector) collectSettingsPerOrg() {
 	for _, spec := range settingSpecs {
 		k.cover("enterprise:"+k.enterprise, spec.attr,
-			"token cannot read enterprise "+k.enterprise+": ownerInfo."+spec.field+" skipped; per-org values come from "+
+			k.entGapReason()+": ownerInfo."+spec.field+" skipped; per-org values come from "+
 				srcOrgREST+" where the token may read them",
 			enterpriseFix)
 		for _, o := range k.orgs {
@@ -230,7 +253,7 @@ func orgRESTSettings(a *apiOrg) map[string]string {
 func (k *collector) collectOrgMembers(ctx context.Context, o *orgState, mn *graph.Node) error {
 	list := func(path string) ([]string, error) {
 		var logins []string
-		err := k.c.GetPages(ctx, path, func(page []byte) error {
+		err := k.cl(o.login).GetPages(ctx, path, func(page []byte) error {
 			var batch []struct {
 				Login string `json:"login"`
 			}
@@ -257,7 +280,7 @@ func (k *collector) collectOrgMembers(ctx context.Context, o *orgState, mn *grap
 	}
 	if aerr != nil {
 		setAttr(o.node, attrOwners, "unknown", graph.NotVisible)
-		k.cover(o.node.ID, attrOwners, "could not list org owners: "+aerr.Error(), k.ownerFix(o))
+		k.cover(o.node.ID, attrOwners, "could not list org owners: "+aerr.Error(), k.fixFor(aerr, k.ownerFix(o)))
 	} else {
 		// Owner MEMBER_OF edges go first: k.edge keeps the first edge per pair.
 		for _, l := range admins {
@@ -271,7 +294,7 @@ func (k *collector) collectOrgMembers(ctx context.Context, o *orgState, mn *grap
 	if merr != nil {
 		setAttr(o.node, graph.AttrMembers, "unknown", graph.NotVisible)
 		setAttr(mn, graph.AttrMembers, "unknown", graph.NotVisible)
-		k.cover(o.node.ID, graph.AttrMembers, "could not list org members: "+merr.Error(), "membership in "+o.login)
+		k.cover(o.node.ID, graph.AttrMembers, "could not list org members: "+merr.Error(), k.fixFor(merr, "membership in "+o.login))
 		return nil
 	}
 	for _, l := range members {
@@ -313,8 +336,12 @@ func (k *collector) coverUnknownOwners() {
 		listed = listed[:maxListedOwners]
 		more = fmt.Sprintf(" (+%d more)", len(owners)-maxListedOwners)
 	}
+	fix := enterpriseFix + ", or add the owner to --orgs"
+	if k.app != nil {
+		fix = "install the App on the owner with read-only permissions and add it to --orgs"
+	}
 	k.cover("enterprise:"+k.enterprise, attrInEnterprise,
-		fmt.Sprintf("token cannot read enterprise %s: %d action owners outside the collected orgs may be enterprise orgs: %s%s",
-			k.enterprise, len(owners), strings.Join(listed, ", "), more),
-		enterpriseFix+", or add the owner to --orgs")
+		fmt.Sprintf("%s: %d action owners outside the collected orgs may be enterprise orgs: %s%s",
+			k.entGapReason(), len(owners), strings.Join(listed, ", "), more),
+		fix)
 }

@@ -29,6 +29,19 @@ type Config struct {
 	// Orgs, when non-empty, limits per-org collection to these logins.
 	Orgs []string
 
+	// GitHub App mode (mutually exclusive with Token). gop signs an App JWT,
+	// lists the App's installations and mints one read-only installation
+	// token per org. Enterprise-level APIs are skipped.
+	//
+	// AppID is the App's numeric ID.
+	AppID int64
+	// AppPrivateKeyPEM is the App's PEM private key. It is held in memory
+	// only and never logged, printed, written or put in an error.
+	AppPrivateKeyPEM []byte
+	// AppPermissions are requested for every installation token (default
+	// DefaultAppPermissions). Every value must be "read".
+	AppPermissions map[string]string
+
 	// Client options, used when Client is nil.
 	BaseURL     string
 	GraphQLURL  string
@@ -76,6 +89,8 @@ type orgState struct {
 	customRoles  map[string]string
 	rolesLoaded  bool
 	rest         *apiOrg // GET /orgs/{org}, read only when the enterprise is not visible
+	// collabErr is the first error listing a repository's collaborators.
+	collabErr error
 	// workflowDefault caches the org's default workflow permissions (token.go).
 	workflowDefault *orgWorkflowDefault
 }
@@ -110,6 +125,8 @@ type collector struct {
 	enterprise string
 	idByLower  map[string]string      // lower login -> identity node id
 	repoGrants map[string][]repoGrant // lower "owner/repo" -> license grants
+	// app is set in GitHub App mode (app.go).
+	app *appAuth
 	// entHidden is set when the token cannot read the enterprise; orgs then
 	// come from cfg.Orgs or discovery (orgscope.go).
 	entHidden     bool
@@ -124,23 +141,35 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 	if cfg.Enterprise == "" {
 		return nil, errors.New("collect: enterprise slug is required")
 	}
+	if err := cfg.validateAuth(); err != nil {
+		return nil, err
+	}
 	c := cfg.Client
 	if c == nil {
 		var err error
-		c, err = NewClient(ClientOptions{
+		c, err = newClient(ClientOptions{
 			BaseURL: cfg.BaseURL, GraphQLURL: cfg.GraphQLURL, Token: cfg.Token,
 			MaxAttempts: cfg.MaxAttempts, Logf: cfg.Logf,
-		})
+		}, !cfg.appMode())
 		if err != nil {
 			return nil, err
 		}
+	}
+	var app *appAuth
+	if cfg.appMode() {
+		var err error
+		if app, err = newAppAuth(cfg, c); err != nil {
+			return nil, err
+		}
+		// Every App-mode request goes through an org's installation client.
+		c = c.WithTokenSource(noTokenSource{})
 	}
 	k := &collector{
 		c: c, cfg: cfg, now: time.Now().UTC(), enterprise: cfg.Enterprise,
 		nodes: map[string]*graph.Node{}, edges: map[string]*graph.Edge{},
 		covSeen: map[string]bool{}, byLower: map[string]*orgState{},
 		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
-		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs,
+		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs, app: app,
 	}
 	if err := k.run(ctx); err != nil {
 		return nil, err
@@ -150,7 +179,11 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 
 func (k *collector) run(ctx context.Context) error {
 	ent := k.node("enterprise:"+k.enterprise, graph.KindEnterprise, k.enterprise)
-	if err := k.collectOrgs(ctx); err != nil {
+	collectOrgs := k.collectOrgs
+	if k.app != nil {
+		collectOrgs = k.collectOrgsApp
+	}
+	if err := collectOrgs(ctx); err != nil {
 		return err
 	}
 	if k.entHidden {
@@ -512,7 +545,30 @@ func (k *collector) collectMembers(ctx context.Context) error {
 	members := map[string]map[string]bool{}
 	owners := map[string]map[string]bool{}
 	path := "/enterprises/" + url.PathEscape(k.enterprise) + "/consumed-licenses?per_page=100"
-	err := k.c.GetPages(ctx, path, func(page []byte) error {
+	var err error
+	if k.app != nil {
+		// Installation tokens cannot read the enterprise: members come from
+		// each org's members API instead.
+		err = errAppMode
+	} else {
+		err = k.collectLicenses(ctx, path, members, owners)
+	}
+	if err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		reason, fix := "could not read consumed licenses: "+err.Error(), "enterprise owner on "+k.enterprise
+		if k.app != nil {
+			reason, fix = appEnterpriseReason+": consumed licenses are not read; members come from "+srcOrgMembers, enterpriseFix
+		}
+		k.cover("enterprise:"+k.enterprise, graph.AttrMembers, reason, fix)
+	}
+	return k.finishMembers(ctx, err, members, owners)
+}
+
+// collectLicenses reads the enterprise consumed licenses into members and owners.
+func (k *collector) collectLicenses(ctx context.Context, path string, members, owners map[string]map[string]bool) error {
+	return k.c.GetPages(ctx, path, func(page []byte) error {
 		var body struct {
 			Users []struct {
 				Login string   `json:"github_com_login"`
@@ -558,13 +614,11 @@ func (k *collector) collectMembers(ctx context.Context) error {
 		}
 		return nil
 	})
-	if err != nil {
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		k.cover("enterprise:"+k.enterprise, graph.AttrMembers, "could not read consumed licenses: "+err.Error(),
-			"enterprise owner on "+k.enterprise)
-	}
+}
+
+// finishMembers sets each collected org's member counts and owners, from the
+// licenses or, when they could not be read, from the org members API.
+func (k *collector) finishMembers(ctx context.Context, err error, members, owners map[string]map[string]bool) error {
 	for _, o := range k.orgs {
 		mn := k.node("members:"+o.login, graph.KindOrgMembers, o.login+" members")
 		if err != nil {
@@ -616,7 +670,7 @@ func (k *collector) collectOwnerView(ctx context.Context, o *orgState) error {
 			} `json:"ipAllowListEntries"`
 		} `json:"organization"`
 	}
-	gqlErrs, err := k.c.GraphQL(ctx, ownerViewQuery, map[string]any{"login": o.login}, &data)
+	gqlErrs, err := k.cl(o.login).GraphQL(ctx, ownerViewQuery, map[string]any{"login": o.login}, &data)
 	if err != nil && ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -667,7 +721,7 @@ type apiRepo struct {
 
 func (k *collector) collectRepos(ctx context.Context, o *orgState) error {
 	var repos []apiRepo
-	err := k.c.GetPages(ctx, "/orgs/"+url.PathEscape(o.login)+"/repos?type=all&per_page=100", func(page []byte) error {
+	err := k.cl(o.login).GetPages(ctx, "/orgs/"+url.PathEscape(o.login)+"/repos?type=all&per_page=100", func(page []byte) error {
 		var batch []apiRepo
 		if err := json.Unmarshal(page, &batch); err != nil {
 			return fmt.Errorf("decoding repos: %w", err)
@@ -680,7 +734,7 @@ func (k *collector) collectRepos(ctx context.Context, o *orgState) error {
 			return ctx.Err()
 		}
 		setAttr(o.node, attrRepositories, "unknown", graph.NotVisible)
-		k.cover(o.node.ID, attrRepositories, "could not list repositories: "+err.Error(), k.ownerFix(o))
+		k.cover(o.node.ID, attrRepositories, "could not list repositories: "+err.Error(), k.fixFor(err, k.ownerFix(o)))
 		return nil
 	}
 	for _, r := range repos {
@@ -783,7 +837,7 @@ func (k *collector) collectPushGrants(ctx context.Context, o *orgState) error {
 	if failed > 0 {
 		k.cover(o.node.ID, "can_push:collaborators",
 			fmt.Sprintf("could not list collaborators on %d repos (needs push access)", failed),
-			k.ownerFix(o)+", or push access on each repository")
+			k.fixFor(o.collabErr, k.ownerFix(o)+", or push access on each repository"))
 	}
 	return nil
 }
@@ -801,7 +855,7 @@ func (k *collector) via(o *orgState, login string) string {
 func (k *collector) collectOutside(ctx context.Context, o *orgState) error {
 	o.outside = map[string]bool{}
 	var logins []string
-	err := k.c.GetPages(ctx, "/orgs/"+url.PathEscape(o.login)+"/outside_collaborators?per_page=100", func(page []byte) error {
+	err := k.cl(o.login).GetPages(ctx, "/orgs/"+url.PathEscape(o.login)+"/outside_collaborators?per_page=100", func(page []byte) error {
 		var batch []struct {
 			Login string `json:"login"`
 		}
@@ -821,7 +875,7 @@ func (k *collector) collectOutside(ctx context.Context, o *orgState) error {
 		}
 		k.cover(o.node.ID, "outside_collaborators",
 			"could not list outside collaborators: "+err.Error()+"; direct grants are labelled via=direct",
-			k.ownerFix(o))
+			k.fixFor(err, k.ownerFix(o)))
 		return nil
 	}
 	for _, l := range logins {
@@ -872,7 +926,7 @@ func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo 
 	name := strings.TrimPrefix(repo.ID, "repo:"+o.login+"/")
 	var collabs []apiCollaborator
 	path := "/repos/" + url.PathEscape(o.login) + "/" + url.PathEscape(name) + "/collaborators?affiliation=direct&per_page=100"
-	err := k.c.GetPages(ctx, path, func(page []byte) error {
+	err := k.cl(o.login).GetPages(ctx, path, func(page []byte) error {
 		var batch []apiCollaborator
 		if err := json.Unmarshal(page, &batch); err != nil {
 			return fmt.Errorf("decoding collaborators: %w", err)
@@ -885,6 +939,9 @@ func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo 
 			return false, ctx.Err()
 		}
 		k.logf("collect: %s: collaborators not visible: %v", repo.ID, err)
+		if o.collabErr == nil {
+			o.collabErr = err
+		}
 		return false, nil
 	}
 	for _, c := range collabs {
@@ -917,10 +974,10 @@ func (k *collector) baseRole(ctx context.Context, o *orgState, role string) stri
 				BaseRole string `json:"base_role"`
 			} `json:"custom_roles"`
 		}
-		if err := k.c.GetJSON(ctx, "/orgs/"+url.PathEscape(o.login)+"/custom-repository-roles", &body); err != nil {
+		if err := k.cl(o.login).GetJSON(ctx, "/orgs/"+url.PathEscape(o.login)+"/custom-repository-roles", &body); err != nil {
 			if ctx.Err() == nil {
 				k.cover(o.node.ID, "custom_repository_roles", "could not read custom repository roles: "+err.Error(),
-					k.ownerFix(o))
+					k.fixFor(err, k.ownerFix(o)))
 			}
 		} else {
 			for _, r := range body.CustomRoles {
@@ -955,7 +1012,7 @@ func contentsPath(owner, repo, path, ref string) string {
 
 func (k *collector) getFile(ctx context.Context, owner, repo, path, ref string) ([]byte, error) {
 	var f contentEntry
-	if err := k.c.GetJSON(ctx, contentsPath(owner, repo, path, ref), &f); err != nil {
+	if err := k.cl(owner).GetJSON(ctx, contentsPath(owner, repo, path, ref), &f); err != nil {
 		return nil, err
 	}
 	if f.Type != "" && f.Type != "file" {
@@ -975,7 +1032,7 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 	name := strings.TrimPrefix(repo.ID, "repo:"+o.login+"/")
 	full := o.login + "/" + name
 	var raw json.RawMessage
-	err := k.c.GetJSON(ctx, contentsPath(o.login, name, ".github/workflows", ""), &raw)
+	err := k.cl(o.login).GetJSON(ctx, contentsPath(o.login, name, ".github/workflows", ""), &raw)
 	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -985,7 +1042,7 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 			return nil
 		}
 		setAttr(repo, "workflows", "unknown", graph.NotVisible)
-		k.cover(repo.ID, "workflows", "could not list workflows: "+err.Error(), "read access to contents on "+full)
+		k.cover(repo.ID, "workflows", "could not list workflows: "+err.Error(), k.fixFor(err, "read access to contents on "+full))
 		return nil
 	}
 	var entries []contentEntry
@@ -1004,7 +1061,7 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			k.cover(repo.ID, "workflow:"+e.Path, "could not read workflow: "+err.Error(), "read access to contents on "+full)
+			k.cover(repo.ID, "workflow:"+e.Path, "could not read workflow: "+err.Error(), k.fixFor(err, "read access to contents on "+full))
 			continue
 		}
 		count++
@@ -1147,7 +1204,7 @@ func (k *collector) expandNested(ctx context.Context) error {
 			if IsNotFound(err) {
 				reason = path + " not found at " + u.Ref + " (missing, or repository not visible to the token)"
 			}
-			k.cover(q.id, "nested_uses", reason, "read access to contents on "+u.Owner+"/"+u.Repo)
+			k.cover(q.id, "nested_uses", reason, k.fixFor(err, "read access to contents on "+u.Owner+"/"+u.Repo))
 			continue
 		}
 		var nested []ActionUse

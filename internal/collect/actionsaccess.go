@@ -52,7 +52,7 @@ func (k *collector) collectActionsAccess(ctx context.Context) error {
 			AccessLevel string `json:"access_level"`
 		}
 		path := "/repos/" + url.PathEscape(owner) + "/" + url.PathEscape(repo) + "/actions/permissions/access"
-		err := k.c.GetJSON(ctx, path, &resp)
+		err := k.cl(owner).GetJSON(ctx, path, &resp)
 		reason := ""
 		switch {
 		case err != nil && ctx.Err() != nil:
@@ -64,7 +64,7 @@ func (k *collector) collectActionsAccess(ctx context.Context) error {
 		}
 		if reason != "" {
 			setAttr(n, graph.AttrActionsAccess, graph.AccessUnknown, graph.NotVisible)
-			k.cover(id, graph.AttrActionsAccess, reason, "admin on "+full+" (or org owner)")
+			k.cover(id, graph.AttrActionsAccess, reason, k.fixFor(err, "admin on "+full+" (or org owner)"))
 			continue
 		}
 		setAttr(n, graph.AttrActionsAccess, resp.AccessLevel, graph.Live)
