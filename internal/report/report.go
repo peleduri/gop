@@ -79,13 +79,25 @@ type data struct {
 	OrgNames  []string
 	Truncated string
 
-	ix   *graph.Index
-	sugg []graph.FixSuggestion
+	ix     *graph.Index
+	sugg   []graph.FixSuggestion
+	budget int
+}
+
+// whatIfFixes are the top suggested fixes the Graph tab can simulate: the
+// report's own picks when the budget covers them, else a longer greedy run
+// (its first picks are the same, the greedy is deterministic).
+func (d *data) whatIfFixes() []graph.FixSuggestion {
+	if len(d.sugg) >= graphWhatIfFixes || d.budget >= graphWhatIfFixes {
+		return d.sugg
+	}
+	return d.ix.SuggestFixes(graphWhatIfFixes)
 }
 
 // addEmbedded fills the HTML-only fields from the graph.
 func addEmbedded(d *data, g *graph.Graph) error {
 	e := buildEmbedded(d.ix, g, d.ix.Scores(), d.sugg, maxPathsPerOrg)
+	e.Graph.WhatIf = whatIfPaths(d.ix, e.Paths, d.whatIfFixes())
 	js, err := marshalEmbedded(e)
 	if err != nil {
 		return err
@@ -209,7 +221,7 @@ func build(g *graph.Graph, opts Options) data {
 			d.Paths = append(d.Paths, principalPaths{Principal: s.Principal, Paths: pp})
 		}
 	}
-	d.sugg = ix.SuggestFixes(opts.FixBudget)
+	d.sugg, d.budget = ix.SuggestFixes(opts.FixBudget), opts.FixBudget
 	for i, f := range d.sugg {
 		_, desc := mcpserver.DescribeFix(f.Fix)
 		d.Fixes = append(d.Fixes, fixRow{N: i + 1, Description: desc, FixID: f.FixID, Removed: f.Removed,

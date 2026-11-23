@@ -25,7 +25,11 @@ El.prototype.removeChild = function (c) { this.childNodes.splice(this.childNodes
 El.prototype.setAttribute = function (k, v) { (this.attrs = this.attrs || {})[k] = String(v); };
 El.prototype.focus = function () { global.focused = this; };
 El.prototype.addEventListener = function (t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); };
-El.prototype.fire = function (t) { (this.listeners[t] || []).forEach(function (f) { f({ preventDefault: function () {} }); }); };
+El.prototype.fire = function (t, ev) {
+  ev = ev || {};
+  ev.preventDefault = function () { ev.prevented = true; };
+  (this.listeners[t] || []).forEach(function (f) { f(ev); });
+};
 El.prototype.find = function (tag, out) {
   out = out || [];
   this.childNodes.forEach(function (c) { if (c instanceof El) { if (c.tagName === tag) { out.push(c); } c.find(tag, out); } });
@@ -33,14 +37,18 @@ El.prototype.find = function (tag, out) {
 };
 
 var ids = {};
-["gop-static", "gop-explore", "gop-orgview", "gop-count", "gop-paths", "gop-fixes", "gop-reset"].forEach(function (id) {
-  ids[id] = new El(id === "gop-reset" ? "button" : "div");
+["gop-static", "gop-explore", "gop-orgview", "gop-count", "gop-paths", "gop-fixes", "gop-reset",
+  "gop-tab-list", "gop-tab-graph", "gop-list-panel", "gop-graph-panel", "gop-pins", "gop-pin-options",
+  "gop-graph-status", "gop-graph", "gop-graph-detail", "gop-graph-text"].forEach(function (id) {
+  ids[id] = new El(/^gop-(reset|tab-)/.test(id) ? "button" : "div");
 });
+ids["gop-graph-panel"].hidden = true;
+ids["gop-pins"].hidden = true;
 ids["gop-explore"].hidden = true;
 ids["gop-orgview"].hidden = true;
 ids["gop-data"] = { textContent: RAW };
 var form = new El("form");
-form.elements = { ev: new El("select"), kind: new El("select"), ref: new El("select"), q: new El("input") };
+form.elements = { ev: new El("select"), kind: new El("select"), ref: new El("select"), q: new El("input"), via: new El("input") };
 var orgBoxes = JSON.parse(RAW).orgs.map(function (o) { var b = new El("input"); b.value = o.name; return b; });
 form.querySelectorAll = function (sel) {
   if (sel !== "input[name=org]") { throw new Error("unexpected selector " + sel); }
@@ -52,6 +60,7 @@ var winListeners = {};
 global.document = {
   getElementById: function (id) { return ids[id] || null; },
   createElement: function (t) { return new El(t); },
+  createElementNS: function (ns, t) { var e = new El(t); e.ns = ns; return e; },
   createTextNode: function (s) { return new Text(s); },
 };
 global.location = { hash: "", pathname: "/report.html", search: "" };

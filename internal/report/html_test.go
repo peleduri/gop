@@ -92,11 +92,16 @@ func TestReportCSP(t *testing.T) {
 func TestInlineScriptRules(t *testing.T) {
 	for _, bad := range []string{"innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(",
 		"Function(", "setTimeout(\"", "import", "require(", "fetch(", "XMLHttpRequest", "src=", "http", "<!--", "</"} {
-		if strings.Contains(scriptJS, bad) {
+		if strings.Contains(withoutSVGNS(scriptJS), bad) {
 			t.Errorf("inline script contains %q", bad)
 		}
 	}
-	if len(scriptJS) > 16<<10 {
+	if n := strings.Count(scriptJS, svgNS); n != 1 {
+		t.Errorf("script names the SVG namespace %d times, want once (one constant)", n)
+	}
+	// 32 KB: the filters and org views (about 9 KB) plus the Graph tab's
+	// rendering and interaction (about 9 KB); the layout itself runs in Go.
+	if len(scriptJS) > 32<<10 {
 		t.Errorf("inline script is %d bytes; keep it small", len(scriptJS))
 	}
 }
@@ -267,42 +272,19 @@ type harnessOut struct {
 		Focused    string
 		BannerQ    string
 	} `json:"a11y"`
+	Graph json.RawMessage `json:"graph"`
 }
 
 // TestInlineScriptInNode runs the served script under node with a fake DOM
 // (testdata/jsharness). CI runners ship node; elsewhere it is skipped.
 func TestInlineScriptInNode(t *testing.T) {
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node not installed")
-	}
 	g := loadAcme(t)
 	out := render(t, g, "html")
-	dir := t.TempDir()
-	pre, err := os.ReadFile(filepath.Join("testdata", "jsharness", "prelude.js"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	epi, err := os.ReadFile(filepath.Join("testdata", "jsharness", "epilogue.js"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	prog := filepath.Join(dir, "harness.js")
-	src := string(pre) + "\n" + block(t, out, scriptOpen, "script") + "\n" + string(epi)
-	if err := os.WriteFile(prog, []byte(src), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	dataFile := filepath.Join(dir, "data.json")
-	if err := os.WriteFile(dataFile, []byte(embeddedJSON(t, out)), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command(node, prog, dataFile) // #nosec G204 -- test-only, fixed program
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	raw, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("node: %v\n%s", err, stderr.String())
-	}
+	raw := runHarness(t, out, string(epi))
 	var h harnessOut
 	if err := json.Unmarshal(raw, &h); err != nil {
 		t.Fatalf("harness output: %v\n%s", err, raw)
@@ -408,4 +390,38 @@ func TestInlineScriptInNode(t *testing.T) {
 	if a.BannerQ != "identity:bob" {
 		t.Errorf("banner link q=identity%%3Abob parsed to %q", a.BannerQ)
 	}
+	checkGraphTab(t, h.Graph, embeddedJSON(t, out))
+}
+
+// runHarness runs the report's served script under node with the fake DOM
+// of testdata/jsharness/prelude.js, then epilogue, and returns what it
+// prints. It skips the test when node is not installed.
+func runHarness(t *testing.T, report, epilogue string) []byte {
+	t.Helper()
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not installed")
+	}
+	dir := t.TempDir()
+	pre, err := os.ReadFile(filepath.Join("testdata", "jsharness", "prelude.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	prog := filepath.Join(dir, "harness.js")
+	src := string(pre) + "\n" + block(t, report, scriptOpen, "script") + "\n" + epilogue
+	if err := os.WriteFile(prog, []byte(src), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	dataFile := filepath.Join(dir, "data.json")
+	if err := os.WriteFile(dataFile, []byte(embeddedJSON(t, report)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(node, prog, dataFile) // #nosec G204 -- test-only, fixed program
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	raw, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, stderr.String())
+	}
+	return raw
 }

@@ -44,7 +44,7 @@ func TestRenderHTML(t *testing.T) {
 			t.Errorf("HTML missing %q", want)
 		}
 	}
-	lower := strings.ToLower(out)
+	lower := strings.ToLower(withoutSVGNS(out))
 	for _, bad := range []string{"<link", "src=", "@import", "http://", "https://"} {
 		if strings.Contains(lower, bad) {
 			t.Errorf("HTML must be self-contained, found %q", bad)
@@ -55,6 +55,20 @@ func TestRenderHTML(t *testing.T) {
 	if strings.Contains(lower, ">off<") {
 		t.Error("HTML shows a setting as off")
 	}
+}
+
+// svgNS is the SVG namespace the Graph tab passes to createElementNS. It is
+// an XML namespace name, never fetched; it is the only URL-shaped string the
+// report may contain, and only inside the inline script.
+const svgNS = "http://www.w3.org/2000/svg"
+
+// withoutSVGNS drops the namespace name from the inline script so the
+// no-URL checks still catch any real URL.
+func withoutSVGNS(s string) string {
+	if strings.Count(scriptJS, svgNS) != 1 {
+		return s // the namespace must be one named constant in the script; checks then fail loudly
+	}
+	return strings.Replace(s, `"`+svgNS+`"`, `""`, 1)
 }
 
 func TestRenderMarkdown(t *testing.T) {

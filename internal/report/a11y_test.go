@@ -150,8 +150,36 @@ func TestA11yStructure(t *testing.T) {
 			if v, _ := attr(count, "aria-live"); v != "polite" {
 				t.Errorf("result count region aria-live = %q, want polite", v)
 			}
-			if len(elements(doc, "svg")) > 0 {
-				t.Error("report has an SVG: give it a text alternative listing the paths and update this check")
+			// Any SVG needs a name and a text alternative listing what it
+			// draws. The Graph tab's SVG is built by the script (checked in
+			// TestScriptRendersAccessibleMarkup and TestInlineScriptInNode);
+			// a server-rendered one must meet the same bar.
+			for _, svg := range elements(doc, "svg") {
+				role, _ := attr(svg, "role")
+				label, _ := attr(svg, "aria-label")
+				desc, _ := attr(svg, "aria-describedby")
+				if (role != "img" && role != "group") || strings.TrimSpace(label) == "" || desc == "" || byID(doc, desc) == nil {
+					t.Errorf("SVG without a role, name and text alternative: role=%q label=%q describedby=%q", role, label, desc)
+				}
+			}
+			if alt := byID(doc, "gop-graph-text"); alt == nil || alt.Data != "ol" {
+				t.Error("no text alternative list for the Graph tab")
+			}
+			tabs := 0
+			walk(doc, func(n *html.Node) {
+				if r, _ := attr(n, "role"); r == "tab" {
+					tabs++
+					ctl, _ := attr(n, "aria-controls")
+					if p := byID(doc, ctl); p == nil || func() bool { r, _ := attr(p, "role"); return r != "tabpanel" }() {
+						t.Errorf("tab %q controls no tabpanel", text(n))
+					}
+					if sel, _ := attr(n, "aria-selected"); sel != "true" && sel != "false" {
+						t.Errorf("tab %q has no aria-selected", text(n))
+					}
+				}
+			})
+			if tabs != 2 {
+				t.Errorf("%d tabs, want List and Graph", tabs)
 			}
 		})
 	}
@@ -198,6 +226,18 @@ func TestScriptRendersAccessibleMarkup(t *testing.T) {
 	}
 	if strings.Count(scriptJS, `h("span","badge`) != 1 {
 		t.Error("script builds a badge without the icon helper")
+	}
+	// The Graph tab: one SVG, named and described by the text list of the
+	// paths it draws; every node is a focusable button that answers Enter.
+	if strings.Count(scriptJS, `sv("svg"`) != 1 || strings.Count(scriptJS, "createElementNS(") != 1 {
+		t.Error("script builds SVG outside the sv() helper or more than one SVG")
+	}
+	for _, want := range []string{`role:"group","aria-label":`, `setAttribute("aria-describedby","gop-graph-text")`,
+		`tabindex:0,role:"button"`, `setAttribute("aria-pressed"`, `setAttribute("aria-label",id+`, `ev.key==="Enter"||ev.key===" "`,
+		`addEventListener("focus"`, `aria-selected`} {
+		if !strings.Contains(scriptJS, want) {
+			t.Errorf("Graph tab script missing %q", want)
+		}
 	}
 }
 

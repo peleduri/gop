@@ -56,6 +56,19 @@ flags may change in minor releases.
   server now sends instructions on initialize, and they and the
   `explain_path` prompt ask the agent to call `check_answerable` before giving
   a security conclusion.
+- Graph tab in the HTML report: the filtered paths as a layered left-to-right
+  inline SVG (principal → repo → action ref → workflow → impact), laid out in
+  Go (longest-path layers, barycenter order) with no third-party library and
+  no CDN, under the same CSP. Hops are solid for live, dashed for audit and
+  dotted with `?` for not visible; reversed hops are drawn in control
+  direction and say so. Hover or focus shows `source_api`, `observed_at` and
+  attrs (`file:line` when known). Selecting a node (click, or Enter on the
+  focused node) filters to the paths through it (`via=` in the address);
+  "Simulate a pin" greys the paths a top-10 suggested pin removes, from
+  `WhatIf` data embedded by Go. Above 300 nodes it asks to narrow the filter.
+  Nodes are keyboard buttons, the tabs follow the ARIA tabs pattern, and a
+  text list of the drawn paths is the SVG's text alternative. Unknown
+  evidence classes keep their name instead of reading "not visible".
 - Action input `fail-on-reach-increase` (default `"false"`) with
   `baseline-artifact` (default `gop-posture`): compares the run's graph with
   the artifact of the previous successful run of the same workflow on the

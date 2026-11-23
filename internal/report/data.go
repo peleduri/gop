@@ -32,6 +32,8 @@ type embedded struct {
 	// Truncated lists target orgs whose paths were cut to MaxPerOrg.
 	Truncated []embTrunc `json:"truncated"`
 	MaxPerOrg int        `json:"max_per_org"`
+	// Graph is the Graph tab's layout and what-if data over Paths.
+	Graph embGraph `json:"graph"`
 }
 
 type embOrg struct {
@@ -79,6 +81,9 @@ type embHop struct {
 	API  string `json:"api,omitempty"`
 	Rev  bool   `json:"rev,omitempty"`
 	Why  string `json:"why,omitempty"` // why an undecided CAN_ASSUME match is possible only
+
+	raw   graph.Evidence // the hop's own evidence, for the Graph tab's label
+	stale bool           // an audit fact too old to confirm (graph.Hop.Stale)
 }
 
 type embFix struct {
@@ -259,7 +264,7 @@ func buildEmbedded(ix *graph.Index, g *graph.Graph, scores []graph.Score, fixes 
 			refs := map[string]bool{}
 			for _, h := range path.Hops {
 				ep.Hops = append(ep.Hops, embHop{From: h.From, To: h.To, Kind: string(h.Kind),
-					Ev: mcpserver.HopEvidenceLabel(h), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason})
+					Ev: mcpserver.HopEvidenceLabel(h), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason, raw: h.Evidence, stale: h.Stale})
 				for _, id := range []string{h.From, h.To} {
 					if ix.Kind(id) == graph.KindActionRef {
 						refs[refKind(ix, id)] = true
@@ -316,6 +321,7 @@ func buildEmbedded(ix *graph.Index, g *graph.Graph, scores []graph.Score, fixes 
 		e.Coverage = append(e.Coverage, embCoverage{Scope: c.Scope, Org: orgName(graph.OrgOf(c.Scope)),
 			Fact: c.Fact, Reason: c.Reason, NeedsFix: c.NeedsFix})
 	}
+	e.Graph = buildGraphView(ix, e.Paths, nil)
 	return e
 }
 
