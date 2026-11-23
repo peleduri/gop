@@ -436,7 +436,7 @@ func TestGCPBindings(t *testing.T) {
 	if len(r.Trusts[1].Claims[CELKey]) != 0 {
 		t.Errorf("pool-wide member added a condition: %s", summary(r.Trusts[1]))
 	}
-	if !hasWarning(r.Trusts[2], "group/admins") || !hasWarning(r.Trusts[3], "attribute.actor == 'alice'") {
+	if !hasWarning(r.Trusts[2], "group/admins") || !hasWarning(r.Trusts[3], `attribute.actor == "alice"`) {
 		t.Errorf("unresolvable members need warnings:\n%s\n%s", summary(r.Trusts[2]), summary(r.Trusts[3]))
 	}
 	if len(r.Warnings) != 1 || !strings.Contains(r.Warnings[0], "no workload identity provider") {

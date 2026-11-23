@@ -265,10 +265,10 @@ func bindTrust(t Trust, p *gcpProvider, bd gcpBinding) Trust {
 	case rest == "*":
 	case strings.HasPrefix(rest, "attribute."):
 		name, value, _ := strings.Cut(strings.TrimPrefix(rest, "attribute."), "/")
-		attr("attribute."+name, value, fmt.Sprintf("attribute.%s == '%s'", name, value))
+		attr("attribute."+name, value, fmt.Sprintf("attribute.%s == %q", name, value))
 	case strings.HasPrefix(rest, "subject/"):
 		value := strings.TrimPrefix(rest, "subject/")
-		attr("google.subject", value, fmt.Sprintf("google.subject == '%s'", value))
+		attr("google.subject", value, fmt.Sprintf("google.subject == %q", value))
 	default:
 		t.addCond(CELKey, Pattern{Raw: bd.member, Op: OpCEL})
 		t.Warnings = append(t.Warnings, "condition not fully understood, treated as possible: "+bd.member)
