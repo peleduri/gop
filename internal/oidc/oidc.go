@@ -24,6 +24,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/peleduri/gop/internal/graph"
 )
 
 // Provider is the cloud a trust belongs to.
@@ -325,6 +327,39 @@ func isGitHubIssuer(iss string) bool {
 		return true
 	}
 	return host != "" && strings.HasSuffix(path, "_services/token")
+}
+
+// githubDotComIssuerHost is the host of github.com's Actions token issuer.
+const githubDotComIssuerHost = "token.actions.githubusercontent.com"
+
+// IssuerFor returns the Actions OIDC token issuer of a GitHub host:
+// https://token.actions.githubusercontent.com for github.com (or an empty
+// host), https://HOST/_services/token for GitHub Enterprise Server.
+func IssuerFor(host string) string {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if host == "" || host == graph.GitHubDotCom {
+		return "https://" + githubDotComIssuerHost
+	}
+	return "https://" + host + "/_services/token"
+}
+
+// IssuerMatchesHost reports whether a trust's issuer is the token issuer of
+// the GitHub host a graph was collected from. github.com's issuer may carry
+// an enterprise slug path (https://token.actions.githubusercontent.com/acme).
+// An empty host (a graph that does not record it) or an empty issuer matches
+// everything, as before gop recorded hosts.
+func IssuerMatchesHost(iss, host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	s := strings.TrimSuffix(strings.TrimSpace(iss), "/")
+	if host == "" || s == "" {
+		return true
+	}
+	s = strings.TrimPrefix(s, "https://")
+	h, path, _ := strings.Cut(s, "/")
+	if host == graph.GitHubDotCom {
+		return strings.EqualFold(h, githubDotComIssuerHost)
+	}
+	return strings.EqualFold(h, host) && path == "_services/token"
 }
 
 // unknownTarget names an identity the file does not name.

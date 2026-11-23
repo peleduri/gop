@@ -50,6 +50,7 @@ const (
 var (
 	ErrEnterpriseMismatch = errors.New("diff: snapshots are of different enterprises")
 	ErrSchemaMismatch     = errors.New("diff: snapshots have different major schema versions")
+	ErrHostMismatch       = errors.New("diff: snapshots are from different GitHub hosts")
 )
 
 // Meta identifies one snapshot.
@@ -182,12 +183,14 @@ func (r Report) Empty() bool {
 
 // Options tune Compare.
 type Options struct {
-	// Force compares snapshots of different enterprises or major schema versions.
+	// Force compares snapshots of different enterprises, GitHub hosts or major
+	// schema versions.
 	Force bool
 }
 
-// Compare diffs two snapshots. It refuses snapshots of different enterprises or
-// different major schema versions; use CompareWith and Options.Force to override.
+// Compare diffs two snapshots. It refuses snapshots of different enterprises,
+// GitHub hosts or major schema versions; use CompareWith and Options.Force to
+// override.
 func Compare(old, new *graph.Graph) (Report, error) {
 	return CompareWith(old, new, Options{})
 }
@@ -200,6 +203,11 @@ func CompareWith(old, new *graph.Graph, opts Options) (Report, error) {
 	if !opts.Force {
 		if old.Enterprise != new.Enterprise {
 			return Report{}, fmt.Errorf("%w: %q vs %q (use --force to compare anyway)", ErrEnterpriseMismatch, old.Enterprise, new.Enterprise)
+		}
+		// A graph that does not record its host (older or synthetic) is
+		// compared with any host.
+		if ho, hn := graph.Host(old), graph.Host(new); ho != "" && hn != "" && ho != hn {
+			return Report{}, fmt.Errorf("%w: %q vs %q (use --force to compare anyway)", ErrHostMismatch, ho, hn)
 		}
 		if mo, mn := schemaMajor(old.Schema), schemaMajor(new.Schema); mo != mn {
 			return Report{}, fmt.Errorf("%w: %q vs %q (use --force to compare anyway)", ErrSchemaMismatch, old.Schema, new.Schema)

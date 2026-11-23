@@ -226,3 +226,129 @@ func TestCloudID(t *testing.T) {
 		t.Errorf("azure identity node attrs = %v", n.Attrs)
 	}
 }
+
+// setHost records host on the graph's enterprise node.
+func setHost(g *graph.Graph, host string) {
+	for i := range g.Nodes {
+		if g.Nodes[i].Kind == graph.KindEnterprise {
+			if g.Nodes[i].Attrs == nil {
+				g.Nodes[i].Attrs = map[string]string{}
+			}
+			g.Nodes[i].Attrs[graph.AttrHost] = host
+		}
+	}
+}
+
+// ghesTrust copies the acme trust files with the GHES issuer
+// https://github.acme.example/_services/token in place of github.com's.
+func ghesTrust(t *testing.T) string {
+	t.Helper()
+	dst := t.TempDir()
+	err := filepath.WalkDir(acmeTrust, func(p string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		rel, err := filepath.Rel(acmeTrust, p)
+		if err != nil {
+			return err
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		out := strings.ReplaceAll(string(b), "token.actions.githubusercontent.com", "github.acme.example/_services/token")
+		if err := os.MkdirAll(filepath.Join(dst, filepath.Dir(rel)), 0o700); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(dst, rel), []byte(out), 0o600)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dst
+}
+
+func enrichWithHost(t *testing.T, host, trustDir string) (*graph.Graph, EnrichStats) {
+	t.Helper()
+	g, err := graph.LoadFile(acmeGraph)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setHost(g, host)
+	files, err := TrustFiles(trustDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Parse(Options{}, trustDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return g, Enrich(g, res.Trusts, files, res.Warnings)
+}
+
+// TestEnrichMatchesIssuerOfHost: a GHES graph matches trusts for its own
+// issuer (https://HOST/_services/token) and none for github.com's, and the
+// reverse for a github.com graph.
+func TestEnrichMatchesIssuerOfHost(t *testing.T) {
+	_, base := enrichAcme(t, acmeTrust)
+	if base.Confirmed == 0 {
+		t.Fatal("baseline has no confirmed match")
+	}
+	ghes := ghesTrust(t)
+	for _, tc := range []struct {
+		host, trust string
+		match       bool
+	}{
+		{"github.acme.example", ghes, true},
+		{"github.acme.example", acmeTrust, false},
+		{"github.com", acmeTrust, true},
+		{"github.com", ghes, false},
+		{"", ghes, true}, // a graph without host matches any GitHub issuer
+	} {
+		g, st := enrichWithHost(t, tc.host, tc.trust)
+		assumes := 0
+		for _, e := range g.Edges {
+			if e.Kind == graph.CanAssume {
+				assumes++
+			}
+		}
+		if tc.match && st != base {
+			t.Errorf("host %q trust %s: %+v, want %+v", tc.host, tc.trust, st, base)
+		}
+		if !tc.match && (st.Confirmed+st.Possible != 0 || assumes != 0) {
+			t.Errorf("host %q trust %s: %+v (%d CAN_ASSUME edges), want no match", tc.host, tc.trust, st, assumes)
+		}
+	}
+}
+
+func TestIssuerFor(t *testing.T) {
+	for host, want := range map[string]string{
+		"":                    "https://token.actions.githubusercontent.com",
+		"github.com":          "https://token.actions.githubusercontent.com",
+		"GitHub.Acme.Example": "https://github.acme.example/_services/token",
+	} {
+		if got := IssuerFor(host); got != want {
+			t.Errorf("IssuerFor(%q) = %q, want %q", host, got, want)
+		}
+		if !IssuerMatchesHost(want, host) {
+			t.Errorf("IssuerMatchesHost(%q, %q) = false", want, host)
+		}
+	}
+	for _, tc := range []struct {
+		iss, host string
+		want      bool
+	}{
+		{"https://token.actions.githubusercontent.com/acme", "github.com", true},
+		{"https://token.actions.githubusercontent.com/", "github.com", true},
+		{"https://github.acme.example/_services/token/", "github.acme.example", true},
+		{"https://github.acme.example/_services/token", "github.com", false},
+		{"https://token.actions.githubusercontent.com", "github.acme.example", false},
+		{"https://other.example/_services/token", "github.acme.example", false},
+		{"https://github.acme.example/other", "github.acme.example", false},
+		{"", "github.acme.example", true},
+	} {
+		if got := IssuerMatchesHost(tc.iss, tc.host); got != tc.want {
+			t.Errorf("IssuerMatchesHost(%q, %q) = %v, want %v", tc.iss, tc.host, got, tc.want)
+		}
+	}
+}

@@ -125,7 +125,15 @@ func Enrich(g *graph.Graph, trusts []Trust, files []string, fileWarnings []strin
 	g.Coverage = cov
 
 	ix := graph.NewIndex(g)
-	sorted := append([]Trust(nil), trusts...)
+	// A trust for another GitHub host's issuer (github.com versus a GHES
+	// host) can never be satisfied by this graph's tokens.
+	host := graph.Host(g)
+	sorted := make([]Trust, 0, len(trusts))
+	for _, t := range trusts {
+		if IssuerMatchesHost(t.Issuer, host) {
+			sorted = append(sorted, t)
+		}
+	}
 	sort.SliceStable(sorted, func(i, j int) bool {
 		a, b := sorted[i], sorted[j]
 		if a.File != b.File {

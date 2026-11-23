@@ -45,7 +45,7 @@ func (a *app) cmdDiff(args []string) error {
 	format := fs.String("format", "text", "text, json or markdown")
 	only := fs.String("only", "", "comma-separated sections to show: "+strings.Join(diff.Sections, ","))
 	failOn := fs.String("fail-on", "", "exit 1 when: confirmed-increase (confirmed (principal, repo) pairs grow) or any-new-path (any added or upgraded path); comma-separated")
-	force := fs.Bool("force", false, "compare snapshots of different enterprises or major schema versions")
+	force := fs.Bool("force", false, "compare snapshots of different enterprises, GitHub hosts or major schema versions")
 	pos, err := parseInterspersed(fs, args)
 	if err != nil {
 		return err

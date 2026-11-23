@@ -84,7 +84,7 @@ func (a *app) cmdPin(args []string) error {
 	gp := graphFlag(fs)
 	format := fs.String("format", "diff", "diff, text or json")
 	repo := fs.String("repo", "", "with --graph: only the workflows of this repo, e.g. acme-app/web (one repo per git apply)")
-	ghURL := fs.String("github-url", "", "REST API root (default https://api.github.com; GHES: https://HOST/api/v3)")
+	uf := addURLFlags(fs, "pin")
 	offline := fs.Bool("offline", false, "with --graph: do not fetch workflow files; print one-line hunks from the graph's line attributes (not git apply-able)")
 	fs.Usage = func() {
 		fmt.Fprint(fs.Output(), pinHelp)
@@ -108,6 +108,10 @@ func (a *app) cmdPin(args []string) error {
 	if *gp == "" && (*repo != "" || *offline) {
 		return usagef("pin: --repo and --offline need --graph")
 	}
+	ep, err := uf.resolve(a.getenv)
+	if err != nil {
+		return err
+	}
 	token := a.getenv("GITHUB_TOKEN")
 	if token == "" {
 		token = a.getenv("GH_TOKEN")
@@ -117,7 +121,6 @@ func (a *app) cmdPin(args []string) error {
 	}
 	var g *graph.Graph
 	if *gp != "" {
-		var err error
 		if g, err = a.loadGraph("pin", *gp, false); err != nil {
 			return err
 		}
@@ -126,12 +129,13 @@ func (a *app) cmdPin(args []string) error {
 	if next == nil {
 		next = http.DefaultTransport
 	}
-	baseURL := *ghURL
+	baseURL := ep.rest
 	if baseURL == "" {
 		baseURL = a.apiURL
 	}
 	client, err := collect.NewClient(collect.ClientOptions{
 		BaseURL:     baseURL,
+		GraphQLURL:  ep.graphql,
 		Token:       token,
 		HTTPClient:  &http.Client{Transport: readOnlyTransport{next}, Timeout: 60 * time.Second},
 		MaxAttempts: 3,

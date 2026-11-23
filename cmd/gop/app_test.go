@@ -467,7 +467,7 @@ func TestGoldenDoctorApp(t *testing.T) {
 		{"doctor_app_mode.json", []string{"--format", "json"}},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
-			args := append([]string{"doctor", "--enterprise", "acme", "--github-url", f.srv.URL,
+			args := append([]string{"doctor", "--enterprise", "acme", "--api-url", f.srv.URL, "--insecure-http",
 				"--orgs", "acme-actions,acme-app,acme-legacy", "--app-id", "4242", "--app-key-file", keyFile}, tc.extra...)
 			r := runAppEnv(t, nil, f.srv.URL, nil, args...)
 			if r.code != exitWarn {
@@ -485,7 +485,7 @@ func TestDoctorAppMissingPermission(t *testing.T) {
 	delete(p, "members")
 	f.granted["acme-actions"] = p
 	env := map[string]string{"GOP_APP_ID": "4242", "GOP_APP_PRIVATE_KEY": string(testAppPEM(t))}
-	r := runAppEnv(t, env, f.srv.URL, nil, "doctor", "--enterprise", "acme", "--github-url", f.srv.URL)
+	r := runAppEnv(t, env, f.srv.URL, nil, "doctor", "--enterprise", "acme", "--api-url", f.srv.URL, "--insecure-http")
 	if r.code != exitRuntime {
 		t.Fatalf("exit %d, want 1: %+v", r.code, r)
 	}
@@ -518,7 +518,7 @@ func TestDoctorAppBadKey(t *testing.T) {
 		reply(w, 401, map[string]string{"message": "A JSON web token could not be decoded"})
 	}))
 	t.Cleanup(srv.Close)
-	r := runAppEnv(t, env, srv.URL, nil, "doctor", "--enterprise", "acme", "--github-url", srv.URL)
+	r := runAppEnv(t, env, srv.URL, nil, "doctor", "--enterprise", "acme", "--api-url", srv.URL, "--insecure-http")
 	if r.code != exitRuntime || !strings.Contains(r.stdout, "FAIL  app  App JWT rejected (HTTP 401)") {
 		t.Fatalf("bad key: %+v", r)
 	}

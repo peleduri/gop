@@ -43,6 +43,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
+              [--github-url URL]
   gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] --out graph2.json
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
               [--app-id N --app-key-file PATH]
@@ -95,6 +96,11 @@ pin resolves an action ref to a commit SHA with read-only GET requests (token
 from GITHUB_TOKEN or GH_TOKEN) and, with --graph, prints a git apply diff for
 every consuming workflow. It writes to stdout only.
 mcp-config prints the MCP client config for serve; it never writes files.
+--github-url (or GOP_GITHUB_URL) on collect, doctor and pin names a GitHub
+Enterprise Server instance (https://HOST): gop reads https://HOST/api/v3 and
+https://HOST/api/graphql, records host and ghes_version on the enterprise
+node and leaves APIs the version lacks not_visible. --api-url and
+--graphql-url override the endpoints for a proxy; http:// needs --insecure-http.
 Confirmed reach: every hop live, audit or supplied. Possible reach: at least one hop not visible.
 `
 
@@ -237,12 +243,17 @@ func (a *app) cmdCollect(args []string) error {
 	orgs := fs.String("orgs", "", "comma-separated org logins to limit collection to (default: all). "+
 		"When the token cannot read the enterprise, or in GitHub App mode, these orgs are collected and count as enterprise orgs")
 	af := addAppFlags(fs)
+	uf := addURLFlags(fs, "collect")
 	var trusts trustFlag
 	fs.Var(&trusts, "oidc-trust", trustUsage+" (runs gop enrich after collection)")
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if err := required("collect", "enterprise", *ent, "out", *out); err != nil {
+		return err
+	}
+	ep, err := uf.resolve(a.getenv)
+	if err != nil {
 		return err
 	}
 	if len(trusts) > 0 {
@@ -261,6 +272,9 @@ func (a *app) cmdCollect(args []string) error {
 		AppID:            cr.appID,
 		AppPrivateKeyPEM: cr.appKey,
 		Orgs:             splitList(*orgs),
+		Host:             ep.host,
+		BaseURL:          ep.rest,
+		GraphQLURL:       ep.graphql,
 		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

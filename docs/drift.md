@@ -103,7 +103,7 @@ The same rule applies to paths and edges: when the newer token cannot see a node
 
 Lost visibility and downgrades never trip `--fail-on`; watch the `coverage` section for those.
 
-`gop diff` refuses to compare snapshots of different enterprises or different major schema versions. `--force` compares them anyway.
+`gop diff` refuses to compare snapshots of different enterprises, different GitHub hosts (the enterprise node's `host` attribute, e.g. `github.com` versus a GitHub Enterprise Server host) or different major schema versions. `--force` compares them anyway.
 
 ## Formats
 
