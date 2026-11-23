@@ -1,0 +1,5 @@
+action: acme-actions/deploy@main
+sha: 1111111111111111111111111111111111111111
+ref kind: branch
+replace: uses: acme-actions/deploy@main
+with:    uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main

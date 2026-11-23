@@ -9,6 +9,14 @@ flags may change in minor releases.
 
 ### Added
 
+- `gop pin --action owner/repo@ref` resolves an action ref to its commit SHA
+  with read-only GET requests (the commit, then whether the ref is a tag or a
+  branch) and prints the pinned `uses:` value. With `--graph`, it reads each
+  consuming workflow file and prints a unified diff per file that applies with
+  `git apply` (`--repo` for one repo's part, `--offline` for the one-line
+  hunks `fix-plan` shows), and warns about mutable refs nested in the action.
+  It writes to stdout only, and its HTTP transport refuses any method but GET.
+  `gop fix-plan` now points its resolve step at `gop pin`.
 - MCP tool `fix_plan` and `gop fix-plan` turn a fix into concrete change
   steps: for `pin_ref`, one step per consuming workflow or nested action with
   file, line and a one-line diff (a placeholder SHA plus a step to resolve it),

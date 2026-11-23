@@ -209,3 +209,21 @@ func TestParseLinkNext(t *testing.T) {
 		t.Error("empty header should have no next")
 	}
 }
+
+func TestClientGetRawAccept(t *testing.T) {
+	var accepts []string
+	c, _ := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		accepts = append(accepts, r.Header.Get("Accept"))
+		fmt.Fprint(w, "0123456789abcdef0123456789abcdef01234567")
+	}, 1)
+	body, err := c.GetRaw(context.Background(), "/repos/acme-actions/deploy/commits/main", "application/vnd.github.sha")
+	if err != nil || string(body) != "0123456789abcdef0123456789abcdef01234567" {
+		t.Fatalf("GetRaw = %q, %v", body, err)
+	}
+	if _, err := c.GetRaw(context.Background(), "/x", ""); err != nil {
+		t.Fatal(err)
+	}
+	if len(accepts) != 2 || accepts[0] != "application/vnd.github.sha" || accepts[1] != "application/vnd.github+json" {
+		t.Errorf("accepts = %v", accepts)
+	}
+}

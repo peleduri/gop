@@ -143,11 +143,14 @@ gop who     --graph graph.json --target <node>
 gop validate --graph graph.json [--format text|json]
 gop diff    OLD.json NEW.json [--format text|json|markdown] [--fail-on confirmed-increase|any-new-path]
 gop fix-plan --graph graph.json --pin <action> | --lower-default-perm <org> [--to read|none] [--format text|markdown|json]
+gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]] [--github-url URL] [--format diff|text|json]
 gop mcp-config --client claude|cursor|vscode --graph graph.json
 gop version
 ```
 
 `gop fix-plan` turns a fix into a checklist: for `--pin action:acme-actions/deploy@main`, every workflow and nested action that uses the ref, sorted by repo and file, with the line and a one-line diff when the graph has line attributes; for `--lower-default-perm org:acme-actions`, the setting with its UI path and REST call, and the repos where members lose push. Markdown output pastes into a ticket. gop never runs the steps or calls write APIs.
+
+`gop pin --action acme-actions/deploy@main` resolves the ref to its commit SHA with one read-only call (`GET /repos/{owner}/{repo}/commits/{ref}`), says whether the ref is a tag or a branch (tags can move too), and prints the replacement `uses:` value. With `--graph`, it also fetches each consuming workflow file (read-only) and prints a unified diff per file that applies with `git apply`; use `--repo acme-app/web` to get one repo's part, then `gop pin ... --repo acme-app/web | git apply` in that checkout. `--offline` skips the file reads and prints the one-line hunks `fix-plan` shows. It warns when the action itself uses mutable refs, since pinning the outer ref does not close those. The token comes from `GITHUB_TOKEN` (or `GH_TOKEN`); gop pin sends only GET requests and writes to stdout only. To keep pins current afterwards, use Dependabot or Renovate.
 
 `gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md).
 

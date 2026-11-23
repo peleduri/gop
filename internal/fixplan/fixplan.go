@@ -185,9 +185,10 @@ func atoi(s string) int {
 
 // PinDiff is the one-line unified diff that pins uses (O/R[/path]@ref) to sha.
 // The lines show the uses: entry without the file's indentation or list marker.
+// gop pin --offline prints the same hunks.
 func PinDiff(file string, line int, uses, sha string) string {
-	base, ref := splitRef(uses)
-	return fmt.Sprintf("--- a/%s\n+++ b/%s\n@@ -%d +%d @@\n-uses: %s\n+uses: %s@%s # %s\n", file, file, line, line, uses, base, sha, ref)
+	value, comment := PinnedUses(uses, sha)
+	return fmt.Sprintf("--- a/%s\n+++ b/%s\n@@ -%d +%d @@\n-uses: %s\n+uses: %s %s\n", file, file, line, line, uses, value, comment)
 }
 
 func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
@@ -264,8 +265,8 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 		Kind:  KindVerify,
 		Repo:  repoOf(base),
 		Owner: strings.SplitN(base, "/", 2)[0],
-		Note: fmt.Sprintf("gop works offline and does not know the commit %s points at: replace %s with the full commit SHA of %s, resolved with `gop pin --action %s` or read from the repository. Use the same SHA in every step.",
-			ref, sha, ref, uses),
+		Note: fmt.Sprintf("fix-plan works offline and does not know the commit %s points at: run `gop pin --action %s --graph graph.json` to resolve it with one read-only API call and print these edits as a git apply diff, or replace %s with the full commit SHA of %s yourself. Use the same SHA in every step.",
+			ref, uses, sha, ref),
 	})
 	if noLine > 0 {
 		p.Caveats = append(p.Caveats, fmt.Sprintf("%d of %d uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff",
@@ -274,16 +275,16 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 	if noLine < len(steps) {
 		p.Caveats = append(p.Caveats, "diffs show the uses: entry without its indentation or list marker; keep those as they are in the file")
 	}
-	if ids, labels := nestedMutable(ix, f.Action); len(ids) > 0 {
+	if ids, labels := NestedMutable(ix, f.Action); len(ids) > 0 {
 		p.Caveats = append(p.Caveats, fmt.Sprintf("pinning %s alone does not close paths through the mutable refs it uses itself: %s. Pin those too (for example gop fix-plan --pin %s)",
 			uses, strings.Join(labels, ", "), ids[0]))
 	}
 }
 
-// nestedMutable lists the mutable action refs reachable from action through
+// NestedMutable lists the mutable action refs reachable from action through
 // USES edges (nested composite actions and reusable workflows), each with its
 // file:line when known: the node IDs and their labels, sorted by ID.
-func nestedMutable(ix *graph.Index, action string) (ids, labels []string) {
+func NestedMutable(ix *graph.Index, action string) (ids, labels []string) {
 	seen := map[string]bool{action: true}
 	queue := []string{action}
 	found := map[string]string{}

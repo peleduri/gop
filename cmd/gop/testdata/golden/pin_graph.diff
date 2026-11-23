@@ -1,0 +1,58 @@
+# action: acme-actions/deploy@main
+# sha: 1111111111111111111111111111111111111111
+# ref kind: branch
+# replace: uses: acme-actions/deploy@main
+# with:    uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+# files (4):
+#   acme-actions/tools .github/workflows/build.yml line 9
+#   acme-app/api .github/workflows/deploy.yml line 10
+#   acme-app/web .github/workflows/ci.yml line 8
+#   acme-app/web .github/workflows/release.yml line 12
+# skipped: acme-legacy/old-site .github/workflows/ci.yml: line not recorded in this graph: edit by hand
+# warning: acme-actions/tools .github/workflows/build.yml is inside acme-actions/tools/.github/workflows/build.yml@main: its callers pick up the pin only when that ref points at the new commit (a SHA or tag pin needs a new pin)
+# warning: the diffs span 3 repos: apply each repo's part in its own checkout, or use --repo
+# warning: pinning acme-actions/deploy@main alone does not close paths through the mutable refs it uses itself: acme-actions/setup@main (acme-actions/deploy@main action.yml:6). Pin those too (for example gop pin --action acme-actions/setup@main)
+# repo: acme-actions/tools (apply in a checkout of acme-actions/tools)
+diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
+--- a/.github/workflows/build.yml
++++ b/.github/workflows/build.yml
+@@ -6,5 +6,5 @@
+     runs-on: ubuntu-latest
+     steps:
+       - run: make
+-      - uses: acme-actions/deploy@main
++      - uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+       - run: make release
+\ No newline at end of file
+# repo: acme-app/api (apply in a checkout of acme-app/api)
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -7,4 +7,4 @@
+     runs-on: ubuntu-latest
+     steps:
+       - run: echo start
+-      - uses: acme-actions/deploy@main
++      - uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+# repo: acme-app/web (apply in a checkout of acme-app/web)
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -5,5 +5,5 @@
+     runs-on: ubuntu-latest
+     steps:
+       - uses: acme-actions/setup@0123456789abcdef0123456789abcdef01234567
+-      - uses: acme-actions/deploy@main
++      - uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+       - run: make test
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -9,6 +9,6 @@
+   release:
+     runs-on: ubuntu-latest
+     steps:
+-      - uses: "acme-actions/deploy@main" # deploy step
++      - uses: "acme-actions/deploy@1111111111111111111111111111111111111111" # main # deploy step
+         with:
+           environment: production
