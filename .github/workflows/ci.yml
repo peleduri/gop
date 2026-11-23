@@ -88,3 +88,23 @@ jobs:
           GOP_DENYLIST: ${{ secrets.GOP_DENYLIST }}
           CI: true
         run: ./scripts/leak-check.sh
+
+  release-snapshot:
+    # Builds every release target with the real goreleaser config, publishes nothing.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          distribution: goreleaser
+          version: v2.20.3
+          args: release --snapshot --clean --skip=sign,sbom,publish
