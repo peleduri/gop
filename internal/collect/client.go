@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -65,6 +66,84 @@ type Client struct {
 	// onlyPrefix, when set, limits the client to request paths under it: the
 	// App JWT client only ever calls /app/*.
 	onlyPrefix string
+	// rate holds the last rate-limit values seen. Copies made by WithToken
+	// and WithTokenSource share it, so RateState reports the latest response
+	// of any of them.
+	rate *rateTracker
+}
+
+// RateState is the last rate-limit budget the client saw. A remaining count
+// of -1 means no response has reported it yet.
+type RateState struct {
+	RESTRemaining    int
+	RESTReset        time.Time
+	GraphQLRemaining int
+	GraphQLReset     time.Time
+}
+
+type rateTracker struct {
+	mu sync.Mutex
+	s  RateState
+}
+
+func newRateTracker() *rateTracker {
+	return &rateTracker{s: RateState{RESTRemaining: -1, GraphQLRemaining: -1}}
+}
+
+// RateState returns the last rate-limit values seen in response headers
+// (X-RateLimit-Remaining and X-RateLimit-Reset) and GraphQL rateLimit fields.
+func (c *Client) RateState() RateState {
+	if c.rate == nil {
+		return RateState{RESTRemaining: -1, GraphQLRemaining: -1}
+	}
+	c.rate.mu.Lock()
+	defer c.rate.mu.Unlock()
+	return c.rate.s
+}
+
+// noteRateHeaders records the rate-limit headers of one response. graphql
+// marks a response of the GraphQL endpoint, whose budget is separate.
+func (c *Client) noteRateHeaders(h http.Header, graphql bool) {
+	if c.rate == nil {
+		return
+	}
+	rem, err := strconv.Atoi(strings.TrimSpace(h.Get("X-RateLimit-Remaining")))
+	if err != nil {
+		return
+	}
+	var reset time.Time
+	if secs, err := strconv.ParseInt(strings.TrimSpace(h.Get("X-RateLimit-Reset")), 10, 64); err == nil {
+		reset = time.Unix(secs, 0).UTC()
+	}
+	switch h.Get("X-RateLimit-Resource") {
+	case "":
+	case "graphql":
+		graphql = true
+	case "core":
+		graphql = false
+	default:
+		return // search and other separate budgets
+	}
+	c.rate.mu.Lock()
+	defer c.rate.mu.Unlock()
+	if graphql {
+		c.rate.s.GraphQLRemaining, c.rate.s.GraphQLReset = rem, reset
+	} else {
+		c.rate.s.RESTRemaining, c.rate.s.RESTReset = rem, reset
+	}
+}
+
+// noteGraphQLRate records a GraphQL rateLimit { remaining resetAt } result.
+func (c *Client) noteGraphQLRate(remaining int, resetAt time.Time) {
+	if c.rate == nil {
+		return
+	}
+	c.rate.mu.Lock()
+	defer c.rate.mu.Unlock()
+	c.rate.s.GraphQLRemaining = remaining
+	if !resetAt.IsZero() {
+		c.rate.s.GraphQLReset = resetAt.UTC()
+	}
 }
 
 // TokenSource supplies the bearer token for a request. Token is called before
@@ -175,6 +254,7 @@ func newClient(o ClientOptions, requireToken bool) (*Client, error) {
 		logf:        logf,
 		sleep:       sleepCtx,
 		now:         time.Now,
+		rate:        newRateTracker(),
 	}, nil
 }
 
@@ -310,6 +390,7 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 			continue
 		}
 		r := &response{status: resp.StatusCode, header: resp.Header, body: data}
+		c.noteRateHeaders(resp.Header, method == http.MethodPost && strings.HasSuffix(u.Path, "/graphql"))
 		if r.status >= 200 && r.status < 300 {
 			return r, nil
 		}

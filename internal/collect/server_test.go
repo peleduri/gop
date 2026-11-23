@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -107,6 +108,18 @@ type fakeGitHub struct {
 	releases       map[string]bool            // "o/r@tag" -> immutable
 	forbidRulesets map[string]bool            // "o/r" -> the rulesets list returns 403
 	forbidReleases map[string]bool            // "o/r" -> releases/tags/{tag} returns 403
+
+	// Batched repository { object(expression:) } queries (batch.go).
+	// objectErrors answers the alias of "owner/repo" with null and an error
+	// of that type; truncated marks "owner/repo/path" blobs as truncated;
+	// limitAbove != 0 refuses queries with more aliases than that (-1: all) with
+	// RESOURCE_LIMITS_EXCEEDED. batchSizes and gqlBodies record each
+	// object query's alias count and raw request body.
+	objectErrors map[string]string
+	truncated    map[string]bool
+	limitAbove   int
+	batchSizes   []int
+	gqlBodies    []string
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -116,7 +129,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		t.Fatal(err)
 	}
 	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{},
-		extraWorkflows: map[string]string{}}
+		extraWorkflows: map[string]string{}, objectErrors: map[string]string{}, truncated: map[string]bool{}}
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
 		t.Fatal(err)
 	}
@@ -511,54 +524,191 @@ func (f *fakeGitHub) contents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	owner, repo, path := parts[0], parts[1], parts[3]
-	wfDir := filepath.Join("testdata", "workflows", owner, repo)
+	if flags, _ := f.fixtureRepo(owner, repo); path == ".github/workflows" && flags.WorkflowsDirObject {
+		writeJSON(w, 200, map[string]any{"type": "submodule", "name": "workflows", "path": path,
+			"submodule_git_url": "https://example.invalid/acme/workflows.git"})
+		return
+	}
+	if path == ".github/workflows" {
+		names, ok := f.workflowNames(owner, repo)
+		if !ok {
+			notFound()
+			return
+		}
+		var out []map[string]any
+		for _, name := range names {
+			out = append(out, map[string]any{"type": "file", "name": name, "path": ".github/workflows/" + name})
+		}
+		writeJSON(w, 200, out)
+		return
+	}
+	data, ok := f.file(owner, repo, path)
+	if !ok {
+		notFound()
+		return
+	}
+	writeJSON(w, 200, fileEntry(path, data))
+}
+
+// extraFor returns the extraWorkflows planted in owner/repo.
+func (f *fakeGitHub) extraFor(owner, repo string) map[string]string {
 	f.mu.Lock()
+	defer f.mu.Unlock()
 	extra := map[string]string{}
 	for k, v := range f.extraWorkflows {
 		if name, ok := strings.CutPrefix(k, owner+"/"+repo+"/"); ok {
 			extra[name] = v
 		}
 	}
-	f.mu.Unlock()
-	flags, _ := f.fixtureRepo(owner, repo)
-	switch {
-	case path == ".github/workflows" && flags.WorkflowsDirObject:
-		writeJSON(w, 200, map[string]any{"type": "submodule", "name": "workflows", "path": path,
-			"submodule_git_url": "https://example.invalid/acme/workflows.git"})
-	case path == ".github/workflows":
-		ents, err := os.ReadDir(wfDir)
-		if err != nil && len(extra) == 0 {
-			notFound()
-			return
-		}
-		var out []map[string]any
-		for _, e := range ents {
-			out = append(out, map[string]any{"type": "file", "name": e.Name(), "path": ".github/workflows/" + e.Name()})
-		}
-		for name := range extra {
-			out = append(out, map[string]any{"type": "file", "name": name, "path": ".github/workflows/" + name})
-		}
-		writeJSON(w, 200, out)
-	case strings.HasPrefix(path, ".github/workflows/"):
-		name := strings.TrimPrefix(path, ".github/workflows/")
-		if body, ok := extra[name]; ok {
-			writeJSON(w, 200, fileEntry(path, []byte(body)))
-			return
-		}
-		data, err := os.ReadFile(filepath.Join(wfDir, name))
-		if err != nil {
-			notFound()
-			return
-		}
-		writeJSON(w, 200, fileEntry(path, data))
-	default:
-		data, err := os.ReadFile(filepath.Join("testdata", "actions", owner, repo, filepath.FromSlash(path)))
-		if err != nil {
-			notFound()
-			return
-		}
-		writeJSON(w, 200, fileEntry(path, data))
+	return extra
+}
+
+// workflowNames lists the default branch's .github/workflows directory:
+// fixture files in name order, then planted extras in name order.
+func (f *fakeGitHub) workflowNames(owner, repo string) ([]string, bool) {
+	ents, err := os.ReadDir(filepath.Join("testdata", "workflows", owner, repo))
+	extra := f.extraFor(owner, repo)
+	if err != nil && len(extra) == 0 {
+		return nil, false
 	}
+	var names []string
+	for _, e := range ents {
+		names = append(names, e.Name())
+	}
+	var more []string
+	for name := range extra {
+		more = append(more, name)
+	}
+	sort.Strings(more)
+	return append(names, more...), true
+}
+
+// file returns one file of owner/repo (any ref): workflow files from
+// testdata/workflows, everything else from testdata/actions.
+func (f *fakeGitHub) file(owner, repo, path string) ([]byte, bool) {
+	if name, ok := strings.CutPrefix(path, ".github/workflows/"); ok {
+		if body, ok := f.extraFor(owner, repo)[name]; ok {
+			return []byte(body), true
+		}
+		data, err := os.ReadFile(filepath.Join("testdata", "workflows", owner, repo, name))
+		return data, err == nil
+	}
+	data, err := os.ReadFile(filepath.Join("testdata", "actions", owner, repo, filepath.FromSlash(path)))
+	return data, err == nil
+}
+
+var (
+	repoAliasRe   = regexp.MustCompile(`^\s*(r\d+): repository\(owner: \$(o\d+), name: \$(n\d+)\) \{$`)
+	objectAliasRe = regexp.MustCompile(`^\s*(f\d+): object\(expression: \$(e\d+_\d+)\) \{ \.\.\.gop(?:Object|Entries) \}$`)
+)
+
+// objects answers a batched repository { object(expression:) } query from
+// testdata/workflows and testdata/actions, with error, truncation and
+// resource-limit injection.
+func (f *fakeGitHub) objects(w http.ResponseWriter, body, q string, vars map[string]any) {
+	type alias struct {
+		name, owner, repo string
+		objs              [][2]string // field alias, expression
+	}
+	var aliases []*alias
+	for _, line := range strings.Split(q, "\n") {
+		if m := repoAliasRe.FindStringSubmatch(line); m != nil {
+			o, _ := vars[m[2]].(string)
+			n, _ := vars[m[3]].(string)
+			aliases = append(aliases, &alias{name: m[1], owner: o, repo: n})
+		} else if m := objectAliasRe.FindStringSubmatch(line); m != nil && len(aliases) > 0 {
+			e, _ := vars[m[2]].(string)
+			a := aliases[len(aliases)-1]
+			a.objs = append(a.objs, [2]string{m[1], e})
+		}
+	}
+	f.mu.Lock()
+	f.batchSizes = append(f.batchSizes, len(aliases))
+	f.gqlBodies = append(f.gqlBodies, body)
+	limit := f.limitAbove
+	for _, a := range aliases {
+		for _, o := range a.objs {
+			if ref, _, _ := strings.Cut(o[1], ":"); ref != "HEAD" {
+				f.refs = append(f.refs, ref)
+			}
+		}
+	}
+	f.mu.Unlock()
+	if limit != 0 && len(aliases) > limit {
+		writeJSON(w, 200, map[string]any{"errors": []map[string]any{{"type": "RESOURCE_LIMITS_EXCEEDED", "message": "query too expensive"}}})
+		return
+	}
+	data := map[string]any{"rateLimit": map[string]any{"cost": 1, "remaining": 4900, "resetAt": "2030-01-01T14:05:00Z"}}
+	var errs []map[string]any
+	for _, a := range aliases {
+		f.mu.Lock()
+		typ := f.objectErrors[a.owner+"/"+a.repo]
+		f.mu.Unlock()
+		if typ == "" && !f.knownRepo(a.owner, a.repo) {
+			typ = "NOT_FOUND"
+		}
+		if typ != "" {
+			data[a.name] = nil
+			errs = append(errs, map[string]any{"type": typ, "path": []string{a.name}, "message": "refused"})
+			continue
+		}
+		fields := map[string]any{}
+		for _, o := range a.objs {
+			fields[o[0]] = f.object(a.owner, a.repo, o[1])
+		}
+		data[a.name] = fields
+	}
+	resp := map[string]any{"data": data}
+	if errs != nil {
+		resp["errors"] = errs
+	}
+	writeJSON(w, 200, resp)
+}
+
+// object resolves one "rev:path" expression to a GraphQL Tree, Blob or nil.
+func (f *fakeGitHub) object(owner, repo, expr string) any {
+	_, path, ok := strings.Cut(expr, ":")
+	if !ok {
+		return nil
+	}
+	flags, _ := f.fixtureRepo(owner, repo)
+	if path == ".github" {
+		// Only what the shallow listing needs: is there a workflows entry, and what.
+		entries := []any{}
+		if flags.WorkflowsDirObject {
+			entries = append(entries, map[string]any{"name": "workflows", "type": "commit", "mode": 0o160000})
+		} else if _, ok := f.workflowNames(owner, repo); ok {
+			entries = append(entries, map[string]any{"name": "workflows", "type": "tree", "mode": 0o040000})
+		}
+		return map[string]any{"__typename": "Tree", "entries": entries}
+	}
+	if path == ".github/workflows" {
+		if flags.WorkflowsDirObject {
+			return nil // GitHub resolves a submodule path to null
+		}
+		names, ok := f.workflowNames(owner, repo)
+		if !ok {
+			return nil
+		}
+		entries := []any{}
+		for _, name := range names {
+			entries = append(entries, map[string]any{"name": name, "type": "blob", "mode": 0o100644,
+				"object": f.object(owner, repo, "HEAD:.github/workflows/"+name)})
+		}
+		return map[string]any{"__typename": "Tree", "entries": entries}
+	}
+	data, ok := f.file(owner, repo, path)
+	if !ok {
+		return nil
+	}
+	f.mu.Lock()
+	trunc := f.truncated[owner+"/"+repo+"/"+path]
+	f.mu.Unlock()
+	text := string(data)
+	if trunc {
+		text = text[:len(text)/2]
+	}
+	return map[string]any{"__typename": "Blob", "text": text, "byteSize": len(data), "isBinary": false, "isTruncated": trunc}
 }
 
 var settingFieldRe = regexp.MustCompile(`(\w+SettingOrganizations)\(value: (\w+)`)
@@ -594,11 +744,19 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 		Query     string         `json:"query"`
 		Variables map[string]any `json:"variables"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err == nil {
+		err = json.Unmarshal(body, &req)
+	}
+	if err != nil {
 		writeJSON(w, 400, map[string]string{"message": "bad json"})
 		return
 	}
 	q := req.Query
+	if strings.Contains(q, "object(expression:") {
+		f.objects(w, string(body), q, req.Variables)
+		return
+	}
 	if f.enterpriseForbidden && strings.Contains(q, "enterprise(slug") {
 		writeJSON(w, 200, map[string]any{"data": map[string]any{"enterprise": nil},
 			"errors": []map[string]any{{"type": "FORBIDDEN", "path": []string{"enterprise"}, "message": "must be an enterprise owner"}}})

@@ -233,3 +233,48 @@ func TestClientGetRawAccept(t *testing.T) {
 		t.Errorf("accepts = %v", accepts)
 	}
 }
+
+func TestClientRateState(t *testing.T) {
+	c, _ := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/graphql" {
+			w.Header().Set("X-RateLimit-Resource", "graphql")
+			w.Header().Set("X-RateLimit-Remaining", "4100")
+			w.Header().Set("X-RateLimit-Reset", "1893506400")
+			fmt.Fprint(w, `{"data":{}}`)
+			return
+		}
+		if r.URL.Path == "/search" {
+			w.Header().Set("X-RateLimit-Resource", "search")
+			w.Header().Set("X-RateLimit-Remaining", "9")
+			fmt.Fprint(w, `{}`)
+			return
+		}
+		w.Header().Set("X-RateLimit-Remaining", "4870")
+		w.Header().Set("X-RateLimit-Reset", "1893506700")
+		w.WriteHeader(404)
+	}, 1)
+	if rs := c.RateState(); rs.RESTRemaining != -1 || rs.GraphQLRemaining != -1 {
+		t.Errorf("initial state = %+v, want -1 remaining", rs)
+	}
+	if err := c.GetJSON(context.Background(), "/x", nil); !IsNotFound(err) {
+		t.Fatalf("GetJSON = %v", err)
+	}
+	if _, err := c.GraphQL(context.Background(), "query { viewer { login } }", nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.GetJSON(context.Background(), "/search", nil); err != nil {
+		t.Fatal(err)
+	}
+	// Copies share the state.
+	rs := c.WithToken("other-synthetic").RateState()
+	if rs.RESTRemaining != 4870 || !rs.RESTReset.Equal(time.Unix(1893506700, 0)) {
+		t.Errorf("REST = %d %s, want 4870 (error responses count too)", rs.RESTRemaining, rs.RESTReset)
+	}
+	if rs.GraphQLRemaining != 4100 || !rs.GraphQLReset.Equal(time.Unix(1893506400, 0)) {
+		t.Errorf("GraphQL = %d %s", rs.GraphQLRemaining, rs.GraphQLReset)
+	}
+	c.noteGraphQLRate(4000, time.Time{})
+	if rs := c.RateState(); rs.GraphQLRemaining != 4000 || !rs.GraphQLReset.Equal(time.Unix(1893506400, 0)) {
+		t.Errorf("after rateLimit field: %+v", rs)
+	}
+}

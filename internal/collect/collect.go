@@ -50,6 +50,18 @@ type Config struct {
 
 	// Client overrides the options above when set.
 	Client *Client
+
+	// BatchSize is how many repositories (or nested references) one batched
+	// GraphQL query reads (default DefaultBatchSize). It halves on its own
+	// when GitHub reports a query too expensive.
+	BatchSize int
+	// DisableGraphQLBatch reads every workflow and action file over REST,
+	// one request per file (for GHES versions that lack the GraphQL fields,
+	// and for debugging).
+	DisableGraphQLBatch bool
+	// Progress, when set, receives progress updates. When nil and Logf is
+	// set, a line is logged at most every 5 seconds.
+	Progress func(Progress)
 }
 
 // Source API labels recorded on edges and used in coverage.
@@ -136,6 +148,10 @@ type collector struct {
 	unknownOwners map[string]string      // lower login -> login of action owners with in_enterprise=unknown
 	oidcEdges     []*oidcEdge            // OIDC edges that call reusable workflows (oidcclaims.go)
 	calledOIDC    map[string]*calledOIDC // action id -> reusable workflow that mints a token
+	// batch is the batched GraphQL file reader state (batch.go).
+	batch batchState
+	// progressFn receives progress updates (progress.go); nil means none.
+	progressFn func(Progress)
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -172,6 +188,7 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		covSeen: map[string]bool{}, byLower: map[string]*orgState{},
 		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
 		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs, app: app,
+		batch: newBatchState(cfg), progressFn: progressFunc(cfg),
 	}
 	if err := k.run(ctx); err != nil {
 		return nil, err
@@ -203,6 +220,7 @@ func (k *collector) run(ctx context.Context) error {
 	if err := collectOrgs(ctx); err != nil {
 		return err
 	}
+	k.progress(PhaseOrgs, len(k.orgs), len(k.orgs))
 	if k.entHidden {
 		setAttr(ent, "orgs", "unknown", graph.NotVisible)
 	} else {
@@ -211,13 +229,16 @@ func (k *collector) run(ctx context.Context) error {
 	if err := k.collectSettings(ctx); err != nil {
 		return err
 	}
+	k.progress(PhaseSettings, 1, 1)
 	if err := k.collectMembers(ctx); err != nil {
 		return err
 	}
-	for _, o := range k.orgs {
+	k.progress(PhaseMembers, 1, 1)
+	for i, o := range k.orgs {
 		if o.archived {
 			k.cover(o.node.ID, attrRepositories, "organization is archived; not collected",
 				"none: archived organizations cannot run workflows")
+			k.progress(PhaseRepos, i+1, len(k.orgs))
 			continue
 		}
 		if err := k.collectOwnerView(ctx, o); err != nil {
@@ -236,16 +257,10 @@ func (k *collector) run(ctx context.Context) error {
 		// Owner edges come after collaborator edges: k.edge keeps the first edge
 		// per (from, kind, to), so a direct grant to an owner keeps via=direct.
 		k.ownerPush(o)
+		k.progress(PhaseRepos, i+1, len(k.orgs))
 	}
-	for _, o := range k.orgs {
-		for _, r := range o.repos {
-			if r.Attrs[graph.AttrArchived] == "true" {
-				continue // archived repositories cannot run workflows
-			}
-			if err := k.collectWorkflows(ctx, o, r); err != nil {
-				return err
-			}
-		}
+	if err := k.collectAllWorkflows(ctx); err != nil {
+		return err
 	}
 	if err := k.expandNested(ctx); err != nil {
 		return err
@@ -1099,24 +1114,33 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 			continue
 		}
 		count++
-		wid := "workflow:" + full + "/" + e.Path
-		wn := k.node(wid, graph.KindWorkflow, full+"/"+e.Path)
-		setAttr(wn, "repo", full, graph.Live)
-		setAttr(wn, "path", e.Path, graph.Live)
-		k.edge(wid, repo.ID, graph.DefinedIn, graph.Live, srcWorkflowDir, nil)
-		facts, err := ParseWorkflow(data)
-		if err != nil {
-			setAttr(wn, "parse_error", truncate(err.Error(), 200), graph.Live)
-			k.cover(wid, "workflow_parse", err.Error(), "fix the workflow YAML in "+full)
-			continue
-		}
-		facts.SetFile(e.Path, repo.Attrs["default_branch"])
-		k.addWorkflowFacts(wid, full, facts)
-		pending = k.addTokenFacts(wid, wn, repo, facts, pending)
-		k.addTriggerFacts(o, repo, wid, wn, facts)
+		pending = k.processWorkflowFile(o, repo, e.Path, data, pending)
 	}
 	setAttr(repo, "workflows", strconv.Itoa(count), graph.Live)
 	return k.resolveTokenDefaults(ctx, o, repo, pending)
+}
+
+// processWorkflowFile adds the facts of one default-branch workflow file of
+// repo. The REST and the batched GraphQL path share it, so both build the
+// same graph from the same bytes.
+func (k *collector) processWorkflowFile(o *orgState, repo *graph.Node, path string, data []byte, pending []tokenDefault) []tokenDefault {
+	full := strings.TrimPrefix(repo.ID, "repo:")
+	wid := "workflow:" + full + "/" + path
+	wn := k.node(wid, graph.KindWorkflow, full+"/"+path)
+	setAttr(wn, "repo", full, graph.Live)
+	setAttr(wn, "path", path, graph.Live)
+	k.edge(wid, repo.ID, graph.DefinedIn, graph.Live, srcWorkflowDir, nil)
+	facts, err := ParseWorkflow(data)
+	if err != nil {
+		setAttr(wn, "parse_error", truncate(err.Error(), 200), graph.Live)
+		k.cover(wid, "workflow_parse", err.Error(), "fix the workflow YAML in "+full)
+		return pending
+	}
+	facts.SetFile(path, repo.Attrs["default_branch"])
+	k.addWorkflowFacts(wid, full, facts)
+	pending = k.addTokenFacts(wid, wn, repo, facts, pending)
+	k.addTriggerFacts(o, repo, wid, wn, facts)
+	return pending
 }
 
 func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {
@@ -1275,75 +1299,107 @@ func (k *collector) pushToStubs() {
 }
 
 // expandNested follows composite actions and reusable workflows inside the
-// enterprise, up to MaxNestedDepth, never visiting a node twice.
+// enterprise, up to MaxNestedDepth, never visiting a node twice. The queue is
+// processed in waves by depth (it is breadth first, so a wave is the queue as
+// it stands); each wave's files are prefetched in batched GraphQL queries,
+// then every entry is processed in queue order, exactly as the REST path.
 func (k *collector) expandNested(ctx context.Context) error {
+	done := 0
 	for len(k.queue) > 0 {
-		q := k.queue[0]
-		k.queue = k.queue[1:]
-		an := k.nodes[q.id]
-		if q.depth > MaxNestedDepth {
-			setAttr(an, attrNested, "unknown", graph.NotVisible)
-			setAttr(an, "nested_reason", fmt.Sprintf("depth limit %d reached", MaxNestedDepth), graph.Live)
-			k.cover(q.id, "nested_uses", fmt.Sprintf("nested references deeper than %d levels are not followed", MaxNestedDepth),
-				"none: pin the action to a commit SHA, or review its nested references by hand")
-			continue
-		}
-		u := q.use
-		var data []byte
-		var err error
-		var path string
-		if u.IsReusableWorkflow() {
-			path = u.Path
-			data, err = k.getFile(ctx, u.Owner, u.Repo, path, u.Ref)
-		} else {
-			for _, fname := range []string{"action.yml", "action.yaml"} {
-				path = strings.Trim(u.Path+"/"+fname, "/")
-				data, err = k.getFile(ctx, u.Owner, u.Repo, path, u.Ref)
-				if !IsNotFound(err) {
-					break
-				}
-			}
-		}
+		wave := k.queue
+		k.queue = nil
+		pre, err := k.prefetchNested(ctx, wave)
 		if err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
+			return err
+		}
+		for i, q := range wave {
+			if err := k.expandOne(ctx, q, pre[i]); err != nil {
+				return err
 			}
+			done++
+			k.progress(PhaseNested, done, done+len(wave)-i-1+len(k.queue))
+		}
+	}
+	return nil
+}
+
+// nestedFile is one prefetched nested file: data read from path, or err
+// (a synthesized 404 when the file is missing).
+type nestedFile struct {
+	path string
+	data []byte
+	err  error
+}
+
+// expandOne expands one queued reference. pre, when set, is the file the
+// batched GraphQL path already read; otherwise it is read over REST.
+func (k *collector) expandOne(ctx context.Context, q queued, pre *nestedFile) error {
+	an := k.nodes[q.id]
+	if q.depth > MaxNestedDepth {
+		setAttr(an, attrNested, "unknown", graph.NotVisible)
+		setAttr(an, "nested_reason", fmt.Sprintf("depth limit %d reached", MaxNestedDepth), graph.Live)
+		k.cover(q.id, "nested_uses", fmt.Sprintf("nested references deeper than %d levels are not followed", MaxNestedDepth),
+			"none: pin the action to a commit SHA, or review its nested references by hand")
+		return nil
+	}
+	u := q.use
+	var data []byte
+	var err error
+	var path string
+	switch {
+	case pre != nil:
+		path, data, err = pre.path, pre.data, pre.err
+	case u.IsReusableWorkflow():
+		path = u.Path
+		data, err = k.getFile(ctx, u.Owner, u.Repo, path, u.Ref)
+	default:
+		for _, fname := range []string{"action.yml", "action.yaml"} {
+			path = strings.Trim(u.Path+"/"+fname, "/")
+			data, err = k.getFile(ctx, u.Owner, u.Repo, path, u.Ref)
+			if !IsNotFound(err) {
+				break
+			}
+		}
+	}
+	if err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		setAttr(an, attrNested, "unknown", graph.NotVisible)
+		reason := "could not read " + path + " at " + u.Ref + ": " + err.Error()
+		if IsNotFound(err) {
+			reason = path + " not found at " + u.Ref + " (missing, or repository not visible to the token)"
+		}
+		k.cover(q.id, "nested_uses", reason, k.fixFor(err, "read access to contents on "+u.Owner+"/"+u.Repo))
+		return nil
+	}
+	var nested []ActionUse
+	if u.IsReusableWorkflow() {
+		facts, perr := ParseWorkflow(data)
+		if perr != nil {
 			setAttr(an, attrNested, "unknown", graph.NotVisible)
-			reason := "could not read " + path + " at " + u.Ref + ": " + err.Error()
-			if IsNotFound(err) {
-				reason = path + " not found at " + u.Ref + " (missing, or repository not visible to the token)"
-			}
-			k.cover(q.id, "nested_uses", reason, k.fixFor(err, "read access to contents on "+u.Owner+"/"+u.Repo))
-			continue
+			k.cover(q.id, "nested_uses", perr.Error(), "fix "+path+" in "+u.Owner+"/"+u.Repo)
+			return nil
 		}
-		var nested []ActionUse
-		if u.IsReusableWorkflow() {
-			facts, perr := ParseWorkflow(data)
-			if perr != nil {
-				setAttr(an, attrNested, "unknown", graph.NotVisible)
-				k.cover(q.id, "nested_uses", perr.Error(), "fix "+path+" in "+u.Owner+"/"+u.Repo)
-				continue
-			}
-			facts.SetFile(path, u.Ref)
-			k.noteCalledOIDC(q.id, u, facts)
-			nested = facts.Uses
-		} else {
-			uses, using, perr := ParseCompositeAction(data)
-			if perr != nil {
-				setAttr(an, attrNested, "unknown", graph.NotVisible)
-				k.cover(q.id, "nested_uses", perr.Error(), "fix "+path+" in "+u.Owner+"/"+u.Repo)
-				continue
-			}
-			if using != "" {
-				setAttr(an, "runs_using", using, graph.Live)
-			}
-			setFile(uses, path, u.Ref)
-			nested = uses
+		facts.SetFile(path, u.Ref)
+		k.noteCalledOIDC(q.id, u, facts)
+		nested = facts.Uses
+	} else {
+		uses, using, perr := ParseCompositeAction(data)
+		if perr != nil {
+			setAttr(an, attrNested, "unknown", graph.NotVisible)
+			k.cover(q.id, "nested_uses", perr.Error(), "fix "+path+" in "+u.Owner+"/"+u.Repo)
+			return nil
 		}
-		setAttr(an, attrNested, strconv.Itoa(len(nested)), graph.Live)
-		for _, nu := range nested {
-			k.addUse(q.id, nu, srcNested, q.depth+1)
+		if using != "" {
+			setAttr(an, "runs_using", using, graph.Live)
 		}
+		setFile(uses, path, u.Ref)
+		nested = uses
+	}
+	setAttr(an, attrNested, strconv.Itoa(len(nested)), graph.Live)
+	for _, nu := range nested {
+		k.addUse(q.id, nu, srcNested, q.depth+1)
 	}
 	return nil
 }

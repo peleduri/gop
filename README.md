@@ -267,7 +267,7 @@ Before a long first collection, run `GITHUB_TOKEN=... gop doctor --enterprise ac
 
 ### Rate limits
 
-A token gets 5,000 REST requests per hour (GitHub Apps scale with installation size). Large enterprises take a while to collect. Collection is sequential today; it retries transient errors and waits out rate limits. Resuming an interrupted collection is planned.
+A token gets 5,000 REST requests per hour (GitHub Apps scale with installation size). Large enterprises take a while to collect. Collection is sequential today; it retries transient errors and waits out rate limits. Workflow and action files are read in batched GraphQL queries (25 repositories per query by default, halved automatically when GitHub reports a query too expensive), so they do not cost one REST request per file; a repository the batch cannot read falls back to REST. While it runs, `gop collect` prints a progress line to stderr at most every 5 seconds with the phase, the count done and the remaining REST and GraphQL budget. Resuming an interrupted collection is planned.
 
 ## Running in GitHub Actions: token risk
 
