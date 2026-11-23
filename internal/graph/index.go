@@ -138,8 +138,8 @@ func KindFromID(id string) NodeKind {
 	return ""
 }
 
-// OrgOf returns "org:O" for "repo:O/R", "workflow:O/R/...", "secret:O/R" style IDs and
-// "members:O"/"org:O"; "" when the ID carries no org.
+// OrgOf returns "org:O" for "repo:O/R", "workflow:O/R/...", "secret:O/R", "team:O/slug"
+// style IDs and "members:O"/"org:O"; "" when the ID carries no org.
 func OrgOf(id string) string {
 	prefix, rest, ok := strings.Cut(id, ":")
 	if !ok || rest == "" {
@@ -148,7 +148,7 @@ func OrgOf(id string) string {
 	switch prefix {
 	case "org", "members":
 		return "org:" + rest
-	case "repo", "workflow", "secret", "oidc", "runner", "action":
+	case "repo", "workflow", "secret", "oidc", "runner", "action", "team":
 		o, _, _ := strings.Cut(rest, "/")
 		return "org:" + o
 	}
@@ -177,7 +177,9 @@ func (ix *Index) Principals() []string {
 // ScoringPrincipals is the subset of Principals that TopPaths, WhatIf and
 // SuggestFixes score and sum into (principal, repo) pair totals: every org_members
 // principal, plus each identity with at least one CAN_PUSH edge or a MEMBER_OF edge
-// to something other than an org (a team). An identity whose only edges are org
+// to something other than an org (a team). Team principals ("team:O/slug") qualify
+// through their CAN_PUSH grants or their MEMBER_OF edge to a parent team; a team
+// with neither reaches nothing. An identity whose only edges are org
 // MEMBER_OF reaches exactly what members:X reaches, so counting it again would
 // multiply the totals by the number of licensed users without adding reach. Sorted.
 func (ix *Index) ScoringPrincipals() []string {

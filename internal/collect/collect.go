@@ -49,6 +49,9 @@ const (
 	srcLicenses    = "rest:GET /enterprises/{enterprise}/consumed-licenses"
 	srcCollabs     = "rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct"
 	srcOutside     = "rest:GET /orgs/{org}/outside_collaborators"
+	srcTeams       = "rest:GET /orgs/{org}/teams"
+	srcTeamMembers = "rest:GET /orgs/{org}/teams/{team_slug}/members?role=all"
+	srcTeamRepos   = "rest:GET /orgs/{org}/teams/{team_slug}/repos"
 )
 
 // Attribute keys this package adds beyond the graph contract.
@@ -159,6 +162,9 @@ func (k *collector) run(ctx context.Context) error {
 		}
 		k.canPush(o)
 		if err := k.collectPushGrants(ctx, o); err != nil {
+			return err
+		}
+		if err := k.collectTeams(ctx, o); err != nil {
 			return err
 		}
 		// Owner edges come after collaborator edges: k.edge keeps the first edge
@@ -780,14 +786,34 @@ func (k *collector) collectOutside(ctx context.Context, o *orgState) error {
 	return nil
 }
 
+type apiPermissions struct {
+	Push     bool `json:"push"`
+	Maintain bool `json:"maintain"`
+	Admin    bool `json:"admin"`
+}
+
+// canPush reports whether repository permissions include push.
+func (p apiPermissions) canPush() bool { return p.Push || p.Maintain || p.Admin }
+
+// pushRole is the role recorded on a CAN_PUSH edge: the API's role_name (which
+// names custom repository roles), or the highest built-in role the permissions imply.
+func pushRole(roleName string, p apiPermissions) string {
+	if roleName != "" {
+		return roleName
+	}
+	switch {
+	case p.Admin:
+		return "admin"
+	case p.Maintain:
+		return "maintain"
+	}
+	return "write"
+}
+
 type apiCollaborator struct {
-	Login       string `json:"login"`
-	RoleName    string `json:"role_name"`
-	Permissions struct {
-		Push     bool `json:"push"`
-		Maintain bool `json:"maintain"`
-		Admin    bool `json:"admin"`
-	} `json:"permissions"`
+	Login       string         `json:"login"`
+	RoleName    string         `json:"role_name"`
+	Permissions apiPermissions `json:"permissions"`
 }
 
 // builtinRoles are the repository roles GitHub defines; any other role_name is
@@ -818,20 +844,10 @@ func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo 
 	}
 	for _, c := range collabs {
 		p := c.Permissions
-		if c.Login == "" || (!p.Push && !p.Maintain && !p.Admin) {
+		if c.Login == "" || !p.canPush() {
 			continue
 		}
-		role := c.RoleName
-		if role == "" {
-			switch {
-			case p.Admin:
-				role = "admin"
-			case p.Maintain:
-				role = "maintain"
-			default:
-				role = "write"
-			}
-		}
+		role := pushRole(c.RoleName, p)
 		attrs := map[string]string{graph.AttrVia: k.via(o, c.Login), attrPermission: role}
 		if !builtinRoles[strings.ToLower(role)] {
 			if base := k.baseRole(ctx, o, role); base != "" {

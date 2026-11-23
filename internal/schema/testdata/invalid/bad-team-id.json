@@ -1,0 +1,3 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "team:platform", "kind": "identity", "name": "platform", "evidence": "live"}],
+ "edges": [], "coverage": []}

@@ -95,6 +95,7 @@ func TestInvalidFixtures(t *testing.T) {
 		"bad-line.json":                {"/edges/0/attrs/line", `"L7" does not match`},
 		"bad-observed-at.json":         {"/edges/0/observed_at", "RFC 3339"},
 		"bad-repo-id.json":             {"/nodes/0/id", `does not match ^repo:[^/]+/[^/]+$`},
+		"bad-team-id.json":             {"/nodes/0/id", `does not match ^(identity:.+|team:[^/]+/[^/]+)$`},
 		"coverage-missing-fields.json": {"/coverage/0", `missing required field "needs_fix"`},
 		"missing-coverage.json":        {"", `missing required field "coverage"`},
 		"missing-node.json":            {"/edges/0/to", `"repo:acme-app/missing" is not a declared node`},

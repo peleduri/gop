@@ -27,7 +27,7 @@ const (
 	KindEnterprise  NodeKind = "enterprise"
 	KindOrg         NodeKind = "org"
 	KindOrgMembers  NodeKind = "org_members" // the set of members of one org, as a single principal
-	KindIdentity    NodeKind = "identity"    // a user, team or app; ID "identity:<login>"
+	KindIdentity    NodeKind = "identity"    // a user, team or app; ID "identity:<login>" or "team:<org>/<slug>"
 	KindRepo        NodeKind = "repo"
 	KindWorkflow    NodeKind = "workflow"
 	KindActionRef   NodeKind = "action_ref" // owner/repo[/path]@ref as consumed by workflows
@@ -52,7 +52,7 @@ const (
 	DefinedIn EdgeKind = "DEFINED_IN"
 	// ExecutesWith: workflow -> secret | oidc | runner. Terminal impact.
 	ExecutesWith EdgeKind = "EXECUTES_WITH"
-	// MemberOf: identity -> org.
+	// MemberOf: identity -> org, identity -> team, or child team -> parent team.
 	MemberOf EdgeKind = "MEMBER_OF"
 )
 
@@ -131,4 +131,5 @@ const (
 	ViaOrgOwner            = "org_owner"            // the identity is an owner of the repo's org (admin on every repo)
 	ViaDirect              = "direct"               // a direct collaborator grant on the repo
 	ViaOutsideCollaborator = "outside_collaborator" // a direct grant to a user who is not an org member
+	ViaTeam                = "team"                 // a team repository grant; members and child teams reach it through MEMBER_OF
 )

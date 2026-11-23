@@ -33,8 +33,23 @@ type fixture struct {
 		// Outside collaborators (logins) and custom repository roles of the org.
 		OutsideCollaborators []string          `json:"outside_collaborators"`
 		CustomRoles          []json.RawMessage `json:"custom_roles"`
+		Teams                []fixtureTeam     `json:"teams"`
 	} `json:"orgs"`
 	Users []json.RawMessage `json:"users"`
+}
+
+// fixtureTeam is one org team: its direct members, its parent and its repo grants.
+type fixtureTeam struct {
+	Slug             string   `json:"slug"`
+	Parent           string   `json:"parent"`
+	Privacy          string   `json:"privacy"`
+	Members          []string `json:"members"`
+	MembersForbidden bool     `json:"members_forbidden"`
+	Repos            []struct {
+		Name     string `json:"name"`
+		RoleName string `json:"role_name"`
+		Push     bool   `json:"push"`
+	} `json:"repos"`
 }
 
 // fakeGitHub implements just the endpoints the collector calls.
@@ -121,6 +136,8 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		f.paged(w, r, f.fx.Users, func(page []json.RawMessage) any {
 			return map[string]any{"total_seats_consumed": len(f.fx.Users), "users": page}
 		})
+	case strings.HasPrefix(p, "/orgs/") && strings.Contains(p, "/teams"):
+		f.teams(w, r, strings.TrimPrefix(p, "/orgs/"))
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/repos"):
 		f.repos(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/repos"))
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/outside_collaborators"):
@@ -243,6 +260,85 @@ func (f *fakeGitHub) collaborators(w http.ResponseWriter, r *http.Request, full 
 				return
 			}
 			f.paged(w, r, m.Collaborators, listPage)
+			return
+		}
+	}
+	notFoundOrForbidden(w, 404)
+}
+
+// teams serves /orgs/{o}/teams, /orgs/{o}/teams/{slug}/members and
+// /orgs/{o}/teams/{slug}/repos. Non-owner orgs do not see secret teams. Like
+// GitHub, a team's member list includes the members of its child teams.
+func (f *fakeGitHub) teams(w http.ResponseWriter, r *http.Request, rest string) {
+	parts := strings.Split(rest, "/")
+	for _, o := range f.fx.Orgs {
+		if o.Login != parts[0] {
+			continue
+		}
+		visible := map[string]fixtureTeam{}
+		for _, t := range o.Teams {
+			if o.Owner || t.Privacy != "secret" {
+				visible[t.Slug] = t
+			}
+		}
+		switch {
+		case len(parts) == 2 && parts[1] == "teams":
+			var items []json.RawMessage
+			for _, t := range o.Teams {
+				if _, ok := visible[t.Slug]; !ok {
+					continue
+				}
+				m := map[string]any{"slug": t.Slug, "name": t.Slug, "privacy": t.Privacy, "parent": nil}
+				if t.Parent != "" {
+					m["parent"] = map[string]any{"slug": t.Parent, "name": t.Parent}
+				}
+				b, _ := json.Marshal(m)
+				items = append(items, b)
+			}
+			f.paged(w, r, items, listPage)
+			return
+		case len(parts) == 4 && parts[1] == "teams":
+			t, ok := visible[parts[2]]
+			if !ok {
+				break
+			}
+			var items []json.RawMessage
+			switch parts[3] {
+			case "members":
+				if t.MembersForbidden {
+					writeJSON(w, 403, map[string]string{"message": "Must have admin rights to Team."})
+					return
+				}
+				seen := map[string]bool{}
+				var walk func(slug string)
+				walk = func(slug string) {
+					for _, l := range visible[slug].Members {
+						if !seen[l] {
+							seen[l] = true
+							b, _ := json.Marshal(map[string]any{"login": l, "type": "User"})
+							items = append(items, b)
+						}
+					}
+					for _, c := range o.Teams {
+						if c.Parent == slug {
+							walk(c.Slug)
+						}
+					}
+				}
+				walk(t.Slug)
+			case "repos":
+				for _, rp := range t.Repos {
+					b, _ := json.Marshal(map[string]any{
+						"name": rp.Name, "full_name": o.Login + "/" + rp.Name, "role_name": rp.RoleName,
+						"permissions": map[string]bool{"pull": true, "push": rp.Push, "maintain": rp.Push && rp.RoleName != "write", "admin": rp.RoleName == "admin"},
+					})
+					items = append(items, b)
+				}
+			default:
+				notFoundOrForbidden(w, 404)
+				return
+			}
+			f.paged(w, r, items, listPage)
 			return
 		}
 	}

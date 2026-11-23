@@ -70,7 +70,7 @@
         {"if": {"properties": {"kind": {"const": "enterprise"}}}, "then": {"properties": {"id": {"pattern": "^enterprise:.+"}}}},
         {"if": {"properties": {"kind": {"const": "org"}}}, "then": {"properties": {"id": {"pattern": "^org:.+"}}}},
         {"if": {"properties": {"kind": {"const": "org_members"}}}, "then": {"properties": {"id": {"pattern": "^members:.+"}}}},
-        {"if": {"properties": {"kind": {"const": "identity"}}}, "then": {"properties": {"id": {"pattern": "^identity:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "identity"}}}, "then": {"properties": {"id": {"pattern": "^(identity:.+|team:[^/]+/[^/]+)$"}}}},
         {"if": {"properties": {"kind": {"const": "repo"}}}, "then": {"properties": {"id": {"pattern": "^repo:[^/]+/[^/]+$"}}}},
         {"if": {"properties": {"kind": {"const": "workflow"}}}, "then": {"properties": {"id": {"pattern": "^workflow:.+"}}}},
         {"if": {"properties": {"kind": {"const": "action_ref"}}}, "then": {"properties": {"id": {"pattern": "^action:.+"}}}},
@@ -97,7 +97,7 @@
       "description": "Edge attributes. Known keys are typed below; unknown keys are allowed.",
       "allOf": [{"$ref": "#/$defs/Attrs"}],
       "properties": {
-        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator. New values may be added within v1.", "type": "string", "minLength": 1},
+        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator, team. New values may be added within v1.", "type": "string", "minLength": 1},
         "ref_kind": {"type": "string", "enum": ["sha", "tag", "branch"]},
         "file": {"description": "Repo-relative path of the workflow or action file the edge was read from.", "type": "string", "minLength": 1},
         "file_ref": {"description": "Commit or branch the file was read at, when known.", "type": "string"},

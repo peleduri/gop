@@ -58,8 +58,8 @@ In the demo fixture, pinning `deploy@main` is the right first fix. Change one de
 
 1. Members of acme-actions (default permission Write) can push to `acme-actions/setup`.
 2. `setup@main` runs inside every `deploy`, including in acme-secure, which pins `deploy` to a full commit SHA.
-3. Pinning `acme-actions/deploy@main` to a SHA removes **0** of the acme-actions members' confirmed (principal, repo) pairs: whoever controls `setup` still controls every `deploy` consumer. (It does cut reach for bob and erin, whose direct grants cover `deploy` only.)
-4. gop's fix planner picks **lowering acme-actions' default permission to read** first: 12 of 46 confirmed pairs, 26%. The rest comes from org owners and direct collaborators, which that fix does not touch.
+3. Pinning `acme-actions/deploy@main` to a SHA removes **0** of the acme-actions members' confirmed (principal, repo) pairs: whoever controls `setup` still controls every `deploy` consumer. (It does cut reach for bob and erin, whose direct grants cover `deploy` only, and for the `platform` team and its child team `platform-oncall`, whose grant covers `deploy` only.)
+4. gop's fix planner picks pinning `deploy@main` first (23 of 64 confirmed pairs, 36%), because of those direct and team grants, then **lowering acme-actions' default permission to read** (12 more pairs), the only fix that cuts the members' reach. The rest comes from org owners and other direct and team grants, which neither fix touches.
 5. Reproduce it: `go test ./internal/collect -run TestEndToEndAcme -v`.
 
 gop counts a SHA pin as blocking a path only when the whole nested chain under it is immutable.
@@ -176,9 +176,10 @@ How the engine reasons, briefly: push access controls a repo; a repo controls th
 - Org membership counts and the repositories of each org.
 - `CAN_PUSH` from an org's members to every repo in that org when the default repository permission is Write or Admin.
 - `identity:` nodes for licensed users with `MEMBER_OF` their orgs, and `CAN_PUSH` from org owners (every repo in the org), direct collaborators and outside collaborators with push (including custom repository roles). When a repo's collaborators can't be listed, license-listed repo grants become `not_visible` (possible) edges.
+- `team:` nodes with nested teams (`MEMBER_OF` the parent team), direct team members (`MEMBER_OF` the team), and `CAN_PUSH` from each team repository grant with push. Members of a child team reach the parent's repos through the nesting. A non-owner token can't see secret teams; that gap is recorded in coverage.
 - Workflow files: the Actions and reusable workflows they use, `id-token: write`, secrets and self-hosted runners. Composite Actions and reusable workflows are expanded recursively at the referenced ref.
 
-Not collected yet (planned): team and GitHub App grants (the engine already handles `identity:` principals and `MEMBER_OF`, as the demo fixture shows), audit log facts, branch protection and environment rules, a GitHub Enterprise Server endpoint flag, and resumable collection.
+Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, audit log facts, branch protection and environment rules, a GitHub Enterprise Server endpoint flag, and resumable collection.
 
 ## Install
 

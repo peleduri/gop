@@ -1,0 +1,28 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "org:acme-actions", "kind": "org", "name": "acme-actions", "evidence": "live"},
+    {"id": "identity:bob", "kind": "identity", "name": "bob", "evidence": "live"},
+    {"id": "team:acme-actions/platform", "kind": "identity", "name": "acme-actions/platform", "evidence": "live",
+     "attrs": {"org": "acme-actions", "slug": "platform", "privacy": "closed", "members": "1"}},
+    {"id": "team:acme-actions/platform-oncall", "kind": "identity", "name": "acme-actions/platform-oncall", "evidence": "live",
+     "attrs": {"org": "acme-actions", "slug": "platform-oncall", "privacy": "closed", "members": "unknown"},
+     "attr_evidence": {"members": "not_visible"}},
+    {"id": "repo:acme-actions/deploy", "kind": "repo", "name": "deploy", "evidence": "live"}
+  ],
+  "edges": [
+    {"from": "identity:bob", "to": "team:acme-actions/platform", "kind": "MEMBER_OF", "evidence": "live",
+     "source_api": "rest:GET /orgs/{org}/teams/{team_slug}/members?role=all", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "team:acme-actions/platform-oncall", "to": "team:acme-actions/platform", "kind": "MEMBER_OF", "evidence": "live",
+     "source_api": "rest:GET /orgs/{org}/teams", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "team:acme-actions/platform", "to": "repo:acme-actions/deploy", "kind": "CAN_PUSH", "evidence": "live",
+     "source_api": "rest:GET /orgs/{org}/teams/{team_slug}/repos", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "team", "permission": "maintain"}}
+  ],
+  "coverage": [
+    {"scope": "org:acme-actions", "fact": "team_members:platform-oncall", "reason": "could not list members of team platform-oncall",
+     "needs_fix": "org owner on acme-actions, or maintainer of team platform-oncall"}
+  ]
+}
