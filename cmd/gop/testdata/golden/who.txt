@@ -1,6 +1,6 @@
 2 principals can control repo:acme-app/web (confirmed); 0 more possible through a not visible hop
 
-Confirmed (every hop live or audit) (2):
+Confirmed (every hop live, audit or supplied) (2):
   identity:bob -> repo:acme-app/web  [confirmed]
       identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/repos/{owner}/{repo}/collaborators
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows

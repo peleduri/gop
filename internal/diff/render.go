@@ -76,6 +76,8 @@ func evLabel(ev graph.Evidence) string {
 		return "live"
 	case graph.Audit:
 		return "audit"
+	case graph.Supplied:
+		return "supplied file"
 	case "":
 		return "absent"
 	}

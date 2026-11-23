@@ -64,8 +64,8 @@ func TestReach(t *testing.T) {
 		orgs          []string
 		possibleRepos []string
 	}{
-		{"members:acme-actions", actionsRepos, 12, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
-		{"identity:bob", actionsRepos, 12, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
+		{"members:acme-actions", actionsRepos, 13, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
+		{"identity:bob", actionsRepos, 13, []string{"secret:acme-app/billing"}, []string{"oidc:acme-app/web"}, []string{"runner:acme-app/worker"}, []string{"org:acme-actions", "org:acme-app"}, nil},
 		{"identity:alice", appRepos("infra"), 1, nil, nil, nil, []string{"org:acme-app"}, nil},
 		{"members:acme-secure", nil, 0, nil, nil, nil, nil, nil},
 		{"members:acme-legacy", nil, 0, nil, nil, nil, nil, []string{"repo:acme-legacy/old-api"}},
@@ -174,8 +174,8 @@ func TestNotVisibleIsPossibleNotConfirmed(t *testing.T) {
 func TestBlastRadiusAndTopPaths(t *testing.T) {
 	g := loadAcme(t)
 	s := BlastRadius(g, "members:acme-actions")
-	want := Counts{Repos: 12, Orgs: 2, Workflows: 12, Secrets: 1, OIDC: 1, Runners: 1}
-	if s.Confirmed != want || s.Multiplier != 2.25 || s.Score != 85.5 {
+	want := Counts{Repos: 12, Orgs: 2, Workflows: 13, Secrets: 1, OIDC: 1, Runners: 1}
+	if s.Confirmed != want || s.Multiplier != 2.25 || s.Score != 86.625 {
 		t.Fatalf("score = %+v", s)
 	}
 	if a := BlastRadius(g, "identity:alice"); a.Multiplier != 1 || a.Score != 3.5 {

@@ -15,6 +15,9 @@ func WritePath(w io.Writer, p graph.Path) {
 		status = "possible: a hop is not visible"
 	}
 	fmt.Fprintf(w, "  %s -> %s  [%s]\n", p.From, p.To, status)
+	if n := p.SuppliedNote(); n != "" {
+		fmt.Fprintf(w, "      note: %s\n", n)
+	}
 	for _, h := range p.Hops {
 		kind := string(h.Kind)
 		if h.Reverse {
@@ -25,6 +28,9 @@ func WritePath(w io.Writer, p graph.Path) {
 			src = "  source: " + h.SourceAPI
 		}
 		fmt.Fprintf(w, "      %s =[%s, %s]=> %s%s\n", h.From, kind, EvidenceLabel(h.Evidence), h.To, src)
+		if h.Reason != "" {
+			fmt.Fprintf(w, "        undecided: %s\n", h.Reason)
+		}
 	}
 }
 
@@ -41,14 +47,17 @@ func writeGroup(w io.Writer, title string, ps []graph.Path) {
 // WriteWho prints a who_can_reach answer as text.
 func WriteWho(w io.Writer, o WhoCanReachOutput) {
 	fmt.Fprintln(w, o.Summary)
-	writeGroup(w, "Confirmed (every hop live or audit)", o.Confirmed)
+	writeGroup(w, confirmedTitle, o.Confirmed)
 	writeGroup(w, "Possible (at least one hop not visible)", o.Possible)
 }
+
+// confirmedTitle heads the confirmed group in text output.
+const confirmedTitle = "Confirmed (every hop live, audit or supplied)"
 
 // WritePaths prints a paths answer as text.
 func WritePaths(w io.Writer, o PathsOutput) {
 	fmt.Fprintln(w, o.Summary)
-	writeGroup(w, "Confirmed (every hop live or audit)", o.Confirmed)
+	writeGroup(w, confirmedTitle, o.Confirmed)
 	writeGroup(w, "Possible (at least one hop not visible)", o.Possible)
 }
 

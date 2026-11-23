@@ -1,5 +1,5 @@
 {
-  "summary": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 9 lines to edit across 9 repos; removes 18 of 25 confirmed (principal, repo) pairs (72%)",
+  "summary": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 10 lines to edit across 9 repos; removes 18 of 25 confirmed (principal, repo) pairs (72%)",
   "plan": {
     "fix_id": "pin:action:acme-actions/deploy@main",
     "fix": {
@@ -16,7 +16,7 @@
         "confirmed": {
           "repos": 25,
           "orgs": 5,
-          "workflows": 25,
+          "workflows": 27,
           "secrets": 2,
           "oidc": 2,
           "runners": 2
@@ -31,7 +31,7 @@
         },
         "confirmed_pairs": 25,
         "possible_pairs": 1,
-        "score": 174.5,
+        "score": 176.75,
         "possible_score": 19.125
       },
       "after": {
@@ -65,7 +65,7 @@
             "confirmed": {
               "repos": 12,
               "orgs": 2,
-              "workflows": 12,
+              "workflows": 13,
               "secrets": 1,
               "oidc": 1,
               "runners": 1
@@ -79,7 +79,7 @@
               "runners": 0
             },
             "multiplier": 2.25,
-            "score": 85.5,
+            "score": 86.625,
             "possible_score": 0
           },
           "after": {
@@ -112,7 +112,7 @@
             "confirmed": {
               "repos": 12,
               "orgs": 2,
-              "workflows": 12,
+              "workflows": 13,
               "secrets": 1,
               "oidc": 1,
               "runners": 1
@@ -126,7 +126,7 @@
               "runners": 0
             },
             "multiplier": 2.25,
-            "score": 85.5,
+            "score": 86.625,
             "possible_score": 0
           },
           "after": {
@@ -229,6 +229,15 @@
       },
       {
         "kind": "edit_workflow",
+        "repo": "acme-app/web",
+        "file": ".github/workflows/release.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/web/.github/workflows/release.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
         "repo": "acme-app/worker",
         "file": ".github/workflows/ci.yml",
         "owner": "acme-app",
@@ -244,7 +253,7 @@
       }
     ],
     "caveats": [
-      "9 of 9 uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff"
+      "10 of 10 uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff"
     ]
   }
 }

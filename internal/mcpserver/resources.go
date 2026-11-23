@@ -54,6 +54,7 @@ func Staleness(collectedAt, now time.Time) string {
 type EvidenceMix struct {
 	Live       int `json:"live"`
 	Audit      int `json:"audit"`
+	Supplied   int `json:"supplied,omitempty"` // read from a user-supplied file (cloud trust policies)
 	NotVisible int `json:"not_visible"`
 }
 
@@ -63,6 +64,8 @@ func (m *EvidenceMix) add(ev graph.Evidence) {
 		m.Live++
 	case graph.Audit:
 		m.Audit++
+	case graph.Supplied:
+		m.Supplied++
 	case graph.NotVisible:
 		m.NotVisible++
 	}

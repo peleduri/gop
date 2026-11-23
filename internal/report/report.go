@@ -56,13 +56,17 @@ type data struct {
 	CollectedAt string
 	Headline    string
 	FixLine     string
-	Risks       []riskRow
-	Fixes       []fixRow
-	PinLine     string
-	Pinned      []pinnedRow
-	Paths       []principalPaths
-	Orgs        []orgRow
-	Coverage    []graph.Coverage
+	// HasCloud is true when the graph has CAN_ASSUME edges (gop enrich
+	// --oidc-trust): the risks table gains a cloud roles column and the
+	// notes explain supplied evidence.
+	HasCloud bool
+	Risks    []riskRow
+	Fixes    []fixRow
+	PinLine  string
+	Pinned   []pinnedRow
+	Paths    []principalPaths
+	Orgs     []orgRow
+	Coverage []graph.Coverage
 
 	// HTML only: the data the filters and org views read, the org names
 	// for the filter bar, and a note when embedded paths were cut.
@@ -107,6 +111,7 @@ func addEmbedded(d *data, g *graph.Graph) error {
 type riskRow struct {
 	Principal                    string
 	Repos, Orgs                  int
+	Cloud                        int
 	OIDC, Secrets, Runners       int
 	PossibleRepos, PossibleOther int
 	Score                        string
@@ -138,13 +143,15 @@ type pathView struct {
 	To        string
 	Confirmed bool
 	Hops      []hopView
+	Note      string // supplied-file caveat, "" for paths read only from GitHub
 }
 
 type hopView struct {
 	From, To, Kind, SourceAPI string
+	Reason                    string // why an undecided CAN_ASSUME match is possible only
 	Reverse                   bool
-	Evidence                  string // live | audit | not visible
-	Class                     string // live | audit | nv
+	Evidence                  string // live | audit | supplied file | not visible
+	Class                     string // live | audit | supplied | nv
 }
 
 type orgRow struct {
@@ -168,6 +175,12 @@ var orgCols = []struct{ Key, Title string }{
 func build(g *graph.Graph, opts Options) data {
 	ix := graph.NewIndex(g)
 	d := data{Demo: graph.IsDemo(g), Version: opts.Version, Enterprise: g.Enterprise, ix: ix}
+	for _, e := range g.Edges {
+		if e.Kind == graph.CanAssume {
+			d.HasCloud = true
+			break
+		}
+	}
 	if !g.CollectedAt.IsZero() {
 		d.CollectedAt = g.CollectedAt.UTC().Format(time.RFC3339)
 	}
@@ -180,8 +193,8 @@ func build(g *graph.Graph, opts Options) data {
 	for _, s := range top {
 		c, p := s.Confirmed, s.Possible
 		d.Risks = append(d.Risks, riskRow{Principal: s.Principal, Repos: c.Repos, Orgs: c.Orgs,
-			OIDC: c.OIDC, Secrets: c.Secrets, Runners: c.Runners,
-			PossibleRepos: p.Repos, PossibleOther: p.OIDC + p.Secrets + p.Runners,
+			Cloud: c.CloudTargets, OIDC: c.OIDC, Secrets: c.Secrets, Runners: c.Runners,
+			PossibleRepos: p.Repos, PossibleOther: p.CloudTargets + p.OIDC + p.Secrets + p.Runners,
 			Score: fmt.Sprintf("%.1f", s.Score)})
 		if pp := pickPaths(ix, s.Principal); len(pp) > 0 {
 			d.Paths = append(d.Paths, principalPaths{Principal: s.Principal, Paths: pp})
@@ -268,6 +281,9 @@ func headline(ix *graph.Index, s graph.Score) string {
 	out := fmt.Sprintf("%s can push code that runs in %s across %s (confirmed)", who,
 		plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
 	var term []string
+	if c.CloudTargets > 0 {
+		term = append(term, plural(c.CloudTargets, "cloud role", "cloud roles"))
+	}
 	if c.OIDC > 0 {
 		term = append(term, plural(c.OIDC, "cloud OIDC trust", "cloud OIDC trusts"))
 	}
@@ -283,6 +299,21 @@ func headline(ix *graph.Index, s graph.Score) string {
 	out += "."
 	if s.Possible.Repos > 0 {
 		out += fmt.Sprintf(" %s more possible through facts gop could not see.", plural(s.Possible.Repos, "repo", "repos"))
+	}
+	if c.CloudTargets > 0 {
+		r := ix.Reach(s.Principal, graph.Options{})
+		var files []string
+		seen := map[string]bool{}
+		for _, id := range r.Confirmed.CloudTargets {
+			for _, f := range r.Paths[id].SuppliedFiles() {
+				if !seen[f] {
+					seen[f] = true
+					files = append(files, f)
+				}
+			}
+		}
+		sort.Strings(files)
+		out += " Cloud hops from supplied trust files " + strings.Join(files, ", ") + ", not read from the cloud."
 	}
 	return out
 }
@@ -301,6 +332,8 @@ func pickPaths(ix *graph.Index, principal string) []pathView {
 	r := ix.Reach(principal, graph.Options{})
 	rank := func(id string) int {
 		switch ix.Kind(id) {
+		case graph.KindCloudTarget:
+			return -1
 		case graph.KindOIDC:
 			return 0
 		case graph.KindSecret:
@@ -361,9 +394,9 @@ func pickPaths(ix *graph.Index, principal string) []pathView {
 }
 
 func viewPath(p graph.Path) pathView {
-	pv := pathView{To: p.To, Confirmed: !p.Unverified}
+	pv := pathView{To: p.To, Confirmed: !p.Unverified, Note: p.SuppliedNote()}
 	for _, h := range p.Hops {
-		pv.Hops = append(pv.Hops, hopView{From: h.From, To: h.To, Kind: string(h.Kind), SourceAPI: h.SourceAPI,
+		pv.Hops = append(pv.Hops, hopView{From: h.From, To: h.To, Kind: string(h.Kind), SourceAPI: h.SourceAPI, Reason: h.Reason,
 			Reverse: h.Reverse, Evidence: mcpserver.EvidenceLabel(h.Evidence), Class: evClass(h.Evidence)})
 	}
 	return pv
@@ -375,6 +408,8 @@ func evClass(ev graph.Evidence) string {
 		return "live"
 	case graph.Audit:
 		return "audit"
+	case graph.Supplied:
+		return "supplied"
 	}
 	return "nv"
 }

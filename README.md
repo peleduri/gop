@@ -146,7 +146,8 @@ Prompts start a guided flow: `triage_enterprise` (optional `focus`: `oidc`, `sec
 ### CLI
 
 ```
-gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH]
+gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
+gop enrich  --graph graph.json --oidc-trust <file|dir>[,...] --out graph2.json
 gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json] [--app-id N --app-key-file PATH]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
 gop serve   --graph graph.json | --demo  [--baseline old.json]
@@ -177,11 +178,47 @@ Every node and edge in the graph carries an evidence level:
 |---|---|
 | `live` | Read from current state through the GitHub API. |
 | `audit` | Inferred from the enterprise audit log. Retention is bounded, so it may be stale or incomplete. The schema and engine support it; the collector does not read the audit log yet (planned). |
+| `supplied` | Read from a file you supplied (a cloud OIDC trust policy, see [Paths out of GitHub](#paths-out-of-github)). gop did not observe it live. |
 | `not_visible` | The token cannot read this fact. The hop is **unknown, not absent**. |
 
-gop never turns "couldn't see" into "off". A path with any `not_visible` hop is **possible** reach and is never counted in headline numbers, scores or fix suggestions. A path where every hop is `live` or `audit` is **confirmed**. The `coverage` list says what was missing and the access that would close the gap, for example "org owner on acme-legacy (SSO enforced: join through the identity provider first)".
+gop never turns "couldn't see" into "off". A path with any `not_visible` hop is **possible** reach and is never counted in headline numbers, scores or fix suggestions. A path where every hop is `live`, `audit` or `supplied` is **confirmed**; a path with a `supplied` hop is flagged and every summary of it names the file. The `coverage` list says what was missing and the access that would close the gap, for example "org owner on acme-legacy (SSO enforced: join through the identity provider first)".
 
 How the engine reasons, briefly: push access controls a repo; a repo controls the workflows defined in it and every Action it hosts on a mutable ref (a branch, a tag, or a ref gop could not classify: it never assumes a pin it did not see); an Action controls every workflow and composite Action that uses it; a controlled workflow runs in its repo's CI with that workflow's secrets, OIDC token and runners. Running CI in a repo is counted as reach, not as push access to it. The rules are documented at the top of [`internal/graph/reach.go`](internal/graph/reach.go).
+
+## Paths out of GitHub
+
+An OIDC token is only half the story: what matters is the cloud role it turns into. Export your cloud trust configuration and give it to gop:
+
+```sh
+aws iam get-role --role-name deploy > trust/aws/deploy.json
+gcloud iam workload-identity-pools providers describe github --workload-identity-pool=github \
+  --location=global --project=acme-prod --format=json > trust/gcp/provider.json
+az ad app federated-credential list --id <app-id> > trust/azure/web.json
+
+gop enrich --graph graph.json --oidc-trust ./trust/ --out graph2.json
+# or in one step: gop collect ... --oidc-trust ./trust/
+```
+
+`gop enrich` is offline: no token, no cloud API call. It matches each trust's `sub` and other claim conditions (AWS `StringEquals`/`StringLike`, GCP attribute conditions, Azure subjects and claims matching expressions) against what every workflow's token can carry, and adds `workflow -CAN_ASSUME-> cloud:<provider>:<role>`. Then:
+
+```
+$ gop who --graph graph2.json --target cloud:aws:arn:aws:iam::111111111111:role/deploy
+2 principals can control cloud:aws:arn:aws:iam::111111111111:role/deploy (confirmed); 0 more possible
+through a not visible hop (cloud hop from supplied trust file trust/aws/deploy.json, not read from the cloud)
+  members:acme-actions -> cloud:aws:arn:aws:iam::111111111111:role/deploy  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/release.yml
+      workflow:acme-app/web/.github/workflows/release.yml =[CAN_ASSUME, supplied file]=> cloud:aws:arn:aws:iam::111111111111:role/deploy
+```
+
+Members of acme-actions can push code that assumes `role/deploy` in AWS account 111111111111, because `release.yml` runs in the `prod` environment that the role trusts (`repo:acme-app/web:environment:prod`) and uses an action they can push to.
+
+The evidence caveat: the cloud hop comes from your file, not from the cloud. gop counts it as confirmed because you assert the file is what is deployed, but it carries evidence `supplied`, `Path.Supplied` is set, and every summary, report and MCP answer says "cloud hop from supplied trust file <file>, not read from the cloud". A stale export gives stale answers.
+
+When gop cannot decide a match, the edge is `not_visible` with a `reason` (possible reach), never dropped and never confirmed: a branch- or tag-scoped `sub` (gop does not read workflow triggers), an environment set by an expression, a condition it could not parse, a claim only known at run time, or a workflow that may have id-token jobs both with and without an environment. A trust with no `sub` condition matches every workflow that can mint a token, and its `cloud_target` carries the warning `no_sub_condition`. An `oidc` node that no supplied trust matches gets a `cloud_trust` coverage entry. gop assumes the default `sub` format; a `sub` pattern that names the repository in another format (a custom sub template) is possible, not dropped. The token's audience is not checked: the workflow chooses it. What the role can do once assumed is out of scope.
+
+Scoring: each cloud role a principal reaches adds 13 to its blast radius score. The full formula (`internal/graph/score.go`) is `1×repos + 0.5×workflows + 2×orgs + 3×runners + 5×secrets + 8×oidc + 13×cloud roles`, multiplied by 1.5 for each weak control of the principal's org (2FA not required, SSO not enforced). Confirmed and possible reach are scored separately; only confirmed counts in the headline.
 
 ## What gop collects today
 

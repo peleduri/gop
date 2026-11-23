@@ -99,6 +99,17 @@
       }
     },
     {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
       "from": "workflow:acme-app/worker/.github/workflows/ci.yml",
       "to": "action:acme-actions/deploy@main",
       "kind": "USES",

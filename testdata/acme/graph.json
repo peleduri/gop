@@ -292,6 +292,15 @@
       }
     },
     {
+      "id": "workflow:acme-app/web/.github/workflows/release.yml",
+      "kind": "workflow",
+      "name": "acme-app/web/.github/workflows/release.yml",
+      "evidence": "live",
+      "attrs": {
+        "token_write": "false"
+      }
+    },
+    {
       "id": "oidc:acme-app/web",
       "kind": "oidc",
       "name": "acme-app/web",
@@ -693,7 +702,49 @@
       "kind": "EXECUTES_WITH",
       "evidence": "live",
       "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "permission": "id-token: write",
+        "scopes": "job",
+        "jobs": "build",
+        "repository": "acme-app/web",
+        "repository_owner": "acme-app"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "repo:acme-app/web",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/actions/workflows",
       "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "oidc:acme-app/web",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "permission": "id-token: write",
+        "scopes": "job",
+        "jobs": "deploy",
+        "environments": "prod",
+        "repository": "acme-app/web",
+        "repository_owner": "acme-app"
+      }
     },
     {
       "from": "workflow:acme-app/worker/.github/workflows/ci.yml",

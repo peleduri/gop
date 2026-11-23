@@ -10,7 +10,8 @@ import (
 )
 
 // evidenceNote is appended to every tool description.
-const evidenceNote = " Confirmed means every hop was read live from the API or from the audit log. " +
+const evidenceNote = " Confirmed means every hop was read live from the API or from the audit log, or (a cloud hop) " +
+	"from a trust file the user supplied, which the answer then names. " +
 	"Possible means at least one hop is not_visible: the token could not read that fact, so the path " +
 	"may exist but is unproven (unknown, not absent). Headline numbers count confirmed reach only."
 
@@ -21,12 +22,12 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 
 	addTool(s, "who_can_reach",
 		"List the principals (org members, users, teams, apps) that can make code run in a target "+
-			"repo, workflow, action, secret scope, OIDC trust or runner pool, with one shortest path each. "+
-			"Every hop shows its evidence (live, audit, not_visible) and API source.",
+			"repo, workflow, action, secret scope, OIDC trust, runner pool or cloud role (cloud:...), with one shortest path each. "+
+			"Every hop shows its evidence (live, audit, supplied, not_visible) and API source.",
 		e.WhoCanReach, func(o WhoCanReachOutput) string { return o.Summary })
 	addTool(s, "blast_radius",
-		"Score everything one principal can make code run in: repos, orgs, workflows, secrets, OIDC trusts "+
-			"and self-hosted runners, with confirmed and possible counts kept separate.",
+		"Score everything one principal can make code run in: repos, orgs, workflows, secrets, OIDC trusts, "+
+			"self-hosted runners and cloud roles from supplied trust files, with confirmed and possible counts kept separate.",
 		e.BlastRadius, func(o BlastRadiusOutput) string { return o.Summary })
 	addTool(s, "paths",
 		"Show the concrete control paths from a principal, optionally only to one target. "+

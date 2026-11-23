@@ -26,6 +26,9 @@ func writeMDHops(p func(string, ...any), hops []hopView) {
 			kind += " (reversed)"
 		}
 		p("  %d. %s → %s, %s, **%s**, %s\n", i+1, md(h.From), md(h.To), md(kind), h.Evidence, md(h.SourceAPI))
+		if h.Reason != "" {
+			p("     undecided: %s\n", md(h.Reason))
+		}
 	}
 }
 
@@ -48,19 +51,31 @@ func writeMarkdown(w io.Writer, d data) error {
 	if d.PinLine != "" {
 		p(">\n> %s\n", md(d.PinLine))
 	}
-	p("\nConfirmed means every hop was read live or from the audit log. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
+	if d.HasCloud {
+		p("\nConfirmed means every hop was read live or from the audit log, or (a cloud hop) from a supplied file: a cloud trust policy you supplied, not read from the cloud. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
+	} else {
+		p("\nConfirmed means every hop was read live or from the audit log. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
+	}
 
 	p("## Top risks\n\n")
 	if len(d.Risks) == 0 {
 		p("The graph has no principals.\n\n")
 	} else {
-		p("| Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |\n|---|---:|---:|---:|---:|---:|---:|---:|\n")
+		if d.HasCloud {
+			p("| Principal | Confirmed repos | Orgs | Cloud roles | OIDC | Secrets | Runners | Possible | Score |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+		} else {
+			p("| Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |\n|---|---:|---:|---:|---:|---:|---:|---:|\n")
+		}
 		for _, r := range d.Risks {
 			poss := plural(r.PossibleRepos, "repo", "repos")
 			if r.PossibleOther > 0 {
 				poss += fmt.Sprintf(" + %d impact", r.PossibleOther)
 			}
-			p("| %s | %d | %d | %d | %d | %d | %s | %s |\n", md(r.Principal), r.Repos, r.Orgs, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
+			if d.HasCloud {
+				p("| %s | %d | %d | %d | %d | %d | %d | %s | %s |\n", md(r.Principal), r.Repos, r.Orgs, r.Cloud, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
+			} else {
+				p("| %s | %d | %d | %d | %d | %d | %s | %s |\n", md(r.Principal), r.Repos, r.Orgs, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
+			}
 		}
 		p("\nScore counts confirmed reach only.\n\n")
 	}
@@ -101,6 +116,9 @@ func writeMarkdown(w io.Writer, d data) error {
 				status = "possible: a hop is not visible"
 			}
 			p("- **%s** to %s\n", status, md(pv.To))
+			if pv.Note != "" {
+				p("  _%s_\n", md(pv.Note))
+			}
 			writeMDHops(p, pv.Hops)
 		}
 		p("\n")

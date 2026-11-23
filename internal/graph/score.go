@@ -10,6 +10,8 @@ type Counts struct {
 	Secrets   int `json:"secrets"`
 	OIDC      int `json:"oidc"`
 	Runners   int `json:"runners"`
+	// CloudTargets counts cloud roles reached through supplied trust files.
+	CloudTargets int `json:"cloud_targets,omitempty"`
 }
 
 func (c *Counts) add(o Counts) {
@@ -19,11 +21,12 @@ func (c *Counts) add(o Counts) {
 	c.Secrets += o.Secrets
 	c.OIDC += o.OIDC
 	c.Runners += o.Runners
+	c.CloudTargets += o.CloudTargets
 }
 
 func countsOf(r Reached) Counts {
 	return Counts{Repos: len(r.Repos), Orgs: len(r.Orgs), Workflows: len(r.Workflows),
-		Secrets: len(r.Secrets), OIDC: len(r.OIDC), Runners: len(r.Runners)}
+		Secrets: len(r.Secrets), OIDC: len(r.OIDC), Runners: len(r.Runners), CloudTargets: len(r.CloudTargets)}
 }
 
 // Score is a principal's blast radius. Score is computed from Confirmed only;
@@ -38,8 +41,8 @@ type Score struct {
 	PossibleScore float64 `json:"possible_score"`
 }
 
-// Blast radius weights. Terminal impact (OIDC to cloud, secrets, self-hosted
-// runners) outweighs plain CI on a repo.
+// Blast radius weights. Terminal impact (cloud roles, OIDC to cloud, secrets,
+// self-hosted runners) outweighs plain CI on a repo.
 const (
 	wRepo     = 1.0
 	wWorkflow = 0.5
@@ -47,6 +50,9 @@ const (
 	wRunner   = 3.0
 	wSecret   = 5.0
 	wOIDC     = 8.0
+	// wCloud is per cloud role reached through a supplied trust file: the
+	// OIDC token turned into a concrete cloud identity.
+	wCloud = 13.0
 	// Each weak org control multiplies the score by this factor.
 	weakOrgFactor = 1.5
 )
@@ -54,6 +60,7 @@ const (
 // rawScore is the formula:
 //
 //	base       = 1*repos + 0.5*workflows + 2*orgs + 3*runners + 5*secrets + 8*oidc
+//	             + 13*cloud_targets
 //	multiplier = 1.0
 //	             x1.5 if the principal's org has two_factor = not_required
 //	             x1.5 if the principal's org has sso != enforced (configured or none)
@@ -65,7 +72,8 @@ const (
 // not treated as weak or as strong.
 func rawScore(c Counts) float64 {
 	return wRepo*float64(c.Repos) + wWorkflow*float64(c.Workflows) + wOrg*float64(c.Orgs) +
-		wRunner*float64(c.Runners) + wSecret*float64(c.Secrets) + wOIDC*float64(c.OIDC)
+		wRunner*float64(c.Runners) + wSecret*float64(c.Secrets) + wOIDC*float64(c.OIDC) +
+		wCloud*float64(c.CloudTargets)
 }
 
 func (ix *Index) orgAttr(org, principal, key string) string {

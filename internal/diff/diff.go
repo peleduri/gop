@@ -317,9 +317,11 @@ func (v visibility) hiddenPath(p *graph.Path) bool {
 	return false
 }
 
-// severity orders target kinds: oidc > secret > runner > repo.
+// severity orders target kinds: cloud_target > oidc > secret > runner > repo.
 func severity(k graph.NodeKind) int {
 	switch k {
+	case graph.KindCloudTarget:
+		return -1
 	case graph.KindOIDC:
 		return 0
 	case graph.KindSecret:
@@ -336,13 +338,13 @@ var pathStatusOrder = map[string]int{Added: 0, Upgraded: 1, Downgraded: 2, LostV
 
 func targets(r graph.Reached) []string {
 	var out []string
-	for _, l := range [][]string{r.Repos, r.Secrets, r.OIDC, r.Runners} {
+	for _, l := range [][]string{r.Repos, r.Secrets, r.OIDC, r.Runners, r.CloudTargets} {
 		out = append(out, l...)
 	}
 	return out
 }
 
-// reachMap returns target -> path for every repo, secret, oidc and runner the
+// reachMap returns target -> path for every repo, secret, oidc, runner and cloud target the
 // principal reaches (confirmed or possible).
 func reachMap(ix *graph.Index, principal string) map[string]graph.Path {
 	res := ix.Reach(principal, graph.Options{})

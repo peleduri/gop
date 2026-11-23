@@ -1,0 +1,5 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "workflow:acme-app/web/.github/workflows/release.yml", "kind": "workflow", "name": "release.yml", "evidence": "live"},
+           {"id": "cloud:aws:arn:aws:iam::111111111111:role/deploy", "kind": "cloud_target", "name": "deploy", "evidence": "supplied"}],
+ "edges": [{"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "cloud:aws:arn:aws:iam::111111111111:role/deploy", "kind": "CAN_ASSUME", "evidence": "supplied", "source_api": "rest:iam", "observed_at": "2026-01-01T00:00:00Z"}],
+ "coverage": []}

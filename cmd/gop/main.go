@@ -20,6 +20,7 @@ import (
 	"github.com/peleduri/gop/internal/demo"
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
+	"github.com/peleduri/gop/internal/oidc"
 	"github.com/peleduri/gop/internal/report"
 	"github.com/peleduri/gop/internal/schema"
 )
@@ -41,7 +42,8 @@ const (
 const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
-  gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH]
+  gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
+  gop enrich  --graph graph.json --oidc-trust <file|dir>[,...] --out graph2.json
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
               [--app-id N --app-key-file PATH]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
@@ -72,6 +74,10 @@ doctor is a read-only preflight for collect: token mode, scopes, SSO
 authorization gaps, rate limit, a time estimate and what will come out
 not_visible. In App mode it lists installations, the --orgs without one and
 any granted permission that is not read. Exit 0 all pass, 1 any fail, 3 warnings only.
+enrich reads cloud OIDC trust files you export (AWS, GCP, Azure) and adds the
+cloud roles each workflow's token can assume (CAN_ASSUME). Offline: no token,
+no cloud API. Those hops have evidence "supplied" and every path through them
+says it comes from a supplied file, not from the cloud.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
 validate checks graph.json against the published JSON Schema and that every
@@ -84,7 +90,7 @@ pin resolves an action ref to a commit SHA with read-only GET requests (token
 from GITHUB_TOKEN or GH_TOKEN) and, with --graph, prints a git apply diff for
 every consuming workflow. It writes to stdout only.
 mcp-config prints the MCP client config for serve; it never writes files.
-Confirmed reach: every hop live or audit. Possible reach: at least one hop not visible.
+Confirmed reach: every hop live, audit or supplied. Possible reach: at least one hop not visible.
 `
 
 // collector is the seam to internal/collect, replaced in tests.
@@ -137,6 +143,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdCollect(rest)
 	case "doctor":
 		err = a.cmdDoctor(rest)
+	case "enrich":
+		err = a.cmdEnrich(rest)
 	case "demo":
 		err = a.cmdDemo(rest)
 	case "serve":
@@ -222,11 +230,19 @@ func (a *app) cmdCollect(args []string) error {
 	orgs := fs.String("orgs", "", "comma-separated org logins to limit collection to (default: all). "+
 		"When the token cannot read the enterprise, or in GitHub App mode, these orgs are collected and count as enterprise orgs")
 	af := addAppFlags(fs)
+	var trusts trustFlag
+	fs.Var(&trusts, "oidc-trust", trustUsage+" (runs gop enrich after collection)")
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if err := required("collect", "enterprise", *ent, "out", *out); err != nil {
 		return err
+	}
+	if len(trusts) > 0 {
+		// Fail on unreadable trust files before spending the API budget.
+		if _, err := oidc.Parse(oidc.Options{}, trusts...); err != nil {
+			return usagef("collect: --oidc-trust: %v", err)
+		}
 	}
 	cr, err := a.resolveCreds("collect", af)
 	if err != nil {
@@ -245,6 +261,11 @@ func (a *app) cmdCollect(args []string) error {
 	g, err := a.collect(ctx, cfg)
 	if err != nil {
 		return errors.New(cr.redact(err.Error()))
+	}
+	if len(trusts) > 0 {
+		if err := a.enrich(g, trusts); err != nil {
+			return err
+		}
 	}
 	return a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) })
 }

@@ -1,0 +1,13 @@
+{
+  "serviceAccount": "deploy@acme-prod.iam.gserviceaccount.com",
+  "bindings": [
+    {
+      "role": "roles/iam.workloadIdentityUser",
+      "members": [
+        "principalSet://iam.googleapis.com/projects/111111111111/locations/global/workloadIdentityPools/github/attribute.repository/acme-app/web"
+      ]
+    }
+  ],
+  "etag": "BwAAAAAAAAA=",
+  "version": 1
+}

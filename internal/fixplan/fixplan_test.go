@@ -55,7 +55,8 @@ func TestPinAcmeListsEveryConsumerSorted(t *testing.T) {
 				t.Errorf("steps not sorted by repo then file: %s %s before %s %s", prev.Repo, prev.File, s.Repo, s.File)
 			}
 		}
-		if s.File != ".github/workflows/ci.yml" || s.Owner != "acme-app" || s.Line != 0 {
+		okFile := s.File == ".github/workflows/ci.yml" || (s.Repo == "acme-app/web" && s.File == ".github/workflows/release.yml")
+		if !okFile || s.Owner != "acme-app" || s.Line != 0 {
 			t.Errorf("step %d: %+v", i, s)
 		}
 		// The acme fixture predates line attributes: no diff, a note instead.
