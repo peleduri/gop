@@ -1,0 +1,209 @@
+Since 2026-11-13: 0 new confirmed paths, 3 lost visibility; acme-actions two_factor required → not visible (lost visibility).
+
+{
+  "summary": "Since 2026-11-13: 0 new confirmed paths, 3 lost visibility; acme-actions two_factor required → not visible (lost visibility).",
+  "baseline_collected_at": "2026-11-13T10:00:00Z",
+  "current_collected_at": "2026-11-20T10:00:00Z",
+  "truncated": true,
+  "report": {
+    "summary": "Since 2026-11-13: 0 new confirmed paths, 3 lost visibility; acme-actions two_factor required → not visible (lost visibility).",
+    "old": {
+      "enterprise": "acme",
+      "collected_at": "2026-11-13T10:00:00Z",
+      "schema": "gop.graph/v1"
+    },
+    "new": {
+      "enterprise": "acme",
+      "collected_at": "2026-11-20T10:00:00Z",
+      "schema": "gop.graph/v1"
+    },
+    "paths": [
+      {
+        "principal": "identity:bob",
+        "target": "secret:acme-app/api",
+        "target_kind": "secret",
+        "status": "lost_visibility",
+        "old": {
+          "from": "identity:bob",
+          "to": "secret:acme-app/api",
+          "hops": [
+            {
+              "kind": "CAN_PUSH",
+              "from": "identity:bob",
+              "to": "repo:acme-actions/deploy",
+              "evidence": "live",
+              "source_api": "rest:repos.collaborators"
+            },
+            {
+              "kind": "RESOLVES_TO",
+              "from": "repo:acme-actions/deploy",
+              "to": "action:acme-actions/deploy@v1",
+              "evidence": "live",
+              "source_api": "contents:action.yml",
+              "reverse": true
+            },
+            {
+              "kind": "USES",
+              "from": "action:acme-actions/deploy@v1",
+              "to": "workflow:acme-app/api/.github/workflows/ci.yml",
+              "evidence": "live",
+              "source_api": "contents:.github/workflows",
+              "reverse": true
+            },
+            {
+              "kind": "EXECUTES_WITH",
+              "from": "workflow:acme-app/api/.github/workflows/ci.yml",
+              "to": "secret:acme-app/api",
+              "evidence": "live",
+              "source_api": "contents:.github/workflows"
+            }
+          ],
+          "evidence": "live",
+          "unverified": false
+        }
+      }
+    ],
+    "settings": [
+      {
+        "node": "org:acme-actions",
+        "key": "two_factor",
+        "status": "lost_visibility",
+        "old": "required",
+        "new": "unknown",
+        "old_evidence": "live",
+        "new_evidence": "not_visible"
+      }
+    ],
+    "edges": {
+      "added": [],
+      "removed": [],
+      "changed": [],
+      "lost_visibility": [
+        {
+          "from": "identity:bob",
+          "kind": "CAN_PUSH",
+          "to": "repo:acme-actions/deploy",
+          "status": "lost_visibility",
+          "old": {
+            "evidence": "live",
+            "source_api": "rest:repos.collaborators",
+            "attrs": {
+              "permission": "maintain",
+              "via": "direct"
+            }
+          }
+        }
+      ]
+    },
+    "scores": [
+      {
+        "principal": "identity:bob",
+        "old": {
+          "principal": "identity:bob",
+          "confirmed": {
+            "repos": 2,
+            "orgs": 2,
+            "workflows": 1,
+            "secrets": 1,
+            "oidc": 0,
+            "runners": 0
+          },
+          "possible": {
+            "repos": 0,
+            "orgs": 0,
+            "workflows": 0,
+            "secrets": 0,
+            "oidc": 0,
+            "runners": 0
+          },
+          "multiplier": 1,
+          "score": 11.5,
+          "possible_score": 0
+        },
+        "new": {
+          "principal": "identity:bob",
+          "confirmed": {
+            "repos": 0,
+            "orgs": 0,
+            "workflows": 0,
+            "secrets": 0,
+            "oidc": 0,
+            "runners": 0
+          },
+          "possible": {
+            "repos": 0,
+            "orgs": 0,
+            "workflows": 0,
+            "secrets": 0,
+            "oidc": 0,
+            "runners": 0
+          },
+          "multiplier": 0,
+          "score": 0,
+          "possible_score": 0
+        },
+        "delta_confirmed": -11.5,
+        "delta_possible": 0
+      }
+    ],
+    "coverage": {
+      "opened": [
+        {
+          "scope": "org:acme-actions",
+          "fact": "repositories",
+          "reason": "token is not an org owner",
+          "needs_fix": "org owner on acme-actions"
+        }
+      ],
+      "closed": []
+    },
+    "totals": {
+      "old": {
+        "principals": 4,
+        "confirmed": {
+          "repos": 3,
+          "orgs": 3,
+          "workflows": 2,
+          "secrets": 1,
+          "oidc": 1,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 3,
+        "possible_pairs": 0,
+        "score": 23,
+        "possible_score": 0
+      },
+      "new": {
+        "principals": 3,
+        "confirmed": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 1,
+          "secrets": 0,
+          "oidc": 1,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 1,
+        "possible_pairs": 0,
+        "score": 11.5,
+        "possible_score": 0
+      }
+    }
+  }
+}

@@ -127,13 +127,14 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 | `suggest_fixes` | A greedy plan: the fixes that remove the most confirmed (principal, repo) pairs, with the cumulative percentage. |
 | `explain` | Why an edge exists: evidence, `source_api`, `observed_at` and attributes. |
 | `coverage` | What the token could not see, and the access that would make it visible. |
+| `diff` | What changed since a baseline snapshot (`gop serve --graph new.json --baseline old.json`): new and removed paths, settings, edges, score deltas and coverage, filterable by principal and target kind. Same report as `gop diff --format json`; lost visibility is never reported as a fix. |
 
 ### CLI
 
 ```
 gop collect --enterprise <slug> --out graph.json [--orgs a,b]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
-gop serve   --graph graph.json | --demo
+gop serve   --graph graph.json | --demo  [--baseline old.json]
 gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
 gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>

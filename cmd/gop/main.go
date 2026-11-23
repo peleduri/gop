@@ -41,7 +41,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
-  gop serve   --graph graph.json | --demo
+  gop serve   --graph graph.json | --demo  [--baseline old.json]
   gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
@@ -57,7 +57,7 @@ token, a non-owner token, or no read:enterprise), collect builds the graph
 per org: from --orgs, or else the token's own orgs. Enterprise-level facts
 are then not_visible and listed in coverage.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
-serve runs an MCP server over stdio.
+serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
 validate checks graph.json against the published JSON Schema and that every
 edge endpoint is a node. Exit 0 valid, 1 invalid, 2 usage error.
 diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or load errors.
@@ -74,11 +74,11 @@ type app struct {
 	stdout, stderr io.Writer
 	getenv         func(string) string
 	collect        collector
-	serve          func(ctx context.Context, g *graph.Graph, version string) error
+	serve          func(ctx context.Context, g *graph.Graph, version string, opts mcpserver.ServerOptions) error
 }
 
 func main() {
-	a := &app{stdin: os.Stdin, stdout: os.Stdout, stderr: os.Stderr, getenv: os.Getenv, collect: collect.Collect, serve: mcpserver.Serve}
+	a := &app{stdin: os.Stdin, stdout: os.Stdout, stderr: os.Stderr, getenv: os.Getenv, collect: collect.Collect, serve: mcpserver.ServeWith}
 	os.Exit(a.run(os.Args[1:]))
 }
 
@@ -314,19 +314,29 @@ func (a *app) cmdServe(args []string) error {
 	fs := a.flags("serve")
 	gp := graphFlag(fs)
 	useDemo := demoFlag(fs)
+	baseline := fs.String("baseline", "", "older graph.json for the diff tool to compare the served graph with")
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if *gp == "-" {
 		return usagef("serve: --graph - is not supported: stdin carries the MCP protocol")
 	}
+	if *baseline == "-" {
+		return usagef("serve: --baseline - is not supported: stdin carries the MCP protocol")
+	}
 	g, err := a.loadGraph("serve", *gp, *useDemo)
 	if err != nil {
 		return err
 	}
+	var opts mcpserver.ServerOptions
+	if *baseline != "" {
+		if opts.Baseline, err = graph.LoadFile(*baseline); err != nil {
+			return codeError{exitUsage, fmt.Errorf("load --baseline %s: %w", *baseline, err)}
+		}
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	return a.serve(ctx, g, version)
+	return a.serve(ctx, g, version, opts)
 }
 
 func (a *app) cmdReport(args []string) error {

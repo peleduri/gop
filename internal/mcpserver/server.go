@@ -14,8 +14,8 @@ const evidenceNote = " Confirmed means every hop was read live from the API or f
 	"Possible means at least one hop is not_visible: the token could not read that fact, so the path " +
 	"may exist but is unproven (unknown, not absent). Headline numbers count confirmed reach only."
 
-// NewServer builds an MCP server over g. The graph is indexed once and only read.
-func NewServer(g *graph.Graph, version string) *mcp.Server {
+// NewServerWith builds an MCP server over g. The graph is indexed once and only read.
+func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Server {
 	e := NewEngine(g)
 	s := mcp.NewServer(&mcp.Implementation{Name: "gop", Title: "gop: who can make code run where", Version: version}, nil)
 
@@ -53,6 +53,7 @@ func NewServer(g *graph.Graph, version string) *mcp.Server {
 	addTool(s, "coverage",
 		"List what the token could not see (not_visible facts) and the access that would make each visible.",
 		e.Coverage, func(o CoverageOutput) string { return o.Summary })
+	addTool(s, "diff", diffDescription, newDiffer(g, opts.Baseline).Diff, func(o DiffOutput) string { return o.Summary })
 	return s
 }
 

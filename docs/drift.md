@@ -112,3 +112,7 @@ Lost visibility and downgrades never trip `--fail-on`; watch the `coverage` sect
 - `json` encodes the full `diff.Report` (see [`internal/diff/diff.go`](../internal/diff/diff.go)); it decodes back into the same type.
 
 `--only` limits the sections shown. It does not change the leading summary (also `summary` in JSON), which always describes the full diff, or what `--fail-on` evaluates.
+
+## From an agent
+
+`gop serve --graph new.json --baseline old.json` adds the baseline to the MCP server. The `diff` tool returns the same report as `gop diff old.json new.json --format json`, with optional filters: `only` (sections), `principal`, `target_kind` (`oidc`, `secret`, `runner` or `repo`) and `limit` (default 50 entries per list; `truncated` says when entries were cut). Its `summary` is the same lead line as the text output. Without `--baseline`, the tool answers with an error naming the flag.

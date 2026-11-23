@@ -28,8 +28,12 @@ func connect(t *testing.T) *mcp.ClientSession {
 
 func connectGraph(t *testing.T, g *graph.Graph) *mcp.ClientSession {
 	t.Helper()
+	return connectServer(t, NewServer(g, "test"))
+}
+
+func connectServer(t *testing.T, srv *mcp.Server) *mcp.ClientSession {
+	t.Helper()
 	ctx := context.Background()
-	srv := NewServer(g, "test")
 	st, ct := mcp.NewInMemoryTransports()
 	ss, err := srv.Connect(ctx, st, nil)
 	if err != nil {
@@ -81,7 +85,7 @@ func TestToolsListed(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]bool{"who_can_reach": true, "blast_radius": true, "paths": true, "top_risks": true,
-		"what_if": true, "suggest_fixes": true, "explain": true, "coverage": true}
+		"what_if": true, "suggest_fixes": true, "explain": true, "coverage": true, "diff": true}
 	for _, tl := range res.Tools {
 		if !want[tl.Name] {
 			t.Errorf("unexpected tool %s", tl.Name)
@@ -268,10 +272,12 @@ var demoCalls = map[string]map[string]any{
 	"suggest_fixes": {"budget": 2},
 	"explain":       {"from": demo.SetupMain, "to": demo.ReleaseSHA},
 	"coverage":      {},
+	"diff":          {},
 }
 
 func TestDemoMarkerOnEveryTool(t *testing.T) {
-	cs := connectGraph(t, demo.Generate(demo.Options{Seed: 1}))
+	g := demo.Generate(demo.Options{Seed: 1})
+	cs := connectServer(t, NewServerWith(g, "test", ServerOptions{Baseline: g}))
 	tools, err := cs.ListTools(context.Background(), nil)
 	if err != nil {
 		t.Fatal(err)
