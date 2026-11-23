@@ -3,8 +3,8 @@
   "collected_at": "2026-11-20T10:00:00Z",
   "age_hours": 30,
   "schema": "gop.graph/v1",
-  "nodes": 51,
-  "edges": 44,
+  "nodes": 52,
+  "edges": 46,
   "nodes_by_kind": {
     "action_ref": 4,
     "enterprise": 1,
@@ -15,11 +15,11 @@
     "repo": 16,
     "runner": 1,
     "secret": 2,
-    "workflow": 15
+    "workflow": 16
   },
   "edges_by_kind": {
-    "CAN_PUSH": 5,
-    "DEFINED_IN": 15,
+    "CAN_PUSH": 6,
+    "DEFINED_IN": 16,
     "EXECUTES_WITH": 5,
     "MEMBER_OF": 2,
     "RESOLVES_TO": 4,
@@ -27,12 +27,12 @@
   },
   "evidence": {
     "edges": {
-      "live": 41,
+      "live": 43,
       "audit": 2,
       "not_visible": 1
     },
     "nodes": {
-      "live": 48,
+      "live": 49,
       "audit": 2,
       "not_visible": 1
     }
@@ -78,7 +78,7 @@
       "confirmed": {
         "repos": 12,
         "orgs": 2,
-        "workflows": 11,
+        "workflows": 12,
         "secrets": 1,
         "oidc": 1,
         "runners": 1
@@ -92,7 +92,7 @@
         "runners": 0
       },
       "multiplier": 2.25,
-      "score": 84.375,
+      "score": 85.5,
       "possible_score": 0
     },
     {
@@ -100,7 +100,7 @@
       "confirmed": {
         "repos": 12,
         "orgs": 2,
-        "workflows": 11,
+        "workflows": 12,
         "secrets": 1,
         "oidc": 1,
         "runners": 1
@@ -114,7 +114,7 @@
         "runners": 0
       },
       "multiplier": 2.25,
-      "score": 84.375,
+      "score": 85.5,
       "possible_score": 0
     },
     {

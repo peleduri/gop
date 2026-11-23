@@ -79,9 +79,9 @@ func TestSummaryResource(t *testing.T) {
 		t.Fatalf("summary is not valid JSON: %v", err)
 	}
 	// Hand count of testdata/acme/graph.json.
-	wantNodes := map[string]int{"repo": 16, "workflow": 15, "org": 4, "org_members": 4, "action_ref": 4,
+	wantNodes := map[string]int{"repo": 16, "workflow": 16, "org": 4, "org_members": 4, "action_ref": 4,
 		"identity": 2, "secret": 2, "oidc": 2, "enterprise": 1, "runner": 1}
-	wantEdges := map[string]int{"DEFINED_IN": 15, "USES": 13, "CAN_PUSH": 5, "EXECUTES_WITH": 5,
+	wantEdges := map[string]int{"DEFINED_IN": 16, "USES": 13, "CAN_PUSH": 6, "EXECUTES_WITH": 5,
 		"RESOLVES_TO": 4, "MEMBER_OF": 2}
 	if !maps.Equal(s.NodesByKind, wantNodes) {
 		t.Errorf("nodes_by_kind = %v, want %v", s.NodesByKind, wantNodes)
@@ -89,11 +89,11 @@ func TestSummaryResource(t *testing.T) {
 	if !maps.Equal(s.EdgesByKind, wantEdges) {
 		t.Errorf("edges_by_kind = %v, want %v", s.EdgesByKind, wantEdges)
 	}
-	if s.Nodes != 51 || s.Edges != 44 || s.CoverageGaps != 2 {
-		t.Errorf("nodes %d edges %d gaps %d, want 51 44 2", s.Nodes, s.Edges, s.CoverageGaps)
+	if s.Nodes != 52 || s.Edges != 46 || s.CoverageGaps != 2 {
+		t.Errorf("nodes %d edges %d gaps %d, want 52 46 2", s.Nodes, s.Edges, s.CoverageGaps)
 	}
-	if s.Evidence["nodes"] != (EvidenceMix{Live: 48, Audit: 2, NotVisible: 1}) ||
-		s.Evidence["edges"] != (EvidenceMix{Live: 41, Audit: 2, NotVisible: 1}) {
+	if s.Evidence["nodes"] != (EvidenceMix{Live: 49, Audit: 2, NotVisible: 1}) ||
+		s.Evidence["edges"] != (EvidenceMix{Live: 43, Audit: 2, NotVisible: 1}) {
 		t.Errorf("evidence = %+v", s.Evidence)
 	}
 	if s.Enterprise != "acme" || s.Schema != graph.SchemaVersion || s.AgeHours != 30 || s.Staleness != "" {
