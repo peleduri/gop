@@ -502,7 +502,7 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		perms, fromJob := resolvePermissions(wfMap, jobPerms, jobDeclared)
 		f.addToken(id, perms)
 		if fromJob {
-			writeScopes(perms, scopes)
+			addWriteScopes(perms, scopes)
 		} else {
 			wfUsed = true
 		}
@@ -532,7 +532,7 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 	}
 	f.Secrets = secretNames(doc)
 	if wfUsed {
-		writeScopes(wfMap, scopes) // once, not per job: the file may have thousands of jobs
+		addWriteScopes(wfMap, scopes) // once, not per job: the file may have thousands of jobs
 	}
 	f.TokenContentsWrite = TokenRead
 	switch {
@@ -555,8 +555,8 @@ func (f *WorkflowFacts) addToken(job string, perms map[string]string) {
 	}
 }
 
-// writeScopes adds the write scopes other than contents to scopes ("write-all" for write-all).
-func writeScopes(perms map[string]string, scopes map[string]bool) {
+// addWriteScopes adds the write scopes other than contents to scopes ("write-all" for write-all).
+func addWriteScopes(perms map[string]string, scopes map[string]bool) {
 	for scope, level := range perms {
 		switch {
 		case level != "write" || scope == "contents":
