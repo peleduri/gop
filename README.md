@@ -58,8 +58,8 @@ In the demo fixture, pinning `deploy@main` is the right first fix. Change one de
 
 1. Members of acme-actions (default permission Write) can push to `acme-actions/setup`.
 2. `setup@main` runs inside every `deploy`, including in acme-secure, which pins `deploy` to a full commit SHA.
-3. Pinning `acme-actions/deploy@main` to a SHA removes **0** confirmed (principal, repo) pairs: whoever controls `setup` still controls every `deploy` consumer.
-4. gop's fix planner skips the pin and picks **lowering acme-actions' default permission to read: 12 of 13 confirmed pairs, 92%**.
+3. Pinning `acme-actions/deploy@main` to a SHA removes **0** of the acme-actions members' confirmed (principal, repo) pairs: whoever controls `setup` still controls every `deploy` consumer. (It does cut reach for bob and erin, whose direct grants cover `deploy` only.)
+4. gop's fix planner picks **lowering acme-actions' default permission to read** first: 12 of 46 confirmed pairs, 26%. The rest comes from org owners and direct collaborators, which that fix does not touch.
 5. Reproduce it: `go test ./internal/collect -run TestEndToEndAcme -v`.
 
 gop counts a SHA pin as blocking a path only when the whole nested chain under it is immutable.
@@ -171,9 +171,10 @@ How the engine reasons, briefly: push access controls a repo; a repo controls th
 - Enterprise orgs, default repository permission, 2FA and SSO policy, and org settings: member repo creation, visibility changes, repo deletion, private forks, IP allow lists.
 - Org membership counts and the repositories of each org.
 - `CAN_PUSH` from an org's members to every repo in that org when the default repository permission is Write or Admin.
+- `identity:` nodes for licensed users with `MEMBER_OF` their orgs, and `CAN_PUSH` from org owners (every repo in the org), direct collaborators and outside collaborators with push (including custom repository roles). When a repo's collaborators can't be listed, license-listed repo grants become `not_visible` (possible) edges.
 - Workflow files: the Actions and reusable workflows they use, `id-token: write`, secrets and self-hosted runners. Composite Actions and reusable workflows are expanded recursively at the referenced ref.
 
-Not collected yet (planned): direct collaborator, team and GitHub App grants (the engine already handles `identity:` principals and `MEMBER_OF`, as the demo fixture shows), audit log facts, branch protection and environment rules, a GitHub Enterprise Server endpoint flag, and resumable collection.
+Not collected yet (planned): team and GitHub App grants (the engine already handles `identity:` principals and `MEMBER_OF`, as the demo fixture shows), audit log facts, branch protection and environment rules, a GitHub Enterprise Server endpoint flag, and resumable collection.
 
 ## Install
 
@@ -265,7 +266,7 @@ See [docs/threat-model.md](docs/threat-model.md) and [docs/schema.md](docs/schem
 
 Planned, roughly in order. Each item will get a [GitHub issue](https://github.com/peleduri/gop/issues); comment there if you need it.
 
-- Collaborator, team and GitHub App push grants (`identity:` principals from real data)
+- Team and GitHub App push grants
 - Audit log collection (`audit` evidence)
 - Branch protection, rulesets and environment protection as conditions on edges
 - `what-if` and `fix` CLI subcommands (available over MCP today)

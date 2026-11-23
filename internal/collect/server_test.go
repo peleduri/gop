@@ -30,6 +30,9 @@ type fixture struct {
 		IPEntries   int               `json:"ip_entries"`
 		Settings    map[string]string `json:"settings"`
 		Repos       []json.RawMessage `json:"repos"`
+		// Outside collaborators (logins) and custom repository roles of the org.
+		OutsideCollaborators []string          `json:"outside_collaborators"`
+		CustomRoles          []json.RawMessage `json:"custom_roles"`
 	} `json:"orgs"`
 	Users []json.RawMessage `json:"users"`
 }
@@ -45,6 +48,9 @@ type fakeGitHub struct {
 	failures map[string]int // path -> remaining 502s to inject
 	hits     map[string]int // path?query -> request count
 	refs     []string       // ?ref= values seen on contents requests
+	// forbidCollab makes /repos/{o}/{r}/collaborators return 403 for "o/r",
+	// on top of the fixture's collaborators_forbidden flag and non-owner orgs.
+	forbidCollab map[string]bool
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -53,7 +59,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}}
+	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{}}
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
 		t.Fatal(err)
 	}
@@ -117,6 +123,12 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		})
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/repos"):
 		f.repos(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/repos"))
+	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/outside_collaborators"):
+		f.outside(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/outside_collaborators"))
+	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/custom-repository-roles"):
+		f.customRoles(w, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/custom-repository-roles"))
+	case strings.HasPrefix(p, "/repos/") && strings.HasSuffix(p, "/collaborators"):
+		f.collaborators(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/repos/"), "/collaborators"))
 	case strings.HasPrefix(p, "/repos/"):
 		f.contents(w, r)
 	default:
@@ -170,6 +182,8 @@ func (f *fakeGitHub) repos(w http.ResponseWriter, r *http.Request, org string) {
 			var m map[string]any
 			_ = json.Unmarshal(raw, &m)
 			m["full_name"] = org + "/" + m["name"].(string)
+			delete(m, "collaborators")
+			delete(m, "collaborators_forbidden")
 			if _, ok := m["archived"]; !ok {
 				m["archived"] = false
 			}
@@ -185,6 +199,95 @@ func (f *fakeGitHub) repos(w http.ResponseWriter, r *http.Request, org string) {
 		return
 	}
 	writeJSON(w, 404, map[string]string{"message": "Not Found"})
+}
+
+func notFoundOrForbidden(w http.ResponseWriter, status int) {
+	msg := "Not Found"
+	if status == 403 {
+		msg = "Must have push access to view repository collaborators."
+	}
+	writeJSON(w, status, map[string]string{"message": msg})
+}
+
+func listPage(page []json.RawMessage) any {
+	if page == nil {
+		return []json.RawMessage{}
+	}
+	return page
+}
+
+// collaborators serves /repos/{o}/{r}/collaborators from the repo's
+// "collaborators" array. Non-owner orgs, repos flagged collaborators_forbidden
+// and f.forbidCollab entries get 403.
+func (f *fakeGitHub) collaborators(w http.ResponseWriter, r *http.Request, full string) {
+	owner, name, _ := strings.Cut(full, "/")
+	for _, o := range f.fx.Orgs {
+		if o.Login != owner {
+			continue
+		}
+		for _, raw := range o.Repos {
+			var m struct {
+				Name          string            `json:"name"`
+				Collaborators []json.RawMessage `json:"collaborators"`
+				Forbidden     bool              `json:"collaborators_forbidden"`
+			}
+			_ = json.Unmarshal(raw, &m)
+			if m.Name != name {
+				continue
+			}
+			f.mu.Lock()
+			forbid := f.forbidCollab[full]
+			f.mu.Unlock()
+			if !o.Owner || m.Forbidden || forbid {
+				notFoundOrForbidden(w, 403)
+				return
+			}
+			f.paged(w, r, m.Collaborators, listPage)
+			return
+		}
+	}
+	notFoundOrForbidden(w, 404)
+}
+
+// outside serves /orgs/{o}/outside_collaborators (org owners only).
+func (f *fakeGitHub) outside(w http.ResponseWriter, r *http.Request, org string) {
+	for _, o := range f.fx.Orgs {
+		if o.Login != org {
+			continue
+		}
+		if !o.Owner {
+			notFoundOrForbidden(w, 403)
+			return
+		}
+		var items []json.RawMessage
+		for _, l := range o.OutsideCollaborators {
+			b, _ := json.Marshal(map[string]any{"login": l, "type": "User"})
+			items = append(items, b)
+		}
+		f.paged(w, r, items, listPage)
+		return
+	}
+	notFoundOrForbidden(w, 404)
+}
+
+// customRoles serves /orgs/{o}/custom-repository-roles (org owners only).
+func (f *fakeGitHub) customRoles(w http.ResponseWriter, org string) {
+	for _, o := range f.fx.Orgs {
+		if o.Login != org {
+			continue
+		}
+		if !o.Owner {
+			notFoundOrForbidden(w, 403)
+			return
+		}
+		roles := o.CustomRoles
+		if roles == nil {
+			roles = []json.RawMessage{}
+		}
+		writeJSON(w, 200, map[string]any{"total_count": len(roles), "custom_roles": roles})
+		return
+	}
+	notFoundOrForbidden(w, 404)
 }
 
 func (f *fakeGitHub) knownRepo(owner, repo string) bool {

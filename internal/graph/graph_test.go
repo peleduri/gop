@@ -355,3 +355,94 @@ func TestEmptyGraph(t *testing.T) {
 		}
 	}
 }
+
+func TestLowerDefaultPermKeepsDirectGrants(t *testing.T) {
+	g := &Graph{Schema: SchemaVersion, Edges: []Edge{
+		edge("members:acme-actions", "CAN_PUSH", "repo:acme-actions/deploy", AttrVia, ViaDefaultPerm),
+		edge("identity:bob", "CAN_PUSH", "repo:acme-actions/deploy", AttrVia, ViaDirect, "permission", "maintain"),
+		edge("identity:alice", "CAN_PUSH", "repo:acme-actions/deploy", AttrVia, ViaOrgOwner, "permission", "admin"),
+		edge("identity:frank", "CAN_PUSH", "repo:acme-actions/deploy", AttrVia, ViaOutsideCollaborator, "permission", "deployer"),
+	}}
+	lower := []Fix{LowerDefaultPerm{Org: "org:acme-actions", To: "read"}}
+	if r := Reach(g, "members:acme-actions", Options{Fixes: lower}); len(r.Confirmed.Repos) != 0 {
+		t.Errorf("default-perm edge should be removed: %v", r.Confirmed.Repos)
+	}
+	for _, p := range []string{"identity:bob", "identity:alice", "identity:frank"} {
+		r := Reach(g, p, Options{Fixes: lower})
+		if !reflect.DeepEqual(r.Confirmed.Repos, []string{"repo:acme-actions/deploy"}) {
+			t.Errorf("%s lost its grant after LowerDefaultPerm: %v", p, r.Confirmed.Repos)
+		}
+	}
+	if es := (LowerDefaultPerm{Org: "org:acme-actions", To: "read"}).edges(NewIndex(g)); len(es) != 1 || es[0].From != "members:acme-actions" {
+		t.Errorf("LowerDefaultPerm edges = %+v", es)
+	}
+	d := WhatIf(g, lower)
+	if d.Before.ConfirmedPairs != 4 || d.After.ConfirmedPairs != 3 {
+		t.Errorf("pairs before=%d after=%d, want 4 and 3", d.Before.ConfirmedPairs, d.After.ConfirmedPairs)
+	}
+}
+
+func TestScoringPrincipals(t *testing.T) {
+	g := &Graph{Schema: SchemaVersion,
+		Nodes: []Node{
+			{ID: "members:o", Kind: KindOrgMembers, Evidence: Live},
+			{ID: "members:quiet", Kind: KindOrgMembers, Evidence: Live},
+			{ID: "identity:dave", Kind: KindIdentity, Evidence: Live},
+			{ID: "org:o", Kind: KindOrg, Evidence: Live, Attrs: map[string]string{AttrTwoFactor: "not_required", AttrSSO: "enforced"}},
+		},
+		Edges: []Edge{
+			edge("members:o", "CAN_PUSH", "repo:o/a", AttrVia, ViaDefaultPerm),
+			edge("identity:alice", "CAN_PUSH", "repo:o/b", AttrVia, ViaDirect),
+			edge("identity:alice", "MEMBER_OF", "org:o"),
+			edge("identity:dave", "MEMBER_OF", "org:o"),
+			edge("identity:tess", "MEMBER_OF", "team:o/deployers"),
+			// A weak attr on the edge would leak into the multiplier if the team
+			// were mistaken for an org (orgAttr falls back to CAN_PUSH attrs).
+			edge("identity:tess", "CAN_PUSH", "repo:o/c", AttrVia, ViaDirect, AttrTwoFactor, "not_required"),
+		},
+	}
+	ix := NewIndex(g)
+	if got, want := ix.Principals(), []string{"identity:alice", "identity:dave", "identity:tess", "members:o", "members:quiet"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Principals = %v, want %v", got, want)
+	}
+	// dave only shares members:o's reach: scoring him again would double count.
+	if got, want := ix.ScoringPrincipals(), []string{"identity:alice", "identity:tess", "members:o", "members:quiet"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("ScoringPrincipals = %v, want %v", got, want)
+	}
+	d := ix.WhatIf(nil)
+	if d.Before.Principals != 4 || len(d.PerPrincipal) != 4 {
+		t.Errorf("WhatIf principals = %d (%d rows), want 4", d.Before.Principals, len(d.PerPrincipal))
+	}
+	// alice: o/a through members:o plus o/b directly; members:o: o/a; tess: o/c.
+	if d.Before.ConfirmedPairs != 4 {
+		t.Errorf("confirmed pairs = %d, want 4", d.Before.ConfirmedPairs)
+	}
+	if len(ix.TopPaths(0)) != 4 {
+		t.Errorf("TopPaths should score the 4 scoring principals")
+	}
+	// WhoCanReach still considers every principal.
+	var from []string
+	for _, p := range ix.WhoCanReach("repo:o/a") {
+		from = append(from, p.From)
+	}
+	if !reflect.DeepEqual(from, []string{"members:o", "identity:alice", "identity:dave"}) {
+		t.Errorf("WhoCanReach = %v", from)
+	}
+	// A MEMBER_OF to a team does not count as an org for the multiplier.
+	if m := ix.BlastRadius("identity:tess").Multiplier; m != 1 {
+		t.Errorf("team membership multiplier = %v, want 1", m)
+	}
+	if m := ix.BlastRadius("identity:alice").Multiplier; m != 1.5 {
+		t.Errorf("org membership multiplier = %v, want 1.5", m)
+	}
+
+	// On the engine fixture every identity has a CAN_PUSH edge, so the scoring set
+	// equals the full set and the pair totals are unchanged.
+	fx := NewIndex(loadAcme(t))
+	if !reflect.DeepEqual(fx.ScoringPrincipals(), fx.Principals()) {
+		t.Errorf("fixture scoring set %v != principals %v", fx.ScoringPrincipals(), fx.Principals())
+	}
+	if d := fx.WhatIf(nil); d.Before.ConfirmedPairs != 25 {
+		t.Errorf("fixture confirmed pairs = %d, want 25", d.Before.ConfirmedPairs)
+	}
+}

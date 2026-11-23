@@ -52,13 +52,18 @@ func TestEndToEndAcme(t *testing.T) {
 		}
 	}
 
-	// Pinning deploy@main alone removes nothing: the deploy action itself calls
-	// acme-actions/setup@main, so whoever controls setup still controls every
-	// deploy@main consumer. This is the nested-reference trap gop exists to show.
+	// Pinning deploy@main alone removes nothing for acme-actions members: the
+	// deploy action itself calls acme-actions/setup@main, so whoever controls
+	// setup still controls every deploy@main consumer. This is the
+	// nested-reference trap gop exists to show. (Direct collaborators on deploy
+	// alone, such as bob and erin, do lose reach: they cannot push to setup.)
 	pinDeploy := graph.PinRef{Action: "action:acme-actions/deploy@main"}
 	d := eng.WhatIf([]graph.Fix{pinDeploy})
-	if d.After.ConfirmedPairs != d.Before.ConfirmedPairs {
-		t.Errorf("pinning only deploy@main should not change reach (nested setup@main): before %d after %d", d.Before.ConfirmedPairs, d.After.ConfirmedPairs)
+	for _, pd := range d.PerPrincipal {
+		if pd.Principal == "members:acme-actions" && pd.After.Confirmed.Repos != pd.Before.Confirmed.Repos {
+			t.Errorf("pinning only deploy@main should not change members:acme-actions reach (nested setup@main): before %d after %d",
+				pd.Before.Confirmed.Repos, pd.After.Confirmed.Repos)
+		}
 	}
 	after := eng.Reach("members:acme-actions", graph.Options{Fixes: []graph.Fix{pinDeploy}})
 	if !slices.Contains(after.Confirmed.Repos, "repo:acme-app/api") {

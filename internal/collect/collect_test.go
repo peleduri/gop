@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -146,7 +147,7 @@ func TestCollectAcme(t *testing.T) {
 		want := map[string]map[string]string{
 			"org:acme-actions": {graph.AttrSSO: "configured", graph.AttrTwoFactor: "not_required", graph.AttrDefaultPerm: "write",
 				graph.AttrMembersCreate: "true", graph.AttrChangeVisiblity: "false", graph.AttrPrivateForks: "true",
-				graph.AttrIPAllowList: "off", graph.AttrMembers: "2"},
+				graph.AttrIPAllowList: "off", graph.AttrMembers: "1"},
 			"org:acme-app": {graph.AttrDefaultPerm: "read", graph.AttrTwoFactor: "required", graph.AttrMembersCreate: "false",
 				graph.AttrChangeVisiblity: "true", graph.AttrMembers: "3", "repositories": "10"},
 			"org:acme-legacy": {graph.AttrSSO: "enforced", graph.AttrDefaultPerm: "write", graph.AttrDeleteRepos: "true", graph.AttrMembers: "1"},
@@ -345,5 +346,156 @@ func TestOwnerFixWithoutSSO(t *testing.T) {
 	o := &orgState{login: "acme-app", node: &graph.Node{Attrs: map[string]string{graph.AttrSSO: "configured"}}}
 	if got := k.ownerFix(o); got != "org owner on acme-app" {
 		t.Errorf("ownerFix = %q", got)
+	}
+}
+
+func TestCanPushOrgOwners(t *testing.T) {
+	_, ix := collectAcme(t)
+
+	e := ix.mustEdge(t, "identity:alice", "repo:acme-app/web", graph.CanPush)
+	if e.Attrs[graph.AttrVia] != graph.ViaOrgOwner || e.Attrs["permission"] != "admin" ||
+		e.Evidence != graph.Live || e.SourceAPI != srcLicenses {
+		t.Errorf("owner edge = %+v", e)
+	}
+	// Owners reach every collected repo of the org, archived ones included.
+	ix.mustEdge(t, "identity:alice", "repo:acme-app/admin", graph.CanPush)
+	ix.mustEdge(t, "identity:alice", "repo:acme-actions/deploy", graph.CanPush)
+	ix.mustEdge(t, "identity:carol", "repo:acme-secure/vault-proxy", graph.CanPush)
+
+	// A direct grant to an owner keeps the more specific via=direct.
+	api := ix.mustEdge(t, "identity:alice", "repo:acme-app/api", graph.CanPush)
+	if api.Attrs[graph.AttrVia] != graph.ViaDirect || api.Attrs["permission"] != "admin" || api.SourceAPI != srcCollabs {
+		t.Errorf("owner with direct grant = %+v, want via=direct from the collaborators API", api)
+	}
+
+	m := ix.mustEdge(t, "identity:alice", "org:acme-actions", graph.MemberOf)
+	if m.Attrs["role"] != "owner" || m.Evidence != graph.Live || m.SourceAPI != srcLicenses {
+		t.Errorf("MEMBER_OF = %+v", m)
+	}
+	ix.mustEdge(t, "identity:dave", "org:acme-app", graph.MemberOf)
+	if n := ix.node(t, "identity:dave"); n.Kind != graph.KindIdentity || n.Evidence != graph.Live {
+		t.Errorf("identity node = %+v", n)
+	}
+	// Members without a grant get no CAN_PUSH from the read default.
+	ix.noEdge(t, "identity:dave", "repo:acme-app/web", graph.CanPush)
+
+	// blast_radius on an identity now resolves.
+	if s := graph.BlastRadius(ix.g, "identity:alice"); s.Confirmed.Repos == 0 {
+		t.Errorf("alice blast radius = %+v", s)
+	}
+}
+
+func TestCanPushCollaborators(t *testing.T) {
+	_, ix := collectAcme(t)
+
+	t.Run("direct collaborator with push", func(t *testing.T) {
+		e := ix.mustEdge(t, "identity:bob", "repo:acme-actions/deploy", graph.CanPush)
+		if e.Attrs[graph.AttrVia] != graph.ViaDirect || e.Attrs["permission"] != "maintain" ||
+			e.Evidence != graph.Live || e.SourceAPI != srcCollabs {
+			t.Errorf("bob edge = %+v", e)
+		}
+		ix.mustEdge(t, "identity:bob", "repo:acme-app/web", graph.CanPush)
+	})
+
+	t.Run("outside collaborator with a custom role", func(t *testing.T) {
+		e := ix.mustEdge(t, "identity:frank", "repo:acme-app/api", graph.CanPush)
+		if e.Attrs[graph.AttrVia] != graph.ViaOutsideCollaborator || e.Attrs["permission"] != "deployer" ||
+			e.Attrs["base_role"] != "write" || e.Evidence != graph.Live {
+			t.Errorf("frank edge = %+v", e)
+		}
+		if n := ix.node(t, "identity:frank"); n.Kind != graph.KindIdentity {
+			t.Errorf("frank node = %+v", n)
+		}
+		for _, e := range ix.g.Edges {
+			if e.From == "identity:frank" && e.Kind == graph.MemberOf {
+				t.Errorf("outside collaborator has MEMBER_OF %s", e.To)
+			}
+		}
+		erin := ix.mustEdge(t, "identity:erin", "repo:acme-actions/deploy", graph.CanPush)
+		if erin.Attrs[graph.AttrVia] != graph.ViaOutsideCollaborator || erin.Evidence != graph.Live {
+			t.Errorf("erin edge = %+v", erin)
+		}
+	})
+
+	t.Run("collaborator without push", func(t *testing.T) {
+		ix.noEdge(t, "identity:dave", "repo:acme-actions/deploy", graph.CanPush)
+	})
+
+	t.Run("non-owner org is coverage, license grants are not_visible", func(t *testing.T) {
+		c, ok := hasCoverage(ix.g, "org:acme-legacy", "can_push:collaborators")
+		if !ok || c.Reason != "could not list collaborators on 1 repos (needs push access)" {
+			t.Errorf("coverage = %+v (found %v)", c, ok)
+		}
+		if _, ok := hasCoverage(ix.g, "org:acme-legacy", "outside_collaborators"); !ok {
+			t.Error("missing outside_collaborators coverage for acme-legacy")
+		}
+		repo := ix.node(t, "repo:acme-legacy/old-site")
+		if repo.Attrs["collaborators"] != "unknown" || repo.AttrEvidence["collaborators"] != graph.NotVisible {
+			t.Errorf("old-site collaborators = %q (%q)", repo.Attrs["collaborators"], repo.AttrEvidence["collaborators"])
+		}
+		e := ix.mustEdge(t, "identity:bob", "repo:acme-legacy/old-site", graph.CanPush)
+		if e.Evidence != graph.NotVisible || e.Attrs[graph.AttrVia] != graph.ViaDirect || e.Attrs["permission"] != "unknown" {
+			t.Errorf("unconfirmed grant = %+v", e)
+		}
+		for _, c := range ix.g.Coverage {
+			if c.Fact == "can_push:collaborators" && c.Scope != "org:acme-legacy" {
+				t.Errorf("unexpected collaborators coverage: %+v", c)
+			}
+		}
+	})
+
+	t.Run("forbidden repo makes the license grant possible, not confirmed", func(t *testing.T) {
+		f := newFakeGitHub(t)
+		f.forbidCollab["acme-actions/deploy"] = true
+		g, err := Collect(context.Background(), Config{Enterprise: "acme", Client: f.client(t)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		fx := newIndex(g)
+		e := fx.mustEdge(t, "identity:erin", "repo:acme-actions/deploy", graph.CanPush)
+		if e.Evidence != graph.NotVisible || e.Attrs["permission"] != "unknown" || e.Attrs["license_role"] != "Write" {
+			t.Errorf("erin edge = %+v", e)
+		}
+		c, ok := hasCoverage(g, "org:acme-actions", "can_push:collaborators")
+		if !ok || c.Reason != "could not list collaborators on 1 repos (needs push access)" {
+			t.Errorf("coverage = %+v (found %v)", c, ok)
+		}
+		// bob's grant on deploy is unseen, and his license lists no role there.
+		fx.noEdge(t, "identity:bob", "repo:acme-actions/deploy", graph.CanPush)
+		r := graph.Reach(g, "identity:erin", graph.Options{})
+		if slices.Contains(r.Confirmed.Repos, "repo:acme-actions/deploy") {
+			t.Errorf("unconfirmed grant leaked into confirmed reach: %v", r.Confirmed.Repos)
+		}
+		if !slices.Contains(r.Possible.Repos, "repo:acme-actions/deploy") {
+			t.Errorf("possible = %v, want repo:acme-actions/deploy", r.Possible.Repos)
+		}
+	})
+
+	t.Run("one request per repo and org, archived repos skipped", func(t *testing.T) {
+		f, _ := collectAcme(t)
+		if got := f.hitCount("/repos/acme-actions/deploy/collaborators?affiliation=direct&per_page=100"); got != 1 {
+			t.Errorf("deploy collaborators requested %d times, want 1", got)
+		}
+		if got := f.hitCount("/repos/acme-app/admin/collaborators?affiliation=direct&per_page=100"); got != 0 {
+			t.Errorf("archived repo collaborators requested %d times, want 0", got)
+		}
+		if got := f.hitCount("/orgs/acme-app/outside_collaborators?per_page=100"); got != 1 {
+			t.Errorf("outside collaborators requested %d times, want 1 per org", got)
+		}
+	})
+}
+
+func TestCollaboratorPagination(t *testing.T) {
+	f := newFakeGitHub(t)
+	f.pageSize = 1 // deploy's three collaborators span three pages
+	g, err := Collect(context.Background(), Config{Enterprise: "acme", Client: f.client(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ix := newIndex(g)
+	ix.mustEdge(t, "identity:bob", "repo:acme-actions/deploy", graph.CanPush)
+	ix.mustEdge(t, "identity:erin", "repo:acme-actions/deploy", graph.CanPush)
+	if got := f.hitCount("/repos/acme-actions/deploy/collaborators?affiliation=direct&page=3&per_page=100"); got != 1 {
+		t.Errorf("deploy collaborators page 3 requested %d times, want 1", got)
 	}
 }

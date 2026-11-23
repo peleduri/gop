@@ -13,6 +13,19 @@ flags may change in minor releases.
   now carry their source position: `file`, `file_ref` (when known), `line` and,
   on `USES`, `col`. The `explain` summary shows `file:line`. Additive; graphs
   without these attributes still load.
+- Collector: `identity:` nodes for every licensed user with `MEMBER_OF` edges,
+  and `CAN_PUSH` from org owners (`via=org_owner`), direct collaborators
+  (`via=direct`) and outside collaborators (`via=outside_collaborator`) with
+  push, including custom repository roles. Repos whose collaborators can't be
+  listed get one org-level coverage entry and `not_visible` edges for the
+  repo grants listed in the consumed licenses.
+- Engine: `Index.ScoringPrincipals()`. Totals in `top_paths`, `what_if` and
+  `suggest_fixes` count org members plus identities with their own grants, so
+  adding one identity per licensed user does not multiply pair totals.
+
+### Fixed
+
+- The blast-radius multiplier ignores `MEMBER_OF` targets that are not orgs.
 
 ## [0.1.0] - 2026-11-23
 

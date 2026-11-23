@@ -126,6 +126,9 @@ const (
 
 // CAN_PUSH provenance. Collectors set Attrs[AttrVia] so fixes know which edges they remove.
 const (
-	AttrVia        = "via"
-	ViaDefaultPerm = "default_perm" // granted by the org's default repository permission
+	AttrVia                = "via"
+	ViaDefaultPerm         = "default_perm"         // granted by the org's default repository permission
+	ViaOrgOwner            = "org_owner"            // the identity is an owner of the repo's org (admin on every repo)
+	ViaDirect              = "direct"               // a direct collaborator grant on the repo
+	ViaOutsideCollaborator = "outside_collaborator" // a direct grant to a user who is not an org member
 )

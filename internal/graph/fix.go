@@ -54,7 +54,9 @@ func (f PinRef) edges(ix *Index) []Edge {
 
 // LowerDefaultPerm lowers an org's base repository permission. When To is "read"
 // or "none" it removes the members:X CAN_PUSH edges that came from the default
-// permission (Attrs["via"] == "default_perm"). Other values are a no-op.
+// permission (Attrs["via"] == "default_perm"). Owner, direct and outside
+// collaborator grants (via org_owner, direct, outside_collaborator) are kept.
+// Other values of To are a no-op.
 type LowerDefaultPerm struct {
 	Org string `json:"org"` // "org:X"
 	To  string `json:"to"`  // read | none
@@ -88,9 +90,9 @@ func (f LowerDefaultPerm) edges(ix *Index) []Edge {
 	return out
 }
 
-// Totals sums scores across all principals. ConfirmedPairs is the number of
-// (principal, repo) pairs with a fully verified path; PossiblePairs the pairs
-// that exist only through a not_visible hop.
+// Totals sums scores across the scoring principals (see ScoringPrincipals).
+// ConfirmedPairs is the number of (principal, repo) pairs with a fully verified
+// path; PossiblePairs the pairs that exist only through a not_visible hop.
 type Totals struct {
 	Principals     int     `json:"principals"`
 	Confirmed      Counts  `json:"confirmed"`
@@ -121,7 +123,7 @@ type PrincipalDelta struct {
 	After     Score  `json:"after"`
 }
 
-// Delta is the result of WhatIf. PerPrincipal covers every principal, sorted by ID.
+// Delta is the result of WhatIf. PerPrincipal covers every scoring principal, sorted by ID.
 type Delta struct {
 	Fixes        []string         `json:"fixes"`
 	Before       Totals           `json:"before"`
@@ -147,7 +149,8 @@ func (ix *Index) WhatIf(fixes []Fix) Delta {
 }
 
 // FixSuggestion is one pick of SuggestFixes. Removed is the marginal number of
-// confirmed (principal, repo) pairs this fix removes on top of earlier picks.
+// confirmed (principal, repo) pairs, summed over ScoringPrincipals, that this fix
+// removes on top of earlier picks.
 type FixSuggestion struct {
 	Fix               Fix      `json:"fix"`
 	FixID             string   `json:"fix_id"`
@@ -217,7 +220,7 @@ func (ix *Index) SuggestFixes(budget int) []FixSuggestion {
 	pairs := func(fixes []Fix) int {
 		cg := ix.control(fixes)
 		n := 0
-		for _, p := range ix.Principals() {
+		for _, p := range ix.ScoringPrincipals() {
 			n += len(ix.reach(cg, p).Confirmed.Repos)
 		}
 		return n
