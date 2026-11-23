@@ -136,6 +136,8 @@ func KindFromID(id string) NodeKind {
 		return KindRunner
 	case "cloud":
 		return KindCloudTarget
+	case "external":
+		return KindExternal
 	}
 	return ""
 }
@@ -157,16 +159,17 @@ func OrgOf(id string) string {
 	return ""
 }
 
-// Principals returns every node that can start an attack: org_members and identity
-// nodes, plus undeclared sources of MEMBER_OF edges and org_members or identity
-// sources of CAN_PUSH edges. A workflow with a write token (workflow -CAN_PUSH->
-// repo, via=token_write) is controlled, never a principal. Sorted. This is
-// the full set used by WhoCanReach and accepted by Reach and BlastRadius; totals
-// use ScoringPrincipals instead.
+// Principals returns every node that can start an attack: org_members, identity
+// and external nodes, plus undeclared sources of MEMBER_OF edges and
+// org_members, identity or external sources of CAN_PUSH and CAN_TRIGGER edges.
+// A workflow with a write token (workflow -CAN_PUSH-> repo, via=token_write)
+// is controlled, never a principal. Sorted. This is the full set used by
+// WhoCanReach and accepted by Reach and BlastRadius; totals use
+// ScoringPrincipals instead.
 func (ix *Index) Principals() []string {
 	set := map[string]bool{}
 	for id, n := range ix.nodes {
-		if n.Kind == KindOrgMembers || n.Kind == KindIdentity {
+		if isPrincipalKind(n.Kind) {
 			set[id] = true
 		}
 	}
@@ -174,8 +177,8 @@ func (ix *Index) Principals() []string {
 		switch e.Kind {
 		case MemberOf:
 			set[e.From] = true
-		case CanPush:
-			if k := ix.Kind(e.From); k == KindOrgMembers || k == KindIdentity {
+		case CanPush, CanTrigger:
+			if isPrincipalKind(ix.Kind(e.From)) {
 				set[e.From] = true
 			}
 		}
@@ -183,23 +186,29 @@ func (ix *Index) Principals() []string {
 	return sortedKeys(set)
 }
 
+func isPrincipalKind(k NodeKind) bool {
+	return k == KindOrgMembers || k == KindIdentity || k == KindExternal
+}
+
 // ScoringPrincipals is the subset of Principals that TopPaths, WhatIf and
-// SuggestFixes score and sum into (principal, repo) pair totals: every org_members
-// principal, plus each identity with at least one CAN_PUSH edge or a MEMBER_OF edge
-// to something other than an org (a team). Team principals ("team:O/slug") qualify
-// through their CAN_PUSH grants or their MEMBER_OF edge to a parent team; a team
-// with neither reaches nothing. An identity whose only edges are org
-// MEMBER_OF reaches exactly what members:X reaches, so counting it again would
-// multiply the totals by the number of licensed users without adding reach. Sorted.
+// SuggestFixes score and sum into (principal, repo) pair totals: every
+// org_members and external principal (each a population), plus each identity
+// with at least one CAN_PUSH or CAN_TRIGGER edge or a MEMBER_OF edge to
+// something other than an org (a team). Team principals ("team:O/slug")
+// qualify through their CAN_PUSH grants or their MEMBER_OF edge to a parent
+// team; a team with neither reaches nothing. An identity whose only edges are
+// org MEMBER_OF reaches exactly what members:X reaches, so counting it again
+// would multiply the totals by the number of licensed users without adding
+// reach. Sorted.
 func (ix *Index) ScoringPrincipals() []string {
 	var out []string
 	for _, p := range ix.Principals() {
-		if ix.Kind(p) == KindOrgMembers {
+		if k := ix.Kind(p); k == KindOrgMembers || k == KindExternal {
 			out = append(out, p)
 			continue
 		}
 		for _, e := range ix.out[p] {
-			if e.Kind == CanPush || (e.Kind == MemberOf && ix.Kind(e.To) != KindOrg) {
+			if e.Kind == CanPush || e.Kind == CanTrigger || (e.Kind == MemberOf && ix.Kind(e.To) != KindOrg) {
 				out = append(out, p)
 				break
 			}

@@ -47,6 +47,12 @@ import (
 //	                                     against the consumer's repo by actionsAccessAllows: a
 //	                                     disallowed hop is dropped, and an unknown setting makes a
 //	                                     cross-org hop not_visible. No attr: the hop is unchanged.
+//	principal -CAN_TRIGGER->  workflow   the principal can cause a risky trigger (pull_request_target,
+//	                                     workflow_run, issue_comment, ...) of a workflow that runs
+//	                                     attacker-controlled code: a forward control hop like CAN_PUSH.
+//	                                     The workflow is controlled, so its EXECUTES_WITH terminals are
+//	                                     reached, its repo counts as CI reach, and a via=token_write
+//	                                     CAN_PUSH expands to the repo.
 //	workflow  -EXECUTES_WITH-> secret|oidc|runner   terminal impact
 type controlGraph struct {
 	out map[string][]cedge
@@ -245,7 +251,7 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 				}
 			}
 			add(e.To, e.From, e, true, false)
-		case ExecutesWith:
+		case ExecutesWith, CanTrigger:
 			add(e.From, e.To, e, false, false)
 		}
 	}

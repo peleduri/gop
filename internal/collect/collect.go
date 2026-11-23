@@ -1079,6 +1079,7 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 		facts.SetFile(e.Path, repo.Attrs["default_branch"])
 		k.addWorkflowFacts(wid, full, facts)
 		pending = k.addTokenFacts(wid, wn, repo, facts, pending)
+		k.addTriggerFacts(o, repo, wid, wn, facts)
 	}
 	setAttr(repo, "workflows", strconv.Itoa(count), graph.Live)
 	return k.resolveTokenDefaults(ctx, o, repo, pending)

@@ -416,7 +416,7 @@
         "fork": "false",
         "org": "acme-app",
         "visibility": "internal",
-        "workflows": "1"
+        "workflows": "2"
       },
       "evidence": "live"
     },
@@ -697,6 +697,19 @@
         "path": ".github/workflows/build.yml",
         "repo": "acme-app/docs",
         "token_write": "true"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/preview.yml",
+      "attrs": {
+        "path": ".github/workflows/preview.yml",
+        "repo": "acme-app/docs",
+        "risky_triggers": "pull_request_target",
+        "token_scopes": "pull-requests",
+        "token_write": "false"
       },
       "evidence": "live"
     },
@@ -1553,6 +1566,41 @@
         "level": "job",
         "line": "5",
         "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "0001-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "secret:acme-app/docs",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "secrets": "NPM_TOKEN"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "action:actions/checkout@v4",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "col": "15",
+        "file": ".github/workflows/preview.yml",
+        "job": "preview",
+        "level": "step",
+        "line": "12",
+        "ref_kind": "tag"
       }
     },
     {

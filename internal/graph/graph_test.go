@@ -602,3 +602,69 @@ func TestTokenWriteControlsRepo(t *testing.T) {
 		t.Errorf("hidden token edge: confirmed %v possible %v", rh.Confirmed.Workflows, rh.Possible.Workflows)
 	}
 }
+
+// TestCanTriggerControlsWorkflow: anyone on the internet who can open a pull
+// request against a public repo's pull_request_target workflow that checks
+// out the head controls that workflow: its secrets, its repo's CI and, with a
+// write token, the repo itself and every workflow in it.
+func TestCanTriggerControlsWorkflow(t *testing.T) {
+	const (
+		anyone  = "external:anyone"
+		preview = "workflow:acme-app/docs/.github/workflows/preview.yml"
+		build   = "workflow:acme-app/docs/.github/workflows/build.yml"
+		docs    = "repo:acme-app/docs"
+		secret  = "secret:acme-app/docs"
+	)
+	g := &Graph{Schema: SchemaVersion,
+		Nodes: []Node{{ID: anyone, Kind: KindExternal, Name: "anyone on the internet", Evidence: Live}},
+		Edges: []Edge{
+			edge(anyone, "CAN_TRIGGER", preview, "trigger", "pull_request_target", "exec", "checkout", "job", "preview"),
+			edge(preview, "DEFINED_IN", docs),
+			edge(preview, "EXECUTES_WITH", secret),
+			edge(build, "DEFINED_IN", docs),
+			edge(build, "EXECUTES_WITH", "oidc:acme-app/docs"),
+		}}
+	ix := NewIndex(g)
+	if !slices.Contains(ix.Principals(), anyone) || !slices.Contains(ix.ScoringPrincipals(), anyone) {
+		t.Fatalf("principals %v, scoring %v: want %s in both", ix.Principals(), ix.ScoringPrincipals(), anyone)
+	}
+	if KindFromID(anyone) != KindExternal {
+		t.Errorf("KindFromID(%s) = %q", anyone, KindFromID(anyone))
+	}
+	r := ix.Reach(anyone, Options{})
+	if !slices.Equal(r.Confirmed.Secrets, []string{secret}) || !slices.Equal(r.Confirmed.Workflows, []string{preview}) {
+		t.Errorf("confirmed = %+v", r.Confirmed)
+	}
+	if h := r.Paths[secret].Hops; len(h) != 2 || h[0].Kind != CanTrigger || h[0].Reverse {
+		t.Errorf("path to %s = %+v", secret, h)
+	}
+	// The repo is CI reach only: build.yml and its OIDC token are not reached.
+	if !slices.Equal(r.Confirmed.Repos, []string{docs}) || len(r.Confirmed.OIDC) != 0 {
+		t.Errorf("without a write token: confirmed %+v", r.Confirmed)
+	}
+	if m := ix.multiplier(anyone); m != 1 {
+		t.Errorf("multiplier = %v, want 1", m)
+	}
+
+	// With a write GITHUB_TOKEN the trigger reaches the repo and build.yml.
+	tw := cloneGraph(g)
+	tw.Edges = append(tw.Edges, edge(preview, "CAN_PUSH", docs, AttrVia, ViaTokenWrite))
+	rw := Reach(tw, anyone, Options{})
+	if !slices.Contains(rw.Confirmed.Workflows, build) || !slices.Equal(rw.Confirmed.OIDC, []string{"oidc:acme-app/docs"}) {
+		t.Errorf("with a write token: confirmed %+v", rw.Confirmed)
+	}
+
+	// A not_visible trigger (fork setting unknown) is possible reach only.
+	hidden := cloneGraph(g)
+	hidden.Edges[0].Evidence = NotVisible
+	rh := Reach(hidden, anyone, Options{})
+	if len(rh.Confirmed.Secrets) != 0 || !slices.Equal(rh.Possible.Secrets, []string{secret}) {
+		t.Errorf("hidden trigger: confirmed %+v possible %+v", rh.Confirmed, rh.Possible)
+	}
+
+	// Who can reach the secret lists anyone on the internet.
+	who := ix.WhoCanReach(secret)
+	if len(who) != 1 || who[0].From != anyone {
+		t.Errorf("WhoCanReach(%s) = %+v", secret, who)
+	}
+}

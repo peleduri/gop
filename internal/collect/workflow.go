@@ -63,6 +63,11 @@ type WorkflowFacts struct {
 	TokenScopes        []string // other write scopes (e.g. id-token, packages), sorted; "write-all" for write-all
 	File               string   // repo-relative path, set by the caller
 	FileRef            string   // commit or branch the file was read at, set by the caller
+
+	// Triggers are the on: event names, sorted; UntrustedExec the jobs that
+	// run attacker input under a risky trigger (triggers.go).
+	Triggers      []string
+	UntrustedExec []UntrustedExec
 }
 
 // IDTokenJob is one job that can mint an OIDC token, with the inputs of the
@@ -486,6 +491,7 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse workflow: %w", err)
 	}
+	f.Triggers, f.UntrustedExec = triggerFacts(&doc)
 	return f, nil
 }
 

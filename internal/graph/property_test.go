@@ -232,6 +232,10 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 			out = append(out, rev)
 		case ExecutesWith:
 			out = append(out, fwd)
+		case CanTrigger:
+			// A principal that can cause a risky trigger of a workflow running
+			// attacker code controls the workflow, like a push would.
+			out = append(out, fwd)
 		}
 	}
 	return out
@@ -489,9 +493,11 @@ func sameKeys(a map[string]bool, b map[string]int) error {
 
 // ---- properties ------------------------------------------------------------
 
-// propPrincipalKinds (P11): every principal is an org_members or identity node,
-// or an undeclared MEMBER_OF source. A workflow with a write token is the
-// source of a CAN_PUSH edge but never a principal.
+// propPrincipalKinds (P11): every principal is an org_members, identity or
+// external node, or an undeclared MEMBER_OF source. A workflow with a write
+// token is the source of a CAN_PUSH edge but never a principal. Every
+// org_members or external node, and every CAN_TRIGGER source of those kinds,
+// is a principal.
 func propPrincipalKinds(g *Graph, _ *rand.Rand) error {
 	kinds := map[string]NodeKind{}
 	for _, n := range g.Nodes {
@@ -508,8 +514,28 @@ func propPrincipalKinds(g *Graph, _ *rand.Rand) error {
 		if !declared || k == "" {
 			k = KindFromID(p)
 		}
-		if k != KindOrgMembers && k != KindIdentity && !memberOf[p] {
+		if k != KindOrgMembers && k != KindIdentity && k != KindExternal && !memberOf[p] {
 			return fmt.Errorf("principal %s has kind %q", p, k)
+		}
+	}
+	kindOf := func(id string) NodeKind {
+		if k := kinds[id]; k != "" {
+			return k
+		}
+		return KindFromID(id)
+	}
+	ps := map[string]bool{}
+	for _, p := range NewIndex(g).Principals() {
+		ps[p] = true
+	}
+	for _, e := range g.Edges {
+		if k := kindOf(e.From); e.Kind == CanTrigger && (k == KindOrgMembers || k == KindIdentity || k == KindExternal) && !ps[e.From] {
+			return fmt.Errorf("CAN_TRIGGER source %s (%s) is not a principal", e.From, k)
+		}
+	}
+	for _, n := range g.Nodes {
+		if n.Kind == KindExternal && !ps[n.ID] {
+			return fmt.Errorf("external node %s is not a principal", n.ID)
 		}
 	}
 	return nil

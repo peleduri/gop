@@ -9,7 +9,8 @@ import (
 // genGraph builds a random but valid evidence graph of roughly size nodes over
 // synthetic names (org:acme-o3, repo:acme-o3/r17, identity:u5, ...). It uses
 // every EdgeKind, every Evidence value, random ref_kind and via attributes
-// (including workflow -CAN_PUSH-> repo with via=token_write),
+// (including workflow -CAN_PUSH-> repo with via=token_write), CAN_TRIGGER
+// edges from org members, identities and external:anyone into workflows,
 // parallel edges and cycles through nested USES, and actions_access levels on
 // action host repos. A few edge endpoints are left
 // undeclared so kind inference from the ID is exercised too.
@@ -179,6 +180,21 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		}
 		for k := r.IntN(2); k > 0; k-- {
 			edge(w, pick(terminals), ExecutesWith, nil)
+		}
+	}
+	// Risky triggers: anyone on the internet (a public repo), an org's
+	// members (internal or private) or an identity can cause an untrusted
+	// execution in some workflows. external:anyone is a declared external node
+	// (or, 1 in 20, undeclared and inferred from the prefix).
+	if r.IntN(3) != 0 {
+		node("external:anyone", KindExternal, nil)
+	}
+	triggerers := append(append([]string{"external:anyone"}, members...), idents...)
+	execs := []string{"checkout", "injection"}
+	for _, w := range workflows {
+		for k := r.IntN(4) - 1; k > 0; k-- {
+			edge(pick(triggerers), w, CanTrigger, map[string]string{
+				"trigger": "pull_request_target", "exec": execs[r.IntN(len(execs))], "job": "build"})
 		}
 	}
 	// Nested USES, cycles allowed (a -> b -> a, self loops).

@@ -35,6 +35,9 @@ const (
 	KindOIDC        NodeKind = "oidc"       // id-token: write
 	KindRunner      NodeKind = "runner"     // self-hosted runner pool
 	KindCloudTarget NodeKind = "cloud_target"
+	// KindExternal is a principal outside the enterprise; "external:anyone"
+	// is anyone on the internet (who can fork a public repo or comment on it).
+	KindExternal NodeKind = "external"
 )
 
 // EdgeKind is the type of an edge.
@@ -56,6 +59,12 @@ const (
 	ExecutesWith EdgeKind = "EXECUTES_WITH"
 	// MemberOf: identity -> org, identity -> team, or child team -> parent team.
 	MemberOf EdgeKind = "MEMBER_OF"
+	// CanTrigger: principal (org_members, identity, external) -> workflow. The
+	// principal can cause a risky trigger (pull_request_target, workflow_run,
+	// issue_comment, ...) of a workflow that then runs attacker-controlled code
+	// (attrs trigger, exec=checkout|injection, job), so the principal controls
+	// the workflow without push access.
+	CanTrigger EdgeKind = "CAN_TRIGGER"
 )
 
 // Node is a vertex. ID is stable and human-readable, e.g. "org:acme-actions",

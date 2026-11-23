@@ -57,6 +57,7 @@ Every node and edge has `evidence`:
 | `oidc` | `oidc:acme-app/web` | `id-token: write` (cloud OIDC). |
 | `runner` | `runner:acme-app/worker` | A self-hosted runner pool. |
 | `cloud_target` | `cloud:...` | A cloud account or role trusted through OIDC. |
+| `external` | `external:anyone` | A principal outside the enterprise. `external:anyone` is anyone on the internet: they can fork a public repo, open pull requests and comment on it. See [Triggers](#triggers). |
 
 ### Attributes
 
@@ -97,6 +98,8 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `job_workflow_ref` | `EXECUTES_WITH` edge to `oidc` | Comma list of the enterprise reusable workflows, called by an id-token job (directly or through other reusable workflows), whose jobs mint the token, in the claim's form `owner/repo/.github/workflows/x.yml@refs/heads/main` (`refs/tags/v1` for a tag, the bare SHA for a SHA; branch versus tag follows the `ref_kind` naming heuristic). Absent when no called reusable workflow mints a token or the called workflow was not read. |
 | `repository`, `repository_owner` | `EXECUTES_WITH` edge to `oidc` | The `repository` (`acme-app/web`) and `repository_owner` (`acme-app`) claims of the token: the repo the workflow runs in, also for tokens minted in a called reusable workflow. With `environments` and `job_workflow_ref` these are the inputs a cloud trust's `sub` (`repo:<repository>:environment:<env>`) and other claim conditions match against. The engine does not read them. |
 | `token_write` | workflow | `true` when the workflow's `GITHUB_TOKEN` has `contents: write` on its own repo (then a `via=token_write` `CAN_PUSH` edge points at the repo), `false`, or `unknown` (`not_visible`, with a `default_workflow_permissions` coverage entry) when a job takes the default and the default is not visible. See [Workflow tokens](#workflow-tokens). |
+| `risky_triggers` | workflow | Comma list of the workflow's triggers that run in the base repo's context on events people without push access can cause: `pull_request_target`, `workflow_run`, `issue_comment`, `pull_request_review`, `pull_request_review_comment`, `discussion`, `discussion_comment`, `issues`. Set whether or not gop found attacker-controlled execution. See [Triggers](#triggers). |
+| `trigger`, `exec`, `job`, `detail` | `CAN_TRIGGER` edge | The risky trigger, how the workflow runs attacker input (`checkout` or `injection`), the job id, and the matched value (e.g. `ref: ${{ github.event.pull_request.head.sha }}` or `github.event.comment.body`). |
 | `token_scopes` | workflow | Comma list of the token's other write scopes (`actions`, `id-token`, `packages`, `pull-requests`, ...), or `write-all`. Display only: the engine does not read it. |
 | `col` | `USES` edge | 1-based column where the `uses:` value starts (the opening quote, if quoted), integer as string. |
 | `demo` | enterprise | `true` on a synthetic graph from `gop demo`; MCP summaries and the report title then start with `[demo data]` |
@@ -123,6 +126,7 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `RESOLVES_TO` | action_ref → repo | The repo that hosts the Action. |
 | `DEFINED_IN` | workflow → repo | The repo the workflow lives in. Code pushed there changes the workflow. |
 | `EXECUTES_WITH` | workflow → secret, oidc, runner | Terminal impact: what the workflow runs with. |
+| `CAN_TRIGGER` | org_members, identity, external → workflow | The principal can cause a risky trigger of the workflow, and the workflow then runs attacker-controlled code, so the principal controls the workflow without push access. See [Triggers](#triggers). |
 | `MEMBER_OF` | identity → org, identity → team, team → team | Org membership, from the enterprise consumed licenses (`attrs.role` is `owner` or `member`; outside collaborators have none). Direct team membership (`GET /orgs/{org}/teams/{slug}/members?role=all`). A child team's nesting under its parent (`GET /orgs/{org}/teams`, `parent.slug`): members of the child reach what the parent reaches. |
 
 ### CAN_PUSH provenance
@@ -163,7 +167,32 @@ When some workflow in a repo takes the default, `gop collect` reads `GET /repos/
 
 For `token_write=true` the workflow gets `workflow -CAN_PUSH-> repo` with `via=token_write`, evidence `live`, and source `rest:GET /repos/{owner}/{repo}/contents/{path}` when the file decided, or the settings API that did. For `unknown` the same edge is `not_visible` and the repo gets a `default_workflow_permissions` coverage entry (`needs_fix: admin on <repo> (or org owner)`). The engine needs nothing more: `CAN_PUSH` is a full control hop, so the repo is expanded (its workflows and the actions it hosts), not just counted as CI reach. A `GITHUB_TOKEN` push is subject to branch protection like any push, so `ref_protected` still gates the `repo -> action` hop.
 
-Known limitations: a `GITHUB_TOKEN` cannot change files under `.github/workflows/` (that needs the `workflows` permission, which it never has). gop still expands the repo to its workflows (`DEFINED_IN` reversed), because workflows almost always run repo code: scripts, local actions, build files. Such paths show `via=token_write` on the `CAN_PUSH` hop (`explain` prints edge attrs). Who can trigger the workflow (`pull_request` from forks always gets a read token) is not modeled yet, and other write scopes (`actions`, `packages`) are recorded in `token_scopes` only.
+Known limitations: a `GITHUB_TOKEN` cannot change files under `.github/workflows/` (that needs the `workflows` permission, which it never has). gop still expands the repo to its workflows (`DEFINED_IN` reversed), because workflows almost always run repo code: scripts, local actions, build files. Such paths show `via=token_write` on the `CAN_PUSH` hop (`explain` prints edge attrs). Who can trigger the workflow is modeled separately (see [Triggers](#triggers)), and other write scopes (`actions`, `packages`) are recorded in `token_scopes` only.
+
+### Triggers
+
+Some triggers run a workflow in the base repo's context, with its secrets and a possibly write `GITHUB_TOKEN`, on events that people without push access can cause. `gop collect` reads `on:` in all three shapes (a string, a list, a map) and calls these triggers risky: `pull_request_target`, `workflow_run`, `issue_comment`, `pull_request_review`, `pull_request_review_comment`, `discussion`, `discussion_comment`, `issues`. The workflow gets `risky_triggers`.
+
+A risky trigger alone does not run attacker code. For each job of such a workflow gop looks for two patterns, matching exact context names:
+
+| `exec` | Pattern |
+|---|---|
+| `checkout` | A step `uses: actions/checkout@*` whose `with.ref` or `with.repository` contains `github.event.pull_request.head.`, `github.head_ref`, `refs/pull/`, `github.event.workflow_run.head_` or `github.event.issue.pull_request`; or a `run:` containing `gh pr checkout` or `git fetch origin pull/`. |
+| `injection` | A `run:` or `actions/github-script` `script` whose `${{ }}` expression uses `github.event.(issue\|pull_request\|comment\|review\|discussion).(title\|body\|head.ref\|head.label)`, `github.head_ref`, `github.event.workflow_run.head_branch` or `github.event.commits.*.message`. Passing the value through `env:` and reading `$VAR` in the script is not flagged. |
+
+When a job matches, the principals who can cause the trigger get `principal -CAN_TRIGGER-> workflow` (one edge per principal, evidence `live`, source `rest:GET /repos/{owner}/{repo}/contents/{path}`), by the repo's visibility:
+
+| Visibility | Principals |
+|---|---|
+| `public` | `external:anyone`. |
+| `internal` | `members:<org>` for every collected, non-archived org: every enterprise member can read an internal repo. |
+| `private` | `members:<org>` of the repo's org when its `default_perm` is `read`, `write` or `admin`. With `none`, only collaborators and teams with read access can trigger it, which gop does not collect: no edge, and a `triggering_principals` coverage entry. |
+
+`pull_request_target` and `workflow_run` need a pull request from a fork (for `workflow_run`, one that starts the upstream workflow). On an internal or private repo that needs the repo's org to allow forking private and internal repos (`private_forks`): `false` means no edge, `unknown` makes the edges `not_visible`. Comment, review, issue and discussion triggers need read access only. A visibility or setting gop can't read makes the edge `not_visible`, so the path is possible, never confirmed.
+
+Plain `pull_request` gets no edge: from a fork, its `GITHUB_TOKEN` is read-only and secrets are withheld, so the fork's code runs with nothing worth taking.
+
+The engine treats `CAN_TRIGGER` as a forward control hop, like `CAN_PUSH`: the workflow is controlled, so its `EXECUTES_WITH` terminals are reached, its repo counts as CI reach, and a `via=token_write` `CAN_PUSH` expands to the repo. Environment protection rules that withhold secrets until approval, `if:` conditions on jobs, and artifacts a `workflow_run` downloads are not modeled.
 
 ### Actions access
 
@@ -180,7 +209,7 @@ A hop the setting forbids is dropped. Graphs without `actions_access` behave as 
 
 ### Principals and scoring
 
-`who_can_reach`, `reach` and `blast_radius` accept every principal: each `org_members` node and each `identity` node. Workflows are not principals, even with a `via=token_write` `CAN_PUSH` edge. Totals (`top_paths`, `what_if`, `suggest_fixes`) sum over the scoring principals only: every `org_members` node, plus identities with at least one `CAN_PUSH` edge or a `MEMBER_OF` edge to something that is not an org (a team). Teams qualify the same way: through their own grants or their nesting under a parent team. An identity whose only edges are org memberships reaches exactly what `members:X` reaches, so counting it again would multiply the `(principal, repo)` pair totals by the number of licensed users.
+`who_can_reach`, `reach` and `blast_radius` accept every principal: each `org_members`, `identity` and `external` node. Workflows are not principals, even with a `via=token_write` `CAN_PUSH` edge. Totals (`top_paths`, `what_if`, `suggest_fixes`) sum over the scoring principals only: every `org_members` and `external` node, plus identities with at least one `CAN_PUSH` or `CAN_TRIGGER` edge or a `MEMBER_OF` edge to something that is not an org (a team). Teams qualify the same way: through their own grants or their nesting under a parent team. An identity whose only edges are org memberships reaches exactly what `members:X` reaches, so counting it again would multiply the `(principal, repo)` pair totals by the number of licensed users.
 
 A reach path reads, for example: `members:acme-actions -CAN_PUSH-> repo:acme-actions/deploy <-RESOLVES_TO- action:acme-actions/deploy@main <-USES- workflow:acme-app/web/.github/workflows/release.yml -EXECUTES_WITH-> oidc:...`.
 
@@ -248,3 +277,4 @@ The JSON Schema allows unknown fields and attribute keys for this reason. Consum
 | `gop.graph/v1` | unreleased | Additive: `CAN_PUSH` from a workflow to its own repo with `via=token_write`, `permission=contents: write` and `jobs`; `token_write` and `token_scopes` on workflow nodes; coverage fact `default_workflow_permissions`. Coverage scoped to a repo also covers the workflows in it (`gop validate`). |
 | `gop.graph/v1` | unreleased | Additive: `actions_access` on repo nodes (typed in the JSON Schema as `NodeAttrs`), `consumer_org` on `USES` edges (`EdgeAttrs`), coverage fact `actions_access`. |
 | `gop.graph/v1` | unreleased | Additive: OIDC claim inputs `jobs`, `environments`, `job_workflow_ref`, `repository` and `repository_owner` on `EXECUTES_WITH` edges to `oidc` (typed in the JSON Schema as `EdgeAttrs`). The OIDC edge now exists only when at least one job resolves to `id-token: write` after job-level permissions replace workflow-level ones. |
+| `gop.graph/v1` | unreleased | Additive: node kind `external` (`external:anyone`), edge kind `CAN_TRIGGER` with `trigger`, `exec`, `job` and `detail`, `risky_triggers` on workflow nodes, coverage fact `triggering_principals`. New kinds would normally bump the version (see above); they stay in v1 because `graph.Load` does not check kinds and the engine ignores edge kinds it does not know, so older gop releases load the file and only miss these paths (an older `gop validate` reports the new kinds). |
