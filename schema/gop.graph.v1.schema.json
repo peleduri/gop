@@ -58,7 +58,7 @@
         "id": {"type": "string", "minLength": 1},
         "kind": {"$ref": "#/$defs/NodeKind"},
         "name": {"type": "string"},
-        "attrs": {"$ref": "#/$defs/Attrs"},
+        "attrs": {"$ref": "#/$defs/NodeAttrs"},
         "evidence": {"$ref": "#/$defs/Evidence"},
         "attr_evidence": {
           "description": "Per-attribute evidence where it differs from evidence.",
@@ -93,11 +93,21 @@
         "attrs": {"$ref": "#/$defs/EdgeAttrs"}
       }
     },
+    "NodeAttrs": {
+      "description": "Node attributes. Known keys are typed below; unknown keys are allowed.",
+      "allOf": [{"$ref": "#/$defs/Attrs"}],
+      "properties": {
+        "ref_protected": {"description": "action_ref on a branch: whether branch protection stops a pusher from changing it alone.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "ref_protection": {"description": "Comma list of the branch's rules, e.g. reviews,dismiss_stale,status_checks.", "type": "string", "minLength": 1},
+        "bypass": {"description": "Comma list of principal IDs that can land code on the protected branch alone, none, or unknown.", "type": "string", "minLength": 1}
+      }
+    },
     "EdgeAttrs": {
       "description": "Edge attributes. Known keys are typed below; unknown keys are allowed.",
       "allOf": [{"$ref": "#/$defs/Attrs"}],
       "properties": {
-        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator, team. New values may be added within v1.", "type": "string", "minLength": 1},
+        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator, team, ref_bypass. New values may be added within v1.", "type": "string", "minLength": 1},
+        "ref": {"description": "Branch a via=ref_bypass CAN_PUSH edge applies to.", "type": "string", "minLength": 1},
         "ref_kind": {"type": "string", "enum": ["sha", "tag", "branch"]},
         "file": {"description": "Repo-relative path of the workflow or action file the edge was read from.", "type": "string", "minLength": 1},
         "file_ref": {"description": "Commit or branch the file was read at, when known.", "type": "string"},

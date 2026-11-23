@@ -28,6 +28,8 @@
         "owner": "acme-actions",
         "ref": "main",
         "ref_kind": "branch",
+        "ref_protected": "false",
+        "ref_protection": "reviews",
         "repo": "deploy",
         "runs_using": "composite"
       },
@@ -59,6 +61,8 @@
         "path": ".github/workflows/build.yml",
         "ref": "main",
         "ref_kind": "branch",
+        "ref_protected": "false",
+        "ref_protection": "status_checks",
         "repo": "setup",
         "reusable_workflow": "true"
       },
@@ -74,6 +78,8 @@
         "owner": "acme-actions",
         "ref": "main",
         "ref_kind": "branch",
+        "ref_protected": "false",
+        "ref_protection": "status_checks",
         "repo": "setup",
         "runs_using": "composite"
       },
@@ -580,6 +586,17 @@
         "org": "acme-actions",
         "privacy": "closed",
         "slug": "readers"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "team:acme-actions/release",
+      "kind": "identity",
+      "name": "acme-actions/release",
+      "attrs": {
+        "org": "acme-actions",
+        "privacy": "closed",
+        "slug": "release"
       },
       "evidence": "live"
     },

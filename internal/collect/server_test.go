@@ -42,6 +42,7 @@ type fixture struct {
 
 // fixtureTeam is one org team: its direct members, its parent and its repo grants.
 type fixtureTeam struct {
+	ID               int64    `json:"id"`
 	Slug             string   `json:"slug"`
 	Parent           string   `json:"parent"`
 	Privacy          string   `json:"privacy"`
@@ -82,6 +83,15 @@ type fakeGitHub struct {
 	// "owner/repo/file.yml", so one test can plant a reference without
 	// changing the shared fixture.
 	extraWorkflows map[string]string
+
+	// Branch protection, loaded from each repo's branch_rules, branch_protection
+	// and rulesets. Tests may change these before collecting.
+	rules      map[string][]json.RawMessage // "o/r@branch" -> active rules
+	protection map[string]json.RawMessage   // "o/r@branch" -> classic protection
+	rulesets   map[string]json.RawMessage   // "o/r#id" -> ruleset (with bypass_actors)
+	forbidRule map[string]bool              // "o/r" -> /rules/branches returns 403
+	hideBypass bool                         // rulesets omit bypass_actors, as for non-admins
+	userIDs    map[int64]string             // /user/{id} -> login
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -95,6 +105,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
 		t.Fatal(err)
 	}
+	f.loadProtection(t)
 	f.srv = httptest.NewServer(http.HandlerFunc(f.serve))
 	t.Cleanup(f.srv.Close)
 	return f
@@ -173,6 +184,9 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		f.customRoles(w, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/custom-repository-roles"))
 	case strings.HasPrefix(p, "/repos/") && strings.HasSuffix(p, "/collaborators"):
 		f.collaborators(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/repos/"), "/collaborators"))
+	case strings.HasPrefix(p, "/repos/") && f.branchProtection(w, r):
+	case strings.HasPrefix(p, "/user/"):
+		f.user(w, strings.TrimPrefix(p, "/user/"))
 	case strings.HasPrefix(p, "/repos/"):
 		f.contents(w, r)
 	default:
@@ -228,6 +242,9 @@ func (f *fakeGitHub) repos(w http.ResponseWriter, r *http.Request, org string) {
 			m["full_name"] = org + "/" + m["name"].(string)
 			delete(m, "collaborators")
 			delete(m, "collaborators_forbidden")
+			delete(m, "branch_rules")
+			delete(m, "branch_protection")
+			delete(m, "rulesets")
 			if _, ok := m["archived"]; !ok {
 				m["archived"] = false
 			}
@@ -315,7 +332,7 @@ func (f *fakeGitHub) teams(w http.ResponseWriter, r *http.Request, rest string) 
 				if _, ok := visible[t.Slug]; !ok {
 					continue
 				}
-				m := map[string]any{"slug": t.Slug, "name": t.Slug, "privacy": t.Privacy, "parent": nil}
+				m := map[string]any{"id": t.ID, "slug": t.Slug, "name": t.Slug, "privacy": t.Privacy, "parent": nil}
 				if t.Parent != "" {
 					m["parent"] = map[string]any{"slug": t.Parent, "name": t.Parent}
 				}
@@ -688,4 +705,118 @@ func (f *fakeGitHub) orgMembers(w http.ResponseWriter, r *http.Request, org stri
 		}
 	}
 	f.paged(w, r, items, listPage)
+}
+
+// loadProtection indexes each repo's branch_rules, branch_protection and rulesets.
+func (f *fakeGitHub) loadProtection(t *testing.T) {
+	t.Helper()
+	f.rules, f.protection, f.rulesets = map[string][]json.RawMessage{}, map[string]json.RawMessage{}, map[string]json.RawMessage{}
+	f.forbidRule, f.userIDs = map[string]bool{}, map[int64]string{}
+	for _, o := range f.fx.Orgs {
+		for _, raw := range o.Repos {
+			var m struct {
+				Name       string                       `json:"name"`
+				Rules      map[string][]json.RawMessage `json:"branch_rules"`
+				Protection map[string]json.RawMessage   `json:"branch_protection"`
+				Rulesets   []json.RawMessage            `json:"rulesets"`
+			}
+			if err := json.Unmarshal(raw, &m); err != nil {
+				t.Fatal(err)
+			}
+			full := o.Login + "/" + m.Name
+			for b, rs := range m.Rules {
+				f.rules[full+"@"+b] = rs
+			}
+			for b, p := range m.Protection {
+				f.protection[full+"@"+b] = p
+			}
+			for _, rs := range m.Rulesets {
+				var id struct {
+					ID int64 `json:"id"`
+				}
+				_ = json.Unmarshal(rs, &id)
+				f.rulesets[full+"#"+strconv.FormatInt(id.ID, 10)] = rs
+			}
+		}
+	}
+}
+
+func (f *fakeGitHub) orgOwner(login string) bool {
+	for _, o := range f.fx.Orgs {
+		if o.Login == login {
+			return o.Owner
+		}
+	}
+	return false
+}
+
+// branchProtection serves /repos/{o}/{r}/rules/branches/{b},
+// /repos/{o}/{r}/branches/{b}[/protection] and /repos/{o}/{r}/rulesets/{id}.
+// It reports false for any other /repos/ path. Classic protection details and
+// ruleset bypass actors are visible only in orgs the token owns.
+func (f *fakeGitHub) branchProtection(w http.ResponseWriter, r *http.Request) bool {
+	parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/repos/"), "/", 4)
+	if len(parts) < 4 || !f.knownRepo(parts[0], parts[1]) {
+		return false
+	}
+	full := parts[0] + "/" + parts[1]
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	switch {
+	case parts[2] == "rules" && strings.HasPrefix(parts[3], "branches/"):
+		if f.forbidRule[full] {
+			writeJSON(w, 403, map[string]string{"message": "Resource not accessible by integration"})
+			return true
+		}
+		items := f.rules[full+"@"+strings.TrimPrefix(parts[3], "branches/")]
+		if items == nil {
+			items = []json.RawMessage{}
+		}
+		writeJSON(w, 200, items)
+	case parts[2] == "branches":
+		branch, details := strings.CutSuffix(parts[3], "/protection")
+		prot, protected := f.protection[full+"@"+branch]
+		if !details {
+			writeJSON(w, 200, map[string]any{"name": branch, "protected": protected,
+				"protection": map[string]any{"enabled": protected}})
+			return true
+		}
+		switch {
+		case !f.orgOwner(parts[0]):
+			writeJSON(w, 403, map[string]string{"message": "Must have admin rights to Repository."})
+		case !protected:
+			writeJSON(w, 404, map[string]string{"message": "Branch not protected"})
+		default:
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(prot)
+		}
+	case parts[2] == "rulesets":
+		rs, ok := f.rulesets[full+"#"+parts[3]]
+		if !ok {
+			writeJSON(w, 404, map[string]string{"message": "Not Found"})
+			return true
+		}
+		var m map[string]any
+		_ = json.Unmarshal(rs, &m)
+		if f.hideBypass || !f.orgOwner(parts[0]) {
+			delete(m, "bypass_actors")
+		}
+		writeJSON(w, 200, m)
+	default:
+		return false
+	}
+	return true
+}
+
+// user serves /user/{account_id} from f.userIDs.
+func (f *fakeGitHub) user(w http.ResponseWriter, id string) {
+	n, _ := strconv.ParseInt(id, 10, 64)
+	f.mu.Lock()
+	login, ok := f.userIDs[n]
+	f.mu.Unlock()
+	if !ok {
+		writeJSON(w, 404, map[string]string{"message": "Not Found"})
+		return
+	}
+	writeJSON(w, 200, map[string]any{"login": login, "id": n, "type": "User"})
 }

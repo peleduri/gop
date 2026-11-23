@@ -70,6 +70,19 @@ flags may change in minor releases.
 - Report section "Pinned, still reachable": SHA-pinned actions that a principal
   can still change through a nested mutable ref, with one path each.
 
+- Collector and engine: branch protection gates mutable action refs. For
+  each enterprise-internal action ref on a branch, gop reads the branch's
+  active rules, its classic protection and the protecting rulesets' bypass
+  actors, and sets `ref_protected` (`true`, `false`, `unknown`),
+  `ref_protection` and `bypass` on the action node. Only pull request reviews
+  that can't be reused after a push (stale-approval dismissal or last-push
+  approval) and push restrictions count; status checks alone don't. Principals
+  that can land code alone get `CAN_PUSH` edges with `via=ref_bypass` and
+  `ref=<branch>`. A protected ref no longer lets every pusher to its host repo
+  change it: only its bypass principals reach it, and an unreadable protection
+  makes the path possible instead of confirmed. Additive; graphs without these
+  attributes behave as before.
+
 ### Fixed
 
 - The blast-radius multiplier ignores `MEMBER_OF` targets that are not orgs.

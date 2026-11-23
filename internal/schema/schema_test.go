@@ -69,7 +69,7 @@ func TestValidFixtures(t *testing.T) {
 }
 
 func TestWarnings(t *testing.T) {
-	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "../../testdata/acme/graph.json"} {
+	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "testdata/valid/ref-protection.json", "../../testdata/acme/graph.json"} {
 		if r := validateFile(t, f); len(r.Warnings) > 0 {
 			t.Errorf("%s: unexpected warnings %v", f, r.Warnings)
 		}
@@ -94,6 +94,7 @@ func TestInvalidFixtures(t *testing.T) {
 		"bad-node-kind.json":           {"/nodes/0/kind", `"host" is not one of`},
 		"bad-line.json":                {"/edges/0/attrs/line", `"L7" does not match`},
 		"bad-observed-at.json":         {"/edges/0/observed_at", "RFC 3339"},
+		"bad-ref-protected.json":       {"/nodes/0/attrs/ref_protected", `"yes" is not one of "true", "false", "unknown"`},
 		"bad-repo-id.json":             {"/nodes/0/id", `does not match ^repo:[^/]+/[^/]+$`},
 		"bad-team-id.json":             {"/nodes/0/id", `does not match ^(identity:.+|team:[^/]+/[^/]+)$`},
 		"coverage-missing-fields.json": {"/coverage/0", `missing required field "needs_fix"`},
@@ -340,11 +341,13 @@ func TestGoAttrValuesValidate(t *testing.T) {
 		{ID: "identity:alice", Kind: graph.KindIdentity, Name: "alice", Evidence: graph.Live},
 		{ID: "repo:acme-app/web", Kind: graph.KindRepo, Name: "web", Evidence: graph.Live},
 		{ID: "workflow:acme-app/web/.github/workflows/ci.yml", Kind: graph.KindWorkflow, Name: "ci.yml", Evidence: graph.Live},
-		{ID: "action:acme-actions/setup@v1", Kind: graph.KindActionRef, Name: "setup", Evidence: graph.Live},
+		{ID: "action:acme-actions/setup@v1", Kind: graph.KindActionRef, Name: "setup", Evidence: graph.Live,
+			Attrs: map[string]string{graph.AttrRef: "main", graph.AttrRefProtected: "true",
+				graph.AttrRefProtection: "reviews,dismiss_stale", graph.AttrBypass: "none"}},
 	}
 	for _, v := range vias {
 		g.Edges = append(g.Edges, graph.Edge{From: "identity:alice", To: "repo:acme-app/web", Kind: graph.CanPush,
-			Evidence: graph.Live, SourceAPI: "rest:test", Attrs: map[string]string{graph.AttrVia: v, "permission": "write"}})
+			Evidence: graph.Live, SourceAPI: "rest:test", Attrs: map[string]string{graph.AttrVia: v, "permission": "write", graph.AttrRef: "main"}})
 	}
 	g.Edges = append(g.Edges, graph.Edge{From: g.Nodes[2].ID, To: g.Nodes[3].ID, Kind: graph.Uses, Evidence: graph.Live,
 		SourceAPI: "rest:test", Attrs: map[string]string{graph.AttrRefKind: "tag", graph.AttrFile: ".github/workflows/ci.yml",

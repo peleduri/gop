@@ -17,7 +17,19 @@ import (
 //	                                     running CI is not the same as being able to push.
 //	repo      -RESOLVES_TO->  action     (reversed) pushing to the host repo changes the action,
 //	                                     only when the ref is mutable (branch or tag). A sha ref
-//	                                     (or a PinRef fix) blocks this hop.
+//	                                     (or a PinRef fix) blocks this hop. Branch protection
+//	                                     gates it through the action's ref_protected attr:
+//	                                       true:    no repo -> action hop. Instead each CAN_PUSH
+//	                                                edge into the host repo with via=ref_bypass
+//	                                                and ref equal to the action's ref becomes a
+//	                                                principal -> action hop. When bypass=unknown
+//	                                                the repo -> action hop stays, not_visible.
+//	                                       unknown: the repo -> action hop is not_visible, so the
+//	                                                path is possible, never confirmed.
+//	                                       false or missing: the hop is unchanged.
+//	                                     Only this hop is gated. DEFINED_IN stays unconditional:
+//	                                     a push to any unprotected branch runs that branch's copy
+//	                                     of an on: push workflow with the repo's secrets.
 //	action    -USES->         workflow   (reversed) whoever controls an action's content controls
 //	action    -USES->         action     every workflow or composite action that uses it. This
 //	                                     hop is always open: a sha-pinned action that itself USES
@@ -122,6 +134,42 @@ func (ix *Index) actionMutable(action string) bool {
 	return true
 }
 
+// addResolves adds the control hops for one RESOLVES_TO edge of a mutable,
+// unpinned action, gated by the action's branch protection (see the rules above).
+func (ix *Index) addResolves(e Edge, add func(from, to string, e Edge, reverse, ci bool)) {
+	n := ix.nodes[e.From]
+	hidden := e
+	hidden.Evidence = NotVisible
+	switch n.Attrs[AttrRefProtected] {
+	case "true":
+		if n.Attrs[AttrBypass] == "unknown" {
+			add(e.To, e.From, hidden, true, false)
+		}
+		ref := actionRef(n)
+		for _, p := range ix.in[e.To] {
+			if p.Kind == CanPush && p.Attrs[AttrVia] == ViaRefBypass && p.Attrs[AttrRef] == ref {
+				add(p.From, e.From, p, false, false)
+			}
+		}
+	case "unknown":
+		add(e.To, e.From, hidden, true, false)
+	default:
+		add(e.To, e.From, e, true, false)
+	}
+}
+
+// actionRef is the ref of an action_ref node: its ref attr, else the part of
+// the ID after the last "@".
+func actionRef(n Node) string {
+	if r := n.Attrs[AttrRef]; r != "" {
+		return r
+	}
+	if i := strings.LastIndex(n.ID, "@"); i >= 0 {
+		return n.ID[i+1:]
+	}
+	return ""
+}
+
 func (ix *Index) membersOf(orgID string) string {
 	if strings.HasPrefix(orgID, "org:") {
 		return "members:" + strings.TrimPrefix(orgID, "org:")
@@ -167,7 +215,7 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 				mutable[e.From] = m
 			}
 			if m && !fs.pinned[e.From] {
-				add(e.To, e.From, e, true, false)
+				ix.addResolves(e, add)
 			}
 		case Uses:
 			add(e.To, e.From, e, true, false)
