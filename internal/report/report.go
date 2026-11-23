@@ -5,6 +5,7 @@ package report
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"sort"
 	"strings"
@@ -38,6 +39,9 @@ func Render(w io.Writer, g *graph.Graph, opts Options) error {
 	d := build(g, opts)
 	switch strings.ToLower(opts.Format) {
 	case "", "html":
+		if err := addEmbedded(&d, g); err != nil {
+			return err
+		}
 		return pageTmpl.Execute(w, d)
 	case "md", "markdown":
 		return writeMarkdown(w, d)
@@ -59,6 +63,45 @@ type data struct {
 	Paths       []principalPaths
 	Orgs        []orgRow
 	Coverage    []graph.Coverage
+
+	// HTML only: the data the filters and org views read, the org names
+	// for the filter bar, and a note when embedded paths were cut.
+	DataJSON  template.JS
+	OrgNames  []string
+	Truncated string
+
+	ix   *graph.Index
+	sugg []graph.FixSuggestion
+}
+
+// addEmbedded fills the HTML-only fields from the graph.
+func addEmbedded(d *data, g *graph.Graph) error {
+	e := buildEmbedded(d.ix, g, d.ix.Scores(), d.sugg, maxPathsPerOrg)
+	js, err := marshalEmbedded(e)
+	if err != nil {
+		return err
+	}
+	d.DataJSON = template.JS(js) // #nosec G203 -- json.Marshal output, checked script-safe by marshalEmbedded
+	seen := map[string]bool{}
+	for _, o := range d.Orgs {
+		seen[o.Org] = true
+	}
+	for _, p := range e.Paths {
+		seen[p.ToOrg] = true
+		for _, o := range p.FromOrgs {
+			seen[o] = true
+		}
+	}
+	d.OrgNames = sortedSet(seen)
+	if n := len(e.Truncated); n > 0 {
+		parts := make([]string, 0, n)
+		for _, t := range e.Truncated {
+			parts = append(parts, fmt.Sprintf("%s (%d)", t.Org, t.Total))
+		}
+		d.Truncated = fmt.Sprintf("To keep this file small, the filters below hold the top %d paths per target org; %s cut: %s. The sections above are complete.",
+			e.MaxPerOrg, plural(n, "org was", "orgs were"), strings.Join(parts, ", "))
+	}
+	return nil
 }
 
 type riskRow struct {
@@ -124,7 +167,7 @@ var orgCols = []struct{ Key, Title string }{
 
 func build(g *graph.Graph, opts Options) data {
 	ix := graph.NewIndex(g)
-	d := data{Demo: graph.IsDemo(g), Version: opts.Version, Enterprise: g.Enterprise}
+	d := data{Demo: graph.IsDemo(g), Version: opts.Version, Enterprise: g.Enterprise, ix: ix}
 	if !g.CollectedAt.IsZero() {
 		d.CollectedAt = g.CollectedAt.UTC().Format(time.RFC3339)
 	}
@@ -144,7 +187,8 @@ func build(g *graph.Graph, opts Options) data {
 			d.Paths = append(d.Paths, principalPaths{Principal: s.Principal, Paths: pp})
 		}
 	}
-	for i, f := range ix.SuggestFixes(opts.FixBudget) {
+	d.sugg = ix.SuggestFixes(opts.FixBudget)
+	for i, f := range d.sugg {
 		_, desc := mcpserver.DescribeFix(f.Fix)
 		d.Fixes = append(d.Fixes, fixRow{N: i + 1, Description: desc, FixID: f.FixID, Removed: f.Removed,
 			CumulativePct: fmt.Sprintf("%.0f%%", f.CumulativePct)})

@@ -2,43 +2,24 @@ package report
 
 import "html/template"
 
-// pageTmpl is the whole report: inline CSS only, no scripts, no external
-// resources. html/template escapes every value.
+// pageTmpl is the whole report: one inline style, the embedded data and one
+// inline script, all pinned by the CSP; no external resources. Every
+// content section is server-rendered, so the report reads the same with
+// JavaScript off; the script only adds filtering and per-org views.
+// html/template escapes every value.
 var pageTmpl = template.Must(template.New("report").Parse(`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="` + csp + `">
 <meta name="referrer" content="no-referrer">
 <title>{{if .Demo}}[demo data] {{end}}gop report{{if .Enterprise}}: {{.Enterprise}}{{end}}</title>
-<style>
-:root{--bg:#fff;--fg:#1b1f24;--muted:#57606a;--line:#d0d7de;--card:#f6f8fa;--accent:#0969da;
---live:#1a7f37;--live-bg:#dafbe1;--audit:#9a6700;--audit-bg:#fff8c5;--nv:#57606a;--nv-bg:#eaeef2;--warn:#cf222e}
-@media (prefers-color-scheme: dark){:root{--bg:#0d1117;--fg:#e6edf3;--muted:#8d96a0;--line:#30363d;--card:#161b22;
---accent:#4493f8;--live:#3fb950;--live-bg:#12261e;--audit:#d29922;--audit-bg:#2b2111;--nv:#8d96a0;--nv-bg:#21262d;--warn:#f85149}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1080px;margin:0 auto;padding:24px 16px 48px}
-h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1.1rem;margin:32px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
-.meta,.note{color:var(--muted);font-size:.9rem}
-.headline{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:6px;padding:12px 16px;margin:16px 0}
-.headline p{margin:4px 0}.headline .big{font-size:1.15rem;font-weight:600}
-.scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.9rem}
-th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--muted);font-weight:600}td.n{text-align:right;font-variant-numeric:tabular-nums}
-code{font:.85em ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
-.badge{display:inline-block;padding:0 6px;border-radius:10px;font-size:.75rem;font-weight:600;white-space:nowrap}
-.live{color:var(--live);background:var(--live-bg)}.audit{color:var(--audit);background:var(--audit-bg)}
-.nv{color:var(--nv);background:var(--nv-bg);border:1px dashed var(--nv)}
-.path{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0}
-.path ol{margin:6px 0 0;padding-left:20px}.path li{margin:2px 0}
-.src{color:var(--muted);font-size:.8rem}
-footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
-</style>
+<style>` + styleCSS + `</style>
 </head>
 <body>
 <main>
+<div id="gop-static">
 <h1>{{if .Demo}}[demo data] {{end}}gop: who can make code run where</h1>
 <p class="meta">{{if .Enterprise}}Enterprise <strong>{{.Enterprise}}</strong>{{end}}{{if .CollectedAt}} · collected {{.CollectedAt}}{{end}}</p>
 
@@ -94,8 +75,34 @@ footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:v
 {{end}}</tbody></table></div>
 {{else}}<p class="note">Every fact gop looked for was visible to the token.</p>{{end}}
 
+</div>
+
+<section id="gop-explore" hidden>
+<h2>Explore paths</h2>
+<p class="note">Filter every embedded path. The view is saved in the address, so a link to it opens the same filters.</p>
+<form id="gop-filters" class="filters">
+<label>Evidence <select name="ev"><option value="">confirmed and possible</option><option value="confirmed">confirmed</option><option value="possible">possible</option></select></label>
+<label>Ends at <select name="kind"><option value="">any</option><option value="oidc">oidc</option><option value="secret">secret</option><option value="runner">runner</option><option value="repo">repo</option><option value="cloud">cloud</option></select></label>
+<label>Action ref <select name="ref"><option value="">any</option><option value="branch">branch</option><option value="tag">tag</option><option value="sha">sha</option></select></label>
+<label>Principal <input name="q" type="search" placeholder="members:acme-app"></label>
+{{if .OrgNames}}<fieldset><legend>Orgs</legend>{{range .OrgNames}}<label><input type="checkbox" name="org" value="{{.}}"> {{.}}</label>{{end}}</fieldset>{{end}}
+<button type="button" id="gop-reset">Reset</button>
+</form>
+{{if .Truncated}}<p class="note">{{.Truncated}}</p>{{end}}
+<p id="gop-count" class="note"></p>
+<div id="gop-paths"></div>
+<h3>Fixes for the selected orgs</h3>
+<div id="gop-fixes"></div>
+{{if .OrgNames}}<h3>Org views</h3>
+<p class="orglinks">{{range .OrgNames}}<a href="#/org/{{.}}">{{.}}</a> {{end}}</p>{{end}}
+</section>
+
+<section id="gop-orgview" hidden></section>
+
 <footer>Generated by gop {{.Version}}. ` + footer + `</footer>
 </main>
+{{if .DataJSON}}<script type="application/json" id="gop-data">{{.DataJSON}}</script>
+<script>` + scriptJS + `</script>{{end}}
 </body>
 </html>
 `))
