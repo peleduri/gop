@@ -203,7 +203,7 @@ func (c *Client) do(ctx context.Context, method string, u *url.URL, body []byte)
 			continue
 		}
 		data, rerr := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if rerr != nil {
 			lastErr = fmt.Errorf("github api %s %s: reading body: %w", method, redactedPath(u), rerr)
 			continue
