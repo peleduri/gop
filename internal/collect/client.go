@@ -123,6 +123,10 @@ type APIError struct {
 	Path       string
 	StatusCode int
 	Message    string
+	// header holds the response headers, for callers that inspect
+	// X-GitHub-SSO or rate-limit headers through ResponseHeader. It is never
+	// printed: header values are not part of Error().
+	header http.Header
 }
 
 func (e *APIError) Error() string {
@@ -139,6 +143,16 @@ func StatusOf(err error) int {
 		return ae.StatusCode
 	}
 	return 0
+}
+
+// ResponseHeader returns the response headers of an *APIError in err's
+// chain, or nil.
+func ResponseHeader(err error) http.Header {
+	var ae *APIError
+	if errors.As(err, &ae) {
+		return ae.header
+	}
+	return nil
 }
 
 // IsNotFound reports whether err is an HTTP 404.
@@ -212,7 +226,7 @@ func (c *Client) do(ctx context.Context, method string, u *url.URL, body []byte)
 		if r.status >= 200 && r.status < 300 {
 			return r, nil
 		}
-		apiErr := &APIError{Method: method, Path: redactedPath(u), StatusCode: r.status, Message: errorMessage(data)}
+		apiErr := &APIError{Method: method, Path: redactedPath(u), StatusCode: r.status, Message: errorMessage(data), header: r.header}
 		if wait, limited := c.rateLimitWait(r); limited {
 			lastErr = apiErr
 			if wait > c.maxWait {
@@ -323,21 +337,27 @@ func (c *Client) resolve(path string) (*url.URL, error) {
 
 // GetJSON fetches one REST resource and decodes it into out.
 func (c *Client) GetJSON(ctx context.Context, path string, out any) error {
+	_, err := c.GetJSONHeader(ctx, path, out)
+	return err
+}
+
+// GetJSONHeader is GetJSON that also returns the response headers. On an
+// HTTP error the headers are available through ResponseHeader(err).
+func (c *Client) GetJSONHeader(ctx context.Context, path string, out any) (http.Header, error) {
 	u, err := c.resolve(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	r, err := c.do(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if out == nil {
-		return nil
+	if out != nil {
+		if err := json.Unmarshal(r.body, out); err != nil {
+			return r.header, fmt.Errorf("github api GET %s: decoding response: %w", redactedPath(u), err)
+		}
 	}
-	if err := json.Unmarshal(r.body, out); err != nil {
-		return fmt.Errorf("github api GET %s: decoding response: %w", redactedPath(u), err)
-	}
-	return nil
+	return r.header, nil
 }
 
 // GetPages fetches a REST collection, following Link rel="next" headers, and

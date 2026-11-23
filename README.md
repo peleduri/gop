@@ -134,6 +134,7 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 
 ```
 gop collect --enterprise <slug> --out graph.json [--orgs a,b]
+gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
 gop serve   --graph graph.json | --demo  [--baseline old.json]
 gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
@@ -199,6 +200,8 @@ gop only reads, and it takes the token only from `GITHUB_TOKEN` (or `GH_TOKEN`),
 | `read:audit_log` | Facts that only the audit log records (planned, not used yet) | No `audit` evidence |
 
 Under SAML SSO enforcement the token must also be authorized for each org.
+
+Before a long first collection, run `GITHUB_TOKEN=... gop doctor --enterprise acme`. In a handful of read-only requests it reports the token kind and mode (below), missing or broader-than-needed scopes, a classic token with no expiry, orgs where the token is not authorized for SSO, the remaining REST and GraphQL budget, an estimate of requests and minutes for `collect`, and what will come out `not_visible`, each with the fix. It never prints the token. Exit 0 all pass, 1 any fail, 3 warnings only. The token kind comes from GitHub's documented prefixes (`ghp_`, `github_pat_`, `ghs_`, ...); fine-grained and App permissions are not exposed in headers, so doctor cannot check them.
 
 ### Token modes
 
