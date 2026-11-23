@@ -7,6 +7,8 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-24
+
 ### Added
 
 - Paths out of GitHub: `gop enrich --graph g.json --oidc-trust ./trust/ --out
