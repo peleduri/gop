@@ -76,6 +76,8 @@ const (
 	attrPermission   = "permission"
 	attrBaseRole     = "base_role"
 	attrRole         = "role"
+	attrDynamicUses  = "dynamic_uses"
+	attrCollected    = "collected"
 )
 
 type orgState struct {
@@ -174,7 +176,22 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 	if err := k.run(ctx); err != nil {
 		return nil, err
 	}
-	return k.graph(), nil
+	g := k.graph()
+	k.logCoverage(g)
+	return g, nil
+}
+
+// logCoverage logs one line per org (and the enterprise) that has unknown
+// facts: how much of the graph is not_visible and how many coverage entries
+// explain it.
+func (k *collector) logCoverage(g *graph.Graph) {
+	for _, c := range graph.CoverageSummary(g) {
+		if c.NotVisibleNodes+c.NotVisibleEdges+c.NotVisibleAttrs+c.Entries == 0 {
+			continue
+		}
+		k.logf("collect: coverage %s: %d not_visible nodes, %d edges, %d attrs, %d entries",
+			strings.TrimPrefix(c.Org, "org:"), c.NotVisibleNodes, c.NotVisibleEdges, c.NotVisibleAttrs, c.Entries)
+	}
 }
 
 func (k *collector) run(ctx context.Context) error {
@@ -199,6 +216,8 @@ func (k *collector) run(ctx context.Context) error {
 	}
 	for _, o := range k.orgs {
 		if o.archived {
+			k.cover(o.node.ID, attrRepositories, "organization is archived; not collected",
+				"none: archived organizations cannot run workflows")
 			continue
 		}
 		if err := k.collectOwnerView(ctx, o); err != nil {
@@ -233,6 +252,7 @@ func (k *collector) run(ctx context.Context) error {
 	}
 	k.linkJobWorkflowRefs()
 	k.coverUnknownOwners()
+	k.pushToStubs()
 	if err := k.collectActionsAccess(ctx); err != nil {
 		return err
 	}
@@ -779,6 +799,11 @@ func (k *collector) collectRepos(ctx context.Context, o *orgState) error {
 // canPush adds members -> repo edges when the org default permission grants push.
 func (k *collector) canPush(o *orgState) {
 	perm := o.node.Attrs[graph.AttrDefaultPerm]
+	if o.node.AttrEvidence[graph.AttrDefaultPerm] == graph.NotVisible {
+		k.cover(o.node.ID, "can_push:default_perm",
+			"default repository permission not visible: members' push access through it is unknown",
+			"enterprise owner on "+k.enterprise+", or "+k.ownerFix(o))
+	}
 	if (perm != "write" && perm != "admin") || o.node.AttrEvidence[graph.AttrDefaultPerm] != "" {
 		return
 	}
@@ -1053,7 +1078,10 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 	}
 	var entries []contentEntry
 	if json.Unmarshal(raw, &entries) != nil {
-		setAttr(repo, "workflows", "0", graph.Live)
+		// A file, a submodule or another shape: the workflows are unknown, not absent.
+		setAttr(repo, "workflows", "unknown", graph.NotVisible)
+		k.cover(repo.ID, "workflows", "unexpected contents response for .github/workflows",
+			"check .github/workflows in "+full+" is a directory")
 		return nil
 	}
 	count := 0
@@ -1117,11 +1145,34 @@ func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {
 	}
 	if f.SelfHosted {
 		id := "runner:" + full
-		k.node(id, graph.KindRunner, full+" self-hosted runners")
+		k.node(id, graph.KindRunner, full+" self-hosted runners").Name = full + " self-hosted runners"
 		attrs := map[string]string{"labels": strings.Join(f.RunnerLabels, ",")}
 		locate(attrs, f.File, f.FileRef, f.RunsOnLine, 0)
 		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, attrs)
 	}
+	if f.UnknownRunners {
+		k.addUnknownRunner(wid, full, f)
+	}
+	if n := len(f.DynamicUses); n > 0 {
+		setAttr(k.nodes[wid], attrDynamicUses, strconv.Itoa(n), graph.Live)
+		k.cover(wid, attrDynamicUses, "uses: is an expression; the action cannot be resolved statically",
+			"none: replace the expression with literal owner/repo@sha references to make them visible")
+	}
+}
+
+// addUnknownRunner records jobs whose runs-on is neither GitHub-hosted nor
+// self-hosted (a custom label, a runner group or an expression): the runner
+// may be self-hosted, so the edge is not_visible, not absent. A workflow that
+// also runs on self-hosted runners keeps its live edge (one edge per pair).
+func (k *collector) addUnknownRunner(wid, full string, f *WorkflowFacts) {
+	id := "runner:" + full
+	k.node(id, graph.KindRunner, full+" runners")
+	attrs := map[string]string{"labels": strings.Join(f.UnknownRunnerLabels, ","), "classification": RunnerUnknown}
+	locate(attrs, f.File, f.FileRef, f.UnknownRunsOnLine, 0)
+	k.edge(wid, id, graph.ExecutesWith, graph.NotVisible, srcWorkflow, attrs)
+	k.cover(wid, "runner_labels",
+		"runs-on "+strings.Join(f.UnknownRunnerLabels, ",")+" is not a GitHub-hosted label: the runner may be self-hosted",
+		"org owner (runner groups and self-hosted runners are not read yet)")
 }
 
 // addUse records from -USES-> action and, for enterprise-internal targets,
@@ -1160,9 +1211,12 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 	rid, ok := k.repoIDs[strings.ToLower(full)]
 	if !ok {
 		rid = "repo:" + full
+		// Nothing about the repo itself was read: its node is not_visible,
+		// while the org and collected=false are known.
 		rn := k.node(rid, graph.KindRepo, full)
+		rn.Evidence = graph.NotVisible
 		setAttr(rn, "org", org, graph.Live)
-		setAttr(rn, "collected", "false", graph.Live)
+		setAttr(rn, attrCollected, "false", graph.Live)
 		k.repoIDs[strings.ToLower(full)] = rid
 	}
 	k.edge(aid, rid, graph.ResolvesTo, graph.Live, "derived:workflow.uses+"+k.orgsSrc, nil)
@@ -1171,6 +1225,52 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 		cu := u
 		cu.Owner = org
 		k.queue = append(k.queue, queued{id: aid, use: cu, depth: depth})
+	}
+}
+
+// pushToStubs records who may push to stub repos: repositories that host an
+// enterprise action but were not collected (their org is outside --orgs or
+// archived, or the token does not list them). Without it reach through them
+// would be quietly zero. When the host org was collected with a visible
+// default_perm of write or admin, the normal default-permission edge is
+// added; otherwise members:<org> -CAN_PUSH-> repo is not_visible, so the path
+// shows as possible.
+func (k *collector) pushToStubs() {
+	var ids []string
+	for id, n := range k.nodes {
+		if n.Kind == graph.KindRepo && n.Attrs[attrCollected] == "false" {
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	for _, rid := range ids {
+		rn := k.nodes[rid]
+		org := rn.Attrs["org"]
+		o := k.byLower[strings.ToLower(org)]
+		reason, fix := "host repository outside the collected orgs (--orgs)", "add "+org+" to --orgs"
+		switch {
+		case o != nil && o.archived:
+			reason, fix = "host repository in an archived organization; not collected", "none: archived organizations are not collected"
+		case o != nil:
+			reason, fix = "host repository not listed for the token", "read access to "+strings.TrimPrefix(rid, "repo:")
+		}
+		k.cover(rid, "can_push", reason, fix)
+		mid := "members:" + org
+		k.node(mid, graph.KindOrgMembers, org+" members")
+		if o != nil && !o.archived && o.node.AttrEvidence[graph.AttrDefaultPerm] == "" {
+			if perm := o.node.Attrs[graph.AttrDefaultPerm]; perm == "write" || perm == "admin" {
+				src := srcDefaultPerm
+				if k.entHidden {
+					src = srcOrgREST
+				}
+				k.edge(mid, rid, graph.CanPush, graph.Live, src, map[string]string{
+					graph.AttrVia: graph.ViaDefaultPerm, "permission": perm,
+					graph.AttrTwoFactor: o.node.Attrs[graph.AttrTwoFactor], graph.AttrSSO: o.node.Attrs[graph.AttrSSO],
+				})
+				continue
+			}
+		}
+		k.edge(mid, rid, graph.CanPush, graph.NotVisible, k.orgsSrc, map[string]string{graph.AttrVia: graph.ViaUnknown})
 	}
 }
 
@@ -1184,6 +1284,8 @@ func (k *collector) expandNested(ctx context.Context) error {
 		if q.depth > MaxNestedDepth {
 			setAttr(an, attrNested, "unknown", graph.NotVisible)
 			setAttr(an, "nested_reason", fmt.Sprintf("depth limit %d reached", MaxNestedDepth), graph.Live)
+			k.cover(q.id, "nested_uses", fmt.Sprintf("nested references deeper than %d levels are not followed", MaxNestedDepth),
+				"none: pin the action to a commit SHA, or review its nested references by hand")
 			continue
 		}
 		u := q.use

@@ -31,8 +31,9 @@ func TestEndToEndAcme(t *testing.T) {
 	if !vres.Valid {
 		t.Fatalf("collected graph does not validate: %v", vres.Errors)
 	}
+	// Every not_visible fact has coverage (gop validate warns otherwise).
 	for _, w := range vres.Warnings {
-		t.Logf("validate warning: %s", w)
+		t.Errorf("validate warning: %s", w)
 	}
 	g, err := graph.Load(&buf)
 	if err != nil {

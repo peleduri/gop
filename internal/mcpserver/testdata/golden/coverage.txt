@@ -15,5 +15,39 @@
       "reason": "token is not an org owner",
       "needs_fix": "org owner on acme-legacy"
     }
+  ],
+  "orgs": [
+    {
+      "org": "org:acme-actions",
+      "not_visible_nodes": 0,
+      "not_visible_edges": 0,
+      "not_visible_attrs": 0,
+      "entries": 0
+    },
+    {
+      "org": "org:acme-app",
+      "not_visible_nodes": 0,
+      "not_visible_edges": 0,
+      "not_visible_attrs": 0,
+      "entries": 0
+    },
+    {
+      "org": "org:acme-legacy",
+      "not_visible_nodes": 1,
+      "not_visible_edges": 1,
+      "not_visible_attrs": 0,
+      "entries": 2,
+      "facts": {
+        "ip_allow_list": 1,
+        "repositories": 1
+      }
+    },
+    {
+      "org": "org:acme-secure",
+      "not_visible_nodes": 0,
+      "not_visible_edges": 0,
+      "not_visible_attrs": 0,
+      "entries": 0
+    }
   ]
 }

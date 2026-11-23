@@ -462,6 +462,7 @@ type FixOut struct {
 	CumulativeRemoved int      `json:"cumulative_removed"`
 	Remaining         int      `json:"remaining"`
 	CumulativePct     float64  `json:"cumulative_pct" jsonschema:"percent of baseline confirmed pairs removed by this and earlier fixes"`
+	Caveat            string   `json:"caveat,omitempty" jsonschema:"what gop could not see that may make this fix less effective, e.g. unknown nested references"`
 }
 
 // SuggestFixesOutput is the greedy fix list.
@@ -497,7 +498,8 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 			es = []string{}
 		}
 		out.Fixes = append(out.Fixes, FixOut{FixID: s.FixID, Fix: spec, Description: desc, Edges: es,
-			Removed: s.Removed, CumulativeRemoved: s.CumulativeRemoved, Remaining: s.Remaining, CumulativePct: s.CumulativePct})
+			Removed: s.Removed, CumulativeRemoved: s.CumulativeRemoved, Remaining: s.Remaining, CumulativePct: s.CumulativePct,
+			Caveat: s.Caveat})
 	}
 	if len(out.Fixes) == 0 {
 		out.Summary = "no candidate fix removes confirmed reach"
@@ -634,13 +636,16 @@ type CoverageInput struct{}
 type CoverageOutput struct {
 	Summary string           `json:"summary"`
 	Entries []graph.Coverage `json:"entries"`
+	// Orgs counts not_visible nodes, edges and attributes and coverage
+	// entries per org (graph.CoverageSummary).
+	Orgs []graph.OrgCoverage `json:"orgs" jsonschema:"per org (and enterprise) counts of not_visible nodes, edges and attributes and of coverage entries"`
 }
 
 // Coverage lists the facts the token could not see and the access that fixes each.
 func (e *Engine) Coverage(CoverageInput) (res CoverageOutput, _ error) {
 	defer e.mark(&res.Summary)
 	ents := append([]graph.Coverage{}, e.ix.Graph().Coverage...)
-	out := CoverageOutput{Entries: ents}
+	out := CoverageOutput{Entries: ents, Orgs: graph.CoverageSummary(e.ix.Graph())}
 	if len(ents) == 0 {
 		out.Summary = "every fact gop looked for was visible to the token"
 		return out, nil

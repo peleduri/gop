@@ -44,6 +44,20 @@ flags may change in minor releases.
   get an optional `change` field.
 - Collector: `CAN_TRIGGER` edges carry `file`, `file_ref` and `line` (the
   checkout's `with.ref`/`with.repository`, or the `run:`/`script:` key).
+- Coverage for every skipped fact. A `.github/workflows` that is not a
+  directory listing gives `workflows=unknown` (`not_visible`) instead of `0`;
+  a `uses:` expression (`${{ matrix.tool }}`) sets `dynamic_uses=<n>` on the
+  workflow; a job whose `runs-on` is a custom label, a runner `group:` or an
+  expression gets a `not_visible` `EXECUTES_WITH` edge to `runner:<org>/<repo>`
+  (`classification=unknown`) instead of none; stub repos for actions outside
+  the collected orgs are `not_visible` and get `members:<org> -CAN_PUSH->`
+  (`not_visible`, `via=unknown`) or the org's default-permission edge, so
+  reach through them is possible instead of zero. Each gets a coverage entry,
+  as do archived orgs and orgs whose default permission is not visible.
+  `graph.CoverageSummary` counts not_visible nodes, edges, attributes and
+  coverage entries per org; the MCP `coverage` tool returns it as `orgs` and
+  `gop collect` logs one line per org. `suggest_fixes` and `what_if` carry a
+  caveat when a pinned action's nested references are not visible.
 - HTML report filters and per-org views. The report embeds the paths, fixes,
   org settings and coverage as one JSON block and a small inline script adds a
   filter bar (evidence, terminal kind, org, principal, action ref kind) whose

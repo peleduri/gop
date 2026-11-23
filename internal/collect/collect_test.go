@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -990,4 +991,225 @@ func TestImmutableTags(t *testing.T) {
 			t.Errorf("members:acme-actions reach = %q, want p", got)
 		}
 	})
+}
+
+// attrEvidence is the effective evidence of one attribute: its own entry in
+// AttrEvidence, else the node's evidence.
+func attrEvidence(n graph.Node, key string) graph.Evidence {
+	if ev, ok := n.AttrEvidence[key]; ok {
+		return ev
+	}
+	return n.Evidence
+}
+
+// repoOf returns "repo:O/R" for an ID that lives in one repository
+// (repo, workflow, secret, oidc, runner, action), else "".
+func repoOf(id string) string {
+	prefix, rest, ok := strings.Cut(id, ":")
+	if !ok {
+		return ""
+	}
+	switch prefix {
+	case "repo", "workflow", "secret", "oidc", "runner", "action":
+	default:
+		return ""
+	}
+	rest, _, _ = strings.Cut(rest, "@")
+	parts := strings.SplitN(rest, "/", 3)
+	if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
+		return ""
+	}
+	return "repo:" + parts[0] + "/" + parts[1]
+}
+
+// assertCoverageComplete checks that every node, attribute and edge with
+// not_visible evidence has a coverage entry whose scope is the node itself,
+// its repo or its org (for an edge: either end, its repo or its org).
+func assertCoverageComplete(t *testing.T, g *graph.Graph) {
+	t.Helper()
+	scopes := map[string]bool{}
+	for _, c := range g.Coverage {
+		scopes[c.Scope] = true
+	}
+	covered := func(ids ...string) bool {
+		for _, id := range ids {
+			for _, s := range []string{id, repoOf(id), graph.OrgOf(id)} {
+				if s != "" && scopes[s] {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	for _, n := range g.Nodes {
+		if n.Evidence == graph.NotVisible && !covered(n.ID) {
+			t.Errorf("node %s is not_visible without coverage", n.ID)
+		}
+		for k, ev := range n.AttrEvidence {
+			if ev == graph.NotVisible && !covered(n.ID) {
+				t.Errorf("attribute %s.%s is not_visible without coverage", n.ID, k)
+			}
+		}
+	}
+	for _, e := range g.Edges {
+		if e.Evidence == graph.NotVisible && !covered(e.From, e.To) {
+			t.Errorf("edge %s -%s-> %s is not_visible without coverage", e.From, e.Kind, e.To)
+		}
+	}
+}
+
+func TestCoverageGaps(t *testing.T) {
+	_, ix := collectAcme(t)
+	g := ix.g
+
+	t.Run("coverage is complete", func(t *testing.T) { assertCoverageComplete(t, g) })
+
+	t.Run("workflows directory that is not a listing", func(t *testing.T) {
+		r := ix.node(t, "repo:acme-secure/vendor-mirror")
+		if r.Attrs["workflows"] != "unknown" || attrEvidence(r, "workflows") != graph.NotVisible {
+			t.Errorf("workflows = %q (%q), want unknown/not_visible", r.Attrs["workflows"], attrEvidence(r, "workflows"))
+		}
+		c, ok := hasCoverage(g, "repo:acme-secure/vendor-mirror", "workflows")
+		if !ok || c.Reason != "unexpected contents response for .github/workflows" {
+			t.Errorf("coverage = %+v, %v", c, ok)
+		}
+	})
+
+	t.Run("dynamic uses and unknown runner labels", func(t *testing.T) {
+		wid := "workflow:acme-app/search/.github/workflows/index.yaml"
+		w := ix.node(t, wid)
+		if w.Attrs["dynamic_uses"] != "1" {
+			t.Errorf("dynamic_uses = %q, want 1", w.Attrs["dynamic_uses"])
+		}
+		e := ix.mustEdge(t, wid, "runner:acme-app/search", graph.ExecutesWith)
+		if e.Evidence != graph.NotVisible || e.Attrs["classification"] != "unknown" || e.Attrs["labels"] != "gpu,linux" {
+			t.Errorf("runner edge = %+v", e)
+		}
+		if e.Attrs[graph.AttrLine] != "14" {
+			t.Errorf("runner edge line = %q, want 14 (the embed job's runs-on)", e.Attrs[graph.AttrLine])
+		}
+		n := 0
+		for _, c := range g.Coverage {
+			if c.Scope == wid {
+				n++
+			}
+		}
+		if _, ok := hasCoverage(g, wid, "dynamic_uses"); !ok || n != 2 {
+			t.Errorf("want dynamic_uses and runner_labels coverage on %s, got %d entries", wid, n)
+		}
+		if _, ok := hasCoverage(g, wid, "runner_labels"); !ok {
+			t.Error("missing runner_labels coverage")
+		}
+		// ubuntu-latest jobs get no runner edge.
+		for _, e := range g.Edges {
+			if strings.HasPrefix(e.To, "runner:") && e.From != wid && e.From != "workflow:acme-app/infra/.github/workflows/apply.yml" {
+				t.Errorf("unexpected runner edge %s -> %s", e.From, e.To)
+			}
+		}
+		// Self-hosted stays live.
+		if e := ix.mustEdge(t, "workflow:acme-app/infra/.github/workflows/apply.yml", "runner:acme-app/infra", graph.ExecutesWith); e.Evidence != graph.Live {
+			t.Errorf("self-hosted runner edge evidence = %q", e.Evidence)
+		}
+	})
+
+	t.Run("archived org", func(t *testing.T) {
+		c, ok := hasCoverage(g, "org:acme-archive", "repositories")
+		if !ok || c.Reason != "organization is archived; not collected" {
+			t.Errorf("coverage = %+v, %v", c, ok)
+		}
+	})
+
+	t.Run("stub repo in a collected org keeps the default permission edge", func(t *testing.T) {
+		r := ix.node(t, "repo:acme-legacy/hidden-tool")
+		if r.Evidence != graph.NotVisible || r.Attrs["collected"] != "false" || attrEvidence(r, "collected") != graph.Live {
+			t.Errorf("hidden-tool = %+v", r)
+		}
+		if c, ok := hasCoverage(g, "repo:acme-legacy/hidden-tool", "can_push"); !ok || c.Reason != "host repository not listed for the token" {
+			t.Errorf("coverage = %+v, %v", c, ok)
+		}
+		e := ix.mustEdge(t, "members:acme-legacy", "repo:acme-legacy/hidden-tool", graph.CanPush)
+		if e.Evidence != graph.Live || e.Attrs[graph.AttrVia] != graph.ViaDefaultPerm {
+			t.Errorf("edge = %+v", e)
+		}
+	})
+
+	t.Run("not_visible default permission", func(t *testing.T) {
+		f := newFakeGitHub(t)
+		for i := range f.fx.Orgs {
+			if f.fx.Orgs[i].Login == "acme-legacy" {
+				delete(f.fx.Orgs[i].Settings, "defaultRepositoryPermissionSettingOrganizations")
+			}
+		}
+		g, err := Collect(context.Background(), Config{Enterprise: "acme", Client: f.client(t)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := hasCoverage(g, "org:acme-legacy", "can_push:default_perm"); !ok {
+			t.Error("missing can_push:default_perm coverage")
+		}
+		ix := newIndex(g)
+		ix.noEdge(t, "members:acme-legacy", "repo:acme-legacy/old-site", graph.CanPush)
+		e := ix.mustEdge(t, "members:acme-legacy", "repo:acme-legacy/hidden-tool", graph.CanPush)
+		if e.Evidence != graph.NotVisible || e.Attrs[graph.AttrVia] != graph.ViaUnknown {
+			t.Errorf("edge = %+v", e)
+		}
+		assertCoverageComplete(t, g)
+	})
+}
+
+func TestCoverageLog(t *testing.T) {
+	f := newFakeGitHub(t)
+	var mu sync.Mutex
+	var lines []string
+	c, err := NewClient(ClientOptions{BaseURL: f.srv.URL, Token: testToken, Logf: func(format string, args ...any) {
+		mu.Lock()
+		defer mu.Unlock()
+		lines = append(lines, fmt.Sprintf(format, args...))
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Collect(context.Background(), Config{Enterprise: "acme", Client: c}); err != nil {
+		t.Fatal(err)
+	}
+	var cov []string
+	for _, l := range lines {
+		if strings.HasPrefix(l, "collect: coverage ") {
+			cov = append(cov, l)
+		}
+	}
+	want := "collect: coverage acme-legacy: 1 not_visible nodes, 2 edges, 6 attrs, 10 entries"
+	if !slices.Contains(cov, want) {
+		t.Errorf("coverage log lines = %q, want %q", cov, want)
+	}
+	for _, l := range cov {
+		if strings.HasPrefix(l, "collect: coverage acme-actions:") {
+			t.Errorf("fully visible org logged: %q", l)
+		}
+	}
+}
+
+func TestCoverageGapsOutsideOrgs(t *testing.T) {
+	_, ix := collectAcme(t, "acme-app")
+	g := ix.g
+	assertCoverageComplete(t, g)
+	r := ix.node(t, "repo:acme-actions/deploy")
+	if r.Evidence != graph.NotVisible || r.Attrs["collected"] != "false" {
+		t.Errorf("stub = %+v", r)
+	}
+	c, ok := hasCoverage(g, "repo:acme-actions/deploy", "can_push")
+	if !ok || c.Reason != "host repository outside the collected orgs (--orgs)" {
+		t.Errorf("coverage = %+v, %v", c, ok)
+	}
+	e := ix.mustEdge(t, "members:acme-actions", "repo:acme-actions/deploy", graph.CanPush)
+	if e.Evidence != graph.NotVisible || e.Attrs[graph.AttrVia] != graph.ViaUnknown {
+		t.Errorf("edge = %+v", e)
+	}
+	res := graph.Reach(g, "members:acme-actions", graph.Options{})
+	if !slices.Contains(res.Possible.Repos, "repo:acme-app/web") {
+		t.Errorf("possible repos = %v, want acme-app/web", res.Possible.Repos)
+	}
+	if len(res.Confirmed.Repos) != 0 {
+		t.Errorf("confirmed repos = %v, want none", res.Confirmed.Repos)
+	}
 }

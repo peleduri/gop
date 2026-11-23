@@ -4,7 +4,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
+	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/peleduri/gop/internal/graph"
 )
@@ -454,5 +458,115 @@ func TestClaimRef(t *testing.T) {
 		if got := claimRef(in[0], in[1]); got != want {
 			t.Errorf("claimRef(%q, %q) = %q, want %q", in[0], in[1], got, want)
 		}
+	}
+}
+
+func TestParseUsesDynamic(t *testing.T) {
+	for _, s := range []string{"${{ matrix.tool }}", "acme-actions/${{ inputs.name }}@main", " ${{ env.ACTION }} "} {
+		u, ok := ParseUses(s)
+		if ok || !u.Dynamic || u.Raw != strings.TrimSpace(s) {
+			t.Errorf("ParseUses(%q) = %+v ok=%v, want Dynamic", s, u, ok)
+		}
+	}
+	for _, s := range []string{"./local", "docker://alpine:3", "", "acme@main"} {
+		if u, _ := ParseUses(s); u.Dynamic {
+			t.Errorf("ParseUses(%q) marked dynamic", s)
+		}
+	}
+	f, err := ParseWorkflow([]byte(`
+on: push
+jobs:
+  call:
+    uses: ${{ inputs.workflow }}
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ${{ matrix.tool }}
+      - uses: acme-actions/setup@main
+      - uses: ./local
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(f.DynamicUses, []string{"build", "call"}) {
+		t.Errorf("DynamicUses = %v, want [build call]", f.DynamicUses)
+	}
+	if len(f.Uses) != 1 || f.Uses[0].Raw != "acme-actions/setup@main" {
+		t.Errorf("Uses = %+v", f.Uses)
+	}
+}
+
+func TestClassifyRunsOn(t *testing.T) {
+	for _, tc := range []struct {
+		runsOn, class string
+		labels        []string
+	}{
+		{"ubuntu-latest", RunnerHosted, []string{"ubuntu-latest"}},
+		{"ubuntu-24.04", RunnerHosted, []string{"ubuntu-24.04"}},
+		{"ubuntu-24.04-arm", RunnerHosted, []string{"ubuntu-24.04-arm"}},
+		{"windows-2022", RunnerHosted, []string{"windows-2022"}},
+		{"windows-11-arm", RunnerHosted, []string{"windows-11-arm"}},
+		{"macos-14", RunnerHosted, []string{"macos-14"}},
+		{"macos-latest-xlarge", RunnerHosted, []string{"macos-latest-xlarge"}},
+		{"[ubuntu-latest]", RunnerHosted, []string{"ubuntu-latest"}},
+		{"[self-hosted, linux]", RunnerSelfHosted, []string{"self-hosted", "linux"}},
+		{"{group: build, labels: [self-hosted]}", RunnerSelfHosted, []string{"group:build", "self-hosted"}},
+		{"[linux, gpu]", RunnerUnknown, []string{"linux", "gpu"}},
+		{"gpu-runner", RunnerUnknown, []string{"gpu-runner"}},
+		{"ubuntu-latest-16-cores", RunnerUnknown, []string{"ubuntu-latest-16-cores"}},
+		{"{group: build}", RunnerUnknown, []string{"group:build"}},
+		{"{group: build, labels: [ubuntu-latest]}", RunnerUnknown, []string{"group:build", "ubuntu-latest"}},
+		{"${{ matrix.os }}", RunnerUnknown, []string{"${{ matrix.os }}"}},
+		{"[ubuntu-latest, gpu]", RunnerUnknown, []string{"ubuntu-latest", "gpu"}},
+		{"{}", RunnerUnknown, nil},
+	} {
+		var doc yaml.Node
+		if err := yaml.Unmarshal([]byte("runs-on: "+tc.runsOn), &doc); err != nil {
+			t.Fatal(err)
+		}
+		w := &yamlWalk{}
+		m, err := w.mapping(rootMap(&doc), "job")
+		if err != nil {
+			t.Fatal(err)
+		}
+		class, labels, err := w.classifyRunsOn(field(m, "runs-on"))
+		if err != nil || class != tc.class || !slices.Equal(labels, tc.labels) {
+			t.Errorf("runs-on %s = %q %q (%v), want %q %q", tc.runsOn, class, labels, err, tc.class, tc.labels)
+		}
+	}
+}
+
+func TestParseWorkflowUnknownRunners(t *testing.T) {
+	f, err := ParseWorkflow([]byte(`
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+  gpu:
+    runs-on: [linux, gpu]
+  grouped:
+    runs-on:
+      group: build
+  call:
+    uses: acme-actions/setup/.github/workflows/build.yml@main
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !f.UnknownRunners || f.SelfHosted {
+		t.Errorf("UnknownRunners=%v SelfHosted=%v", f.UnknownRunners, f.SelfHosted)
+	}
+	if !slices.Equal(f.UnknownRunnerLabels, []string{"gpu", "group:build", "linux"}) {
+		t.Errorf("UnknownRunnerLabels = %v", f.UnknownRunnerLabels)
+	}
+	if f.UnknownRunsOnLine != 7 {
+		t.Errorf("UnknownRunsOnLine = %d, want 7", f.UnknownRunsOnLine)
+	}
+	hosted, err := ParseWorkflow([]byte("on: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n  b:\n    uses: o/r/.github/workflows/x.yml@v1\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hosted.UnknownRunners || len(hosted.UnknownRunnerLabels) != 0 {
+		t.Errorf("hosted-only workflow has unknown runners: %+v", hosted)
 	}
 }

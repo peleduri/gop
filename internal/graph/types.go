@@ -208,6 +208,7 @@ const (
 	ViaTeam                = "team"                 // a team repository grant; members and child teams reach it through MEMBER_OF
 	ViaRefBypass           = "ref_bypass"           // may land code alone on a protected branch (Attrs[AttrRef]): a ruleset bypass actor, a classic bypass allowance or push restriction, or a repo admin when admins are not enforced
 	ViaTokenWrite          = "token_write"          // workflow -> its own repo: the workflow's GITHUB_TOKEN has contents: write (Attrs["jobs"] lists the jobs)
+	ViaUnknown             = "unknown"              // not_visible edge: members of a host org may push to a repo gop did not collect (outside --orgs, archived or not listed for the token)
 )
 
 // Branch protection of mutable action refs (on action_ref nodes with

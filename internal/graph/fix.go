@@ -180,6 +180,9 @@ type Delta struct {
 	Before       Totals           `json:"before"`
 	After        Totals           `json:"after"`
 	PerPrincipal []PrincipalDelta `json:"per_principal"`
+	// Caveats name fixes whose effect may be smaller than computed because
+	// part of what they change is not visible, as "<fix id>: <caveat>".
+	Caveats []string `json:"caveats,omitempty"`
 }
 
 // WhatIf applies fixes hypothetically and compares blast radius before and after.
@@ -189,7 +192,7 @@ func WhatIf(g *Graph, fixes []Fix) Delta { return NewIndex(g).WhatIf(fixes) }
 func (ix *Index) WhatIf(fixes []Fix) Delta {
 	before := ix.allScores(ix.base)
 	after := ix.allScores(ix.buildControl(fixes))
-	d := Delta{Before: totalsOf(before), After: totalsOf(after)}
+	d := Delta{Before: totalsOf(before), After: totalsOf(after), Caveats: fixCaveats(ix, fixes)}
 	for _, f := range fixes {
 		d.Fixes = append(d.Fixes, f.ID())
 	}
@@ -210,6 +213,9 @@ type FixSuggestion struct {
 	CumulativeRemoved int      `json:"cumulative_removed"`
 	Remaining         int      `json:"remaining"`
 	CumulativePct     float64  `json:"cumulative_pct"` // of the baseline confirmed pairs, 0..100
+	// Caveat says what gop could not see that may make the fix less
+	// effective than Removed suggests, e.g. unknown nested references.
+	Caveat string `json:"caveat,omitempty"`
 }
 
 // Candidates returns every fix SuggestFixes considers, sorted by ID: a PinRef for
@@ -322,6 +328,7 @@ func (ix *Index) SuggestFixes(budget int) []FixSuggestion {
 			Fix: f, FixID: f.ID(), Edges: es,
 			Removed: current - bestAfter, CumulativeRemoved: removedTotal, Remaining: bestAfter,
 			CumulativePct: 100 * float64(removedTotal) / float64(baseline),
+			Caveat:        fixCaveat(ix, f),
 		})
 		current = bestAfter
 	}

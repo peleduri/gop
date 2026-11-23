@@ -102,8 +102,8 @@ func TestActionsAccess(t *testing.T) {
 		}
 		// hidden-tool is not visible (acme-legacy is not owned): unknown + coverage.
 		hidden := ix.node(t, "repo:acme-legacy/hidden-tool")
-		if hidden.Attrs[graph.AttrActionsAccess] != "unknown" || hidden.AttrEvidence[graph.AttrActionsAccess] != graph.NotVisible {
-			t.Errorf("hidden-tool actions_access = %q (%q)", hidden.Attrs[graph.AttrActionsAccess], hidden.AttrEvidence[graph.AttrActionsAccess])
+		if hidden.Attrs[graph.AttrActionsAccess] != "unknown" || attrEvidence(hidden, graph.AttrActionsAccess) != graph.NotVisible {
+			t.Errorf("hidden-tool actions_access = %q (%q)", hidden.Attrs[graph.AttrActionsAccess], attrEvidence(hidden, graph.AttrActionsAccess))
 		}
 		if c, ok := hasCoverage(ix.g, "repo:acme-legacy/hidden-tool", graph.AttrActionsAccess); !ok || c.NeedsFix != "admin on acme-legacy/hidden-tool (or org owner)" {
 			t.Errorf("hidden-tool coverage = %+v, %v", c, ok)

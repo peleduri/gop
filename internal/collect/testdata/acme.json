@@ -126,7 +126,8 @@
         "allowPrivateRepositoryForkingSettingOrganizations": "false"
       },
       "repos": [
-        {"name": "vault-proxy", "visibility": "private", "actions_workflow_permissions_forbidden": true}
+        {"name": "vault-proxy", "visibility": "private", "actions_workflow_permissions_forbidden": true},
+        {"name": "vendor-mirror", "visibility": "private", "workflows_dir_object": true}
       ]
     },
     {
