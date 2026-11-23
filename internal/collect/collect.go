@@ -195,7 +195,7 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	k.coverUnknownOwners()
-	return nil
+	return k.collectRefProtection(ctx)
 }
 
 // ---- graph helpers ----
@@ -267,7 +267,14 @@ func (k *collector) graph() *graph.Graph {
 		if a.Kind != b.Kind {
 			return a.Kind < b.Kind
 		}
-		return a.To < b.To
+		if a.To != b.To {
+			return a.To < b.To
+		}
+		// Parallel edges (a grant next to a via=ref_bypass edge per branch).
+		if a.Attrs[graph.AttrVia] != b.Attrs[graph.AttrVia] {
+			return a.Attrs[graph.AttrVia] < b.Attrs[graph.AttrVia]
+		}
+		return a.Attrs[graph.AttrRef] < b.Attrs[graph.AttrRef]
 	})
 	return g
 }

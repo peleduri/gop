@@ -1,0 +1,30 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "team:acme-actions/release", "kind": "identity", "name": "acme-actions/release", "evidence": "live",
+     "attrs": {"org": "acme-actions", "slug": "release"}},
+    {"id": "repo:acme-actions/deploy", "kind": "repo", "name": "acme-actions/deploy", "evidence": "live"},
+    {"id": "repo:acme-actions/setup", "kind": "repo", "name": "acme-actions/setup", "evidence": "live"},
+    {"id": "action:acme-actions/deploy@main", "kind": "action_ref", "name": "acme-actions/deploy@main", "evidence": "live",
+     "attrs": {"ref": "main", "ref_kind": "branch", "ref_protected": "true", "ref_protection": "reviews,dismiss_stale",
+               "bypass": "team:acme-actions/release"}},
+    {"id": "action:acme-actions/setup@main", "kind": "action_ref", "name": "acme-actions/setup@main", "evidence": "live",
+     "attrs": {"ref": "main", "ref_kind": "branch", "ref_protected": "unknown"},
+     "attr_evidence": {"ref_protected": "not_visible"}}
+  ],
+  "edges": [
+    {"from": "team:acme-actions/release", "to": "repo:acme-actions/deploy", "kind": "CAN_PUSH", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/rulesets/{ruleset_id}", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "ref_bypass", "ref": "main", "permission": "bypass", "rule_source": "ruleset:7", "bypass_mode": "always"}},
+    {"from": "action:acme-actions/deploy@main", "to": "repo:acme-actions/deploy", "kind": "RESOLVES_TO", "evidence": "live",
+     "source_api": "derived:workflow.uses+graphql:enterprise.organizations", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "action:acme-actions/setup@main", "to": "repo:acme-actions/setup", "kind": "RESOLVES_TO", "evidence": "live",
+     "source_api": "derived:workflow.uses+graphql:enterprise.organizations", "observed_at": "2026-01-01T00:00:00Z"}
+  ],
+  "coverage": [
+    {"scope": "action:acme-actions/setup@main", "fact": "ref_protection",
+     "reason": "could not read rules for acme-actions/setup@main: 403", "needs_fix": "read access to acme-actions/setup"}
+  ]
+}

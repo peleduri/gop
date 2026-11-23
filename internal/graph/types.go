@@ -149,4 +149,14 @@ const (
 	ViaDirect              = "direct"               // a direct collaborator grant on the repo
 	ViaOutsideCollaborator = "outside_collaborator" // a direct grant to a user who is not an org member
 	ViaTeam                = "team"                 // a team repository grant; members and child teams reach it through MEMBER_OF
+	ViaRefBypass           = "ref_bypass"           // may land code alone on a protected branch (Attrs[AttrRef]): a ruleset bypass actor, a classic bypass allowance or push restriction, or a repo admin when admins are not enforced
+)
+
+// Branch protection of mutable action refs (on action_ref nodes with
+// ref_kind=branch, and on via=ref_bypass CAN_PUSH edges).
+const (
+	AttrRefProtected  = "ref_protected"  // true | false | unknown (not_visible): pushing to the host repo alone cannot change the branch
+	AttrRefProtection = "ref_protection" // comma list: reviews, dismiss_stale, last_push_approval, status_checks, push_restricted, admins_enforced
+	AttrBypass        = "bypass"         // comma list of principal IDs that can land code alone, "none", or "unknown" (not_visible)
+	AttrRef           = "ref"            // branch name on via=ref_bypass edges; the ref on action_ref nodes
 )
