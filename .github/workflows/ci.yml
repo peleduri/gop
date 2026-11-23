@@ -30,6 +30,36 @@ jobs:
       - name: go test
         run: go test ./... -race -count=1
 
+  fuzz:
+    # Short fuzz runs of the parsers that read attacker-controlled input
+    # (workflow YAML, composite actions, graph.json). One job per target so
+    # they run side by side. Crashers go to testdata/fuzz/ and must be committed.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {target: FuzzParseWorkflow, pkg: ./internal/collect}
+          - {target: FuzzParseCompositeAction, pkg: ./internal/collect}
+          - {target: FuzzParseUses, pkg: ./internal/collect}
+          - {target: FuzzRefKind, pkg: ./internal/collect}
+          - {target: FuzzLoad, pkg: ./internal/graph}
+    steps:
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - name: fuzz ${{ matrix.target }}
+        env:
+          TARGET: ${{ matrix.target }}
+          PKG: ${{ matrix.pkg }}
+        run: go test -run='^$' -fuzz="^${TARGET}\$" -fuzztime=30s "$PKG"
+
   lint:
     runs-on: ubuntu-latest
     steps:

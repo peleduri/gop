@@ -190,8 +190,15 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 	add := func(from, to string, e Edge, reverse, ci bool) {
 		k := key{from, to, ci}
 		ce := cedge{to: to, ci: ci, hop: Hop{Kind: e.Kind, From: from, To: to, Evidence: e.Evidence, SourceAPI: e.SourceAPI, Reverse: reverse}}
-		if old, ok := best[k]; ok && evRank(old.hop.Evidence) >= evRank(e.Evidence) {
-			return
+		// Parallel evidence edges collapse to one control edge: the strongest
+		// evidence wins, ties go to the smallest (kind, source_api). Without the
+		// tie-break the kept hop, and so the source_api in reported paths,
+		// depended on the order of g.Edges.
+		if old, ok := best[k]; ok {
+			or, nr := evRank(old.hop.Evidence), evRank(e.Evidence)
+			if or > nr || (or == nr && (old.hop.Kind < e.Kind || (old.hop.Kind == e.Kind && old.hop.SourceAPI <= e.SourceAPI))) {
+				return
+			}
 		}
 		best[k] = ce
 	}
