@@ -95,8 +95,12 @@ func writeMarkdown(w io.Writer, d data) error {
 		p("## Pinned, still reachable\n\n")
 		p("A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:\n\n")
 		for _, r := range d.Pinned {
-			p("- **%s** (used by %s) runs **%s**. %s can change it", md(r.Action),
-				plural(r.Consumers, "workflow", "workflows"), md(r.Via), md(r.Principal))
+			via := "**" + md(r.Via) + "**"
+			if r.ViaNote != "" {
+				via += " (" + r.ViaNote + ")"
+			}
+			p("- **%s** (used by %s) runs %s. %s can change it", md(r.Action),
+				plural(r.Consumers, "workflow", "workflows"), via, md(r.Principal))
 			if r.Path.Confirmed {
 				p(" (confirmed):\n")
 			} else {

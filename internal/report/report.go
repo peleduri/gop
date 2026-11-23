@@ -129,6 +129,7 @@ type fixRow struct {
 // nested mutable action.
 type pinnedRow struct {
 	Action, Via string
+	ViaNote     string // set when Via is only possibly mutable
 	Consumers   int
 	Path        pathView
 	Principal   string
@@ -211,7 +212,7 @@ func build(g *graph.Graph, opts Options) data {
 	}
 	for _, pe := range ix.PinnedExposures() {
 		d.Pinned = append(d.Pinned, pinnedRow{Action: strings.TrimPrefix(pe.Action, "action:"),
-			Via: strings.TrimPrefix(pe.Via, "action:"), Consumers: pe.Consumers,
+			Via: strings.TrimPrefix(pe.Via, "action:"), ViaNote: pe.ViaNote, Consumers: pe.Consumers,
 			Principal: pe.Path.From, Path: viewPath(pe.Path)})
 	}
 	if n := len(d.Pinned); n > 0 {

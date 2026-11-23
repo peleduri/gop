@@ -18,6 +18,17 @@ flags may change in minor releases.
   nodes. No baseline logs "no baseline, skipping" and passes. Needs
   `actions: read`; off, the Action is unchanged. The gate is
   `action/diff-gate.sh`, tested against a built gop.
+### Fixed
+
+- `fix_plan`, `gop fix-plan --pin`, `gop pin` and the report's "Pinned, still
+  reachable" section now use the same `ref_immutable`/`ref_protected` gate as
+  reach. A nested tag that is an immutable release (or a protected branch)
+  with no matching bypass is no longer reported as a mutable ref ("pin those
+  too") or as a pinned exposure, and a locked outer ref counts as pinned. A
+  nested ref whose gate is not visible stays listed, labelled "possibly
+  mutable (immutability not visible)", and its exposure path is possible.
+  `PinnedExposure` gains `via_note`, and `Via` is also set when the path
+  enters the nested ref through a `ref_bypass` push.
 
 ## [0.3.0] - 2026-11-24
 

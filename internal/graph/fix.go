@@ -349,6 +349,10 @@ func (ix *Index) Scores() []Score { return ix.allScores(ix.base) }
 func FixEdges(ix *Index, f Fix) []Edge { return f.edges(ix) }
 
 // MutableRef reports whether an action ref can change without a new pin: its
-// ref_kind is branch or tag, or it is unknown and the ref does not look like a
-// commit SHA. It is the test Candidates uses for PinRef.
-func (ix *Index) MutableRef(action string) bool { return ix.actionMutable(action) }
+// RefState is RefMutable or RefPossiblyMutable. A SHA pin, or a tag or branch
+// that refLock locks with no bypass, is not mutable; a ref whose gate is not
+// visible counts as mutable (see MutabilityNote for its label).
+func (ix *Index) MutableRef(action string) bool {
+	st := ix.RefState(action)
+	return st == RefMutable || st == RefPossiblyMutable
+}

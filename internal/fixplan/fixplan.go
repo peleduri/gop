@@ -208,8 +208,13 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 	uses := strings.TrimPrefix(f.Action, "action:")
 	base, ref := splitRef(uses)
 	sha := "<sha-of-" + ref + ">"
-	if !ix.MutableRef(f.Action) {
+	switch ix.RefState(f.Action) {
+	case graph.RefPinned:
 		p.Caveats = append(p.Caveats, uses+" is already pinned to a commit SHA: there is nothing to change")
+	case graph.RefLocked:
+		p.Caveats = append(p.Caveats, uses+" is locked (an immutable tag or a protected branch with no bypass that applies): pushing cannot move it, so a pin changes no reach")
+	case graph.RefPossiblyMutable:
+		p.Caveats = append(p.Caveats, uses+" is "+ix.MutabilityNote(f.Action)+": the pin closes paths through it only if it can move")
 	}
 
 	type key struct {
@@ -296,7 +301,9 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 
 // NestedMutable lists the mutable action refs reachable from action through
 // USES edges (nested composite actions and reusable workflows), each with its
-// file:line when known: the node IDs and their labels, sorted by ID.
+// file:line when known: the node IDs and their labels, sorted by ID. A ref
+// that is locked (graph.RefLocked) is left out; one whose gate is not visible
+// is kept and labelled with graph.Index.MutabilityNote.
 func NestedMutable(ix *graph.Index, action string) (ids, labels []string) {
 	seen := map[string]bool{action: true}
 	queue := []string{action}
@@ -318,6 +325,9 @@ func NestedMutable(ix *graph.Index, action string) (ids, labels []string) {
 						loc += ":" + l
 					}
 					label += " (" + strings.TrimPrefix(cur, "action:") + " " + loc + ")"
+				}
+				if note := ix.MutabilityNote(e.To); note != "" {
+					label += " [" + note + "]"
 				}
 				if !graph.Verified(e.Evidence) {
 					label += " [not visible]"
