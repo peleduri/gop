@@ -160,6 +160,7 @@ gop diff    OLD.json NEW.json [--format text|json|markdown] [--fail-on confirmed
 gop fix-plan --graph graph.json --pin <action> | --lower-default-perm <org> [--to read|none] | --restrict-token <workflow> | --harden-trigger <workflow> [--format text|markdown|json]
 gop sarif   --graph graph.json --out gop.sarif | --split-by-repo DIR [--top N] [--min-severity low|medium|high|critical] [--include-possible]
 gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]] [--github-url URL] [--format diff|text|json]
+gop export  --format cypher graph.json [--out gop.cypher] [--github-url URL]
 gop mcp-config --client claude|cursor|vscode --graph graph.json
 gop version
 ```
@@ -172,6 +173,8 @@ gop version
 `gop redact` makes a graph safe to attach to a bug report. Every org, repo, user, team, action, workflow file, secret name, runner label, environment and cloud name becomes a stable synthetic name (`acme-org-03`, `acme-org-03/repo-012`, `user-007`, `.github/workflows/wf-004.yml`; SHAs become other 40-hex strings, tags `v1.N`, branches `branch-N`), member, IP allow list and observed role-use (`times_used`) counts are bucketed and timestamps, including `last_used`, shift by one offset. Structure, evidence and the attrs reach depends on are kept, so reach and scores are the same as on the real graph. Attr keys gop does not define are dropped unless `--keep-attr` names them. Names come from HMAC-SHA256 under the salt: `--salt-file` gives the same names on every run, and without it each run uses a random salt. Before writing, it checks that no original name of 3 or more characters appears in the output and fails, writing nothing, if one does. `--map-out` writes the real-to-synthetic mapping to a local file: keep it, never share it. Regenerate a report from the redacted graph instead of redacting report.html.
 
 `gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md).
+
+`gop export --format cypher graph.json > gop.cypher` writes an idempotent Neo4j script that loads gop's nodes, edges and computed reach next to [Cartography](https://github.com/cartography-cncf/cartography) data, linked to its GitHub repo, org and AWS role nodes. See [docs/cartography.md](docs/cartography.md#export-gop-to-neo4j).
 
 `--graph -` reads the graph from stdin for `report`, `paths` and `who`. Node IDs look like `members:acme-actions`, `identity:bob`, `repo:acme-app/web`, `action:acme-actions/deploy@main`, `oidc:acme-app/web`. An unknown ID returns suggestions.
 

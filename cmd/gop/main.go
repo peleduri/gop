@@ -63,6 +63,7 @@ Usage:
               [--min-severity low|medium|high|critical] [--include-possible]
   gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
               [--github-url URL] [--format diff|text|json]
+  gop export  --format cypher graph.json | --graph graph.json | --demo  [--out gop.cypher] [--github-url URL]
   gop mcp-config --client claude|cursor|vscode --graph graph.json
   gop version
 
@@ -102,6 +103,9 @@ scanning shows them to everyone with alert access. gop never uploads it.
 pin resolves an action ref to a commit SHA with read-only GET requests (token
 from GITHUB_TOKEN or GH_TOKEN) and, with --graph, prints a git apply diff for
 every consuming workflow. It writes to stdout only.
+export --format cypher writes an idempotent Neo4j Cypher script (MERGE only)
+that loads gop's nodes, edges and computed reach next to Cartography's data and
+links them to Cartography's GitHub and AWS nodes. It writes text only.
 mcp-config prints the MCP client config for serve; it never writes files.
 --github-url (or GOP_GITHUB_URL) on collect, doctor and pin names a GitHub
 Enterprise Server instance (https://HOST): gop reads https://HOST/api/v3 and
@@ -187,6 +191,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdPin(rest)
 	case "sarif":
 		err = a.cmdSARIF(rest)
+	case "export":
+		err = a.cmdExport(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":
