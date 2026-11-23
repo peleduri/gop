@@ -69,7 +69,7 @@ func TestValidFixtures(t *testing.T) {
 }
 
 func TestWarnings(t *testing.T) {
-	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "testdata/valid/ref-protection.json", "testdata/valid/token-write.json", "../../testdata/acme/graph.json"} {
+	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "testdata/valid/ref-protection.json", "testdata/valid/token-write.json", "testdata/valid/actions-access.json", "../../testdata/acme/graph.json"} {
 		if r := validateFile(t, f); len(r.Warnings) > 0 {
 			t.Errorf("%s: unexpected warnings %v", f, r.Warnings)
 		}
@@ -89,6 +89,7 @@ func TestInvalidFixtures(t *testing.T) {
 	// Each invalid fixture must produce an error at this JSON pointer whose
 	// message contains the given text.
 	want := map[string]struct{ ptr, msg string }{
+		"bad-actions-access.json":      {"/nodes/0/attrs/actions_access", `"everyone" is not one of "none", "user", "organization", "enterprise", "public", "unknown"`},
 		"bad-edge-kind.json":           {"/edges/0/kind", `"PUSHES" is not one of`},
 		"bad-evidence.json":            {"/edges/0/evidence", `"seen" is not one of "live", "audit", "not_visible"`},
 		"bad-node-kind.json":           {"/nodes/0/kind", `"host" is not one of`},

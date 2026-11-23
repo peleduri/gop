@@ -50,6 +50,7 @@ type Index struct {
 	out   map[string][]Edge
 	in    map[string][]Edge
 	base  *controlGraph // control graph with no fixes applied
+	gates []usesGate    // actions access gate per g.Edges index; nil when no repo has actions_access
 }
 
 // NewIndex builds adjacency lookups. Edge lists are sorted (kind, to/from, source_api)
@@ -71,6 +72,7 @@ func NewIndex(g *Graph) *Index {
 			sort.SliceStable(es, func(i, j int) bool { return edgeLess(es[i], es[j]) })
 		}
 	}
+	ix.gates = ix.usesGates()
 	ix.base = ix.buildControl(nil)
 	return ix
 }

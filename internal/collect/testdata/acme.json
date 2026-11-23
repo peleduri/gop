@@ -25,7 +25,7 @@
         {"id": 42, "slug": "release", "privacy": "closed", "members": ["dave"], "repos": []}
       ],
       "repos": [
-        {"name": "deploy", "visibility": "internal", "default_branch": "main", "collaborators": [
+        {"name": "deploy", "visibility": "internal", "default_branch": "main", "actions_access": "enterprise", "collaborators": [
           {"login": "bob", "role_name": "maintain", "permissions": {"pull": true, "triage": true, "push": true, "maintain": true, "admin": false}},
           {"login": "erin", "role_name": "write", "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}},
           {"login": "dave", "role_name": "triage", "permissions": {"pull": true, "triage": true, "push": false, "maintain": false, "admin": false}}
@@ -40,7 +40,7 @@
              "bypass_actors": [{"actor_id": 42, "actor_type": "Team", "bypass_mode": "always"}]}
           ]
         },
-        {"name": "setup", "visibility": "internal", "default_branch": "main",
+        {"name": "setup", "visibility": "internal", "default_branch": "main", "actions_access": "organization",
           "branch_rules": {"main": [
             {"type": "required_status_checks", "ruleset_source_type": "Organization", "ruleset_source": "acme-actions", "ruleset_id": 8,
              "parameters": {"required_status_checks": [{"context": "build"}], "strict_required_status_checks_policy": true}}

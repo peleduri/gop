@@ -223,6 +223,12 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 				out = append(out, rev)
 			}
 		case Uses:
+			switch refAccess(g, e) {
+			case "drop":
+				continue
+			case "hidden":
+				rev.ev = NotVisible
+			}
 			out = append(out, rev)
 		case ExecutesWith:
 			out = append(out, fwd)
@@ -231,14 +237,115 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 	return out
 }
 
+// refAccess applies the actions access rule (reach.go, USES) to one USES
+// edge: "open", "hidden" (the hop becomes not_visible) or "drop". It is written
+// from the rule table, not from actionsAccessAllows. A graph where no repo has
+// actions_access is always open. The host repos are the action's RESOLVES_TO
+// targets, else the repo in its ID; the consumer repos are a workflow's
+// DEFINED_IN targets (else the repo in its ID) or a consuming action's hosts.
+// The most permissive (host, consumer) pair wins.
+func refAccess(g *Graph, e Edge) string {
+	levels := map[string]string{}
+	for _, n := range g.Nodes {
+		if l := n.Attrs[AttrActionsAccess]; l != "" {
+			levels[n.ID] = l
+		}
+	}
+	if len(levels) == 0 {
+		return "open"
+	}
+	idRepo := func(id string) []string {
+		kind, rest, _ := strings.Cut(id, ":")
+		if kind == "action" {
+			if at := strings.LastIndex(rest, "@"); at >= 0 {
+				rest = rest[:at]
+			}
+		} else if kind != "workflow" {
+			return nil
+		}
+		seg := strings.Split(rest, "/")
+		if len(seg) < 2 || seg[0] == "" || seg[1] == "" {
+			return nil
+		}
+		return []string{"repo:" + seg[0] + "/" + seg[1]}
+	}
+	targets := func(from string, kind EdgeKind) []string {
+		var out []string
+		for _, x := range g.Edges {
+			if x.From == from && x.Kind == kind {
+				out = append(out, x.To)
+			}
+		}
+		if len(out) == 0 {
+			out = idRepo(from)
+		}
+		return out
+	}
+	hosts := targets(e.To, ResolvesTo)
+	if len(hosts) == 0 {
+		return "open"
+	}
+	consumerKind := KindFromID(e.From)
+	for _, n := range g.Nodes {
+		if n.ID == e.From && n.Kind != "" {
+			consumerKind = n.Kind
+		}
+	}
+	var consumers []string
+	if consumerKind == KindActionRef {
+		consumers = targets(e.From, ResolvesTo)
+	} else {
+		consumers = targets(e.From, DefinedIn)
+	}
+	owner := func(repo string) string {
+		o, _, _ := strings.Cut(strings.TrimPrefix(repo, "repo:"), "/")
+		return strings.ToLower(o)
+	}
+	verdict := "drop"
+	for _, h := range hosts {
+		level := levels[h]
+		if level == "" || level == "public" || level == "enterprise" {
+			return "open"
+		}
+		if len(consumers) == 0 {
+			verdict = "hidden"
+		}
+		for _, c := range consumers {
+			sameOrg := owner(h) == owner(c)
+			sameRepo := strings.EqualFold(h, c)
+			switch level {
+			case "organization", "user":
+				if sameOrg {
+					return "open"
+				}
+			case "none":
+				if sameRepo {
+					return "open"
+				}
+			default: // unknown, or a value gop does not know
+				if sameOrg {
+					return "open"
+				}
+				verdict = "hidden"
+			}
+		}
+	}
+	return verdict
+}
+
 // refReach returns every node reachable from `from` (excluding it) with its
-// shortest path length. Evidence is ignored: callers pass a graph with the
-// not_visible edges deleted (confirmed) or every edge set to live (union).
+// shortest path length. With verifiedOnly it walks only live and audit control
+// edges (confirmed reach), else every control edge (confirmed plus possible).
+// The control edges come from the whole graph either way: the actions access
+// rule reads DEFINED_IN and RESOLVES_TO edges whatever their evidence.
 // Controlled nodes expand through every non-CI edge; a CI edge only records its
 // target.
-func refReach(g *Graph, from string, fixes []Fix) map[string]int {
+func refReach(g *Graph, from string, fixes []Fix, verifiedOnly bool) map[string]int {
 	adj := map[string][]refEdge{}
 	for _, e := range refControl(g, fixes) {
+		if verifiedOnly && !refVerified(e.ev) {
+			continue
+		}
 		adj[e.from] = append(adj[e.from], e)
 	}
 	ctrl := map[string]int{from: 0}
@@ -270,25 +377,6 @@ func refReach(g *Graph, from string, fixes []Fix) map[string]int {
 		}
 	}
 	return out
-}
-
-func withoutNotVisible(g *Graph) *Graph {
-	c := cloneGraph(g)
-	c.Edges = c.Edges[:0]
-	for _, e := range g.Edges {
-		if e.Evidence != NotVisible {
-			c.Edges = append(c.Edges, e)
-		}
-	}
-	return c
-}
-
-func allLive(g *Graph) *Graph {
-	c := cloneGraph(g)
-	for i := range c.Edges {
-		c.Edges[i].Evidence = Live
-	}
-	return c
 }
 
 // refBucket sorts a reached set into Reached lists the way Result reports them.
@@ -476,10 +564,9 @@ func propConfirmedSound(g *Graph, _ *rand.Rand) error {
 
 func propConfirmedComplete(g *Graph, _ *rand.Rand) error {
 	ix := NewIndex(g)
-	vis := withoutNotVisible(g)
 	for _, p := range ix.Principals() {
 		res := ix.Reach(p, Options{})
-		ref := refReach(vis, p, nil)
+		ref := refReach(g, p, nil, true)
 		if err := sameKeys(confirmedIDs(res), ref); err != nil {
 			return fmt.Errorf("%s: confirmed != reach without not_visible edges: %v", p, err)
 		}
@@ -492,15 +579,13 @@ func propConfirmedComplete(g *Graph, _ *rand.Rand) error {
 
 func propUnion(g *Graph, _ *rand.Rand) error {
 	ix := NewIndex(g)
-	live := allLive(g)
-	vis := withoutNotVisible(g)
 	for _, p := range ix.Principals() {
 		res := ix.Reach(p, Options{})
-		all := refReach(live, p, nil)
+		all := refReach(g, p, nil, false)
 		if err := sameKeys(allIDs(res), all); err != nil {
 			return fmt.Errorf("%s: confirmed+possible != reach with all edges live: %v", p, err)
 		}
-		conf := refReach(vis, p, nil)
+		conf := refReach(g, p, nil, true)
 		poss := map[string]int{}
 		for id, d := range all {
 			if _, ok := conf[id]; !ok {
@@ -528,8 +613,8 @@ func checkPaths(g *Graph, p string, res Result, fixes []Fix) error {
 		k := hopKey{e.from, e.to, e.kind, e.ev, e.sourceAPI, e.reverse}
 		ctl[k] = append(ctl[k], e.ci)
 	}
-	confDist := refReach(withoutNotVisible(g), p, fixes)
-	allDist := refReach(allLive(g), p, fixes)
+	confDist := refReach(g, p, fixes, true)
+	allDist := refReach(g, p, fixes, false)
 	for _, id := range sortedKeys(allIDs(res)) {
 		path := res.Paths[id]
 		if path.From != p || path.To != id {
@@ -660,7 +745,6 @@ func propFixMonotonic(g *Graph, r *rand.Rand) error {
 		base[p] = ix.Reach(p, Options{})
 	}
 	cands := ix.Candidates()
-	vis := withoutNotVisible(g)
 	for n, fs := range fixSets(cands, r) {
 		cg := ix.buildControl(fs)
 		for _, p := range principals {
@@ -668,7 +752,7 @@ func propFixMonotonic(g *Graph, r *rand.Rand) error {
 			// The random subsets are also checked against the reference model
 			// with the same fixes applied (singletons are covered by the subsets).
 			if n >= len(cands) {
-				if err := sameKeys(confirmedIDs(after), refReach(vis, p, fs)); err != nil {
+				if err := sameKeys(confirmedIDs(after), refReach(g, p, fs, true)); err != nil {
 					return fmt.Errorf("fixes %v: %s confirmed reach != reference: %v", fixIDs(fs), p, err)
 				}
 			}
@@ -828,7 +912,7 @@ func TestPropertyReferenceAgreesOnFixture(t *testing.T) {
 			t.Errorf("%s on testdata/acme: %v", p.name, err)
 		}
 	}
-	ref := refReach(withoutNotVisible(g), "identity:alice", nil)
+	ref := refReach(g, "identity:alice", nil, true)
 	if _, ok := ref["repo:acme-app/infra"]; !ok {
 		t.Errorf("reference misses repo:acme-app/infra for identity:alice: %v", sortedIntKeys(ref))
 	}

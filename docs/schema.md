@@ -87,6 +87,8 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `ref_protected` | action_ref node (enterprise-internal, `ref_kind=branch`) | `true` when branch protection stops a pusher from changing the branch alone, `false`, or `unknown` (`not_visible`, with a `ref_protection` coverage entry). See [Branch protection](#branch-protection). |
 | `ref_protection` | action_ref node | Comma list of the branch's rules, in this order: `reviews` (a pull request needs at least one approval), `dismiss_stale`, `last_push_approval`, `status_checks`, `push_restricted` (an `update` rule or classic push restrictions), `admins_enforced`. Absent when there are none. |
 | `bypass` | action_ref node with `ref_protected=true` | Comma list of the principal IDs that can still land code alone (each also has a `via=ref_bypass` edge), `none`, or `unknown` (`not_visible`, with a `bypass` coverage entry) when the bypass actors are visible to repository admins only. |
+| `actions_access` | repo hosting a referenced enterprise action | The Actions access setting (`GET /repos/{owner}/{repo}/actions/permissions/access`): `none`, `user`, `organization` or `enterprise`; `public` for a public repo (no request); `unknown` (`not_visible`, with an `actions_access` coverage entry) when the setting can't be read (it needs repo admin) or has a value gop does not know. See [Actions access](#actions-access). |
+| `consumer_org` | `USES` edge into an action that resolves to an enterprise repo | Org login of the using workflow's repo, or of the using composite action's host repo. Informational: the engine reads the repos from `DEFINED_IN` and `RESOLVES_TO`. |
 | `file` | `USES`, `EXECUTES_WITH` edge | Repo-relative path of the workflow or action file the edge was read from, e.g. `.github/workflows/release.yml`. |
 | `file_ref` | `USES`, `EXECUTES_WITH` edge | Commit or branch the file was read at, when known (the repo's default branch for top-level workflows, the parent `uses:` ref for nested files). |
 | `line` | `USES`, `EXECUTES_WITH` edge | 1-based line, integer as string: the `uses:` value on `USES`, the `id-token: write` (or `write-all`) key on the OIDC edge, the `runs-on:` key on the runner edge. |
@@ -159,6 +161,19 @@ For `token_write=true` the workflow gets `workflow -CAN_PUSH-> repo` with `via=t
 
 Known limitations: a `GITHUB_TOKEN` cannot change files under `.github/workflows/` (that needs the `workflows` permission, which it never has). gop still expands the repo to its workflows (`DEFINED_IN` reversed), because workflows almost always run repo code: scripts, local actions, build files. Such paths show `via=token_write` on the `CAN_PUSH` hop (`explain` prints edge attrs). Who can trigger the workflow (`pull_request` from forks always gets a read token) is not modeled yet, and other write scopes (`actions`, `packages`) are recorded in `token_scopes` only.
 
+### Actions access
+
+A private or internal repo's Actions "Access" setting decides which other repositories may use the actions and reusable workflows it hosts. `gop collect` reads it once for every repo that is the target of a `RESOLVES_TO` edge and records `actions_access` on the repo. The engine checks it on the reverse `USES` hop (action controls consumer), comparing the host repo (the action's `RESOLVES_TO` target) with the consumer's repo (a workflow's `DEFINED_IN` target, or a composite action's host):
+
+| `actions_access` | Hop kept for |
+|---|---|
+| no attr, `public`, `enterprise` | every consumer |
+| `organization`, `user` | consumers in the host's org (owner) |
+| `none` | the host repo itself |
+| `unknown` | consumers in the host's org; other consumers keep the hop as `not_visible`, so the path is possible, not confirmed |
+
+A hop the setting forbids is dropped. Graphs without `actions_access` behave as before. The consumer side (the consumer org's allowed-actions policy) is not read yet.
+
 ### Principals and scoring
 
 `who_can_reach`, `reach` and `blast_radius` accept every principal: each `org_members` node and each `identity` node. Workflows are not principals, even with a `via=token_write` `CAN_PUSH` edge. Totals (`top_paths`, `what_if`, `suggest_fixes`) sum over the scoring principals only: every `org_members` node, plus identities with at least one `CAN_PUSH` edge or a `MEMBER_OF` edge to something that is not an org (a team). Teams qualify the same way: through their own grants or their nesting under a parent team. An identity whose only edges are org memberships reaches exactly what `members:X` reaches, so counting it again would multiply the `(principal, repo)` pair totals by the number of licensed users.
@@ -227,3 +242,4 @@ The JSON Schema allows unknown fields and attribute keys for this reason. Consum
 | `gop.graph/v1` | unreleased | Additive: JSON Schema published in `schema/gop.graph.v1.schema.json`; `file`, `file_ref`, `line`, `col` on `USES` and `EXECUTES_WITH` edges; `identity` nodes for licensed users; `CAN_PUSH` `via` values `org_owner`, `direct`, `outside_collaborator`, `team`; `identity` nodes with `team:<org>/<slug>` IDs (the engine already read this prefix as `identity`) and `MEMBER_OF` edges to teams. |
 | `gop.graph/v1` | unreleased | Additive: `ref_protected`, `ref_protection` and `bypass` on action_ref nodes (typed in the JSON Schema as `NodeAttrs`); `CAN_PUSH` `via=ref_bypass` with `ref`, `rule_source` and `bypass_mode`, possibly parallel to another `CAN_PUSH` edge between the same nodes; coverage facts `ref_protection`, `bypass` and `ref_bypass`. |
 | `gop.graph/v1` | unreleased | Additive: `CAN_PUSH` from a workflow to its own repo with `via=token_write`, `permission=contents: write` and `jobs`; `token_write` and `token_scopes` on workflow nodes; coverage fact `default_workflow_permissions`. Coverage scoped to a repo also covers the workflows in it (`gop validate`). |
+| `gop.graph/v1` | unreleased | Additive: `actions_access` on repo nodes (typed in the JSON Schema as `NodeAttrs`), `consumer_org` on `USES` edges (`EdgeAttrs`), coverage fact `actions_access`. |
