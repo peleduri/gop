@@ -18,7 +18,17 @@ const (
 	Audit Evidence = "audit"
 	// NotVisible: the token can't read this fact. The hop is unknown, not absent.
 	NotVisible Evidence = "not_visible"
+	// Supplied: read from a file the user supplied (a cloud OIDC trust policy);
+	// gop did not observe it live. It counts as confirmed (the user asserts the
+	// file reflects what is deployed), but every path through it is flagged
+	// (Path.Supplied) and summaries name the file. Ranked between audit and
+	// not_visible.
+	Supplied Evidence = "supplied"
 )
+
+// SourceSupplied prefixes the source_api of facts read from a user-supplied
+// file: "supplied:<path as given>".
+const SourceSupplied = "supplied:"
 
 // NodeKind is the type of a node.
 type NodeKind string
@@ -65,6 +75,12 @@ const (
 	// (attrs trigger, exec=checkout|injection, job), so the principal controls
 	// the workflow without push access.
 	CanTrigger EdgeKind = "CAN_TRIGGER"
+	// CanAssume: workflow -> cloud_target. A token the workflow can mint (its
+	// EXECUTES_WITH edge to oidc) matches a supplied cloud trust policy. Added
+	// by gop enrich --oidc-trust, never by collection. Terminal impact.
+	// Evidence is supplied for a match, not_visible (with attrs.reason) when
+	// gop cannot decide the match.
+	CanAssume EdgeKind = "CAN_ASSUME"
 )
 
 // Node is a vertex. ID is stable and human-readable, e.g. "org:acme-actions",
@@ -150,6 +166,21 @@ const (
 	// EnvDynamic in AttrEnvironments stands for an environment set by an
 	// expression such as ${{ inputs.env }}: any value is possible.
 	EnvDynamic = "*dynamic*"
+)
+
+// CAN_ASSUME edge and cloud_target node attribute keys (gop enrich --oidc-trust).
+// AttrFile ("file") on a CAN_ASSUME edge is the supplied trust file.
+const (
+	AttrMatchedSub = "matched_sub" // CAN_ASSUME: the trust's sub pattern(s) that matched, comma list; absent when the trust has no sub condition
+	AttrClaims     = "claims"      // CAN_ASSUME: comma list of the claims the trust checks (sub, repository, environment, ...)
+	AttrPointer    = "pointer"     // CAN_ASSUME: JSON pointer of the trust inside the file
+	AttrProvider   = "provider"    // CAN_ASSUME, cloud_target: aws | gcp | azure
+	AttrOIDC       = "oidc"        // CAN_ASSUME: the oidc node whose token is matched
+	AttrReason     = "reason"      // CAN_ASSUME with evidence not_visible: why gop cannot decide the match
+	AttrTrust      = "trust"       // CAN_ASSUME: the trust's own target when it names more than the node (an Azure federated credential)
+	AttrAccount    = "account"     // cloud_target: AWS account, GCP project, Azure subscription when known
+	AttrRole       = "role"        // cloud_target: role name, service account or identity
+	AttrWarnings   = "warnings"    // cloud_target: comma list, e.g. no_sub_condition, no_aud_condition, wildcard_owner
 )
 
 // IsDemo reports whether g is synthetic demo data: the enterprise node

@@ -60,6 +60,13 @@ import (
 //	                                     reached, its repo counts as CI reach, and a via=token_write
 //	                                     CAN_PUSH expands to the repo.
 //	workflow  -EXECUTES_WITH-> secret|oidc|runner   terminal impact
+//	workflow  -CAN_ASSUME->   cloud_target  terminal impact: a token the workflow mints matches a
+//	                                     supplied cloud trust policy (gop enrich --oidc-trust). The
+//	                                     hop starts at the workflow, not at the repo's shared oidc
+//	                                     node, because each workflow's own claims (environments,
+//	                                     job_workflow_ref) decide the match. Evidence supplied counts
+//	                                     as confirmed and sets Path.Supplied; an undecided match is
+//	                                     not_visible, so possible.
 type controlGraph struct {
 	out map[string][]cedge
 }
@@ -80,17 +87,57 @@ type Hop struct {
 	Evidence  Evidence `json:"evidence"`
 	SourceAPI string   `json:"source_api,omitempty"`
 	Reverse   bool     `json:"reverse,omitempty"`
+	// Reason says why gop could not decide an undecided CAN_ASSUME match
+	// (the edge's attrs.reason); such a hop is not_visible.
+	Reason string `json:"reason,omitempty"`
 }
 
 // Path is one shortest control path from a principal to a node. Evidence is the
 // weakest hop. Unverified is true when any hop is not_visible: such a path is
-// "possible" reach, never "confirmed".
+// "possible" reach, never "confirmed". Supplied is true when a hop comes from a
+// user-supplied file (source_api "supplied:<file>"), not from GitHub or the
+// cloud: SuppliedNote says which.
 type Path struct {
 	From       string   `json:"from"`
 	To         string   `json:"to"`
 	Hops       []Hop    `json:"hops"`
 	Evidence   Evidence `json:"evidence"`
 	Unverified bool     `json:"unverified"`
+	Supplied   bool     `json:"supplied,omitempty"`
+}
+
+// SuppliedFiles lists the supplied files the path's hops were read from, in
+// hop order without repeats.
+func (p Path) SuppliedFiles() []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, h := range p.Hops {
+		if f, ok := strings.CutPrefix(h.SourceAPI, SourceSupplied); ok && !seen[f] {
+			seen[f] = true
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// SuppliedNote is the caveat every summary of a supplied path carries:
+// "cloud hop from supplied trust file F, not read from the cloud". "" when the
+// path has no supplied hop.
+func (p Path) SuppliedNote() string {
+	fs := p.SuppliedFiles()
+	if len(fs) == 0 {
+		return ""
+	}
+	return "cloud hop from supplied trust file " + strings.Join(fs, ", ") + ", not read from the cloud"
+}
+
+func hopsSupplied(hops []Hop) bool {
+	for _, h := range hops {
+		if h.Evidence == Supplied || strings.HasPrefix(h.SourceAPI, SourceSupplied) {
+			return true
+		}
+	}
+	return false
 }
 
 // Reached lists node IDs by kind. Orgs are the orgs of the reached repos.
@@ -102,6 +149,8 @@ type Reached struct {
 	OIDC      []string `json:"oidc"`
 	Runners   []string `json:"runners"`
 	Orgs      []string `json:"orgs"`
+	// CloudTargets are cloud roles reached through CAN_ASSUME (supplied trust files).
+	CloudTargets []string `json:"cloud_targets,omitempty"`
 }
 
 // Result of Reach. Confirmed holds nodes reachable through a path where every hop
@@ -251,6 +300,9 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 	add := func(from, to string, e Edge, reverse, ci bool) {
 		k := key{from, to, ci}
 		ce := cedge{to: to, ci: ci, hop: Hop{Kind: e.Kind, From: from, To: to, Evidence: e.Evidence, SourceAPI: e.SourceAPI, Reverse: reverse}}
+		if e.Kind == CanAssume && e.Evidence == NotVisible {
+			ce.hop.Reason = e.Attrs[AttrReason]
+		}
 		// Parallel evidence edges collapse to one control edge: the strongest
 		// evidence wins, ties go to the smallest (kind, source_api). Without the
 		// tie-break the kept hop, and so the source_api in reported paths,
@@ -295,7 +347,7 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 				}
 			}
 			add(e.To, e.From, e, true, false)
-		case ExecutesWith, CanTrigger:
+		case ExecutesWith, CanTrigger, CanAssume:
 			add(e.From, e.To, e, false, false)
 		}
 	}
@@ -424,7 +476,7 @@ func (ix *Index) reach(cg *controlGraph, from string) Result {
 			hops, r = all[id].path, &res.Possible
 		}
 		ev := pathEvidence(hops)
-		res.Paths[id] = Path{From: from, To: id, Hops: hops, Evidence: ev, Unverified: !Verified(ev)}
+		res.Paths[id] = Path{From: from, To: id, Hops: hops, Evidence: ev, Unverified: !Verified(ev), Supplied: hopsSupplied(hops)}
 		switch ix.Kind(id) {
 		case KindRepo:
 			r.Repos = append(r.Repos, id)
@@ -445,6 +497,8 @@ func (ix *Index) reach(cg *controlGraph, from string) Result {
 			r.OIDC = append(r.OIDC, id)
 		case KindRunner:
 			r.Runners = append(r.Runners, id)
+		case KindCloudTarget:
+			r.CloudTargets = append(r.CloudTargets, id)
 		}
 	}
 	res.Confirmed.Orgs = sortedKeys(confOrgs)
@@ -456,7 +510,7 @@ func (ix *Index) reach(cg *controlGraph, from string) Result {
 }
 
 // WhoCanReach lists, for each principal that can control target (a repo, workflow,
-// action or terminal), one shortest path. Confirmed paths come first, then
+// action, terminal or cloud_target), one shortest path. Confirmed paths come first, then
 // unverified ones; within each group shorter paths first, then by principal ID.
 func WhoCanReach(g *Graph, target string) []Path {
 	return NewIndex(g).WhoCanReach(target)

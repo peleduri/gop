@@ -7,7 +7,7 @@ members:acme-actions can control 12 repos across 2 orgs (confirmed), including 1
     "confirmed": {
       "repos": 12,
       "orgs": 2,
-      "workflows": 12,
+      "workflows": 13,
       "secrets": 1,
       "oidc": 1,
       "runners": 1
@@ -21,7 +21,7 @@ members:acme-actions can control 12 repos across 2 orgs (confirmed), including 1
       "runners": 0
     },
     "multiplier": 2.25,
-    "score": 85.5,
+    "score": 86.625,
     "possible_score": 0
   },
   "confirmed": {
@@ -51,6 +51,7 @@ members:acme-actions can control 12 repos across 2 orgs (confirmed), including 1
       "workflow:acme-app/search/.github/workflows/ci.yml",
       "workflow:acme-app/web/.github/workflows/ci.yml",
       "workflow:acme-app/web/.github/workflows/nightly.yml",
+      "workflow:acme-app/web/.github/workflows/release.yml",
       "workflow:acme-app/worker/.github/workflows/ci.yml"
     ],
     "actions": [

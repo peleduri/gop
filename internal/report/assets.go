@@ -33,6 +33,7 @@ code{font:.85em ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all
 .badge{display:inline-block;padding:0 6px;border-radius:10px;font-size:.75rem;font-weight:600;white-space:nowrap}
 .live{color:var(--live);background:var(--live-bg)}.audit{color:var(--audit);background:var(--audit-bg)}
 .nv{color:var(--nv);background:var(--nv-bg);border:1px dashed var(--nv)}
+.supplied{color:var(--accent);background:var(--card);border:1px solid var(--accent)}
 .path{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0}
 .path ol{margin:6px 0 0;padding-left:20px}.path li{margin:2px 0}
 .path summary{cursor:pointer}
@@ -114,16 +115,16 @@ return e;
 }
 function code(t){return h("code","",t);}
 function clear(e){while(e.firstChild){e.removeChild(e.firstChild);}}
-function evBadge(ev){return h("span","badge "+(ev==="live"?"live":ev==="audit"?"audit":"nv"),ev);}
+function evBadge(ev){return h("span","badge "+(ev==="live"?"live":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv"),ev);}
 function pathBadge(p){return p.ev==="confirmed"?h("span","badge live","confirmed"):h("span","badge nv","possible: a hop is not visible");}
 function plural(n,one,many){return n+" "+(n===1?one:many);}
 function pathEl(p){
 var ol=h("ol");
 p.hops.forEach(function(x){
 ol.appendChild(h("li","",code(x.from)," → ",code(x.to)," ",h("span","src",x.kind+(x.rev?" (reversed)":""))," ",evBadge(x.ev),
-x.api?" ":null,x.api?h("span","src",x.api):null));
+x.api?" ":null,x.api?h("span","src",x.api):null,x.why?h("span","src"," undecided: "+x.why):null));
 });
-return h("details","path",h("summary","",pathBadge(p)," ",code(p.from)," to ",code(p.to)," ",h("span","src",p.to_kind)),ol);
+return h("details","path",h("summary","",pathBadge(p)," ",code(p.from)," to ",code(p.to)," ",h("span","src",p.to_kind)),p.note?h("div","note",p.note):null,ol);
 }
 function pathList(box,ps){
 ps.slice(0,LIMIT).forEach(function(p){box.appendChild(pathEl(p));});

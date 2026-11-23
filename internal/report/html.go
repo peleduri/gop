@@ -28,13 +28,13 @@ var pageTmpl = template.Must(template.New("report").Parse(`<!doctype html>
 {{if .FixLine}}<p>{{.FixLine}}</p>{{end}}
 {{- if .PinLine}}
 <p>{{.PinLine}}</p>{{end}}
-<p class="note">Confirmed means every hop was read live or from the audit log. Possible means at least one hop is <span class="badge nv">not visible</span> to the token: unknown, not absent.</p>
+<p class="note">Confirmed means every hop was read live or from the audit log{{if .HasCloud}}, or (a cloud hop) from a <span class="badge supplied">supplied file</span>: a cloud trust policy you supplied, not read from the cloud{{end}}. Possible means at least one hop is <span class="badge nv">not visible</span> to the token: unknown, not absent.</p>
 </section>
 
 <h2>Top risks</h2>
 {{if .Risks}}<div class="scroll"><table>
-<thead><tr><th>Principal</th><th>Confirmed repos</th><th>Orgs</th><th>OIDC</th><th>Secrets</th><th>Runners</th><th>Possible</th><th>Score</th></tr></thead>
-<tbody>{{range .Risks}}<tr><td><code>{{.Principal}}</code></td><td class="n">{{.Repos}}</td><td class="n">{{.Orgs}}</td><td class="n">{{.OIDC}}</td><td class="n">{{.Secrets}}</td><td class="n">{{.Runners}}</td><td class="n">{{.PossibleRepos}} {{if eq .PossibleRepos 1}}repo{{else}}repos{{end}}{{if .PossibleOther}} + {{.PossibleOther}} impact{{end}}</td><td class="n">{{.Score}}</td></tr>
+<thead><tr><th>Principal</th><th>Confirmed repos</th><th>Orgs</th>{{if .HasCloud}}<th>Cloud roles</th>{{end}}<th>OIDC</th><th>Secrets</th><th>Runners</th><th>Possible</th><th>Score</th></tr></thead>
+<tbody>{{range .Risks}}<tr><td><code>{{.Principal}}</code></td><td class="n">{{.Repos}}</td><td class="n">{{.Orgs}}</td>{{if $.HasCloud}}<td class="n">{{.Cloud}}</td>{{end}}<td class="n">{{.OIDC}}</td><td class="n">{{.Secrets}}</td><td class="n">{{.Runners}}</td><td class="n">{{.PossibleRepos}} {{if eq .PossibleRepos 1}}repo{{else}}repos{{end}}{{if .PossibleOther}} + {{.PossibleOther}} impact{{end}}</td><td class="n">{{.Score}}</td></tr>
 {{end}}</tbody></table></div>
 <p class="note">Score counts confirmed reach only. Possible reach depends on at least one fact gop could not see.</p>
 {{else}}<p class="note">The graph has no principals.</p>{{end}}
@@ -50,7 +50,7 @@ var pageTmpl = template.Must(template.New("report").Parse(`<!doctype html>
 <p class="note">A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:</p>
 {{range .Pinned}}<div class="path">
 <div><code>{{.Action}}</code> (used by {{.Consumers}} {{if eq .Consumers 1}}workflow{{else}}workflows{{end}}) runs <code>{{.Via}}</code>. <code>{{.Principal}}</code> can change it {{if .Path.Confirmed}}<span class="badge live">confirmed</span>{{else}}<span class="badge nv">possible: a hop is not visible</span>{{end}}</div>
-<ol>{{range .Path.Hops}}<li><code>{{.From}}</code> → <code>{{.To}}</code> <span class="src">{{.Kind}}{{if .Reverse}} (reversed){{end}}</span> <span class="badge {{.Class}}">{{.Evidence}}</span>{{if .SourceAPI}} <span class="src">{{.SourceAPI}}</span>{{end}}</li>
+<ol>{{range .Path.Hops}}<li><code>{{.From}}</code> → <code>{{.To}}</code> <span class="src">{{.Kind}}{{if .Reverse}} (reversed){{end}}</span> <span class="badge {{.Class}}">{{.Evidence}}</span>{{if .SourceAPI}} <span class="src">{{.SourceAPI}}</span>{{end}}{{if .Reason}} <span class="src">undecided: {{.Reason}}</span>{{end}}</li>
 {{end}}</ol></div>
 {{end}}
 {{end}}
@@ -58,7 +58,9 @@ var pageTmpl = template.Must(template.New("report").Parse(`<!doctype html>
 {{range .Paths}}<h3><code>{{.Principal}}</code></h3>
 {{range .Paths}}<div class="path">
 <div>{{if .Confirmed}}<span class="badge live">confirmed</span>{{else}}<span class="badge nv">possible: a hop is not visible</span>{{end}} to <code>{{.To}}</code></div>
-<ol>{{range .Hops}}<li><code>{{.From}}</code> → <code>{{.To}}</code> <span class="src">{{.Kind}}{{if .Reverse}} (reversed){{end}}</span> <span class="badge {{.Class}}">{{.Evidence}}</span>{{if .SourceAPI}} <span class="src">{{.SourceAPI}}</span>{{end}}</li>
+{{- if .Note}}
+<div class="note">{{.Note}}</div>{{end}}
+<ol>{{range .Hops}}<li><code>{{.From}}</code> → <code>{{.To}}</code> <span class="src">{{.Kind}}{{if .Reverse}} (reversed){{end}}</span> <span class="badge {{.Class}}">{{.Evidence}}</span>{{if .SourceAPI}} <span class="src">{{.SourceAPI}}</span>{{end}}{{if .Reason}} <span class="src">undecided: {{.Reason}}</span>{{end}}</li>
 {{end}}</ol></div>
 {{end}}{{else}}<p class="note">No paths.</p>{{end}}
 

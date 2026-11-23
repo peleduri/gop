@@ -11,7 +11,7 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
       "confirmed": {
         "repos": 25,
         "orgs": 5,
-        "workflows": 25,
+        "workflows": 27,
         "secrets": 2,
         "oidc": 2,
         "runners": 2
@@ -26,7 +26,7 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
       },
       "confirmed_pairs": 25,
       "possible_pairs": 1,
-      "score": 174.5,
+      "score": 176.75,
       "possible_score": 19.125
     },
     "after": {
@@ -107,7 +107,7 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
           "confirmed": {
             "repos": 12,
             "orgs": 2,
-            "workflows": 12,
+            "workflows": 13,
             "secrets": 1,
             "oidc": 1,
             "runners": 1
@@ -121,7 +121,7 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
             "runners": 0
           },
           "multiplier": 2.25,
-          "score": 85.5,
+          "score": 86.625,
           "possible_score": 0
         },
         "after": {
@@ -154,7 +154,7 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
           "confirmed": {
             "repos": 12,
             "orgs": 2,
-            "workflows": 12,
+            "workflows": 13,
             "secrets": 1,
             "oidc": 1,
             "runners": 1
@@ -168,7 +168,7 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
             "runners": 0
           },
           "multiplier": 2.25,
-          "score": 85.5,
+          "score": 86.625,
           "possible_score": 0
         },
         "after": {

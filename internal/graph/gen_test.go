@@ -9,7 +9,8 @@ import (
 // genGraph builds a random but valid evidence graph of roughly size nodes over
 // synthetic names (org:acme-o3, repo:acme-o3/r17, identity:u5, ...). It uses
 // every EdgeKind, every Evidence value, random ref_kind and via attributes
-// (including workflow -CAN_PUSH-> repo with via=token_write), CAN_TRIGGER
+// (including workflow -CAN_PUSH-> repo with via=token_write, and workflow
+// -CAN_ASSUME-> cloud_target with a "supplied:<file>" source), CAN_TRIGGER
 // edges from org members, identities and external:anyone into workflows, ref
 // gates (ref_protected, ref_immutable, ref_ambiguous, bypass) with
 // via=ref_bypass CAN_PUSH edges into action host repos,
@@ -39,11 +40,15 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		}
 		g.Nodes = append(g.Nodes, Node{ID: id, Kind: kind, Name: id, Attrs: attrs, Evidence: Live})
 	}
-	evs := []Evidence{Live, Live, Live, Audit, NotVisible, NotVisible}
+	evs := []Evidence{Live, Live, Live, Audit, Supplied, NotVisible, NotVisible}
 	ev := func() Evidence { return evs[r.IntN(len(evs))] }
 	edge := func(from, to string, kind EdgeKind, attrs map[string]string) {
+		src := fmt.Sprintf("test:%s:%d", kind, r.IntN(3))
+		if kind == CanAssume {
+			src = fmt.Sprintf("%strust/t%d.json", SourceSupplied, r.IntN(3))
+		}
 		g.Edges = append(g.Edges, Edge{From: from, To: to, Kind: kind, Evidence: ev(),
-			SourceAPI: fmt.Sprintf("test:%s:%d", kind, r.IntN(3)), ObservedAt: genTime, Attrs: attrs})
+			SourceAPI: src, ObservedAt: genTime, Attrs: attrs})
 	}
 	pick := func(ids []string) string { return ids[r.IntN(len(ids))] }
 
@@ -160,6 +165,12 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		prefix string
 		kind   NodeKind
 	}{{"secret", KindSecret}, {"oidc", KindOIDC}, {"runner", KindRunner}}
+	var clouds []string
+	for i := 0; i < max(1, nTerm/3); i++ {
+		id := fmt.Sprintf("cloud:aws:arn:aws:iam::111111111111:role/r%d", i)
+		node(id, KindCloudTarget, nil)
+		clouds = append(clouds, id)
+	}
 	for i := 0; i < nTerm; i++ {
 		tk := termKinds[r.IntN(len(termKinds))]
 		id := fmt.Sprintf("%s:%s/x%d", tk.prefix, orgOf(r.IntN(nOrgs)), i)
@@ -209,6 +220,9 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		}
 		for k := r.IntN(2); k > 0; k-- {
 			edge(w, pick(terminals), ExecutesWith, nil)
+		}
+		if r.IntN(3) == 0 {
+			edge(w, pick(clouds), CanAssume, nil)
 		}
 	}
 	// Risky triggers: anyone on the internet (a public repo), an org's

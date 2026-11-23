@@ -1,8 +1,9 @@
 // Package mcpserver answers gop's graph questions. Engine holds the query
 // logic shared by the MCP server (NewServer, Serve) and the CLI (gop paths,
-// gop who). Every answer keeps confirmed reach (every hop live or audit) apart
-// from possible reach (at least one hop not_visible); summaries lead with
-// confirmed numbers.
+// gop who). Every answer keeps confirmed reach (every hop live, audit or
+// supplied) apart from possible reach (at least one hop not_visible);
+// summaries lead with confirmed numbers. A summary that includes a path
+// through a supplied trust file says so (graph.Path.SuppliedNote).
 package mcpserver
 
 import (
@@ -144,6 +145,46 @@ func splitPaths(ps []graph.Path) (conf, poss []graph.Path) {
 	return conf, poss
 }
 
+// suppliedNote is the caveat for a set of paths: "" when none has a hop from a
+// supplied file, else "cloud hop from supplied trust file F[, G], not read
+// from the cloud".
+func suppliedNote(ps ...graph.Path) string {
+	var files []string
+	seen := map[string]bool{}
+	for _, p := range ps {
+		for _, f := range p.SuppliedFiles() {
+			if !seen[f] {
+				seen[f] = true
+				files = append(files, f)
+			}
+		}
+	}
+	if len(files) == 0 {
+		return ""
+	}
+	sort.Strings(files)
+	return graph.Path{Hops: []graph.Hop{{SourceAPI: graph.SourceSupplied + strings.Join(files, ", ")}}}.SuppliedNote()
+}
+
+// withNote appends a supplied-file caveat to a summary.
+func withNote(s, note string) string {
+	if note == "" {
+		return s
+	}
+	return s + " (" + note + ")"
+}
+
+// cloudPaths returns the paths of r to cloud targets (confirmed and possible).
+func cloudPaths(r graph.Result) []graph.Path {
+	var out []graph.Path
+	for _, l := range [][]string{r.Confirmed.CloudTargets, r.Possible.CloudTargets} {
+		for _, id := range l {
+			out = append(out, r.Paths[id])
+		}
+	}
+	return out
+}
+
 func plural(n int, one, many string) string {
 	if n == 1 {
 		return fmt.Sprintf("%d %s", n, one)
@@ -153,14 +194,14 @@ func plural(n int, one, many string) string {
 
 // WhoCanReachInput is the who_can_reach tool input.
 type WhoCanReachInput struct {
-	Target string `json:"target" jsonschema:"node ID of a repo, workflow, action, secret, oidc or runner, e.g. repo:acme-app/web"`
+	Target string `json:"target" jsonschema:"node ID of a repo, workflow, action, secret, oidc, runner or cloud target, e.g. repo:acme-app/web or cloud:aws:arn:aws:iam::111111111111:role/deploy"`
 }
 
 // WhoCanReachOutput lists principals with a path to the target.
 type WhoCanReachOutput struct {
 	Summary   string       `json:"summary"`
 	Target    string       `json:"target"`
-	Confirmed []graph.Path `json:"confirmed" jsonschema:"principals with a path where every hop is live or audit"`
+	Confirmed []graph.Path `json:"confirmed" jsonschema:"principals with a path where every hop is live, audit or supplied"`
 	Possible  []graph.Path `json:"possible" jsonschema:"principals whose only path has at least one not_visible hop"`
 }
 
@@ -173,8 +214,8 @@ func (e *Engine) WhoCanReach(in WhoCanReachInput) (res WhoCanReachOutput, _ erro
 	}
 	conf, poss := splitPaths(e.ix.WhoCanReach(t))
 	return WhoCanReachOutput{
-		Summary: fmt.Sprintf("%s can control %s (confirmed); %d more possible through a not visible hop",
-			plural(len(conf), "principal", "principals"), t, len(poss)),
+		Summary: withNote(fmt.Sprintf("%s can control %s (confirmed); %d more possible through a not visible hop",
+			plural(len(conf), "principal", "principals"), t, len(poss)), suppliedNote(append(append([]graph.Path{}, conf...), poss...)...)),
 		Target: t, Confirmed: conf, Possible: poss,
 	}, nil
 }
@@ -198,6 +239,9 @@ func ReachSentence(s graph.Score) string {
 	out := fmt.Sprintf("%s can control %s across %s (confirmed)", s.Principal,
 		plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
 	var term []string
+	if c.CloudTargets > 0 {
+		term = append(term, plural(c.CloudTargets, "cloud role", "cloud roles"))
+	}
 	if c.OIDC > 0 {
 		term = append(term, plural(c.OIDC, "OIDC trust", "OIDC trusts"))
 	}
@@ -222,7 +266,7 @@ func (e *Engine) BlastRadius(in BlastRadiusInput) (res BlastRadiusOutput, _ erro
 	}
 	s := e.ix.BlastRadius(p)
 	r := e.ix.Reach(p, graph.Options{})
-	return BlastRadiusOutput{Summary: ReachSentence(s), Score: s, Confirmed: r.Confirmed, Possible: r.Possible}, nil
+	return BlastRadiusOutput{Summary: withNote(ReachSentence(s), suppliedNote(cloudPaths(r)...)), Score: s, Confirmed: r.Confirmed, Possible: r.Possible}, nil
 }
 
 // PathsInput is the paths tool input.
@@ -261,10 +305,10 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 			out.Summary = fmt.Sprintf("%s has no path to %s, confirmed or possible", from, to)
 		case p.Unverified:
 			out.Possible = append(out.Possible, p)
-			out.Summary = fmt.Sprintf("%s can possibly reach %s in %s; a hop is not visible, so it is unconfirmed", from, to, plural(len(p.Hops), "hop", "hops"))
+			out.Summary = withNote(fmt.Sprintf("%s can possibly reach %s in %s; a hop is not visible, so it is unconfirmed", from, to, plural(len(p.Hops), "hop", "hops")), suppliedNote(p))
 		default:
 			out.Confirmed = append(out.Confirmed, p)
-			out.Summary = fmt.Sprintf("%s can reach %s in %s (confirmed)", from, to, plural(len(p.Hops), "hop", "hops"))
+			out.Summary = withNote(fmt.Sprintf("%s can reach %s in %s (confirmed)", from, to, plural(len(p.Hops), "hop", "hops")), suppliedNote(p))
 		}
 		return out, nil
 	}
@@ -279,8 +323,8 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 		return ps[i].To < ps[j].To
 	})
 	out.Confirmed, out.Possible = splitPaths(ps)
-	out.Summary = fmt.Sprintf("%s has confirmed paths to %s; %d more possible", from,
-		plural(len(out.Confirmed), "node", "nodes"), len(out.Possible))
+	out.Summary = withNote(fmt.Sprintf("%s has confirmed paths to %s; %d more possible", from,
+		plural(len(out.Confirmed), "node", "nodes"), len(out.Possible)), suppliedNote(ps...))
 	return out, nil
 }
 
@@ -313,7 +357,7 @@ func (e *Engine) TopRisks(in TopRisksInput) (res TopRisksOutput, _ error) {
 	if len(risks) == 0 {
 		out.Summary = "the graph has no principals"
 	} else {
-		out.Summary = "top risk: " + ReachSentence(risks[0])
+		out.Summary = withNote("top risk: "+ReachSentence(risks[0]), suppliedNote(cloudPaths(e.ix.Reach(risks[0].Principal, graph.Options{}))...))
 	}
 	return out, nil
 }
@@ -464,7 +508,7 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 type ExplainInput struct {
 	From string `json:"from" jsonschema:"edge source node ID (a hop's from)"`
 	To   string `json:"to" jsonschema:"edge target node ID (a hop's to)"`
-	Kind string `json:"kind,omitempty" jsonschema:"optional edge kind, e.g. CAN_PUSH, USES, RESOLVES_TO, DEFINED_IN, EXECUTES_WITH, MEMBER_OF"`
+	Kind string `json:"kind,omitempty" jsonschema:"optional edge kind, e.g. CAN_PUSH, USES, RESOLVES_TO, DEFINED_IN, EXECUTES_WITH, MEMBER_OF, CAN_ASSUME"`
 }
 
 // EdgeOut is one evidence edge.
@@ -502,6 +546,8 @@ func EvidenceLabel(ev graph.Evidence) string {
 		return "live"
 	case graph.Audit:
 		return "audit"
+	case graph.Supplied:
+		return "supplied file"
 	}
 	return "not visible"
 }
@@ -547,6 +593,12 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 		EvidenceLabel(graph.Evidence(first.Evidence)), first.SourceAPI, first.ObservedAt)
 	if loc := fileLine(first.Attrs); loc != "" {
 		out.Summary += ", at " + loc
+	}
+	if strings.HasPrefix(first.SourceAPI, graph.SourceSupplied) {
+		out.Summary += ", read from a supplied file, not from the cloud"
+	}
+	if r := first.Attrs[graph.AttrReason]; r != "" && first.Evidence == string(graph.NotVisible) {
+		out.Summary += "; undecided: " + r
 	}
 	if len(out.Edges) > 1 {
 		out.Summary += fmt.Sprintf(" (+%d more)", len(out.Edges)-1)

@@ -1,0 +1,26 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "workflow:acme-app/web/.github/workflows/release.yml", "kind": "workflow", "name": "acme-app/web/.github/workflows/release.yml", "evidence": "live"},
+    {"id": "workflow:acme-app/web/.github/workflows/ci.yml", "kind": "workflow", "name": "acme-app/web/.github/workflows/ci.yml", "evidence": "live"},
+    {"id": "oidc:acme-app/web", "kind": "oidc", "name": "acme-app/web", "evidence": "live"},
+    {"id": "cloud:aws:arn:aws:iam::111111111111:role/deploy", "kind": "cloud_target", "name": "aws:arn:aws:iam::111111111111:role/deploy",
+     "evidence": "supplied", "attrs": {"provider": "aws", "account": "111111111111", "role": "deploy", "warnings": "no_aud_condition"}}
+  ],
+  "edges": [
+    {"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "oidc:acme-app/web", "kind": "EXECUTES_WITH", "evidence": "live",
+     "source_api": "contents:.github/workflows", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"jobs": "deploy", "environments": "prod", "repository": "acme-app/web", "repository_owner": "acme-app"}},
+    {"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "cloud:aws:arn:aws:iam::111111111111:role/deploy", "kind": "CAN_ASSUME", "evidence": "supplied",
+     "source_api": "supplied:trust/aws/deploy.json", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"file": "trust/aws/deploy.json", "pointer": "/Role/AssumeRolePolicyDocument/Statement/0", "provider": "aws", "oidc": "oidc:acme-app/web",
+               "matched_sub": "repo:acme-app/web:environment:prod", "claims": "sub"}},
+    {"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "cloud:aws:arn:aws:iam::111111111111:role/deploy", "kind": "CAN_ASSUME", "evidence": "not_visible",
+     "source_api": "supplied:trust/aws/deploy.json", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"file": "trust/aws/deploy.json", "provider": "aws", "oidc": "oidc:acme-app/web", "claims": "sub",
+               "reason": "the ref in sub is not known: gop does not read workflow triggers"}}
+  ],
+  "coverage": []
+}

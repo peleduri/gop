@@ -309,11 +309,11 @@
       "orgs": [
         "acme-actions"
       ],
-      "score": 85.5,
+      "score": 86.625,
       "confirmed": {
         "repos": 12,
         "orgs": 2,
-        "workflows": 12,
+        "workflows": 13,
         "secrets": 1,
         "oidc": 1,
         "runners": 1
@@ -333,11 +333,11 @@
       "orgs": [
         "acme-actions"
       ],
-      "score": 85.5,
+      "score": 86.625,
       "confirmed": {
         "repos": 12,
         "orgs": 2,
-        "workflows": 12,
+        "workflows": 13,
         "secrets": 1,
         "oidc": 1,
         "runners": 1

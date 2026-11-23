@@ -38,6 +38,10 @@ Confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
   - owner: acme-app
   - evidence: `workflow:acme-app/web/.github/workflows/ci.yml USES action:acme-actions/deploy@main` (live)
   - note: line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`
+- [ ] Edit acme-app/web `.github/workflows/release.yml`
+  - owner: acme-app
+  - evidence: `workflow:acme-app/web/.github/workflows/release.yml USES action:acme-actions/deploy@main` (live)
+  - note: line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`
 - [ ] Edit acme-app/worker `.github/workflows/ci.yml`
   - owner: acme-app
   - evidence: `workflow:acme-app/worker/.github/workflows/ci.yml USES action:acme-actions/deploy@main` (live)
@@ -48,4 +52,4 @@ Confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
 
 ### Caveats
 
-- 9 of 9 uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff
+- 10 of 10 uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff

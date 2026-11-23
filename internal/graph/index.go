@@ -24,7 +24,7 @@ func Load(r io.Reader) (*Graph, error) {
 			return nil, fmt.Errorf("graph: edge %d: from, to and kind are required", i)
 		}
 		switch e.Evidence {
-		case Live, Audit, NotVisible:
+		case Live, Audit, Supplied, NotVisible:
 		default:
 			return nil, fmt.Errorf("graph: edge %d (%s %s %s): bad evidence %q", i, e.From, e.Kind, e.To, e.Evidence)
 		}
@@ -229,19 +229,23 @@ func sortedKeys(m map[string]bool) []string {
 	return out
 }
 
-// evRank orders evidence: not_visible (and unknown) < audit < live.
+// evRank orders evidence: not_visible (and unknown) < supplied < audit < live.
 func evRank(e Evidence) int {
 	switch e {
 	case Live:
-		return 2
+		return 3
 	case Audit:
+		return 2
+	case Supplied:
 		return 1
 	}
 	return 0
 }
 
-// Verified reports whether a hop with this evidence counts toward confirmed reach.
-func Verified(e Evidence) bool { return e == Live || e == Audit }
+// Verified reports whether a hop with this evidence counts toward confirmed
+// reach: live, audit, or supplied (from a user-supplied file; such paths
+// carry Path.Supplied).
+func Verified(e Evidence) bool { return e == Live || e == Audit || e == Supplied }
 
 func weakest(a, b Evidence) Evidence {
 	if evRank(a) <= evRank(b) {

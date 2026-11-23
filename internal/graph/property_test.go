@@ -230,7 +230,7 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 				rev.ev = NotVisible
 			}
 			out = append(out, rev)
-		case ExecutesWith:
+		case ExecutesWith, CanAssume:
 			out = append(out, fwd)
 		case CanTrigger:
 			// A principal that can cause a risky trigger of a workflow running
@@ -470,6 +470,8 @@ func refBucket(g *Graph, ids map[string]int, orgsExclude []string) Reached {
 			r.OIDC = append(r.OIDC, id)
 		case KindRunner:
 			r.Runners = append(r.Runners, id)
+		case KindCloudTarget:
+			r.CloudTargets = append(r.CloudTargets, id)
 		}
 	}
 	for _, o := range orgsExclude {
@@ -492,7 +494,7 @@ func sortedIntKeys(m map[string]int) []string {
 
 func reachedLists(r Reached) map[string][]string {
 	return map[string][]string{"repos": r.Repos, "workflows": r.Workflows, "actions": r.Actions,
-		"secrets": r.Secrets, "oidc": r.OIDC, "runners": r.Runners, "orgs": r.Orgs}
+		"secrets": r.Secrets, "oidc": r.OIDC, "runners": r.Runners, "orgs": r.Orgs, "cloud_targets": r.CloudTargets}
 }
 
 // confirmedIDs and allIDs read the node sets out of Paths, which covers every
@@ -705,7 +707,8 @@ func checkPaths(g *Graph, p string, res Result, fixes []Fix) error {
 		if len(hs) == 0 || hs[0].From != p || hs[len(hs)-1].To != id {
 			return fmt.Errorf("%s: path to %s does not run from %s to %s: %+v", p, id, p, id, hs)
 		}
-		ev, unverified := Live, false
+		// Reference evidence order: live > audit > supplied > not_visible.
+		ev, unverified, supplied := Live, false, false
 		for i, h := range hs {
 			if i+1 < len(hs) && h.To != hs[i+1].From {
 				return fmt.Errorf("%s: path to %s breaks at hop %d: %s then %s", p, id, i, h.To, hs[i+1].From)
@@ -721,15 +724,22 @@ func checkPaths(g *Graph, p string, res Result, fixes []Fix) error {
 			if !nonCI && i+1 < len(hs) {
 				return fmt.Errorf("%s: path to %s expands through CI-only hop %d %s -> %s", p, id, i, h.From, h.To)
 			}
-			if !refVerified(h.Evidence) {
+			supplied = supplied || h.Evidence == Supplied || strings.HasPrefix(h.SourceAPI, "supplied:")
+			switch {
+			case !refVerified(h.Evidence):
 				unverified = true
 				ev = NotVisible
-			} else if h.Evidence == Audit && ev == Live {
+			case h.Evidence == Supplied && ev != NotVisible:
+				ev = Supplied
+			case h.Evidence == Audit && ev == Live:
 				ev = Audit
 			}
 		}
 		if path.Evidence != ev || path.Unverified != unverified {
 			return fmt.Errorf("%s: path to %s has evidence %s/unverified=%v, hops say %s/%v", p, id, path.Evidence, path.Unverified, ev, unverified)
+		}
+		if path.Supplied != supplied {
+			return fmt.Errorf("%s: path to %s has supplied=%v, hops say %v", p, id, path.Supplied, supplied)
 		}
 		want := allDist[id]
 		if !unverified {
@@ -765,6 +775,7 @@ func totalsNotAbove(a, b Totals) error {
 		{"confirmed.secrets", float64(a.Confirmed.Secrets), float64(b.Confirmed.Secrets)},
 		{"confirmed.oidc", float64(a.Confirmed.OIDC), float64(b.Confirmed.OIDC)},
 		{"confirmed.runners", float64(a.Confirmed.Runners), float64(b.Confirmed.Runners)},
+		{"confirmed.cloud_targets", float64(a.Confirmed.CloudTargets), float64(b.Confirmed.CloudTargets)},
 		{"confirmed_pairs", float64(a.ConfirmedPairs), float64(b.ConfirmedPairs)},
 		{"score", a.Score, b.Score},
 	} {
@@ -780,6 +791,7 @@ func totalsNotAbove(a, b Totals) error {
 		{"secrets", float64(a.Confirmed.Secrets + a.Possible.Secrets), float64(b.Confirmed.Secrets + b.Possible.Secrets)},
 		{"oidc", float64(a.Confirmed.OIDC + a.Possible.OIDC), float64(b.Confirmed.OIDC + b.Possible.OIDC)},
 		{"runners", float64(a.Confirmed.Runners + a.Possible.Runners), float64(b.Confirmed.Runners + b.Possible.Runners)},
+		{"cloud_targets", float64(a.Confirmed.CloudTargets + a.Possible.CloudTargets), float64(b.Confirmed.CloudTargets + b.Possible.CloudTargets)},
 		{"pairs", float64(a.ConfirmedPairs + a.PossiblePairs), float64(b.ConfirmedPairs + b.PossiblePairs)},
 	} {
 		if x.a > x.b {
@@ -999,9 +1011,10 @@ func TestPropertyReferenceAgreesOnFixture(t *testing.T) {
 	}
 }
 
-// refVerified is the reference reading of evidence: only live and audit facts
-// are confirmed. Kept separate from Verified so a broken Verified fails P2.
-func refVerified(e Evidence) bool { return e == Live || e == Audit }
+// refVerified is the reference reading of evidence: live and audit facts, and
+// facts from a user-supplied file, are confirmed; not_visible (and anything
+// unknown) is not. Kept separate from Verified so a broken Verified fails P2.
+func refVerified(e Evidence) bool { return e == Live || e == Audit || e == "supplied" }
 
 // TestParallelEdgeTieBreak is the case P10 found: two parallel evidence edges
 // with the same evidence used to collapse to whichever came first in g.Edges,

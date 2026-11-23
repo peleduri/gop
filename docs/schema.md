@@ -8,7 +8,7 @@ The machine-checkable contract is the JSON Schema (draft 2020-12) [`schema/gop.g
 gop validate --graph graph.json [--format text|json]
 ```
 
-`gop validate` checks that `schema` is a version gop knows, that the document conforms to that version's JSON Schema, and that every edge endpoint is a declared node. A `not_visible` node, attribute or edge with no `coverage` entry for itself or its org is a warning, not an error. Every problem names its JSON pointer, e.g. `/edges/3/evidence`. Exit codes: 0 valid (warnings allowed), 1 invalid, 2 usage error. The other commands load graph.json without running these checks.
+`gop validate` checks that `schema` is a version gop knows, that the document conforms to that version's JSON Schema, that every edge endpoint is a declared node, and that every `supplied` edge names its file (`attrs.file`, `source_api` `supplied:<file>`). A `not_visible` node, attribute or edge with no `coverage` entry for itself or its org is a warning, not an error (an undecided `CAN_ASSUME` edge carries `attrs.reason` instead and is exempt). Every problem names its JSON pointer, e.g. `/edges/3/evidence`. Exit codes: 0 valid (warnings allowed), 1 invalid, 2 usage error. The other commands load graph.json without running these checks.
 
 ## Top level
 
@@ -29,6 +29,7 @@ Every node and edge has `evidence`:
 |---|---|
 | `live` | Read from current state through the API. |
 | `audit` | Inferred from the audit log (bounded retention, may be stale). |
+| `supplied` | Read from a file the user supplied (a cloud OIDC trust policy given to `gop enrich --oidc-trust`); gop did not observe it live. Counts as confirmed reach (the user asserts the file reflects what is deployed), but a path through it has `supplied: true` and every summary of it says "cloud hop from supplied trust file <file>, not read from the cloud". A supplied edge has `source_api` `supplied:<file>` and `attrs.file`. Ranked between `audit` and `not_visible`: a path's evidence is its weakest hop, `live` > `audit` > `supplied` > `not_visible`. |
 | `not_visible` | The token can't read this fact. The hop is unknown, not absent. |
 
 ## Node
@@ -56,7 +57,7 @@ Every node and edge has `evidence`:
 | `secret` | `secret:acme-app/billing` | A secrets scope reachable by a workflow. |
 | `oidc` | `oidc:acme-app/web` | `id-token: write` (cloud OIDC). |
 | `runner` | `runner:acme-app/worker` | A self-hosted runner pool. |
-| `cloud_target` | `cloud:...` | A cloud account or role trusted through OIDC. |
+| `cloud_target` | `cloud:aws:arn:aws:iam::111111111111:role/deploy`, `cloud:gcp:serviceAccount:deploy@acme-prod.iam.gserviceaccount.com`, `cloud:azure:app:<client id>` | A cloud identity a workflow's OIDC token can assume, from a supplied trust file (`gop enrich`): `cloud:<provider>:<id>` where id is the AWS role ARN; for GCP `serviceAccount:<email>` when an IAM binding lets the pool impersonate a service account, else the workload identity provider name; for Azure the application (`app:<client id>`) or managed identity (`identity:<resource id>`). Evidence `supplied`. |
 | `external` | `external:anyone` | A principal outside the enterprise. `external:anyone` is anyone on the internet: they can fork a public repo, open pull requests and comment on it. See [Triggers](#triggers). |
 
 ### Attributes
@@ -104,6 +105,16 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `token_write` | workflow | `true` when the workflow's `GITHUB_TOKEN` has `contents: write` on its own repo (then a `via=token_write` `CAN_PUSH` edge points at the repo), `false`, or `unknown` (`not_visible`, with a `default_workflow_permissions` coverage entry) when a job takes the default and the default is not visible. See [Workflow tokens](#workflow-tokens). |
 | `risky_triggers` | workflow | Comma list of the workflow's triggers that run in the base repo's context on events people without push access can cause: `pull_request_target`, `workflow_run`, `issue_comment`, `pull_request_review`, `pull_request_review_comment`, `discussion`, `discussion_comment`, `issues`. Set whether or not gop found attacker-controlled execution. See [Triggers](#triggers). |
 | `trigger`, `exec`, `job`, `detail` | `CAN_TRIGGER` edge | The risky trigger, how the workflow runs attacker input (`checkout` or `injection`), the job id, and the matched value (e.g. `ref: ${{ github.event.pull_request.head.sha }}` or `github.event.comment.body`). |
+| `provider` | cloud_target, `CAN_ASSUME` edge | `aws`, `gcp`, `azure` |
+| `account` | cloud_target | AWS account, GCP project or Azure subscription, when the trust file names it |
+| `role` | cloud_target | Role name, GCP service account email, or Azure identity |
+| `warnings` | cloud_target | Comma list of risk codes from the trusts behind it: `no_sub_condition` (no `sub` or other repository condition: any GitHub repository's token matches), `no_aud_condition`, `wildcard_owner`, `unparsed_condition`, `conditions_merged` (several ANDed conditions on one claim kept as any-of), `unknown_target` |
+| `file`, `pointer` | `CAN_ASSUME` edge | The supplied trust file (as given, cleaned, with `/`) and the JSON pointer of the trust in it |
+| `matched_sub` | `CAN_ASSUME` edge | Comma list of the trust's `sub` patterns that matched (or may match). Absent when the trust has no `sub` condition |
+| `claims` | `CAN_ASSUME` edge | Comma list of the claims the trust checks, e.g. `sub` or `repository,repository_owner` |
+| `oidc` | `CAN_ASSUME` edge | The `oidc` node whose token the trust matches |
+| `trust` | `CAN_ASSUME` edge | The trust's own target when it names more than the `cloud_target` (an Azure federated credential `app:<id>/fic:<name>`, a GCP provider plus service account) |
+| `reason` | `CAN_ASSUME` edge with evidence `not_visible` | Why gop cannot decide the match, e.g. the `sub` is branch-scoped and gop does not read triggers, the environment is an expression, or a condition was not understood |
 | `token_scopes` | workflow | Comma list of the token's other write scopes (`actions`, `id-token`, `packages`, `pull-requests`, ...), or `write-all`. Display only: the engine does not read it. |
 | `col` | `USES` edge | 1-based column where the `uses:` value starts (the opening quote, if quoted), integer as string. |
 | `demo` | enterprise | `true` on a synthetic graph from `gop demo`; MCP summaries and the report title then start with `[demo data]` |
@@ -131,6 +142,7 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `DEFINED_IN` | workflow → repo | The repo the workflow lives in. Code pushed there changes the workflow. |
 | `EXECUTES_WITH` | workflow → secret, oidc, runner | Terminal impact: what the workflow runs with. |
 | `CAN_TRIGGER` | org_members, identity, external → workflow | The principal can cause a risky trigger of the workflow, and the workflow then runs attacker-controlled code, so the principal controls the workflow without push access. See [Triggers](#triggers). |
+| `CAN_ASSUME` | workflow → cloud_target | A token the workflow can mint (its `EXECUTES_WITH` edge to `oidc`) satisfies a supplied cloud trust policy. Added by `gop enrich --oidc-trust` (or `gop collect --oidc-trust`), never read from GitHub or the cloud. Terminal impact. Evidence `supplied` for a match, `not_visible` with `attrs.reason` when gop cannot decide it (possible reach). See [Paths out of GitHub](#paths-out-of-github). |
 | `MEMBER_OF` | identity → org, identity → team, team → team | Org membership, from the enterprise consumed licenses (`attrs.role` is `owner` or `member`; outside collaborators have none). Direct team membership (`GET /orgs/{org}/teams/{slug}/members?role=all`). A child team's nesting under its parent (`GET /orgs/{org}/teams`, `parent.slug`): members of the child reach what the parent reaches. |
 
 ### CAN_PUSH provenance
@@ -225,6 +237,19 @@ A hop the setting forbids is dropped. Graphs without `actions_access` behave as 
 
 A reach path reads, for example: `members:acme-actions -CAN_PUSH-> repo:acme-actions/deploy <-RESOLVES_TO- action:acme-actions/deploy@main <-USES- workflow:acme-app/web/.github/workflows/release.yml -EXECUTES_WITH-> oidc:...`.
 
+### Paths out of GitHub
+
+`gop enrich --graph g.json --oidc-trust ./trust/ --out g2.json` reads AWS role or trust policy documents, GCP workload identity providers and service account IAM policies, and Azure federated credentials (internal/oidc), offline. For every `workflow -EXECUTES_WITH-> oidc` edge and every trust it matches the trust's conditions against the classes of id-token job the workflow can run, built from the edge's claim inputs:
+
+- one per literal environment E: `sub` `repo:<repository>:environment:E`, `environment` E;
+- one for an environment expression (`*dynamic*`): any environment;
+- one for jobs without an environment: `sub` `repo:<repository>:ref:<unknown ref>` or `repo:<repository>:pull_request` (triggers are not read). `environments` is a set across jobs, so this class is known to exist only when the workflow has no environments, and is ruled out only for a workflow with a single id-token job that has a literal environment and calls no reusable workflow;
+- `repository`, `repository_owner` exact; `job_workflow_ref` the workflow file at an unknown ref, or one of the called reusable workflows; any other claim (ref, actor, event, ids) unknown.
+
+A trust matches (evidence `supplied`) when every condition holds for a class that surely runs, or for every class. It does not match (no edge) when no class can satisfy it. Anything else is undecided: evidence `not_visible` with `reason`. Conditions the parser kept looser than written (ANDed conditions as any-of, ignored negative conditions or Deny statements) make a match undecided, too. The token's `aud` is not checked: the workflow chooses it. A `sub` pattern that names the repository in a format other than the default ones (a custom sub template) is undecided, not dropped.
+
+The hop starts at the workflow, not at the repo's shared `oidc` node, because each workflow's own environments and called workflows decide the match. Re-running with the same files replaces their `CAN_ASSUME` edges and unreferenced `cloud_target` nodes; `observed_at` is the graph's `collected_at`, so the same inputs give byte-identical output. Each `oidc` node none of whose workflows matched any supplied trust gets a coverage entry with `fact: cloud_trust` and `needs_fix: supply the trust policy for the cloud role this workflow assumes`. Scoring adds 13 per reached `cloud_target`.
+
 ## Coverage
 
 | Field | Type | Meaning |
@@ -291,3 +316,4 @@ The JSON Schema allows unknown fields and attribute keys for this reason. Consum
 | `gop.graph/v1` | unreleased | Additive: `actions_access` on repo nodes (typed in the JSON Schema as `NodeAttrs`), `consumer_org` on `USES` edges (`EdgeAttrs`), coverage fact `actions_access`. |
 | `gop.graph/v1` | unreleased | Additive: OIDC claim inputs `jobs`, `environments`, `job_workflow_ref`, `repository` and `repository_owner` on `EXECUTES_WITH` edges to `oidc` (typed in the JSON Schema as `EdgeAttrs`). The OIDC edge now exists only when at least one job resolves to `id-token: write` after job-level permissions replace workflow-level ones. |
 | `gop.graph/v1` | unreleased | Additive: node kind `external` (`external:anyone`), edge kind `CAN_TRIGGER` with `trigger`, `exec`, `job` and `detail`, `risky_triggers` on workflow nodes, coverage fact `triggering_principals`. New kinds would normally bump the version (see above); they stay in v1 because `graph.Load` does not check kinds and the engine ignores edge kinds it does not know, so older gop releases load the file and only miss these paths (an older `gop validate` reports the new kinds). |
+| `gop.graph/v1` | unreleased | Additive, still `gop.graph/v1` (before the first release that writes them): evidence value `supplied`; edge kind `CAN_ASSUME` (workflow → cloud_target) with `file`, `pointer`, `provider`, `oidc`, `matched_sub`, `claims`, `trust`, `reason`; `cloud_target` node attrs `provider`, `account`, `role`, `warnings`; coverage fact `cloud_trust`. Graphs without supplied trust files are unchanged. `graph.Load` checks evidence values, so a gop release older than this change rejects an enriched graph (run it on the graph from before `gop enrich`); the engine treats an edge kind it does not know as absent. |

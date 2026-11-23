@@ -12,8 +12,8 @@ Confirmed means every hop was read live or from the audit log. Possible means at
 
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| identity:bob | 12 | 2 | 1 | 1 | 1 | 0 repos | 85.5 |
-| members:acme-actions | 12 | 2 | 1 | 1 | 1 | 0 repos | 85.5 |
+| identity:bob | 12 | 2 | 1 | 1 | 1 | 0 repos | 86.6 |
+| members:acme-actions | 12 | 2 | 1 | 1 | 1 | 0 repos | 86.6 |
 | identity:alice | 1 | 1 | 0 | 0 | 0 | 0 repos | 3.5 |
 | members:acme-legacy | 0 | 0 | 0 | 0 | 0 | 1 repo + 1 impact | 0.0 |
 | members:acme-app | 0 | 0 | 0 | 0 | 0 | 0 repos | 0.0 |

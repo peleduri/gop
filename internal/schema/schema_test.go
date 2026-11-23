@@ -69,7 +69,7 @@ func TestValidFixtures(t *testing.T) {
 }
 
 func TestWarnings(t *testing.T) {
-	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "testdata/valid/ref-protection.json", "testdata/valid/token-write.json", "testdata/valid/actions-access.json", "testdata/valid/can-trigger.json", "../../testdata/acme/graph.json"} {
+	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "testdata/valid/ref-protection.json", "testdata/valid/token-write.json", "testdata/valid/actions-access.json", "testdata/valid/can-trigger.json", "testdata/valid/cloud-target.json", "../../testdata/acme/graph.json"} {
 		if r := validateFile(t, f); len(r.Warnings) > 0 {
 			t.Errorf("%s: unexpected warnings %v", f, r.Warnings)
 		}
@@ -93,7 +93,7 @@ func TestInvalidFixtures(t *testing.T) {
 		"bad-edge-kind.json":           {"/edges/0/kind", `"PUSHES" is not one of`},
 		"bad-exec.json":                {"/edges/0/attrs/exec", `"fork" is not one of "checkout", "injection"`},
 		"bad-external-id.json":         {"/nodes/0/id", `does not match ^external:.+`},
-		"bad-evidence.json":            {"/edges/0/evidence", `"seen" is not one of "live", "audit", "not_visible"`},
+		"bad-evidence.json":            {"/edges/0/evidence", `"seen" is not one of "live", "audit", "supplied", "not_visible"`},
 		"bad-node-kind.json":           {"/nodes/0/kind", `"host" is not one of`},
 		"bad-line.json":                {"/edges/0/attrs/line", `"L7" does not match`},
 		"bad-observed-at.json":         {"/edges/0/observed_at", "RFC 3339"},
@@ -109,6 +109,7 @@ func TestInvalidFixtures(t *testing.T) {
 		"non-string-attr.json":         {"/nodes/0/attrs/members", "must be of type string, got integer"},
 		"not-object.json":              {"", "must be a JSON object"},
 		"old-members-id.json":          {"/nodes/0/id", "does not match ^members:"},
+		"supplied-no-file.json":        {"/edges/0/attrs", "supplied edge must name the file"},
 		"truncated.json":               {"", "not valid JSON"},
 		"wrong-schema.json":            {"/schema", `unknown schema version "gop.graph/v2"`},
 	}

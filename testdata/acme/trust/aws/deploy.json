@@ -1,0 +1,28 @@
+{
+  "Role": {
+    "Path": "/",
+    "RoleName": "deploy",
+    "RoleId": "AROAEXAMPLEEXAMPLE01",
+    "Arn": "arn:aws:iam::111111111111:role/deploy",
+    "CreateDate": "2026-01-01T00:00:00+00:00",
+    "AssumeRolePolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Federated": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com"
+          },
+          "Action": "sts:AssumeRoleWithWebIdentity",
+          "Condition": {
+            "StringEquals": {
+              "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+              "token.actions.githubusercontent.com:sub": "repo:acme-app/web:environment:prod"
+            }
+          }
+        }
+      ]
+    },
+    "MaxSessionDuration": 3600
+  }
+}

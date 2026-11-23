@@ -70,7 +70,9 @@ func compiledFor(version string) (*compiled, error) {
 //   - the document is JSON and its "schema" field names a known version;
 //   - it conforms to that version's JSON Schema;
 //   - every edge endpoint is declared as a node;
-//   - every not_visible fact has a coverage entry for its scope (warning).
+//   - every supplied edge names its file (attrs.file and a "supplied:" source_api);
+//   - every not_visible fact has a coverage entry for its scope (warning),
+//     except an undecided CAN_ASSUME match, which carries attrs.reason instead.
 //
 // The returned error is only for a broken embedded schema; problems with the
 // graph itself are reported in the Result.
@@ -102,6 +104,7 @@ func Validate(data []byte) (*Result, error) {
 	}
 	r.Errors = append(r.Errors, c.validate(c.root, doc, "")...)
 	r.Errors = append(r.Errors, checkEndpoints(top)...)
+	r.Errors = append(r.Errors, checkSupplied(top)...)
 	r.Warnings = append(r.Warnings, checkCoverage(top)...)
 	sortProblems(r.Errors)
 	sortProblems(r.Warnings)
@@ -137,6 +140,27 @@ func checkEndpoints(top map[string]any) []Problem {
 				Pointer: fmt.Sprintf("/edges/%d/%s", i, end),
 				Message: fmt.Sprintf("edge endpoint %q is not a declared node", id),
 			})
+		}
+	}
+	return out
+}
+
+// checkSupplied reports supplied edges that do not say which file they came
+// from: every summary of a supplied path must be able to name it.
+func checkSupplied(top map[string]any) []Problem {
+	var out []Problem
+	for i, e := range objects(top["edges"]) {
+		if e["evidence"] != string(graph.Supplied) {
+			continue
+		}
+		attrs, _ := e["attrs"].(map[string]any)
+		if f, _ := attrs[graph.AttrFile].(string); f == "" {
+			out = append(out, Problem{Pointer: fmt.Sprintf("/edges/%d/attrs", i),
+				Message: "supplied edge must name the file it was read from in attrs.file"})
+		}
+		if src, _ := e["source_api"].(string); !strings.HasPrefix(src, graph.SourceSupplied) {
+			out = append(out, Problem{Pointer: fmt.Sprintf("/edges/%d/source_api", i),
+				Message: fmt.Sprintf("supplied edge must have source_api %q<file>, got %q", graph.SourceSupplied, src)})
 		}
 	}
 	return out
@@ -186,6 +210,9 @@ func checkCoverage(top map[string]any) []Problem {
 	for i, e := range objects(top["edges"]) {
 		if e["evidence"] != nv {
 			continue
+		}
+		if attrs, _ := e["attrs"].(map[string]any); e["kind"] == string(graph.CanAssume) && attrs[graph.AttrReason] != nil {
+			continue // an undecided match from a supplied file: the reason says why
 		}
 		from, _ := e["from"].(string)
 		to, _ := e["to"].(string)

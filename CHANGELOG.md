@@ -9,6 +9,19 @@ flags may change in minor releases.
 
 ### Added
 
+- Paths out of GitHub: `gop enrich --graph g.json --oidc-trust ./trust/ --out
+  g2.json` (and `gop collect --oidc-trust`) reads exported AWS, GCP and Azure
+  OIDC trust files offline and adds `workflow -CAN_ASSUME-> cloud:<provider>:<role>`
+  where a workflow's token can assume the role, so `who_can_reach`,
+  `blast_radius`, the report and `gop who`/`gop paths` show which principals
+  reach which cloud roles. Matches come from the file, not the cloud: they
+  carry the new evidence `supplied` (counted as confirmed, flagged on the path,
+  and every summary names the file). Matches gop cannot decide (branch-scoped
+  `sub` with unknown triggers, dynamic environments, unparsed conditions) are
+  `not_visible` with a `reason`, so possible reach. Oidc nodes no supplied
+  trust matches get a `cloud_trust` coverage entry. Each reached cloud role
+  adds 13 to the blast radius score. Re-running with the same files gives a
+  byte-identical graph.
 - GitHub App mode in the CLI, the Action and `gop doctor`. `gop collect
   --app-id N --app-key-file PATH` (or `GOP_APP_ID` and `GOP_APP_PRIVATE_KEY`)
   mints a read-only installation token per org; it is a usage error (exit 2)

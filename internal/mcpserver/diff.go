@@ -44,7 +44,7 @@ const diffDescription = "Compare the served graph with the baseline snapshot pas
 	"unverified=true is possible). Lost visibility is not a fix: a path, setting or edge the newer " +
 	"snapshot cannot see is reported as lost_visibility, never as removed or turned off. " +
 	"Optional filters: only (sections: paths, settings, edges, scores, coverage), principal (paths, " +
-	"scores and edges touching it), target_kind (oidc, secret, runner or repo; paths only). " +
+	"scores and edges touching it), target_kind (cloud_target, oidc, secret, runner or repo; paths only). " +
 	"limit caps every list (default 50) and sets truncated when anything was cut. " +
 	"summary is the full report's lead line (as gop diff prints it), before filters."
 
@@ -52,7 +52,7 @@ const diffDescription = "Compare the served graph with the baseline snapshot pas
 type DiffInput struct {
 	Only       []string `json:"only,omitempty" jsonschema:"sections to keep: paths, settings, edges, scores, coverage (default all)"`
 	Principal  string   `json:"principal,omitempty" jsonschema:"keep only path changes and score deltas of this principal and edges touching it, e.g. members:acme-actions"`
-	TargetKind string   `json:"target_kind,omitempty" jsonschema:"keep only path changes to this target kind: oidc, secret, runner or repo"`
+	TargetKind string   `json:"target_kind,omitempty" jsonschema:"keep only path changes to this target kind: cloud_target, oidc, secret, runner or repo"`
 	Limit      int      `json:"limit,omitempty" jsonschema:"maximum entries per list (default 50)"`
 }
 
@@ -75,7 +75,7 @@ type differ struct {
 
 func newDiffer(cur, baseline *graph.Graph) *differ { return &differ{old: baseline, cur: cur} }
 
-var diffTargetKinds = []graph.NodeKind{graph.KindOIDC, graph.KindSecret, graph.KindRunner, graph.KindRepo}
+var diffTargetKinds = []graph.NodeKind{graph.KindCloudTarget, graph.KindOIDC, graph.KindSecret, graph.KindRunner, graph.KindRepo}
 
 // Diff answers the diff tool.
 func (d *differ) Diff(in DiffInput) (DiffOutput, error) {
@@ -89,7 +89,7 @@ func (d *differ) Diff(in DiffInput) (DiffOutput, error) {
 	}
 	kind := graph.NodeKind(in.TargetKind)
 	if kind != "" && !slices.Contains(diffTargetKinds, kind) {
-		return DiffOutput{}, fmt.Errorf("diff: target_kind must be oidc, secret, runner or repo, got %q", in.TargetKind)
+		return DiffOutput{}, fmt.Errorf("diff: target_kind must be cloud_target, oidc, secret, runner or repo, got %q", in.TargetKind)
 	}
 	if in.Limit < 0 {
 		return DiffOutput{}, fmt.Errorf("diff: limit must be positive, got %d", in.Limit)

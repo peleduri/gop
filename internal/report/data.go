@@ -68,15 +68,17 @@ type embPath struct {
 	Ev       string   `json:"ev"` // confirmed | possible
 	Refs     []string `json:"refs"`
 	Hops     []embHop `json:"hops"`
+	Note     string   `json:"note,omitempty"` // supplied trust file caveat (graph.Path.SuppliedNote)
 }
 
 type embHop struct {
 	From string `json:"from"`
 	To   string `json:"to"`
 	Kind string `json:"kind"`
-	Ev   string `json:"ev"` // live | audit | not visible
+	Ev   string `json:"ev"` // live | audit | supplied file | not visible
 	API  string `json:"api,omitempty"`
 	Rev  bool   `json:"rev,omitempty"`
+	Why  string `json:"why,omitempty"` // why an undecided CAN_ASSUME match is possible only
 }
 
 type embFix struct {
@@ -246,14 +248,18 @@ func buildEmbedded(ix *graph.Index, g *graph.Graph, scores []graph.Score, fixes 
 			}
 			path := r.Paths[to]
 			ep := embPath{From: p, FromOrgs: porgs, To: to, ToKind: tk, ToOrg: orgName(graph.OrgOf(to)),
-				Ev: "confirmed", Refs: []string{}}
+				Ev: "confirmed", Refs: []string{}, Note: path.SuppliedNote()}
+			if tk == "cloud" && len(path.Hops) > 0 {
+				// A cloud role has no org: file it under the org of the workflow that assumes it.
+				ep.ToOrg = orgName(graph.OrgOf(path.Hops[len(path.Hops)-1].From))
+			}
 			if path.Unverified {
 				ep.Ev = "possible"
 			}
 			refs := map[string]bool{}
 			for _, h := range path.Hops {
 				ep.Hops = append(ep.Hops, embHop{From: h.From, To: h.To, Kind: string(h.Kind),
-					Ev: mcpserver.EvidenceLabel(h.Evidence), API: h.SourceAPI, Rev: h.Reverse})
+					Ev: mcpserver.EvidenceLabel(h.Evidence), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason})
 				for _, id := range []string{h.From, h.To} {
 					if ix.Kind(id) == graph.KindActionRef {
 						refs[refKind(ix, id)] = true
