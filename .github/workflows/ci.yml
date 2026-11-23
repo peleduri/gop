@@ -158,3 +158,24 @@ jobs:
           distribution: goreleaser
           version: v2.20.3
           args: release --snapshot --clean --skip=sign,sbom,publish
+      - name: check the snapshot container images
+        # The snapshot loads one image per platform, tagged <version>-<arch>.
+        # The amd64 one must run gop as 65532:65532 and have no shell.
+        run: |
+          version=$(jq -r .version dist/metadata.json)
+          image="ghcr.io/peleduri/gop:${version}-amd64"
+          docker run --rm "$image" version
+          user=$(docker image inspect -f '{{.Config.User}}' "$image")
+          if [ "$user" != "65532:65532" ]; then
+            echo "image user is '$user', want 65532:65532" >&2
+            exit 1
+          fi
+          if docker run --rm --entrypoint sh "$image" -c true; then
+            echo "image has a shell" >&2
+            exit 1
+          fi
+          arch=$(docker image inspect -f '{{.Architecture}}' "ghcr.io/peleduri/gop:${version}-arm64")
+          if [ "$arch" != "arm64" ]; then
+            echo "arm64 image architecture is '$arch'" >&2
+            exit 1
+          fi
