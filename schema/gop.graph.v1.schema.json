@@ -110,6 +110,7 @@
         "risky_triggers": {"description": "workflow: comma list of its triggers that run in the base repo's context on events people without push access can cause (pull_request_target, workflow_run, issue_comment, ...).", "type": "string", "minLength": 1},
         "actions_access": {"description": "Repo hosting a referenced action: its Actions access setting (who outside the repo may use its actions), public for public repos, or unknown.", "type": "string", "enum": ["none", "user", "organization", "enterprise", "public", "unknown"]},
         "provider": {"description": "cloud_target: aws, gcp or azure.", "type": "string", "enum": ["aws", "gcp", "azure"]},
+        "source": {"description": "Where the node's facts came from: the API label on an org found outside the enterprise listing; cartography on a cloud_target that a CAN_ASSUME edge from a Cartography export points to.", "type": "string", "minLength": 1},
         "account": {"description": "cloud_target: AWS account, GCP project or Azure subscription, when the trust file names it.", "type": "string", "minLength": 1},
         "role": {"description": "cloud_target: role name, GCP service account or Azure identity.", "type": "string", "minLength": 1},
         "warnings": {"description": "cloud_target: comma list of risk codes from the trust, e.g. no_sub_condition, no_aud_condition, wildcard_owner, unparsed_condition.", "type": "string", "minLength": 1}
@@ -140,7 +141,11 @@
         "provider": {"description": "CAN_ASSUME: aws, gcp or azure.", "type": "string", "enum": ["aws", "gcp", "azure"]},
         "oidc": {"description": "CAN_ASSUME: the oidc node whose token the trust matches.", "type": "string", "pattern": "^oidc:.+"},
         "reason": {"description": "CAN_ASSUME with evidence not_visible: why gop cannot decide the match.", "type": "string", "minLength": 1},
-        "trust": {"description": "CAN_ASSUME: the trust's own target when it names more than the cloud_target (an Azure federated credential).", "type": "string", "minLength": 1}
+        "trust": {"description": "CAN_ASSUME: the trust's own target when it names more than the cloud_target (an Azure federated credential).", "type": "string", "minLength": 1},
+        "source": {"description": "CAN_ASSUME: cartography when the trust came from a Cartography export (gop enrich --cartography); absent for trust files.", "type": "string", "minLength": 1},
+        "observed_use": {"description": "CAN_ASSUME: CloudTrail, through a Cartography export, saw a workflow of this repo assume the role.", "type": "string", "enum": ["true"]},
+        "times_used": {"description": "CAN_ASSUME with observed_use: number of AssumeRoleWithWebIdentity calls in Cartography's CloudTrail window, integer as string.", "type": "string", "pattern": "^[0-9]+$"},
+        "last_used": {"description": "CAN_ASSUME with observed_use: time of the last such call, as the export gives it.", "type": "string", "minLength": 1}
       }
     },
     "Coverage": {

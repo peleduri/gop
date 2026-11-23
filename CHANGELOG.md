@@ -18,6 +18,21 @@ flags may change in minor releases.
   nodes. No baseline logs "no baseline, skipping" and passes. Needs
   `actions: read`; off, the Action is unchanged. The gate is
   `action/diff-gate.sh`, tested against a built gop.
+- `gop enrich --cartography <export>` imports AWS role trusts of GitHub Actions
+  from a Cartography Neo4j database. Run the shipped read-only query
+  `docs/cartography/oidc-trusts.cypher` (cypher-shell plain output, Neo4j
+  Browser JSON, the HTTP API shape or a plain row array are accepted); gop maps
+  each `TRUSTS_AWS_PRINCIPAL` condition block to the same trust model as
+  `--oidc-trust` files, so `CAN_ASSUME` edges and cloud nodes come out as with
+  the equivalent trust file (evidence `supplied`, plus `source=cartography`).
+  CloudTrail role use (`ASSUMED_ROLE_WITH_WEB_IDENTITY`) sets
+  `observed_use`, `times_used` and `last_used` on the matching edge; an
+  observation with no matching trust is a warning, never an edge. Bad rows are
+  warnings, never errors. gop has no Neo4j driver and needs no Neo4j
+  credentials. GCP and Azure stay on trust files: Cartography does not store the
+  GCP attribute mapping or Azure federated credentials (see
+  `docs/cartography.md`).
+
 ### Fixed
 
 - `fix_plan`, `gop fix-plan --pin`, `gop pin` and the report's "Pinned, still

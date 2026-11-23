@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "trust",
+    "role_arn": "arn:aws:iam::111111111111:role/deploy",
+    "role_name": "deploy",
+    "principal_arn": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+    "has_condition": true,
+    "conditions": "[{\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": \"repo:acme-app/web:environment:prod\"}}]",
+    "repo": null,
+    "times_used": null,
+    "first_seen": null,
+    "last_used": null
+  }
+]

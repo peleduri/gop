@@ -1,0 +1,115 @@
+[
+  {
+    "kind": "trust",
+    "role_arn": "arn:aws:iam::111111111111:role/deploy",
+    "role_name": "deploy",
+    "principal_arn": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+    "has_condition": true,
+    "conditions": "[{\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": \"repo:acme-app/web:environment:prod\"}}]",
+    "repo": null,
+    "times_used": null,
+    "first_seen": null,
+    "last_used": null
+  },
+  {
+    "kind": "trust",
+    "role_arn": "arn:aws:iam::111111111111:role/ci-open",
+    "role_name": "ci-open",
+    "principal_arn": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+    "has_condition": false,
+    "conditions": null,
+    "repo": null,
+    "times_used": null,
+    "first_seen": null,
+    "last_used": null
+  },
+  {
+    "kind": "trust",
+    "role_arn": "arn:aws:iam::111111111111:role/vault-release",
+    "role_name": "vault-release",
+    "principal_arn": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+    "has_condition": true,
+    "conditions": "[{\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\"}, \"StringLike\": {\"token.actions.githubusercontent.com:sub\": \"repo:acme-secure/vault:environment:*\"}}, {\"StringEquals\": {\"token.actions.githubusercontent.com:aud\": \"sts.amazonaws.com\", \"token.actions.githubusercontent.com:sub\": \"repo:acme-app/web:environment:staging\"}}]",
+    "repo": null,
+    "times_used": null,
+    "first_seen": null,
+    "last_used": null
+  },
+  {
+    "kind": "trust",
+    "role_arn": "arn:aws:iam::111111111111:role/legacy",
+    "role_name": "legacy",
+    "principal_arn": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+    "has_condition": null,
+    "conditions": null,
+    "repo": null,
+    "times_used": null,
+    "first_seen": null,
+    "last_used": null
+  },
+  {
+    "kind": "trust",
+    "role_arn": "not-an-arn",
+    "role_name": "bad",
+    "principal_arn": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+    "has_condition": true,
+    "conditions": "[]",
+    "repo": null,
+    "times_used": null,
+    "first_seen": null,
+    "last_used": null
+  },
+  {
+    "kind": "trust",
+    "role_arn": "arn:aws:iam::111111111111:role/broken",
+    "role_name": "broken",
+    "principal_arn": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com",
+    "has_condition": true,
+    "conditions": "{not json",
+    "repo": null,
+    "times_used": null,
+    "first_seen": null,
+    "last_used": null
+  },
+  {
+    "kind": "bogus",
+    "role_arn": "arn:aws:iam::111111111111:role/deploy"
+  },
+  {
+    "kind": "observed",
+    "role_arn": "arn:aws:iam::111111111111:role/deploy",
+    "role_name": "deploy",
+    "principal_arn": null,
+    "has_condition": null,
+    "conditions": null,
+    "repo": "acme-app/web",
+    "times_used": 42,
+    "first_seen": "2026-11-01T09:00:00Z",
+    "last_used": "2026-11-20T08:00:00Z"
+  },
+  {
+    "kind": "observed",
+    "role_arn": "arn:aws:iam::111111111111:role/deploy",
+    "role_name": "deploy",
+    "principal_arn": null,
+    "has_condition": null,
+    "conditions": null,
+    "repo": "acme-app/api",
+    "times_used": 3,
+    "first_seen": "2026-11-02T10:00:00Z",
+    "last_used": "2026-11-03T10:00:00Z"
+  },
+  {
+    "kind": "observed",
+    "role_arn": "arn:aws:iam::111111111111:role/deploy",
+    "role_name": "deploy",
+    "principal_arn": null,
+    "has_condition": null,
+    "conditions": null,
+    "repo": "nope",
+    "times_used": 1,
+    "first_seen": null,
+    "last_used": null
+  },
+  5
+]

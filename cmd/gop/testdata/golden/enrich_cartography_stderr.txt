@@ -1,0 +1,9 @@
+gop enrich: warning: testdata/cartography/oidc-trusts.json: row 3: has_condition and conditions are missing (Cartography older than the trust condition properties?): conditions unknown, every match is possible
+gop enrich: warning: testdata/cartography/oidc-trusts.json: row 4: skipped: role_arn "not-an-arn" is not an IAM role ARN
+gop enrich: warning: testdata/cartography/oidc-trusts.json: row 5: conditions is not JSON: conditions unknown, every match is possible
+gop enrich: warning: testdata/cartography/oidc-trusts.json: row 6: skipped: kind "bogus" is neither trust nor observed
+gop enrich: warning: testdata/cartography/oidc-trusts.json: row 9: skipped: repo "nope" is not owner/repo
+gop enrich: warning: testdata/cartography/oidc-trusts.json: row 10: skipped: kind "" is neither trust nor observed
+gop enrich: 6 trusts from 1 files: 4 confirmed and 7 possible paths into 5 cloud targets; 0 oidc nodes match no supplied trust (cloud hops come from supplied files, not from the cloud)
+gop enrich: warning: testdata/cartography/oidc-trusts.json: row 8: CloudTrail shows acme-app/api assumed arn:aws:iam::111111111111:role/deploy 3 times (last 2026-11-03T10:00:00Z), but no CAN_ASSUME edge from a workflow of that repo matches a trust; not added (the repo may be outside the graph, the trust may be missing from the export, or the workflow uses a custom sub template)
+gop enrich: cartography testdata/cartography/oidc-trusts.json: 6 trusts from 5 trust rows, 2 observed-use rows; 1 CAN_ASSUME edges marked observed_use, 1 observations match no trust (not added)

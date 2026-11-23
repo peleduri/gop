@@ -183,6 +183,17 @@ const (
 	AttrWarnings   = "warnings"    // cloud_target: comma list, e.g. no_sub_condition, no_aud_condition, wildcard_owner
 )
 
+// CAN_ASSUME edge and cloud_target node attribute keys from gop enrich
+// --cartography (a Cartography export, see docs/cartography.md).
+const (
+	AttrSource      = "source"       // CAN_ASSUME, cloud_target: cartography when the trust came from a Cartography export; absent for trust files
+	AttrObservedUse = "observed_use" // CAN_ASSUME: true when CloudTrail (through Cartography) saw a workflow of this repo assume the role
+	AttrTimesUsed   = "times_used"   // CAN_ASSUME with observed_use: AssumeRoleWithWebIdentity count in Cartography's CloudTrail window, integer as string
+	AttrLastUsed    = "last_used"    // CAN_ASSUME with observed_use: time of the last such call, as the export gives it
+	// SourceCartography is the value of AttrSource for a Cartography export.
+	SourceCartography = "cartography"
+)
+
 // IsDemo reports whether g is synthetic demo data: the enterprise node
 // ("enterprise:<slug>") carries demo=true.
 func IsDemo(g *Graph) bool {
