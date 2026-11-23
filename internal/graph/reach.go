@@ -349,7 +349,13 @@ func (ix *Index) membersOf(orgID string) string {
 	return orgID
 }
 
-func (ix *Index) buildControl(fixes []Fix) *controlGraph {
+func (ix *Index) buildControl(fixes []Fix) *controlGraph { return ix.buildControlRec(fixes, nil) }
+
+// buildControlRec is buildControl that also hands every control edge it
+// derives to rec (when set), with the evidence edge it came from, before
+// parallel edges collapse. The fix overlay (overlay.go) uses it to learn
+// which fixes can remove each control edge.
+func (ix *Index) buildControlRec(fixes []Fix, rec func(ce cedge, e Edge)) *controlGraph {
 	var fs fixSet
 	for _, f := range fixes {
 		f.apply(&fs)
@@ -369,6 +375,9 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 		// evidence wins, ties go to the smallest (kind, source_api). Without the
 		// tie-break the kept hop, and so the source_api in reported paths,
 		// depended on the order of g.Edges.
+		if rec != nil {
+			rec(ce, e)
+		}
 		if old, ok := best[k]; ok {
 			or, nr := evRank(old.hop.Evidence), evRank(e.Evidence)
 			if or > nr || (or == nr && (old.hop.Kind < e.Kind || (old.hop.Kind == e.Kind && old.hop.SourceAPI <= e.SourceAPI))) {
@@ -542,8 +551,7 @@ func (ix *Index) reach(cg *controlGraph, from string) Result {
 		} else {
 			hops, r = all[id].path, &res.Possible
 		}
-		ev := pathEvidence(hops)
-		res.Paths[id] = Path{From: from, To: id, Hops: hops, Evidence: ev, Unverified: !Verified(ev), Supplied: hopsSupplied(hops)}
+		res.Paths[id] = pathOf(from, id, hops)
 		switch ix.Kind(id) {
 		case KindRepo:
 			r.Repos = append(r.Repos, id)
@@ -576,6 +584,12 @@ func (ix *Index) reach(cg *controlGraph, from string) Result {
 	return res
 }
 
+// pathOf is the Path for hops from a principal to a node.
+func pathOf(from, to string, hops []Hop) Path {
+	ev := pathEvidence(hops)
+	return Path{From: from, To: to, Hops: hops, Evidence: ev, Unverified: !Verified(ev), Supplied: hopsSupplied(hops)}
+}
+
 // WhoCanReach lists, for each principal that can control target (a repo, workflow,
 // action, terminal or cloud_target), one shortest path. Confirmed paths come first, then
 // unverified ones; within each group shorter paths first, then by principal ID.
@@ -583,28 +597,10 @@ func WhoCanReach(g *Graph, target string) []Path {
 	return NewIndex(g).WhoCanReach(target)
 }
 
-// WhoCanReach on a prebuilt index.
-func (ix *Index) WhoCanReach(target string) []Path {
-	var out []Path
-	for _, p := range ix.Principals() {
-		if p == target {
-			continue
-		}
-		if path, ok := ix.reach(ix.base, p).Paths[target]; ok {
-			out = append(out, path)
-		}
-	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Unverified != out[j].Unverified {
-			return !out[i].Unverified
-		}
-		if len(out[i].Hops) != len(out[j].Hops) {
-			return len(out[i].Hops) < len(out[j].Hops)
-		}
-		return out[i].From < out[j].From
-	})
-	return out
-}
+// WhoCanReach on a prebuilt index. It walks back from target to find the
+// principals that can reach it, then traverses forward only from those (see
+// whoCanReach in fast.go).
+func (ix *Index) WhoCanReach(target string) []Path { return ix.whoCanReach(target) }
 
 // PinnedExposure is a SHA-pinned (or locked) action that a principal can still
 // change, because the pinned action (a composite action or reusable workflow)
