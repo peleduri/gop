@@ -179,6 +179,19 @@ func (f *appGitHub) serve(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	if p == "/graphql" && strings.Contains(gql.Query, "object(expression:") {
+		// Batched file reads: every repository owner must be the token's org
+		// (or an org without an installation, read through a fallback token).
+		for name, v := range gql.Variables {
+			owner, _ := v.(string)
+			if _, installed := f.installs[owner]; strings.HasPrefix(name, "o") && installed && owner != org {
+				f.t.Errorf("batched GraphQL about %q carries the %s installation token", owner, org)
+			}
+		}
+		// No repository aliases in the answer: the collector reads over REST.
+		reply(w, 200, map[string]any{"data": map[string]any{}})
+		return
+	}
 	if p == "/graphql" {
 		login, _ := gql.Variables["login"].(string)
 		if login != org {
