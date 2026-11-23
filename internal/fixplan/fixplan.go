@@ -1,0 +1,437 @@
+// Package fixplan turns a graph fix (pin an action ref, lower an org's default
+// repository permission) into concrete change steps: the workflow lines to
+// edit, with a one-line diff each, and the settings to change.
+//
+// gop is read-only. A plan is text for a human or a coding agent to act on with
+// their own credentials, outside gop: Build never runs a step, and the REST
+// calls it names are documentation, never requests. This package works only on
+// a loaded graph and makes no network calls.
+package fixplan
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+
+	"github.com/peleduri/gop/internal/graph"
+)
+
+// Step kinds.
+const (
+	KindEditWorkflow  = "edit_workflow"
+	KindChangeSetting = "change_setting"
+	KindVerify        = "verify"
+)
+
+// ConfirmFirst is the note on a step whose evidence edge is not_visible.
+const ConfirmFirst = "not visible to the token: confirm this exists first"
+
+// FixSpec describes one fix in the shape the MCP tools take.
+type FixSpec struct {
+	Type   string `json:"type" jsonschema:"pin_ref or lower_default_perm"`
+	Action string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
+	Org    string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
+	To     string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
+}
+
+// Step is one change a person or agent makes outside gop.
+type Step struct {
+	Kind    string `json:"kind" jsonschema:"edit_workflow, change_setting or verify"`
+	Repo    string `json:"repo,omitempty" jsonschema:"repository the step applies to, e.g. acme-app/web"`
+	File    string `json:"file,omitempty" jsonschema:"repo-relative file to edit, e.g. .github/workflows/release.yml"`
+	FileRef string `json:"file_ref,omitempty" jsonschema:"commit or branch the file was read at, when known"`
+	Line    int    `json:"line,omitempty" jsonschema:"1-based line of the uses: value; 0 or absent when the graph has no line attributes"`
+	Col     int    `json:"col,omitempty"`
+	Diff    string `json:"diff,omitempty" jsonschema:"unified diff for the one line, when the line is known"`
+	Setting string `json:"setting,omitempty" jsonschema:"where the setting lives in the GitHub UI"`
+	API     string `json:"api,omitempty" jsonschema:"the REST call that makes the same change, as text only: gop never calls it"`
+	Owner   string `json:"owner,omitempty" jsonschema:"org that must make the change"`
+	Edge    string `json:"edge,omitempty" jsonschema:"the evidence edge behind the step, as from KIND to"`
+	// Evidence of the edge or setting behind the step. not_visible steps are
+	// marked Unconfirmed and listed last.
+	Evidence    graph.Evidence `json:"evidence,omitempty"`
+	Unconfirmed bool           `json:"unconfirmed,omitempty" jsonschema:"true when the evidence is not_visible: confirm the edge exists before acting"`
+	Note        string         `json:"note,omitempty"`
+}
+
+// Plan is the change list for one fix.
+type Plan struct {
+	FixID       string  `json:"fix_id"`
+	Fix         FixSpec `json:"fix"`
+	Description string  `json:"description"`
+	// Removes compares reach before and after the fix. PerPrincipal keeps only
+	// the principals whose reach changes.
+	Removes graph.Delta `json:"removes"`
+	Steps   []Step      `json:"steps"`
+	Caveats []string    `json:"caveats"`
+}
+
+// Spec returns the FixSpec and a one-sentence description of a graph fix.
+func Spec(f graph.Fix) (FixSpec, string) {
+	switch v := f.(type) {
+	case graph.PinRef:
+		return FixSpec{Type: "pin_ref", Action: v.Action},
+			"Pin " + strings.TrimPrefix(v.Action, "action:") + " to a commit SHA in every workflow that uses it"
+	case graph.LowerDefaultPerm:
+		return FixSpec{Type: "lower_default_perm", Org: v.Org, To: v.To},
+			"Lower the default repository permission of " + strings.TrimPrefix(v.Org, "org:") + " to " + v.To
+	}
+	return FixSpec{}, f.ID()
+}
+
+// Build turns a fix into change steps. It only reads ix.
+func Build(ix *graph.Index, f graph.Fix) Plan {
+	spec, desc := Spec(f)
+	p := Plan{FixID: f.ID(), Fix: spec, Description: desc, Removes: removes(ix, f), Steps: []Step{}, Caveats: []string{}}
+	switch v := f.(type) {
+	case graph.PinRef:
+		buildPin(ix, v, &p)
+	case graph.LowerDefaultPerm:
+		buildLower(ix, v, &p)
+	}
+	p.Steps = confirmedFirst(p.Steps)
+	return p
+}
+
+// removes runs WhatIf and drops principals whose reach does not change.
+func removes(ix *graph.Index, f graph.Fix) graph.Delta {
+	d := ix.WhatIf([]graph.Fix{f})
+	kept := []graph.PrincipalDelta{}
+	for _, pd := range d.PerPrincipal {
+		if pd.Before.Confirmed != pd.After.Confirmed || pd.Before.Possible != pd.After.Possible {
+			kept = append(kept, pd)
+		}
+	}
+	d.PerPrincipal = kept
+	return d
+}
+
+// confirmedFirst moves not_visible steps to the end, keeping order otherwise.
+func confirmedFirst(steps []Step) []Step {
+	out := make([]Step, 0, len(steps))
+	var later []Step
+	for _, s := range steps {
+		if s.Unconfirmed {
+			later = append(later, s)
+		} else {
+			out = append(out, s)
+		}
+	}
+	return append(out, later...)
+}
+
+func edgeLabel(e graph.Edge) string {
+	return e.From + " " + string(e.Kind) + " " + e.To
+}
+
+func login(id string) string {
+	_, rest, _ := strings.Cut(id, ":")
+	return rest
+}
+
+// splitRef splits "O/R[/path]@ref" at the last "@".
+func splitRef(uses string) (base, ref string) {
+	if i := strings.LastIndex(uses, "@"); i >= 0 {
+		return uses[:i], uses[i+1:]
+	}
+	return uses, ""
+}
+
+// location returns the repo and file that hold a USES edge's uses: line, and
+// whether the edge comes from an action (a nested composite action or a
+// reusable workflow) instead of a workflow.
+func location(ix *graph.Index, e graph.Edge) (repo, file string, nested bool) {
+	prefix, rest, _ := strings.Cut(e.From, ":")
+	switch prefix {
+	case "workflow":
+		parts := strings.SplitN(rest, "/", 3)
+		if len(parts) >= 2 {
+			repo = parts[0] + "/" + parts[1]
+		}
+		if len(parts) == 3 {
+			file = parts[2]
+		}
+	case "action":
+		nested = true
+		n, _ := ix.Node(e.From)
+		if n.Attrs["owner"] != "" && n.Attrs["repo"] != "" {
+			repo = n.Attrs["owner"] + "/" + n.Attrs["repo"]
+			file = n.Attrs["path"]
+		} else {
+			base, _ := splitRef(rest)
+			parts := strings.SplitN(base, "/", 3)
+			if len(parts) >= 2 {
+				repo = parts[0] + "/" + parts[1]
+			}
+			if len(parts) == 3 {
+				file = parts[2]
+			}
+		}
+	}
+	if f := e.Attrs[graph.AttrFile]; f != "" {
+		file = f
+	}
+	return repo, file, nested
+}
+
+func atoi(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+// PinDiff is the one-line unified diff that pins uses (O/R[/path]@ref) to sha.
+// The lines show the uses: entry without the file's indentation or list marker.
+func PinDiff(file string, line int, uses, sha string) string {
+	base, ref := splitRef(uses)
+	return fmt.Sprintf("--- a/%s\n+++ b/%s\n@@ -%d +%d @@\n-uses: %s\n+uses: %s@%s # %s\n", file, file, line, line, uses, base, sha, ref)
+}
+
+func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
+	uses := strings.TrimPrefix(f.Action, "action:")
+	base, ref := splitRef(uses)
+	sha := "<sha-of-" + ref + ">"
+	if !ix.MutableRef(f.Action) {
+		p.Caveats = append(p.Caveats, uses+" is already pinned to a commit SHA: there is nothing to change")
+	}
+
+	type key struct {
+		from, file string
+		line       int
+	}
+	seen := map[key]bool{}
+	var steps []Step
+	noLine := 0
+	for _, e := range ix.In(f.Action) {
+		if e.Kind != graph.Uses {
+			continue
+		}
+		repo, file, nested := location(ix, e)
+		line := atoi(e.Attrs[graph.AttrLine])
+		k := key{e.From, file, line}
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		s := Step{
+			Kind: KindEditWorkflow, Repo: repo, File: file, FileRef: e.Attrs[graph.AttrFileRef],
+			Line: line, Col: atoi(e.Attrs[graph.AttrCol]),
+			Owner: strings.SplitN(repo, "/", 2)[0], Edge: edgeLabel(e), Evidence: e.Evidence,
+		}
+		var notes []string
+		if line > 0 && file != "" {
+			s.Diff = PinDiff(file, line, uses, sha)
+		} else {
+			noLine++
+			notes = append(notes, fmt.Sprintf("line not recorded in this graph: replace `uses: %s` with `uses: %s@%s # %s`", uses, base, sha, ref))
+		}
+		if file == "" {
+			notes = append(notes, "file not recorded: the action's action.yml or action.yaml")
+		}
+		if nested {
+			notes = append(notes, fmt.Sprintf("nested: this uses: line is inside %s; callers pick up the change only when that ref points at the new commit (a SHA or tag pin needs a new pin)",
+				strings.TrimPrefix(e.From, "action:")))
+		}
+		if !graph.Verified(e.Evidence) {
+			s.Unconfirmed = true
+			notes = append(notes, ConfirmFirst)
+		}
+		s.Note = strings.Join(notes, "; ")
+		steps = append(steps, s)
+	}
+	sort.SliceStable(steps, func(i, j int) bool {
+		a, b := steps[i], steps[j]
+		if a.Repo != b.Repo {
+			return a.Repo < b.Repo
+		}
+		if a.File != b.File {
+			return a.File < b.File
+		}
+		if a.Line != b.Line {
+			return a.Line < b.Line
+		}
+		return a.Edge < b.Edge
+	})
+	if len(steps) == 0 {
+		p.Caveats = append(p.Caveats, "no workflow or action in this graph uses "+uses)
+		return
+	}
+	p.Steps = append(p.Steps, steps...)
+	p.Steps = append(p.Steps, Step{
+		Kind:  KindVerify,
+		Repo:  repoOf(base),
+		Owner: strings.SplitN(base, "/", 2)[0],
+		Note: fmt.Sprintf("gop works offline and does not know the commit %s points at: replace %s with the full commit SHA of %s, resolved with `gop pin --action %s` or read from the repository. Use the same SHA in every step.",
+			ref, sha, ref, uses),
+	})
+	if noLine > 0 {
+		p.Caveats = append(p.Caveats, fmt.Sprintf("%d of %d uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff",
+			noLine, len(steps)))
+	}
+	if noLine < len(steps) {
+		p.Caveats = append(p.Caveats, "diffs show the uses: entry without its indentation or list marker; keep those as they are in the file")
+	}
+	if ids, labels := nestedMutable(ix, f.Action); len(ids) > 0 {
+		p.Caveats = append(p.Caveats, fmt.Sprintf("pinning %s alone does not close paths through the mutable refs it uses itself: %s. Pin those too (for example gop fix-plan --pin %s)",
+			uses, strings.Join(labels, ", "), ids[0]))
+	}
+}
+
+// nestedMutable lists the mutable action refs reachable from action through
+// USES edges (nested composite actions and reusable workflows), each with its
+// file:line when known: the node IDs and their labels, sorted by ID.
+func nestedMutable(ix *graph.Index, action string) (ids, labels []string) {
+	seen := map[string]bool{action: true}
+	queue := []string{action}
+	found := map[string]string{}
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		for _, e := range ix.Out(cur) {
+			if e.Kind != graph.Uses || seen[e.To] {
+				continue
+			}
+			seen[e.To] = true
+			queue = append(queue, e.To)
+			if ix.MutableRef(e.To) {
+				label := strings.TrimPrefix(e.To, "action:")
+				if file := e.Attrs[graph.AttrFile]; file != "" {
+					loc := file
+					if l := e.Attrs[graph.AttrLine]; l != "" {
+						loc += ":" + l
+					}
+					label += " (" + strings.TrimPrefix(cur, "action:") + " " + loc + ")"
+				}
+				if !graph.Verified(e.Evidence) {
+					label += " [not visible]"
+				}
+				found[e.To] = label
+			}
+		}
+	}
+	for id := range found {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		labels = append(labels, found[id])
+	}
+	return ids, labels
+}
+
+// repoOf returns "O/R" for "O/R[/path]".
+func repoOf(base string) string {
+	parts := strings.SplitN(base, "/", 3)
+	if len(parts) < 2 {
+		return base
+	}
+	return parts[0] + "/" + parts[1]
+}
+
+func buildLower(ix *graph.Index, f graph.LowerDefaultPerm, p *Plan) {
+	org := login(f.Org)
+	n, _ := ix.Node(f.Org)
+	cur := n.Attrs[graph.AttrDefaultPerm]
+	if f.To != "read" && f.To != "none" {
+		p.Caveats = append(p.Caveats, fmt.Sprintf("lowering to %q does not remove push: gop models only read and none", f.To))
+		return
+	}
+	ev := n.Evidence
+	if e, ok := n.AttrEvidence[graph.AttrDefaultPerm]; ok {
+		ev = e
+	}
+	setting := Step{
+		Kind:     KindChangeSetting,
+		Owner:    org,
+		Setting:  fmt.Sprintf("Organization settings > Member privileges > Base permissions: %s", label(f.To)),
+		API:      fmt.Sprintf(`PATCH /orgs/%s {"default_repository_permission": "%s"}`, org, f.To),
+		Evidence: ev,
+		Note:     "an org owner of " + org + " makes this change; the API call is shown as text only, gop never calls it",
+	}
+	if cur != "" {
+		setting.Note = "current base permission: " + cur + "; " + setting.Note
+	}
+	if ev != "" && !graph.Verified(ev) {
+		setting.Unconfirmed = true
+		setting.Note += "; " + ConfirmFirst
+	}
+
+	type loss struct {
+		repo   string
+		edge   graph.Edge
+		others []string
+	}
+	var losses []loss
+	for _, e := range graph.FixEdges(ix, f) {
+		var others []string
+		for _, in := range ix.In(e.To) {
+			if in.Kind == graph.CanPush && in.Attrs[graph.AttrVia] != graph.ViaDefaultPerm {
+				others = append(others, in.From)
+			}
+		}
+		sort.Strings(others)
+		losses = append(losses, loss{repo: login(e.To), edge: e, others: dedup(others)})
+	}
+	sort.Slice(losses, func(i, j int) bool { return losses[i].repo < losses[j].repo })
+
+	for _, l := range losses {
+		s := Step{
+			Kind: KindVerify, Repo: l.repo, Owner: org, Edge: edgeLabel(l.edge), Evidence: l.edge.Evidence,
+			Note: fmt.Sprintf("before the change: members of %s lose push to %s (granted only by the base permission); give a team push first if members need it", org, l.repo),
+		}
+		if len(l.others) > 0 {
+			s.Note += "; other push grants kept: " + strings.Join(l.others, ", ")
+		}
+		if !graph.Verified(l.edge.Evidence) {
+			s.Unconfirmed = true
+			s.Note += "; " + ConfirmFirst
+		}
+		p.Steps = append(p.Steps, s)
+	}
+	p.Steps = append(p.Steps, setting)
+
+	p.Caveats = append(p.Caveats, fmt.Sprintf("members who rely on the default %s permission lose push to every %s repo where they have no team, direct or owner grant", orDefault(cur, "write"), org))
+	if len(losses) == 0 {
+		p.Caveats = append(p.Caveats, "this graph records no CAN_PUSH edge from the base permission of "+org)
+		return
+	}
+	repos := make([]string, 0, len(losses))
+	for _, l := range losses {
+		r := l.repo
+		if !graph.Verified(l.edge.Evidence) {
+			r += " [not visible]"
+		}
+		repos = append(repos, r)
+	}
+	p.Caveats = append(p.Caveats, fmt.Sprintf("repos where members of %s have push only through the base permission: %s", org, strings.Join(repos, ", ")))
+}
+
+func label(to string) string {
+	switch to {
+	case "read":
+		return "Read"
+	case "none":
+		return "No permission"
+	}
+	return to
+}
+
+func orDefault(s, d string) string {
+	if s == "" {
+		return d
+	}
+	return s
+}
+
+func dedup(s []string) []string {
+	out := s[:0]
+	for i, v := range s {
+		if i == 0 || v != s[i-1] {
+			out = append(out, v)
+		}
+	}
+	return out
+}
