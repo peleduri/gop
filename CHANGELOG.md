@@ -7,6 +7,13 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+### Added
+
+- `USES` and `EXECUTES_WITH` edges from workflow files and composite actions
+  now carry their source position: `file`, `file_ref` (when known), `line` and,
+  on `USES`, `col`. The `explain` summary shows `file:line`. Additive; graphs
+  without these attributes still load.
+
 ## [0.1.0] - 2026-11-23
 
 First public version.

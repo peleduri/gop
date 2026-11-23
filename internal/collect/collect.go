@@ -720,6 +720,7 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 			k.cover(wid, "workflow_parse", err.Error(), "fix the workflow YAML in "+full)
 			continue
 		}
+		facts.SetFile(e.Path, repo.Attrs["default_branch"])
 		k.addWorkflowFacts(wid, full, facts)
 	}
 	setAttr(repo, "workflows", strconv.Itoa(count), graph.Live)
@@ -733,9 +734,9 @@ func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {
 	if f.IDTokenWrite {
 		id := "oidc:" + full
 		k.node(id, graph.KindOIDC, full+" OIDC token")
-		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, map[string]string{
-			"permission": "id-token: write", "scopes": strings.Join(f.IDTokenScopes, ","),
-		})
+		attrs := map[string]string{"permission": "id-token: write", "scopes": strings.Join(f.IDTokenScopes, ",")}
+		locate(attrs, f.File, f.FileRef, f.IDTokenLine(), 0)
+		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, attrs)
 	}
 	if f.HasSecrets() {
 		id := "secret:" + full
@@ -752,9 +753,9 @@ func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {
 	if f.SelfHosted {
 		id := "runner:" + full
 		k.node(id, graph.KindRunner, full+" self-hosted runners")
-		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, map[string]string{
-			"labels": strings.Join(f.RunnerLabels, ","),
-		})
+		attrs := map[string]string{"labels": strings.Join(f.RunnerLabels, ",")}
+		locate(attrs, f.File, f.FileRef, f.RunsOnLine, 0)
+		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, attrs)
 	}
 }
 
@@ -777,6 +778,7 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 	if u.Job != "" {
 		attrs["job"] = u.Job
 	}
+	locate(attrs, u.File, u.FileRef, u.Line, u.Column)
 	k.edge(from, aid, graph.Uses, graph.Live, src, attrs)
 
 	org, inside := k.entOrgs[strings.ToLower(u.Owner)]
@@ -850,6 +852,7 @@ func (k *collector) expandNested(ctx context.Context) error {
 				k.cover(q.id, "nested_uses", perr.Error(), "fix "+path+" in "+u.Owner+"/"+u.Repo)
 				continue
 			}
+			facts.SetFile(path, u.Ref)
 			nested = facts.Uses
 		} else {
 			uses, using, perr := ParseCompositeAction(data)
@@ -861,6 +864,7 @@ func (k *collector) expandNested(ctx context.Context) error {
 			if using != "" {
 				setAttr(an, "runs_using", using, graph.Live)
 			}
+			setFile(uses, path, u.Ref)
 			nested = uses
 		}
 		setAttr(an, attrNested, strconv.Itoa(len(nested)), graph.Live)

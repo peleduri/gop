@@ -115,6 +115,15 @@ const (
 	AttrVisibility      = "visibility"        // public | private | internal (repos)
 )
 
+// Source position attribute keys on USES and EXECUTES_WITH edges that come
+// from a workflow file or composite action. All optional; values are strings.
+const (
+	AttrFile    = "file"     // repo-relative path of the file, e.g. .github/workflows/release.yml
+	AttrFileRef = "file_ref" // commit or branch the file was read at, when known
+	AttrLine    = "line"     // 1-based line, integer as string
+	AttrCol     = "col"      // 1-based column of the value start, integer as string
+)
+
 // CAN_PUSH provenance. Collectors set Attrs[AttrVia] so fixes know which edges they remove.
 const (
 	AttrVia        = "via"

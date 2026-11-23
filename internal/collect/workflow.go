@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/peleduri/gop/internal/graph"
 )
 
 // Reference levels for Uses.
@@ -25,6 +28,10 @@ type ActionUse struct {
 	RefKind string // sha | tag | branch
 	Level   string // job | step
 	Job     string // job id ("" for composite action steps)
+	Line    int    // 1-based line of the uses: value (0 if unknown)
+	Column  int    // 1-based column where the uses: value starts (0 if unknown)
+	File    string // repo-relative path of the file the reference was read from
+	FileRef string // commit or branch that file was read at ("" if unknown)
 }
 
 // IsReusableWorkflow reports whether the reference points at a workflow file.
@@ -41,6 +48,59 @@ type WorkflowFacts struct {
 	InheritsSecrets bool
 	SelfHosted      bool
 	RunnerLabels    []string
+	IDTokenLines    map[string]int // scope -> 1-based line of the id-token: write (or write-all) key
+	RunsOnLine      int            // first runs-on: line of a self-hosted job (0 if none)
+	File            string         // repo-relative path, set by the caller
+	FileRef         string         // commit or branch the file was read at, set by the caller
+}
+
+// SetFile records where the workflow was read from on the facts and every use.
+func (f *WorkflowFacts) SetFile(path, ref string) {
+	f.File, f.FileRef = path, ref
+	setFile(f.Uses, path, ref)
+}
+
+func setFile(uses []ActionUse, path, ref string) {
+	for i := range uses {
+		uses[i].File, uses[i].FileRef = path, ref
+	}
+}
+
+// IDTokenLine is the first line granting id-token: write (0 if none).
+func (f *WorkflowFacts) IDTokenLine() int {
+	first := 0
+	for _, l := range f.IDTokenLines {
+		if first == 0 || l < first {
+			first = l
+		}
+	}
+	return first
+}
+
+// locate adds the file position attributes to edge attrs, skipping unknowns.
+func locate(attrs map[string]string, file, ref string, line, col int) {
+	if file != "" {
+		attrs[graph.AttrFile] = file
+	}
+	if ref != "" {
+		attrs[graph.AttrFileRef] = ref
+	}
+	if line > 0 {
+		attrs[graph.AttrLine] = strconv.Itoa(line)
+	}
+	if col > 0 {
+		attrs[graph.AttrCol] = strconv.Itoa(col)
+	}
+}
+
+// useAt parses a uses: node and records its position.
+func useAt(n *yaml.Node) (ActionUse, bool) {
+	if n.Kind != yaml.ScalarNode {
+		return ActionUse{}, false
+	}
+	u, ok := ParseUses(n.Value)
+	u.Line, u.Column = n.Line, n.Column
+	return u, ok
 }
 
 // HasSecrets reports whether the workflow can read stored secrets.
@@ -95,11 +155,11 @@ func ParseUses(s string) (ActionUse, bool) {
 }
 
 type rawStep struct {
-	Uses string `yaml:"uses"`
+	Uses yaml.Node `yaml:"uses"`
 }
 
 type rawJob struct {
-	Uses        string    `yaml:"uses"`
+	Uses        yaml.Node `yaml:"uses"`
 	Permissions yaml.Node `yaml:"permissions"`
 	RunsOn      yaml.Node `yaml:"runs-on"`
 	Secrets     yaml.Node `yaml:"secrets"`
@@ -121,11 +181,13 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 	if err := doc.Decode(&wf); err != nil {
 		return nil, fmt.Errorf("parse workflow: %w", err)
 	}
-	f := &WorkflowFacts{}
-	if idTokenWrite(&wf.Permissions) {
+	f := &WorkflowFacts{IDTokenLines: map[string]int{}}
+	if l := idTokenLine(&wf.Permissions); l > 0 {
 		f.IDTokenWrite = true
 		f.IDTokenScopes = append(f.IDTokenScopes, "workflow")
+		f.IDTokenLines["workflow"] = l
 	}
+	_, jobsNode := mapValue(rootMap(&doc), "jobs")
 	jobIDs := make([]string, 0, len(wf.Jobs))
 	for id := range wf.Jobs {
 		jobIDs = append(jobIDs, id)
@@ -134,19 +196,20 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 	labels := map[string]bool{}
 	for _, id := range jobIDs {
 		job := wf.Jobs[id]
-		if u, ok := ParseUses(job.Uses); ok {
+		if u, ok := useAt(&job.Uses); ok {
 			u.Level, u.Job = LevelJob, id
 			f.Uses = append(f.Uses, u)
 		}
 		for _, st := range job.Steps {
-			if u, ok := ParseUses(st.Uses); ok {
+			if u, ok := useAt(&st.Uses); ok {
 				u.Level, u.Job = LevelStep, id
 				f.Uses = append(f.Uses, u)
 			}
 		}
-		if idTokenWrite(&job.Permissions) {
+		if l := idTokenLine(&job.Permissions); l > 0 {
 			f.IDTokenWrite = true
 			f.IDTokenScopes = append(f.IDTokenScopes, id)
+			f.IDTokenLines[id] = l
 		}
 		if job.Secrets.Kind == yaml.ScalarNode && strings.TrimSpace(job.Secrets.Value) == "inherit" {
 			f.InheritsSecrets = true
@@ -154,6 +217,10 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 		for _, l := range scalars(&job.RunsOn) {
 			if strings.Contains(strings.ToLower(l), "self-hosted") {
 				f.SelfHosted = true
+				_, jn := mapValue(jobsNode, id)
+				if k, _ := mapValue(jn, "runs-on"); k != nil && (f.RunsOnLine == 0 || k.Line < f.RunsOnLine) {
+					f.RunsOnLine = k.Line
+				}
 			}
 			labels[l] = true
 		}
@@ -185,7 +252,7 @@ func ParseCompositeAction(data []byte) (uses []ActionUse, using string, err erro
 		return nil, using, nil
 	}
 	for _, st := range a.Runs.Steps {
-		if u, ok := ParseUses(st.Uses); ok {
+		if u, ok := useAt(&st.Uses); ok {
 			u.Level = LevelStep
 			uses = append(uses, u)
 		}
@@ -193,18 +260,43 @@ func ParseCompositeAction(data []byte) (uses []ActionUse, using string, err erro
 	return uses, using, nil
 }
 
-func idTokenWrite(n *yaml.Node) bool {
+// idTokenLine returns the line that grants id-token: write in a permissions
+// value (the write-all scalar or the id-token key), or 0 if none does.
+func idTokenLine(n *yaml.Node) int {
 	switch n.Kind {
 	case yaml.ScalarNode:
-		return strings.TrimSpace(n.Value) == "write-all"
+		if strings.TrimSpace(n.Value) == "write-all" {
+			return n.Line
+		}
 	case yaml.MappingNode:
 		for i := 0; i+1 < len(n.Content); i += 2 {
 			if n.Content[i].Value == "id-token" && strings.TrimSpace(n.Content[i+1].Value) == "write" {
-				return true
+				return n.Content[i].Line
 			}
 		}
 	}
-	return false
+	return 0
+}
+
+// rootMap returns the top-level mapping of a parsed document, or nil.
+func rootMap(doc *yaml.Node) *yaml.Node {
+	if doc.Kind == yaml.DocumentNode && len(doc.Content) > 0 {
+		return doc.Content[0]
+	}
+	return nil
+}
+
+// mapValue returns the key and value nodes for key in mapping m (nil, nil if absent).
+func mapValue(m *yaml.Node, key string) (k, v *yaml.Node) {
+	if m == nil || m.Kind != yaml.MappingNode {
+		return nil, nil
+	}
+	for i := 0; i+1 < len(m.Content); i += 2 {
+		if m.Content[i].Value == key {
+			return m.Content[i], m.Content[i+1]
+		}
+	}
+	return nil, nil
 }
 
 // scalars returns every scalar value under n (recursively).

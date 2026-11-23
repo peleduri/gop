@@ -2,7 +2,11 @@ package collect
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/peleduri/gop/internal/graph"
@@ -87,5 +91,98 @@ func TestEndToEndAcme(t *testing.T) {
 		if n.Kind == graph.KindOrg && n.AttrEvidence[graph.AttrIPAllowList] == graph.NotVisible && n.Attrs[graph.AttrIPAllowList] == "off" {
 			t.Errorf("%s: not visible IP allow list rendered as off", n.ID)
 		}
+	}
+}
+
+// TestEdgePositions checks that every USES edge points at its uses: value in
+// the testdata file the fake API served, and that OIDC and runner edges carry
+// the id-token and runs-on lines.
+func TestEdgePositions(t *testing.T) {
+	_, ix := collectAcme(t)
+	uses := 0
+	for _, e := range ix.g.Edges {
+		if e.Kind != graph.Uses {
+			continue
+		}
+		uses++
+		file, ref := e.Attrs[graph.AttrFile], e.Attrs[graph.AttrFileRef]
+		line, lerr := strconv.Atoi(e.Attrs[graph.AttrLine])
+		col, cerr := strconv.Atoi(e.Attrs[graph.AttrCol])
+		if file == "" || lerr != nil || cerr != nil {
+			t.Errorf("%s -> %s: missing position attrs %v", e.From, e.To, e.Attrs)
+			continue
+		}
+		var path string
+		switch {
+		case strings.HasPrefix(e.From, "workflow:"):
+			// workflow:{org}/{repo}/.github/workflows/{name}
+			rest := strings.TrimPrefix(e.From, "workflow:")
+			parts := strings.SplitN(rest, "/", 3)
+			path = filepath.Join("testdata", "workflows", parts[0], parts[1], filepath.Base(file))
+		case strings.HasPrefix(e.From, "action:"):
+			// action:{owner}/{repo}[/path]@{ref}; nested files were read at that ref.
+			target, at, _ := strings.Cut(strings.TrimPrefix(e.From, "action:"), "@")
+			if ref != at {
+				t.Errorf("%s -> %s: file_ref %q, want %q", e.From, e.To, ref, at)
+			}
+			parts := strings.SplitN(target, "/", 3)
+			if strings.HasPrefix(file, ".github/workflows/") {
+				path = filepath.Join("testdata", "workflows", parts[0], parts[1], filepath.Base(file))
+			} else {
+				path = filepath.Join("testdata", "actions", parts[0], parts[1], filepath.FromSlash(file))
+			}
+		default:
+			t.Errorf("unexpected USES source %s", e.From)
+			continue
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Errorf("%s: %v", e.From, err)
+			continue
+		}
+		lines := strings.Split(string(data), "\n")
+		raw := strings.TrimPrefix(e.To, "action:")
+		if line < 1 || line > len(lines) || col < 1 || !strings.HasPrefix(lines[line-1][col-1:], raw) {
+			t.Errorf("%s -> %s: %s:%d:%d does not start the uses: value", e.From, e.To, path, line, col)
+		}
+	}
+	if uses == 0 {
+		t.Fatal("no USES edges collected")
+	}
+
+	want := map[string]map[string]string{
+		// job-level reusable workflow call
+		"workflow:acme-app/docs/.github/workflows/build.yml\x00action:acme-actions/setup/.github/workflows/build.yml@main": {
+			graph.AttrFile: ".github/workflows/build.yml", graph.AttrLine: "5", graph.AttrCol: "11", "level": LevelJob},
+		// step-level action
+		"workflow:acme-app/web/.github/workflows/ci.yml\x00action:acme-actions/deploy@main": {
+			graph.AttrFile: ".github/workflows/ci.yml", graph.AttrLine: "8", graph.AttrCol: "15", "level": LevelStep},
+		// composite action step, read at the parent's ref
+		"action:acme-actions/deploy@main\x00action:acme-actions/setup@main": {
+			graph.AttrFile: "action.yml", graph.AttrFileRef: "main", graph.AttrLine: "6", graph.AttrCol: "13"},
+		// workflow-level id-token: write
+		"workflow:acme-app/billing/.github/workflows/deploy.yml\x00oidc:acme-app/billing": {
+			graph.AttrFile: ".github/workflows/deploy.yml", graph.AttrLine: "5"},
+		// job-level id-token: write
+		"workflow:acme-app/search/.github/workflows/index.yaml\x00oidc:acme-app/search": {
+			graph.AttrFile: ".github/workflows/index.yaml", graph.AttrLine: "8"},
+		// self-hosted runs-on
+		"workflow:acme-app/infra/.github/workflows/apply.yml\x00runner:acme-app/infra": {
+			graph.AttrFile: ".github/workflows/apply.yml", graph.AttrLine: "5"},
+	}
+	for _, e := range ix.g.Edges {
+		w, ok := want[e.From+"\x00"+e.To]
+		if !ok {
+			continue
+		}
+		delete(want, e.From+"\x00"+e.To)
+		for k, v := range w {
+			if e.Attrs[k] != v {
+				t.Errorf("%s -%s-> %s: attr %s = %q, want %q", e.From, e.Kind, e.To, k, e.Attrs[k], v)
+			}
+		}
+	}
+	for k := range want {
+		t.Errorf("edge not collected: %q", k)
 	}
 }

@@ -69,6 +69,10 @@ Values are strings to keep the JSON flat.
 | `archived` | org, repo | `true`, `false` |
 | `visibility` | repo | `public`, `private`, `internal` |
 | `ref_kind` | action_ref node, `USES` edge | `sha`, `tag`, `branch` |
+| `file` | `USES`, `EXECUTES_WITH` edge | Repo-relative path of the workflow or action file the edge was read from, e.g. `.github/workflows/release.yml`. |
+| `file_ref` | `USES`, `EXECUTES_WITH` edge | Commit or branch the file was read at, when known (the repo's default branch for top-level workflows, the parent `uses:` ref for nested files). |
+| `line` | `USES`, `EXECUTES_WITH` edge | 1-based line, integer as string: the `uses:` value on `USES`, the `id-token: write` (or `write-all`) key on the OIDC edge, the `runs-on:` key on the runner edge. |
+| `col` | `USES` edge | 1-based column where the `uses:` value starts (the opening quote, if quoted), integer as string. |
 
 ## Edge
 

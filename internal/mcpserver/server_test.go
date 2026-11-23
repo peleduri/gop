@@ -225,3 +225,29 @@ func TestWhatIfValidation(t *testing.T) {
 		t.Errorf("lower default perm: %v %+v", err, out.Delta.After)
 	}
 }
+
+func TestExplainFileLine(t *testing.T) {
+	g := loadAcme(t)
+	i := -1
+	for j, ed := range g.Edges {
+		if ed.Kind == graph.Uses {
+			i = j
+			break
+		}
+	}
+	if i < 0 {
+		t.Fatal("no USES edge in acme graph")
+	}
+	ed := g.Edges[i]
+	// Graphs collected before position attrs existed explain without a location.
+	ex, err := NewEngine(g).Explain(ExplainInput{From: ed.From, To: ed.To, Kind: string(graph.Uses)})
+	if err != nil || strings.Contains(ex.Summary, ", at ") {
+		t.Errorf("no-position summary = %q err=%v", ex.Summary, err)
+	}
+	g.Edges[i].Attrs = map[string]string{graph.AttrFile: ".github/workflows/release.yml", graph.AttrLine: "42",
+		graph.AttrCol: "15", graph.AttrFileRef: "main"}
+	ex, err = NewEngine(g).Explain(ExplainInput{From: ed.From, To: ed.To, Kind: string(graph.Uses)})
+	if err != nil || !strings.HasSuffix(ex.Summary, ", at .github/workflows/release.yml:42 (main)") {
+		t.Errorf("summary = %q err=%v", ex.Summary, err)
+	}
+}
