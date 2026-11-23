@@ -34,7 +34,7 @@ func runApp(t *testing.T, env map[string]string, c collector, args ...string) re
 		}
 	}
 	a := &app{stdin: strings.NewReader(""), stdout: &out, stderr: &errb, getenv: func(k string) string { return env[k] }, collect: c,
-		serve: func(context.Context, *graph.Graph, string) error { return nil }}
+		serve: func(context.Context, *graph.Graph, string, mcpserver.ServerOptions) error { return nil }}
 	code := a.run(args)
 	return result{code, out.String(), errb.String()}
 }
@@ -64,6 +64,8 @@ func TestUsageErrors(t *testing.T) {
 		{"demo", "extra"},
 		{"serve", "--demo", "--graph", fixture},
 		{"serve", "--graph", "-"},
+		{"serve", "--graph", fixture, "--baseline", "-"},
+		{"serve", "--graph", fixture, "--baseline", "does-not-exist.json"},
 		{"report", "--out", "-"}, // neither --graph nor --demo
 	} {
 		if r := runApp(t, nil, nil, args...); r.code != exitUsage {
@@ -202,11 +204,11 @@ func TestDemoDeterministicAndHint(t *testing.T) {
 }
 
 // runStdin runs the app with stdin set.
-func runStdin(t *testing.T, stdin string, serve func(context.Context, *graph.Graph, string) error, args ...string) result {
+func runStdin(t *testing.T, stdin string, serve func(context.Context, *graph.Graph, string, mcpserver.ServerOptions) error, args ...string) result {
 	t.Helper()
 	var out, errb bytes.Buffer
 	if serve == nil {
-		serve = func(context.Context, *graph.Graph, string) error { return nil }
+		serve = func(context.Context, *graph.Graph, string, mcpserver.ServerOptions) error { return nil }
 	}
 	a := &app{stdin: strings.NewReader(stdin), stdout: &out, stderr: &errb, getenv: func(string) string { return "" },
 		collect: func(context.Context, collect.Config) (*graph.Graph, error) {
@@ -248,7 +250,10 @@ func TestDemoServeMCP(t *testing.T) {
 	check := func(args ...string) {
 		t.Helper()
 		var served *graph.Graph
-		r := runStdin(t, "", func(_ context.Context, g *graph.Graph, _ string) error { served = g; return nil }, args...)
+		r := runStdin(t, "", func(_ context.Context, g *graph.Graph, _ string, _ mcpserver.ServerOptions) error {
+			served = g
+			return nil
+		}, args...)
 		if r.code != 0 || served == nil {
 			t.Fatalf("%v: %+v", args, r)
 		}
@@ -275,4 +280,20 @@ func TestDemoServeMCP(t *testing.T) {
 	}
 	check("serve", "--graph", out)
 	check("serve", "--demo")
+}
+
+func TestServeBaseline(t *testing.T) {
+	var opts mcpserver.ServerOptions
+	serve := func(_ context.Context, _ *graph.Graph, _ string, o mcpserver.ServerOptions) error {
+		opts = o
+		return nil
+	}
+	old := "../../internal/diff/testdata/ref-unpinned/old.json"
+	cur := "../../internal/diff/testdata/ref-unpinned/new.json"
+	if r := runStdin(t, "", serve, "serve", "--graph", cur, "--baseline", old); r.code != 0 || opts.Baseline == nil {
+		t.Fatalf("serve --baseline: %+v baseline=%v", r, opts.Baseline != nil)
+	}
+	if r := runStdin(t, "", serve, "serve", "--graph", cur); r.code != 0 || opts.Baseline != nil {
+		t.Fatalf("serve without --baseline: %+v baseline=%v", r, opts.Baseline != nil)
+	}
 }
