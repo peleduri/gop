@@ -64,6 +64,8 @@ In the demo fixture, pinning `deploy@main` is the right first fix. Change one de
 
 gop counts a SHA pin as blocking a path only when the whole nested chain under it is immutable.
 
+`gop demo` plants the same trap: `acme-secure/signer` pins `acme-actions/release` to a SHA, but `release` calls `acme-actions/setup@main`. `gop demo | gop report --graph - --out - --format md` lists it under "Pinned, still reachable", and `what_if` pinning `deploy@main` leaves that path in place.
+
 ## Why gop
 
 Good tools already cover GitHub security. Most of them answer "is this repo or org configured well?" or "is this workflow file safe?". gop answers a different question: across every org in the enterprise, **who can make code run where, and through which hops?**
@@ -76,6 +78,18 @@ Good tools already cover GitHub security. Most of them answer "is this repo or o
 | **gop** | Who can push code that ends up running in which repo's CI, with which secrets, OIDC trusts and runners | The whole enterprise, across orgs and nested Actions | A graph with evidence on every hop, confirmed vs possible reach, and the fewest changes that remove the most reach | |
 
 Use them together. A linter tells you a workflow is unsafe; Scorecard tells you a repo lacks branch protection; gop tells you that the members of another org can change what that workflow runs. gop does not lint workflow contents for injection, and it is not an exploitation tool.
+
+## Try it without a token
+
+`gop demo` writes a synthetic enterprise (`acme`, orgs `acme-*`, users `alice`, `bob`, `user-NNN`) with no token and no network. It plants the cross-org `acme-actions/deploy@main` path, a SHA-pinned consumer that is safe, a SHA-pinned composite action that is not (it calls `acme-actions/setup@main` inside), one hop the token cannot see in `acme-legacy`, and a self-hosted runner.
+
+```sh
+go install github.com/peleduri/gop/cmd/gop@latest
+gop demo | gop report --graph - --out - --format md   # the headline, fixes, and "Pinning is not enough"
+claude mcp add gop -- gop serve --demo                # then ask: who can make code run in acme-app/web?
+```
+
+`gop demo [--size small|medium|large] [--seed N] [--out graph.json]` writes the graph (stdout by default); `small` is about 60 repos, `medium` about 1,000, `large` about 10,000. The same size and seed give a byte-identical file. `gop serve --demo` and `gop report --demo` build the small graph in memory. Demo graphs say so: the enterprise node carries `demo=true`, every `source_api` starts with `demo:`, and every MCP summary and report title starts with `[demo data]`.
 
 ## Quick start
 
@@ -143,8 +157,9 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 
 ```
 gop collect --enterprise <slug> --out graph.json [--orgs a,b]
-gop serve   --graph graph.json
-gop report  --graph graph.json --out report.html [--format html|md] [--top N]
+gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
+gop serve   --graph graph.json | --demo
+gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
 gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>
 gop validate --graph graph.json [--format text|json]
@@ -154,7 +169,7 @@ gop version
 
 `gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md).
 
-Node IDs look like `members:acme-actions`, `identity:bob`, `repo:acme-app/web`, `action:acme-actions/deploy@main`, `oidc:acme-app/web`. An unknown ID returns suggestions.
+`--graph -` reads the graph from stdin for `report`, `paths` and `who`. Node IDs look like `members:acme-actions`, `identity:bob`, `repo:acme-app/web`, `action:acme-actions/deploy@main`, `oidc:acme-app/web`. An unknown ID returns suggestions.
 
 ## No half truths
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/peleduri/gop/internal/demo"
 	"github.com/peleduri/gop/internal/graph"
 )
 
@@ -106,5 +107,24 @@ func TestRenderEmptyAndBadFormat(t *testing.T) {
 	}
 	if err := Render(&bytes.Buffer{}, g, Options{Format: "pdf"}); err == nil {
 		t.Error("expected error for unknown format")
+	}
+}
+
+func TestRenderDemo(t *testing.T) {
+	g := demo.Generate(demo.Options{Seed: 1})
+	html := render(t, g, "html")
+	for _, want := range []string{"<title>[demo data] gop report", "<h1>[demo data] gop:", "Pinned, still reachable",
+		"acme-actions/setup@main", "Pinning is not enough: 1 action pinned to a commit SHA still runs"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("html missing %q", want)
+		}
+	}
+	if md := render(t, g, "md"); !strings.HasPrefix(md, "# [demo data] gop:") {
+		t.Errorf("md title: %q", md[:60])
+	}
+	for _, f := range []string{"html", "md"} {
+		if out := render(t, loadAcme(t), f); strings.Contains(out, "[demo data]") || strings.Contains(out, "Pinned, still reachable") {
+			t.Errorf("%s: non-demo fixture marked as demo or shows a pinned exposure", f)
+		}
 	}
 }

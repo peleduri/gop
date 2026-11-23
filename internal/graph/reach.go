@@ -360,3 +360,65 @@ func (ix *Index) WhoCanReach(target string) []Path {
 	})
 	return out
 }
+
+// PinnedExposure is a SHA-pinned action that a principal can still change,
+// because the pinned action (a composite action or reusable workflow) itself
+// uses a mutable ref. Pinning the outer action alone does not block the path.
+type PinnedExposure struct {
+	Action    string `json:"action"`    // the SHA-pinned action ref
+	Via       string `json:"via"`       // the mutable action ref on the path that opens it
+	Consumers int    `json:"consumers"` // workflows that use Action directly
+	Path      Path   `json:"path"`      // one shortest path to Action, confirmed preferred
+}
+
+// PinnedExposures lists every immutable (SHA-pinned) action that some principal
+// can control through a nested mutable action, sorted by action ID. Each gets
+// one path, chosen like WhoCanReach: confirmed first, then fewer hops, then
+// principal ID.
+func (ix *Index) PinnedExposures() []PinnedExposure {
+	cands := map[string]bool{}
+	for _, e := range ix.g.Edges {
+		if e.Kind == Uses && ix.Kind(e.From) == KindActionRef && !ix.actionMutable(e.From) {
+			cands[e.From] = true
+		}
+	}
+	if len(cands) == 0 {
+		return nil
+	}
+	better := func(a, b Path) bool {
+		if a.Unverified != b.Unverified {
+			return !a.Unverified
+		}
+		if len(a.Hops) != len(b.Hops) {
+			return len(a.Hops) < len(b.Hops)
+		}
+		return a.From < b.From
+	}
+	best := map[string]Path{}
+	for _, p := range ix.Principals() {
+		r := ix.reach(ix.base, p)
+		for a := range cands {
+			if path, ok := r.Paths[a]; ok {
+				if old, seen := best[a]; !seen || better(path, old) {
+					best[a] = path
+				}
+			}
+		}
+	}
+	out := make([]PinnedExposure, 0, len(best))
+	for _, a := range sortedCandKeys(best) {
+		pe := PinnedExposure{Action: a, Path: best[a]}
+		for _, h := range pe.Path.Hops {
+			if h.Kind == ResolvesTo {
+				pe.Via = h.To
+			}
+		}
+		for _, e := range ix.in[a] {
+			if e.Kind == Uses && ix.Kind(e.From) == KindWorkflow {
+				pe.Consumers++
+			}
+		}
+		out = append(out, pe)
+	}
+	return out
+}

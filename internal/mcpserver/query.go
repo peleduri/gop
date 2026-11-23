@@ -23,15 +23,26 @@ const (
 
 // Engine answers questions over one read-only graph. Safe for concurrent use.
 type Engine struct {
-	g   *graph.Graph
-	ix  *graph.Index
-	ids []string // every node ID seen in nodes or edges, sorted
-	set map[string]bool
+	g    *graph.Graph
+	ix   *graph.Index
+	ids  []string // every node ID seen in nodes or edges, sorted
+	set  map[string]bool
+	demo bool // synthetic graph from gop demo: summaries say so
+}
+
+// DemoMarker prefixes every summary computed over a demo graph.
+const DemoMarker = "[demo data]"
+
+// mark prefixes a non-empty summary with DemoMarker on a demo graph.
+func (e *Engine) mark(s *string) {
+	if e.demo && *s != "" {
+		*s = DemoMarker + " " + *s
+	}
 }
 
 // NewEngine indexes g. g must not be modified afterwards.
 func NewEngine(g *graph.Graph) *Engine {
-	e := &Engine{g: g, ix: graph.NewIndex(g), set: map[string]bool{}}
+	e := &Engine{g: g, ix: graph.NewIndex(g), set: map[string]bool{}, demo: graph.IsDemo(g)}
 	add := func(id string) {
 		if id != "" && !e.set[id] {
 			e.set[id] = true
@@ -154,7 +165,8 @@ type WhoCanReachOutput struct {
 }
 
 // WhoCanReach lists every principal that can control target, one shortest path each.
-func (e *Engine) WhoCanReach(in WhoCanReachInput) (WhoCanReachOutput, error) {
+func (e *Engine) WhoCanReach(in WhoCanReachInput) (res WhoCanReachOutput, _ error) {
+	defer e.mark(&res.Summary)
 	t, err := e.resolve("target", in.Target)
 	if err != nil {
 		return WhoCanReachOutput{}, err
@@ -202,7 +214,8 @@ func ReachSentence(s graph.Score) string {
 }
 
 // BlastRadius scores a principal.
-func (e *Engine) BlastRadius(in BlastRadiusInput) (BlastRadiusOutput, error) {
+func (e *Engine) BlastRadius(in BlastRadiusInput) (res BlastRadiusOutput, _ error) {
+	defer e.mark(&res.Summary)
 	p, err := e.resolve("principal", in.Principal)
 	if err != nil {
 		return BlastRadiusOutput{}, err
@@ -228,7 +241,8 @@ type PathsOutput struct {
 }
 
 // Paths returns shortest paths from a principal, optionally only to one target.
-func (e *Engine) Paths(in PathsInput) (PathsOutput, error) {
+func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
+	defer e.mark(&res.Summary)
 	from, err := e.resolve("from", in.From)
 	if err != nil {
 		return PathsOutput{}, err
@@ -282,7 +296,8 @@ type TopRisksOutput struct {
 }
 
 // TopRisks ranks principals by confirmed blast radius.
-func (e *Engine) TopRisks(in TopRisksInput) (TopRisksOutput, error) {
+func (e *Engine) TopRisks(in TopRisksInput) (res TopRisksOutput, _ error) {
+	defer e.mark(&res.Summary)
 	n := in.N
 	if n < 0 {
 		return TopRisksOutput{}, fmt.Errorf("n must be positive, got %d", n)
@@ -357,7 +372,8 @@ func pct(before, after int) float64 {
 }
 
 // WhatIf applies fixes hypothetically.
-func (e *Engine) WhatIf(in WhatIfInput) (WhatIfOutput, error) {
+func (e *Engine) WhatIf(in WhatIfInput) (res WhatIfOutput, _ error) {
+	defer e.mark(&res.Summary)
 	if len(in.Fixes) == 0 {
 		return WhatIfOutput{}, fmt.Errorf("fixes is empty: give at least one {type:\"pin_ref\",action} or {type:\"lower_default_perm\",org,to}")
 	}
@@ -415,7 +431,8 @@ func DescribeFix(f graph.Fix) (FixSpec, string) {
 }
 
 // SuggestFixes runs the budgeted greedy.
-func (e *Engine) SuggestFixes(in SuggestFixesInput) (SuggestFixesOutput, error) {
+func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ error) {
+	defer e.mark(&res.Summary)
 	b := in.Budget
 	if b < 0 {
 		return SuggestFixesOutput{}, fmt.Errorf("budget must be positive, got %d", b)
@@ -492,7 +509,8 @@ func EvidenceLabel(ev graph.Evidence) string {
 // Explain returns the evidence edges between two nodes. Path hops traverse
 // some edges backwards (DEFINED_IN, RESOLVES_TO, USES), so a hop's from/to is
 // also matched against the reversed edge.
-func (e *Engine) Explain(in ExplainInput) (ExplainOutput, error) {
+func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
+	defer e.mark(&res.Summary)
 	from, err := e.resolve("from", in.From)
 	if err != nil {
 		return ExplainOutput{}, err
@@ -562,7 +580,8 @@ type CoverageOutput struct {
 }
 
 // Coverage lists the facts the token could not see and the access that fixes each.
-func (e *Engine) Coverage(CoverageInput) (CoverageOutput, error) {
+func (e *Engine) Coverage(CoverageInput) (res CoverageOutput, _ error) {
+	defer e.mark(&res.Summary)
 	ents := append([]graph.Coverage{}, e.ix.Graph().Coverage...)
 	out := CoverageOutput{Entries: ents}
 	if len(ents) == 0 {

@@ -10,8 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"github.com/peleduri/gop/internal/collect"
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/mcpserver"
 )
 
 const fixture = "../../testdata/acme/graph.json"
@@ -30,7 +33,7 @@ func runApp(t *testing.T, env map[string]string, c collector, args ...string) re
 			return nil, nil
 		}
 	}
-	a := &app{stdout: &out, stderr: &errb, getenv: func(k string) string { return env[k] }, collect: c,
+	a := &app{stdin: strings.NewReader(""), stdout: &out, stderr: &errb, getenv: func(k string) string { return env[k] }, collect: c,
 		serve: func(context.Context, *graph.Graph, string) error { return nil }}
 	code := a.run(args)
 	return result{code, out.String(), errb.String()}
@@ -57,6 +60,11 @@ func TestUsageErrors(t *testing.T) {
 		{"validate"},                        // missing --graph
 		{"validate", "--graph", fixture, "--format", "yaml"},
 		{"validate", "--graph", fixture, "extra"},
+		{"demo", "--size", "huge"},
+		{"demo", "extra"},
+		{"serve", "--demo", "--graph", fixture},
+		{"serve", "--graph", "-"},
+		{"report", "--out", "-"}, // neither --graph nor --demo
 	} {
 		if r := runApp(t, nil, nil, args...); r.code != exitUsage {
 			t.Errorf("%v: code %d, want 2 (stderr %q)", args, r.code, r.stderr)
@@ -172,4 +180,99 @@ func TestValidate(t *testing.T) {
 	if r = runApp(t, nil, nil, "validate", "--graph", filepath.Join(t.TempDir(), "missing.json")); r.code != exitRuntime {
 		t.Fatalf("missing file: %+v", r)
 	}
+}
+func TestDemoDeterministicAndHint(t *testing.T) {
+	a := runApp(t, nil, nil, "demo", "--size", "small", "--seed", "1")
+	b := runApp(t, nil, nil, "demo")
+	if a.code != 0 || a.stdout != b.stdout {
+		t.Fatalf("demo not deterministic or failed: code %d stderr %q", a.code, a.stderr)
+	}
+	if a.stderr != "next: gop serve --graph graph.json\n" {
+		t.Errorf("hint = %q", a.stderr)
+	}
+	out := filepath.Join(t.TempDir(), "demo.json")
+	r := runApp(t, nil, nil, "demo", "--out", out)
+	if r.code != 0 || !strings.Contains(r.stderr, "--graph "+out) {
+		t.Fatalf("demo --out: %+v", r)
+	}
+	g, err := graph.LoadFile(out)
+	if err != nil || !graph.IsDemo(g) {
+		t.Fatalf("demo file: demo=%v err=%v", g != nil && graph.IsDemo(g), err)
+	}
+}
+
+// runStdin runs the app with stdin set.
+func runStdin(t *testing.T, stdin string, serve func(context.Context, *graph.Graph, string) error, args ...string) result {
+	t.Helper()
+	var out, errb bytes.Buffer
+	if serve == nil {
+		serve = func(context.Context, *graph.Graph, string) error { return nil }
+	}
+	a := &app{stdin: strings.NewReader(stdin), stdout: &out, stderr: &errb, getenv: func(string) string { return "" },
+		collect: func(context.Context, collect.Config) (*graph.Graph, error) {
+			t.Fatal("collect must not run")
+			return nil, nil
+		},
+		serve: serve}
+	code := a.run(args)
+	return result{code, out.String(), errb.String()}
+}
+
+func TestDemoPipeToReport(t *testing.T) {
+	d := runApp(t, nil, nil, "demo")
+	piped := runStdin(t, d.stdout, nil, "report", "--graph", "-", "--out", "-", "--format", "md")
+	direct := runApp(t, nil, nil, "report", "--demo", "--out", "-", "--format", "md")
+	if piped.code != 0 || direct.code != 0 {
+		t.Fatalf("report: piped %+v direct %+v", piped, direct)
+	}
+	if piped.stdout != direct.stdout {
+		t.Error("gop demo | gop report --graph - differs from gop report --demo")
+	}
+	for _, want := range []string{"# [demo data] gop:", "Pinning is not enough", "## Pinned, still reachable",
+		"acme-actions/setup@main", "org:acme-legacy"} {
+		if !strings.Contains(piped.stdout, want) {
+			t.Errorf("report missing %q", want)
+		}
+	}
+	w := runStdin(t, d.stdout, nil, "who", "--graph", "-", "--target", "repo:acme-app/web")
+	if w.code != 0 || !strings.HasPrefix(w.stdout, "[demo data] ") || !strings.Contains(w.stdout, "members:acme-actions") {
+		t.Fatalf("who from stdin: %+v", w)
+	}
+}
+
+func TestDemoServeMCP(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "graph.json")
+	if r := runApp(t, nil, nil, "demo", "--out", out); r.code != 0 {
+		t.Fatalf("demo: %+v", r)
+	}
+	check := func(args ...string) {
+		t.Helper()
+		var served *graph.Graph
+		r := runStdin(t, "", func(_ context.Context, g *graph.Graph, _ string) error { served = g; return nil }, args...)
+		if r.code != 0 || served == nil {
+			t.Fatalf("%v: %+v", args, r)
+		}
+		ctx := context.Background()
+		st, ct := mcp.NewInMemoryTransports()
+		ss, err := mcpserver.NewServer(served, "test").Connect(ctx, st, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = ss.Close() }()
+		cs, err := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "test"}, nil).Connect(ctx, ct, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = cs.Close() }()
+		res, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "top_risks", Arguments: map[string]any{"n": 3}})
+		if err != nil || res.IsError {
+			t.Fatalf("top_risks: %v %+v", err, res)
+		}
+		text := res.Content[0].(*mcp.TextContent).Text
+		if !strings.HasPrefix(text, "[demo data] top risk: ") {
+			t.Errorf("%v: top_risks text = %q", args, text[:min(len(text), 120)])
+		}
+	}
+	check("serve", "--graph", out)
+	check("serve", "--demo")
 }

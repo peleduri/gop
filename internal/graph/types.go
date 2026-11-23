@@ -113,6 +113,8 @@ const (
 	AttrArchived        = "archived"          // true | false
 	AttrRefKind         = "ref_kind"          // sha | tag | branch (on Uses edges and action_ref nodes)
 	AttrVisibility      = "visibility"        // public | private | internal (repos)
+	// AttrDemo on the enterprise node marks a synthetic graph from gop demo.
+	AttrDemo = "demo" // true
 )
 
 // Source position attribute keys on USES and EXECUTES_WITH edges that come
@@ -123,6 +125,21 @@ const (
 	AttrLine    = "line"     // 1-based line, integer as string
 	AttrCol     = "col"      // 1-based column of the value start, integer as string
 )
+
+// IsDemo reports whether g is synthetic demo data: the enterprise node
+// ("enterprise:<slug>") carries demo=true.
+func IsDemo(g *Graph) bool {
+	if g == nil {
+		return false
+	}
+	id := "enterprise:" + g.Enterprise
+	for _, n := range g.Nodes {
+		if n.ID == id {
+			return n.Attrs[AttrDemo] == "true"
+		}
+	}
+	return false
+}
 
 // CAN_PUSH provenance. Collectors set Attrs[AttrVia] so fixes know which edges they remove.
 const (

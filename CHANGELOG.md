@@ -39,6 +39,17 @@ flags may change in minor releases.
   removed, upgraded, downgraded or lost to visibility; setting, edge, score and
   coverage changes) as text, Markdown or JSON, with `--only` and `--fail-on
   confirmed-increase|any-new-path` for CI. See `docs/drift.md`.
+- `gop demo [--size small|medium|large] [--seed N] [--out graph.json]`:
+  generates a deterministic synthetic enterprise graph with no token. It plants
+  the cross-org `acme-actions/deploy@main` path, a safe SHA-pinned consumer, the
+  nested-action trap (a SHA-pinned composite action that calls a branch ref in
+  the same org), one not-visible hop with coverage, and a self-hosted runner.
+- `gop serve --demo` and `gop report --demo`; `--graph -` reads the graph from
+  stdin for `report`, `paths` and `who` (`gop demo | gop report --graph - --out -`).
+- Demo graphs carry `demo=true` on the enterprise node; MCP tool summaries and
+  the report title then start with `[demo data]`.
+- Report section "Pinned, still reachable": SHA-pinned actions that a principal
+  can still change through a nested mutable ref, with one path each.
 
 ### Fixed
 

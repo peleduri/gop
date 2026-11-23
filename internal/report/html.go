@@ -10,7 +10,7 @@ var pageTmpl = template.Must(template.New("report").Parse(`<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>gop report{{if .Enterprise}}: {{.Enterprise}}{{end}}</title>
+<title>{{if .Demo}}[demo data] {{end}}gop report{{if .Enterprise}}: {{.Enterprise}}{{end}}</title>
 <style>
 :root{--bg:#fff;--fg:#1b1f24;--muted:#57606a;--line:#d0d7de;--card:#f6f8fa;--accent:#0969da;
 --live:#1a7f37;--live-bg:#dafbe1;--audit:#9a6700;--audit-bg:#fff8c5;--nv:#57606a;--nv-bg:#eaeef2;--warn:#cf222e}
@@ -39,12 +39,14 @@ footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:v
 </head>
 <body>
 <main>
-<h1>gop: who can make code run where</h1>
+<h1>{{if .Demo}}[demo data] {{end}}gop: who can make code run where</h1>
 <p class="meta">{{if .Enterprise}}Enterprise <strong>{{.Enterprise}}</strong>{{end}}{{if .CollectedAt}} · collected {{.CollectedAt}}{{end}}</p>
 
 <section class="headline">
 <p class="big">{{.Headline}}</p>
 {{if .FixLine}}<p>{{.FixLine}}</p>{{end}}
+{{- if .PinLine}}
+<p>{{.PinLine}}</p>{{end}}
 <p class="note">Confirmed means every hop was read live or from the audit log. Possible means at least one hop is <span class="badge nv">not visible</span> to the token: unknown, not absent.</p>
 </section>
 
@@ -63,7 +65,14 @@ footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:v
 {{end}}</tbody></table></div>
 <p class="note">Greedy pick by confirmed (principal, repo) pairs removed. Fixes that only touch not visible edges are never suggested.</p>
 {{else}}<p class="note">No candidate fix removes confirmed reach.</p>{{end}}
-
+{{if .Pinned}}<h2>Pinned, still reachable</h2>
+<p class="note">A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:</p>
+{{range .Pinned}}<div class="path">
+<div><code>{{.Action}}</code> (used by {{.Consumers}} {{if eq .Consumers 1}}workflow{{else}}workflows{{end}}) runs <code>{{.Via}}</code>. <code>{{.Principal}}</code> can change it {{if .Path.Confirmed}}<span class="badge live">confirmed</span>{{else}}<span class="badge nv">possible: a hop is not visible</span>{{end}}</div>
+<ol>{{range .Path.Hops}}<li><code>{{.From}}</code> → <code>{{.To}}</code> <span class="src">{{.Kind}}{{if .Reverse}} (reversed){{end}}</span> <span class="badge {{.Class}}">{{.Evidence}}</span>{{if .SourceAPI}} <span class="src">{{.SourceAPI}}</span>{{end}}</li>
+{{end}}</ol></div>
+{{end}}
+{{end}}
 <h2>Top paths</h2>
 {{range .Paths}}<h3><code>{{.Principal}}</code></h3>
 {{range .Paths}}<div class="path">

@@ -15,6 +15,7 @@ import (
 	"syscall"
 
 	"github.com/peleduri/gop/internal/collect"
+	"github.com/peleduri/gop/internal/demo"
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
 	"github.com/peleduri/gop/internal/report"
@@ -39,8 +40,9 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b]
-  gop serve   --graph graph.json
-  gop report  --graph graph.json --out report.html [--format html|md] [--top N]
+  gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
+  gop serve   --graph graph.json | --demo
+  gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
   gop validate --graph graph.json [--format text|json]
@@ -49,10 +51,12 @@ Usage:
   gop version
 
 collect reads the token from GITHUB_TOKEN (or GH_TOKEN). It only reads.
+demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio.
 validate checks graph.json against the published JSON Schema and that every
 edge endpoint is a node. Exit 0 valid, 1 invalid, 2 usage error.
 diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or load errors.
+--graph - reads the graph from stdin (report, paths, who): gop demo | gop report --graph - --out -
 Confirmed reach: every hop live or audit. Possible reach: at least one hop not visible.
 `
 
@@ -60,6 +64,7 @@ Confirmed reach: every hop live or audit. Possible reach: at least one hop not v
 type collector func(ctx context.Context, cfg collect.Config) (*graph.Graph, error)
 
 type app struct {
+	stdin          io.Reader
 	stdout, stderr io.Writer
 	getenv         func(string) string
 	collect        collector
@@ -67,7 +72,7 @@ type app struct {
 }
 
 func main() {
-	a := &app{stdout: os.Stdout, stderr: os.Stderr, getenv: os.Getenv, collect: collect.Collect, serve: mcpserver.Serve}
+	a := &app{stdin: os.Stdin, stdout: os.Stdout, stderr: os.Stderr, getenv: os.Getenv, collect: collect.Collect, serve: mcpserver.Serve}
 	os.Exit(a.run(os.Args[1:]))
 }
 
@@ -96,6 +101,8 @@ func (a *app) run(args []string) int {
 	switch cmd {
 	case "collect":
 		err = a.cmdCollect(rest)
+	case "demo":
+		err = a.cmdDemo(rest)
 	case "serve":
 		err = a.cmdServe(rest)
 	case "report":
@@ -245,19 +252,66 @@ func (a *app) writeFile(path string, write func(io.Writer) error) error {
 }
 
 func graphFlag(fs *flag.FlagSet) *string {
-	return fs.String("graph", "", "path to graph.json written by gop collect")
+	return fs.String("graph", "", `path to graph.json written by gop collect or gop demo ("-" for stdin)`)
+}
+
+func demoFlag(fs *flag.FlagSet) *bool {
+	return fs.Bool("demo", false, "use the small synthetic demo graph (same as gop demo --size small --seed 1)")
+}
+
+// loadGraph reads --graph ("-" is stdin), or generates the small demo graph
+// when useDemo is set. Exactly one of the two is required.
+func (a *app) loadGraph(cmd, path string, useDemo bool) (*graph.Graph, error) {
+	switch {
+	case useDemo && path != "":
+		return nil, usagef("%s: use --graph or --demo, not both", cmd)
+	case useDemo:
+		return demo.Generate(demo.Options{Seed: 1, Size: demo.SizeSmall}), nil
+	case strings.TrimSpace(path) == "":
+		return nil, usagef("%s: --graph is required", cmd)
+	case path == "-":
+		return graph.Load(a.stdin)
+	}
+	return graph.LoadFile(path)
+}
+
+func (a *app) cmdDemo(args []string) error {
+	fs := a.flags("demo")
+	size := fs.String("size", demo.SizeSmall, "small (5 orgs, ~60 repos), medium (20 orgs, ~1,000 repos) or large (60 orgs, ~10,000 repos)")
+	seed := fs.Int64("seed", 1, "seed for the generated filler; the planted paths are the same for every seed")
+	out := fs.String("out", "-", `path to write graph.json ("-" for stdout)`)
+	if err := parse(fs, args); err != nil {
+		return err
+	}
+	if _, _, ok := demo.Preset(*size); !ok || *size == "" {
+		return usagef("demo: --size must be small, medium or large, got %q", *size)
+	}
+	if strings.TrimSpace(*out) == "" {
+		return usagef("demo: --out is required")
+	}
+	g := demo.Generate(demo.Options{Seed: *seed, Size: *size})
+	if err := a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) }); err != nil {
+		return err
+	}
+	next := *out
+	if next == "-" {
+		next = "graph.json"
+	}
+	fmt.Fprintf(a.stderr, "next: gop serve --graph %s\n", next)
+	return nil
 }
 
 func (a *app) cmdServe(args []string) error {
 	fs := a.flags("serve")
 	gp := graphFlag(fs)
+	useDemo := demoFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
-	if err := required("serve", "graph", *gp); err != nil {
-		return err
+	if *gp == "-" {
+		return usagef("serve: --graph - is not supported: stdin carries the MCP protocol")
 	}
-	g, err := graph.LoadFile(*gp)
+	g, err := a.loadGraph("serve", *gp, *useDemo)
 	if err != nil {
 		return err
 	}
@@ -272,10 +326,11 @@ func (a *app) cmdReport(args []string) error {
 	out := fs.String("out", "", `path to write the report ("-" for stdout)`)
 	format := fs.String("format", "", "html or md (default html, or md when --out ends in .md)")
 	top := fs.Int("top", 10, "principals in the risks table and paths section")
+	useDemo := demoFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
-	if err := required("report", "graph", *gp, "out", *out); err != nil {
+	if err := required("report", "out", *out); err != nil {
 		return err
 	}
 	f := strings.ToLower(*format)
@@ -291,7 +346,7 @@ func (a *app) cmdReport(args []string) error {
 	if *top <= 0 {
 		return usagef("report: --top must be positive, got %d", *top)
 	}
-	g, err := graph.LoadFile(*gp)
+	g, err := a.loadGraph("report", *gp, *useDemo)
 	if err != nil {
 		return err
 	}
@@ -311,7 +366,7 @@ func (a *app) cmdPaths(args []string) error {
 	if err := required("paths", "graph", *gp, "from", *from); err != nil {
 		return err
 	}
-	g, err := graph.LoadFile(*gp)
+	g, err := a.loadGraph("paths", *gp, false)
 	if err != nil {
 		return err
 	}
@@ -333,7 +388,7 @@ func (a *app) cmdWho(args []string) error {
 	if err := required("who", "graph", *gp, "target", *target); err != nil {
 		return err
 	}
-	g, err := graph.LoadFile(*gp)
+	g, err := a.loadGraph("who", *gp, false)
 	if err != nil {
 		return err
 	}
