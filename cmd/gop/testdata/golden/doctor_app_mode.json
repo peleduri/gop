@@ -1,0 +1,92 @@
+{
+  "enterprise": "acme",
+  "mode": "b",
+  "mode_label": "(b) GitHub App, one read-only installation token per org",
+  "token": {
+    "kind": "github_app",
+    "scopes": [],
+    "scopes_known": false,
+    "app_id": 4242,
+    "installations": [
+      "acme-actions",
+      "acme-app"
+    ]
+  },
+  "checks": [
+    {
+      "name": "app",
+      "status": "pass",
+      "detail": "App 4242 authenticated; installed on 2 organizations"
+    },
+    {
+      "name": "enterprise",
+      "status": "warn",
+      "detail": "GitHub App mode: installation tokens cover one org each, so enterprise APIs are not called and enterprise settings are not_visible",
+      "fix": "use an enterprise owner token with read:enterprise for enterprise settings"
+    },
+    {
+      "name": "permissions acme-app",
+      "status": "warn",
+      "detail": "the App is granted contents:write; gop requests read-only tokens, but the key can mint tokens with these",
+      "fix": "reduce the App's permissions to read only"
+    },
+    {
+      "name": "installation acme-legacy",
+      "status": "warn",
+      "detail": "GitHub App not installed on acme-legacy",
+      "fix": "install the App on acme-legacy with read-only permissions"
+    },
+    {
+      "name": "orgs",
+      "status": "info",
+      "detail": "2 of 3 organizations readable (from --orgs)"
+    },
+    {
+      "name": "rate limit",
+      "status": "pass",
+      "detail": "collect needs about 58 REST requests and 4990 of 5000 remain"
+    }
+  ],
+  "orgs": [
+    {
+      "login": "acme-actions",
+      "status": "ok",
+      "repos": 3
+    },
+    {
+      "login": "acme-app",
+      "status": "ok",
+      "repos": 3
+    },
+    {
+      "login": "acme-legacy",
+      "status": "not_installed"
+    }
+  ],
+  "orgs_total": 3,
+  "rate_limit_rest": {
+    "limit": 5000,
+    "remaining": 4990,
+    "reset": "2026-11-23T12:40:00Z"
+  },
+  "rate_limit_graphql": {
+    "limit": 5000,
+    "remaining": 5000,
+    "reset": "2026-11-23T12:40:00Z"
+  },
+  "estimate": {
+    "orgs": 2,
+    "orgs_uncounted": 0,
+    "repos": 6,
+    "assumed_workflows_per_repo": 3,
+    "requests": 58,
+    "minutes": 1,
+    "rate_limit_waits": 0
+  },
+  "not_visible": [
+    "enterprise settings (ownerInfo: SSO, 2FA, default permission, repo creation, visibility, deletion and fork policies); per-org values come from GET /orgs/{org} where readable, SSO stays not_visible",
+    "the enterprise org list and membership (consumed licenses); orgs come from the App's installations and --orgs, members from each org's members API",
+    "in_enterprise for action owners outside the installed orgs",
+    "org acme-legacy: everything (GitHub App not installed on acme-legacy)"
+  ]
+}

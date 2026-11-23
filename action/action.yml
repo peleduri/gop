@@ -16,17 +16,37 @@ inputs:
     required: true
   token:
     description: >-
-      Read-only token gop collects with. Prefer a short-lived GitHub App
-      installation token minted per run (for example with a create-app-token
-      step) over a personal access token. A per-org App installation token
-      cannot read enterprise settings: those facts, and any org the App is not
-      installed in, are reported as not_visible, never as "off". Do not store an
+      Read-only token gop collects with, used when app-id and app-private-key
+      are not set. Prefer App mode (app-id and app-private-key) or a
+      short-lived GitHub App installation token minted per run over a personal
+      access token. A per-org App installation token cannot read enterprise
+      settings: those facts, and any org the App is not installed in, are
+      reported as not_visible, never as "off". Do not store an
       enterprise-owner PAT in Actions secrets: a long-lived enterprise-wide
       credential reachable from a workflow is exactly the high-value CI path gop
-      reports. The App private key in CI secrets is itself a high-value
-      credential; keep it in a dedicated private repository with restricted
-      workflow access. See README "Running in GitHub Actions: token risk".
-    required: true
+      reports. See README "Running in GitHub Actions: token risk".
+    required: false
+    default: ""
+  app-id:
+    description: >-
+      GitHub App ID for App mode. With app-private-key set too, gop mints one
+      read-only installation token per org the App is installed on, and the
+      token input is ignored. Grant the App read-only permissions: repository
+      Metadata, Contents, Administration and Actions, and organization Members
+      and Administration. gop refuses an installation token granted anything
+      but read.
+    required: false
+    default: ""
+  app-private-key:
+    description: >-
+      The GitHub App private key (PEM contents) for App mode, from a secret,
+      for example secrets.GOP_APP_PRIVATE_KEY. gop masks every line of it,
+      holds it in memory and never prints or writes it. The key is a
+      high-value credential: whoever holds it can mint tokens with every
+      permission the App was granted. Keep it in a dedicated private repository
+      with restricted workflow access.
+    required: false
+    default: ""
   output-dir:
     description: Directory for graph.json and report.html.
     required: false
@@ -96,12 +116,37 @@ runs:
       env:
         GOP_ENTERPRISE: ${{ inputs.enterprise }}
         GOP_OUT: ${{ inputs.output-dir }}
-        GITHUB_TOKEN: ${{ inputs.token }}
+        GOP_INPUT_TOKEN: ${{ inputs.token }}
+        GOP_INPUT_APP_ID: ${{ inputs.app-id }}
+        GOP_INPUT_APP_KEY: ${{ inputs.app-private-key }}
       run: |
         set -euo pipefail
-        echo "::add-mask::${GITHUB_TOKEN}"
+        # Mask every line of every credential before anything else runs. A
+        # multi-line value must be masked line by line: ::add-mask:: takes one line.
+        while IFS= read -r line; do
+          line="${line%$'\r'}"
+          if [ -n "${line}" ]; then echo "::add-mask::${line}"; fi
+        done <<< "${GOP_INPUT_APP_KEY}"
+        if [ -n "${GOP_INPUT_TOKEN}" ]; then echo "::add-mask::${GOP_INPUT_TOKEN}"; fi
+        # Keep the credentials out of the environment of every other command:
+        # each one is passed to gop collect alone.
+        app_id="${GOP_INPUT_APP_ID}"
+        app_key="${GOP_INPUT_APP_KEY}"
+        token="${GOP_INPUT_TOKEN}"
+        unset GOP_INPUT_APP_ID GOP_INPUT_APP_KEY GOP_INPUT_TOKEN
         mkdir -p "${GOP_OUT}"
-        gop collect --enterprise "${GOP_ENTERPRISE}" --out "${GOP_OUT}/graph.json"
+        if [ -n "${app_id}" ] && [ -n "${app_key}" ]; then
+          if [ -n "${token}" ]; then echo "gop action: app-id and app-private-key are set; using GitHub App mode, the token input is ignored"; fi
+          GOP_APP_ID="${app_id}" GOP_APP_PRIVATE_KEY="${app_key}" \
+            gop collect --enterprise "${GOP_ENTERPRISE}" --out "${GOP_OUT}/graph.json"
+        elif [ -n "${app_id}" ] || [ -n "${app_key}" ]; then
+          echo "gop action: App mode needs both app-id and app-private-key"; exit 1
+        elif [ -n "${token}" ]; then
+          GITHUB_TOKEN="${token}" \
+            gop collect --enterprise "${GOP_ENTERPRISE}" --out "${GOP_OUT}/graph.json"
+        else
+          echo "gop action: set app-id and app-private-key (recommended), or token"; exit 1
+        fi
         gop report --graph "${GOP_OUT}/graph.json" --out "${GOP_OUT}/report.html"
 
     - name: Upload graph and report

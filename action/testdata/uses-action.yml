@@ -1,0 +1,24 @@
+# Not a workflow GitHub runs: it lives outside .github/workflows. CI runs
+# actionlint on it so actionlint loads ../action.yml and checks the inputs
+# every supported token mode passes.
+name: gop action lint fixture
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  app-mode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./action
+        with:
+          enterprise: acme
+          app-id: ${{ vars.GOP_APP_ID }}
+          app-private-key: ${{ secrets.GOP_APP_PRIVATE_KEY }}
+          retention-days: 1
+  token-mode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./action
+        with:
+          enterprise: acme
+          token: ${{ secrets.GOP_TOKEN }}
