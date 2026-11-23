@@ -29,6 +29,22 @@ flags may change in minor releases.
   mutable (immutability not visible)", and its exposure path is possible.
   `PinnedExposure` gains `via_note`, and `Via` is also set when the path
   enters the nested ref through a `ref_bypass` push.
+- Opt-in SARIF output: `gop sarif --graph g.json --out gop.sarif [--top N]
+  [--min-severity low|medium|high|critical] [--include-possible]` writes one
+  SARIF 2.1.0 result per fixable edge. `GOP001 mutable-action-ref-reachable`
+  is one result per `uses:` line of a branch or tag action ref whose host repo
+  a principal outside the consuming org can change, located at the consuming
+  repo's workflow file and line; `GOP002 default-permission-grants-push` is one
+  result per org whose default permission is a `lower_default_perm` candidate,
+  with a logical `org:<login>` location. Each result carries confirmed and
+  possible principals, terminal counts, evidence, the fix and the share of
+  reach it removes; severity follows terminal impact (critical for OIDC or a
+  cloud role, high for secrets or self-hosted runners, medium for repo CI).
+  Possible-only results are dropped unless `--include-possible`, then
+  `level: note`. `partialFingerprints` are stable across runs.
+  `--split-by-repo DIR` writes one file per repo. gop never uploads SARIF;
+  [docs/sarif.md](docs/sarif.md) warns that code scanning shows the attack
+  paths to everyone with alert access on the repo.
 
 ## [0.3.0] - 2026-11-24
 

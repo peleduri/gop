@@ -1,0 +1,667 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "gop",
+          "version": "vTEST",
+          "informationUri": "https://github.com/peleduri/gop",
+          "rules": [
+            {
+              "id": "GOP001",
+              "name": "mutable-action-ref-reachable",
+              "shortDescription": {
+                "text": "A workflow uses a mutable action ref whose host repo principals outside the consuming org can change"
+              },
+              "fullDescription": {
+                "text": "The workflow uses an action by branch or tag. Principals outside the consuming org can push to the repo that hosts the action, so they can change the code the workflow runs and reach its secrets, OIDC tokens and runners."
+              },
+              "help": {
+                "text": "Pin the action to a full commit SHA in this uses: line (keep the ref as a comment). Run gop fix-plan --pin <action> for every line to change, or gop pin --action <owner/repo@ref> --graph graph.json for a git apply diff. Keep pins current with Dependabot or Renovate.",
+                "markdown": "## Fix: pin the action to a commit SHA\n\nThe `uses:` line names a branch or tag. Whoever can push to the action's host repo can change what this workflow runs, and with it reach the workflow's secrets, OIDC tokens and runners.\n\nReplace the ref with the full commit SHA and keep the ref as a comment:\n\n```diff\n-uses: acme-actions/deploy@main\n+uses: acme-actions/deploy@<40-hex-sha> # main\n```\n\n- `gop fix-plan --graph graph.json --pin action:<owner>/<repo>@<ref>` lists every line to change, with a one-line diff when the graph has line numbers.\n- `gop pin --action <owner>/<repo>@<ref> --graph graph.json` resolves the SHA with read-only calls and prints a `git apply` diff.\n- Pinning the outer ref does not close paths through mutable refs the action uses itself; fix-plan lists those.\n- Keep pins current with Dependabot or Renovate.\n\ngop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions"
+                ]
+              }
+            },
+            {
+              "id": "GOP002",
+              "name": "default-permission-grants-push",
+              "shortDescription": {
+                "text": "The org's default repository permission gives every member push access"
+              },
+              "fullDescription": {
+                "text": "The org's base permission is write or admin, so every member can push to repos where nothing else grants them push, and through those repos reach the workflows, actions and terminals they control."
+              },
+              "help": {
+                "text": "Lower the org's base permission to read (Organization settings > Member privileges > Base permissions) after giving teams push where members need it. Run gop fix-plan --lower-default-perm org:<org> for the repos where members lose push.",
+                "markdown": "## Fix: lower the org's default repository permission\n\nThe base permission gives every org member push to repos where no team, direct or owner grant does, and with push, control of the workflows and actions in those repos.\n\n1. Run `gop fix-plan --graph graph.json --lower-default-perm org:<org>` to list the repos where members lose push.\n2. Give a team push on the repos members still need.\n3. An org owner sets Organization settings > Member privileges > Base permissions to **Read** (`PATCH /orgs/<org> {\"default_repository_permission\": \"read\"}`).\n\nThis result has no file: it is an org setting. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches 1 OIDC token. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/web/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/web/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "bc80c56048d6c14c67154850a294c1875d4d0d3b83c965d4831ab669201751b1"
+          },
+          "properties": {
+            "severity": "critical",
+            "repository": "acme-app/web",
+            "edge": "workflow:acme-app/web/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 1,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/release.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches 1 OIDC token. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/release.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/web/.github/workflows/release.yml",
+                  "fullyQualifiedName": "workflow:acme-app/web/.github/workflows/release.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "a9a316cdad048da8edfb72b79dd11e154eef2f03e55045a05b5e4ef8289974c1"
+          },
+          "properties": {
+            "severity": "critical",
+            "repository": "acme-app/web",
+            "edge": "workflow:acme-app/web/.github/workflows/release.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 1,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP002",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "The default repository permission of acme-actions is write. Lowering it to read removes reach to 12 repos (1 OIDC token, 1 secrets scope, 1 self-hosted runner pool) for identity:bob, members:acme-actions."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "name": "acme-actions",
+                  "fullyQualifiedName": "org:acme-actions",
+                  "kind": "organization"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "1092545f2c10e5c82a4465d7690d85f78cdb4310b547c379de3d4dfc8065f725"
+          },
+          "properties": {
+            "severity": "critical",
+            "org": "acme-actions",
+            "edge": "members:acme-actions CAN_PUSH repo:acme-actions/deploy (+1 more)",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 1,
+              "secrets": 1,
+              "runners": 1,
+              "cloud_targets": 0,
+              "repos": 12
+            },
+            "fix": {
+              "type": "lower_default_perm",
+              "org": "org:acme-actions",
+              "to": "read"
+            },
+            "reach_removed_pct": 52
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches 1 secrets scope. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/billing/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/billing/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "4f9f4daed17fc4b9388219bfa3e2f1a9daee9fd89a533b46490c7ff28c464640"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/billing",
+            "edge": "workflow:acme-app/billing/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 1,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches 1 self-hosted runner pool. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/worker/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/worker/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "4a065b4a6cd9eb39fbd463c51e5899d603aa4b78dd98f2175c4e3885bf75be47"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/worker",
+            "edge": "workflow:acme-app/worker/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 1,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches repo CI. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/admin/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/admin/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "93efc497ecb85b1044b3a72c9d72b50cb0398fc7293d0bbd5907e5bbc1fdaa4a"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/admin",
+            "edge": "workflow:acme-app/admin/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches repo CI. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/api/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/api/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "dffc601e67a33f563ee9523464973072929479e9beb12ea572cfd23f5732a52b"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/api",
+            "edge": "workflow:acme-app/api/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches repo CI. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/docs/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/docs/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "164ce1c71c0ee7e8c7090a6ff0aa4c6821b436d2f55dc8e8a2e65b611675c672"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/docs",
+            "edge": "workflow:acme-app/docs/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches repo CI. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/gateway/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/gateway/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "70d6376e36bf7869cc8a8e72a4f408347d9a8c2a918a329501f16093807c9953"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/gateway",
+            "edge": "workflow:acme-app/gateway/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches repo CI. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/mobile/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/mobile/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "1dc89d75f22a6987612b9f90c78a93e4acc1c6f42aaa9612189a95223e0f82c0"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/mobile",
+            "edge": "workflow:acme-app/mobile/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, members:acme-actions can change; this reaches repo CI. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/search/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/search/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "2f59786cf97070706bb6c950371c1d37fc87d2c71f47b59d6d1faf81e0ea2e51"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/search",
+            "edge": "workflow:acme-app/search/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 72
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@v1, a mutable ref that identity:bob, members:acme-actions can change; this reaches repo CI. Pin acme-actions/deploy@v1 to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/auth/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/auth/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "a8dc0ef64890f80a2b596685d37a90cf52af9cdc6097c43282d5a58948706d13"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/auth",
+            "edge": "workflow:acme-app/auth/.github/workflows/ci.yml USES action:acme-actions/deploy@v1",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@v1"
+            },
+            "reach_removed_pct": 8
+          }
+        }
+      ]
+    }
+  ]
+}
