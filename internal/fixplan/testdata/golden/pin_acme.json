@@ -16,7 +16,7 @@
         "confirmed": {
           "repos": 25,
           "orgs": 5,
-          "workflows": 23,
+          "workflows": 25,
           "secrets": 2,
           "oidc": 2,
           "runners": 2
@@ -31,7 +31,7 @@
         },
         "confirmed_pairs": 25,
         "possible_pairs": 1,
-        "score": 172.25,
+        "score": 174.5,
         "possible_score": 19.125
       },
       "after": {
@@ -65,7 +65,7 @@
             "confirmed": {
               "repos": 12,
               "orgs": 2,
-              "workflows": 11,
+              "workflows": 12,
               "secrets": 1,
               "oidc": 1,
               "runners": 1
@@ -79,7 +79,7 @@
               "runners": 0
             },
             "multiplier": 2.25,
-            "score": 84.375,
+            "score": 85.5,
             "possible_score": 0
           },
           "after": {
@@ -112,7 +112,7 @@
             "confirmed": {
               "repos": 12,
               "orgs": 2,
-              "workflows": 11,
+              "workflows": 12,
               "secrets": 1,
               "oidc": 1,
               "runners": 1
@@ -126,7 +126,7 @@
               "runners": 0
             },
             "multiplier": 2.25,
-            "score": 84.375,
+            "score": 85.5,
             "possible_score": 0
           },
           "after": {
