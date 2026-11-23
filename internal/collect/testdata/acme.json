@@ -1,0 +1,95 @@
+{
+  "enterprise": "acme",
+  "orgs": [
+    {
+      "login": "acme-actions", "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "settings": {
+        "samlIdentityProviderSettingOrganizations": "CONFIGURED",
+        "twoFactorRequiredSettingOrganizations": "false",
+        "defaultRepositoryPermissionSettingOrganizations": "WRITE",
+        "membersCanCreateRepositoriesSettingOrganizations": "ALL",
+        "membersCanChangeRepositoryVisibilitySettingOrganizations": "false",
+        "membersCanDeleteRepositoriesSettingOrganizations": "false",
+        "allowPrivateRepositoryForkingSettingOrganizations": "true"
+      },
+      "repos": [
+        {"name": "deploy", "visibility": "internal", "default_branch": "main"},
+        {"name": "setup", "visibility": "internal", "default_branch": "main"}
+      ]
+    },
+    {
+      "login": "acme-app", "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "settings": {
+        "samlIdentityProviderSettingOrganizations": "CONFIGURED",
+        "twoFactorRequiredSettingOrganizations": "true",
+        "defaultRepositoryPermissionSettingOrganizations": "READ",
+        "membersCanCreateRepositoriesSettingOrganizations": "PRIVATE",
+        "membersCanChangeRepositoryVisibilitySettingOrganizations": "true",
+        "membersCanDeleteRepositoriesSettingOrganizations": "false",
+        "allowPrivateRepositoryForkingSettingOrganizations": "false"
+      },
+      "repos": [
+        {"name": "web", "visibility": "private"},
+        {"name": "api", "visibility": "private"},
+        {"name": "worker", "visibility": "private"},
+        {"name": "billing", "visibility": "private"},
+        {"name": "mobile", "visibility": "private"},
+        {"name": "docs", "visibility": "internal"},
+        {"name": "infra", "visibility": "private"},
+        {"name": "search", "visibility": "private"},
+        {"name": "notify", "visibility": "private"},
+        {"name": "admin", "visibility": "private", "archived": true}
+      ]
+    },
+    {
+      "login": "acme-legacy", "owner": false,
+      "settings": {
+        "samlIdentityProviderSettingOrganizations": "ENFORCED",
+        "twoFactorRequiredSettingOrganizations": "false",
+        "defaultRepositoryPermissionSettingOrganizations": "WRITE",
+        "membersCanCreateRepositoriesSettingOrganizations": "ALL",
+        "membersCanChangeRepositoryVisibilitySettingOrganizations": "true",
+        "membersCanDeleteRepositoriesSettingOrganizations": "true",
+        "allowPrivateRepositoryForkingSettingOrganizations": "true"
+      },
+      "repos": [
+        {"name": "old-site", "visibility": "internal"}
+      ]
+    },
+    {
+      "login": "acme-secure", "owner": true, "ip_allow_list": "ENABLED", "ip_entries": 3,
+      "settings": {
+        "samlIdentityProviderSettingOrganizations": "ENFORCED",
+        "twoFactorRequiredSettingOrganizations": "true",
+        "defaultRepositoryPermissionSettingOrganizations": "READ",
+        "membersCanCreateRepositoriesSettingOrganizations": "DISABLED",
+        "membersCanChangeRepositoryVisibilitySettingOrganizations": "false",
+        "membersCanDeleteRepositoriesSettingOrganizations": "false",
+        "allowPrivateRepositoryForkingSettingOrganizations": "false"
+      },
+      "repos": [
+        {"name": "vault-proxy", "visibility": "private"}
+      ]
+    },
+    {
+      "login": "acme-archive", "owner": true, "archived_at": "2024-01-01T00:00:00Z",
+      "settings": {
+        "samlIdentityProviderSettingOrganizations": "UNCONFIGURED",
+        "twoFactorRequiredSettingOrganizations": "false",
+        "defaultRepositoryPermissionSettingOrganizations": "NONE",
+        "membersCanCreateRepositoriesSettingOrganizations": "DISABLED",
+        "membersCanChangeRepositoryVisibilitySettingOrganizations": "false",
+        "membersCanDeleteRepositoriesSettingOrganizations": "false",
+        "allowPrivateRepositoryForkingSettingOrganizations": "false"
+      },
+      "repos": []
+    }
+  ],
+  "users": [
+    {"github_com_login": "alice", "github_com_member_roles": ["acme-actions:Owner", "acme-app:Owner"]},
+    {"github_com_login": "bob", "github_com_member_roles": ["acme-app:Member", "acme-legacy:Member", "acme-app/web:Collaborator"]},
+    {"github_com_login": "carol", "github_com_member_roles": ["acme-secure:Owner"]},
+    {"github_com_login": "dave", "github_com_member_roles": ["acme-app:Member"]},
+    {"github_com_login": "erin", "github_com_member_roles": ["acme-actions:Member", "acme-actions/deploy:Write"]}
+  ]
+}

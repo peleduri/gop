@@ -1,0 +1,12 @@
+name: index
+on: [push]
+# secrets.NOT_A_REAL_REFERENCE only appears in this comment
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: ./.github/actions/local
+      - uses: docker://alpine:3.19
+      - uses: acme-actions/setup@main

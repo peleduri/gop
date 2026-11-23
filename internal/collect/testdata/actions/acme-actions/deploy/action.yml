@@ -1,0 +1,8 @@
+name: deploy
+description: synthetic composite deploy action
+runs:
+  using: composite
+  steps:
+    - uses: acme-actions/setup@main
+    - run: echo deploy
+      shell: bash

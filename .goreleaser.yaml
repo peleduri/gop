@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: gop
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./... -count=1
+
+builds:
+  - id: gop
+    main: ./cmd/gop
+    binary: gop
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .FullCommit }} -X main.date={{ .CommitDate }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: gop
+    ids: [gop]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+sboms:
+  - id: archive-sbom
+    artifacts: archive
+
+# Keyless signing: cosign gets a short-lived certificate from Sigstore using the
+# release workflow's GitHub OIDC token. Each signed file gets a
+# <file>.sigstore.json bundle (signature + certificate + transparency log entry).
+signs:
+  - id: cosign-keyless
+    cmd: cosign
+    artifacts: all # checksums.txt, archives and SBOMs
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: peleduri
+    name: gop
+  prerelease: auto
+
+# Homebrew tap (disabled).
+# To enable it: create a public repository peleduri/homebrew-tap, create a
+# fine-grained token with contents:write on that repository only, store it as
+# the HOMEBREW_TAP_TOKEN secret, pass it to the goreleaser step in
+# .github/workflows/release.yml as an env var, and uncomment the block below.
+# Users then install with `brew install peleduri/tap/gop`.
+#
+# homebrew_casks:
+#   - name: gop
+#     repository:
+#       owner: peleduri
+#       name: homebrew-tap
+#       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+#     homepage: https://github.com/peleduri/gop
+#     description: Read-only evidence graph of who can make code run where in a GitHub Enterprise.
+#     license: Apache-2.0

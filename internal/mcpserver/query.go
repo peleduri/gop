@@ -1,0 +1,560 @@
+// Package mcpserver answers gop's graph questions. Engine holds the query
+// logic shared by the MCP server (NewServer, Serve) and the CLI (gop paths,
+// gop who). Every answer keeps confirmed reach (every hop live or audit) apart
+// from possible reach (at least one hop not_visible); summaries lead with
+// confirmed numbers.
+package mcpserver
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/peleduri/gop/internal/graph"
+)
+
+// Default limits for optional inputs.
+const (
+	DefaultTopN   = 10
+	DefaultBudget = 3
+	maxSuggest    = 5
+)
+
+// Engine answers questions over one read-only graph. Safe for concurrent use.
+type Engine struct {
+	g   *graph.Graph
+	ix  *graph.Index
+	ids []string // every node ID seen in nodes or edges, sorted
+	set map[string]bool
+}
+
+// NewEngine indexes g. g must not be modified afterwards.
+func NewEngine(g *graph.Graph) *Engine {
+	e := &Engine{g: g, ix: graph.NewIndex(g), set: map[string]bool{}}
+	add := func(id string) {
+		if id != "" && !e.set[id] {
+			e.set[id] = true
+			e.ids = append(e.ids, id)
+		}
+	}
+	for _, n := range e.ix.Graph().Nodes {
+		add(n.ID)
+	}
+	for _, ed := range e.ix.Graph().Edges {
+		add(ed.From)
+		add(ed.To)
+	}
+	sort.Strings(e.ids)
+	return e
+}
+
+// Index returns the underlying index.
+func (e *Engine) Index() *graph.Index { return e.ix }
+
+// UnknownNodeError is returned for a node ID the graph does not contain.
+type UnknownNodeError struct {
+	Field       string
+	ID          string
+	Suggestions []string
+}
+
+func (u *UnknownNodeError) Error() string {
+	msg := fmt.Sprintf("unknown %s %q: no such node in the graph", u.Field, u.ID)
+	if len(u.Suggestions) > 0 {
+		return msg + ". Did you mean: " + strings.Join(u.Suggestions, ", ") + "?"
+	}
+	return msg + `. Node IDs look like "members:<org>", "identity:<login>", "repo:<org>/<repo>", "action:<owner>/<repo>@<ref>"`
+}
+
+// Suggest returns up to 5 node IDs close to id: IDs that start with it (with or
+// without the "kind:" prefix), else IDs sharing the longest prefix with it.
+func (e *Engine) Suggest(id string) []string {
+	q := strings.ToLower(strings.TrimSpace(id))
+	match := func(p string) []string {
+		var out []string
+		for _, c := range e.ids {
+			lc := strings.ToLower(c)
+			_, rest, _ := strings.Cut(lc, ":")
+			if strings.HasPrefix(lc, p) || strings.HasPrefix(rest, p) {
+				out = append(out, c)
+				if len(out) == maxSuggest {
+					break
+				}
+			}
+		}
+		return out
+	}
+	if q == "" {
+		return nil
+	}
+	if out := match(q); len(out) > 0 {
+		return out
+	}
+	for n := len(q) - 1; n >= 3; n-- {
+		if out := match(q[:n]); len(out) > 0 {
+			return out
+		}
+	}
+	return nil
+}
+
+func (e *Engine) resolve(field, id string) (string, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return "", fmt.Errorf("%s is required", field)
+	}
+	if e.set[id] {
+		return id, nil
+	}
+	return "", &UnknownNodeError{Field: field, ID: id, Suggestions: e.Suggest(id)}
+}
+
+// Display returns a short human label for a principal ID.
+func (e *Engine) Display(id string) string { return Display(e.ix, id) }
+
+// Display returns a short human label for a principal ID ("members of acme-actions").
+func Display(ix *graph.Index, id string) string {
+	if ix.Kind(id) == graph.KindOrgMembers {
+		return "members of " + strings.TrimPrefix(id, "members:")
+	}
+	return id
+}
+
+func splitPaths(ps []graph.Path) (conf, poss []graph.Path) {
+	conf, poss = []graph.Path{}, []graph.Path{}
+	for _, p := range ps {
+		if p.Unverified {
+			poss = append(poss, p)
+		} else {
+			conf = append(conf, p)
+		}
+	}
+	return conf, poss
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return fmt.Sprintf("%d %s", n, one)
+	}
+	return fmt.Sprintf("%d %s", n, many)
+}
+
+// WhoCanReachInput is the who_can_reach tool input.
+type WhoCanReachInput struct {
+	Target string `json:"target" jsonschema:"node ID of a repo, workflow, action, secret, oidc or runner, e.g. repo:acme-app/web"`
+}
+
+// WhoCanReachOutput lists principals with a path to the target.
+type WhoCanReachOutput struct {
+	Summary   string       `json:"summary"`
+	Target    string       `json:"target"`
+	Confirmed []graph.Path `json:"confirmed" jsonschema:"principals with a path where every hop is live or audit"`
+	Possible  []graph.Path `json:"possible" jsonschema:"principals whose only path has at least one not_visible hop"`
+}
+
+// WhoCanReach lists every principal that can control target, one shortest path each.
+func (e *Engine) WhoCanReach(in WhoCanReachInput) (WhoCanReachOutput, error) {
+	t, err := e.resolve("target", in.Target)
+	if err != nil {
+		return WhoCanReachOutput{}, err
+	}
+	conf, poss := splitPaths(e.ix.WhoCanReach(t))
+	return WhoCanReachOutput{
+		Summary: fmt.Sprintf("%s can control %s (confirmed); %d more possible through a not visible hop",
+			plural(len(conf), "principal", "principals"), t, len(poss)),
+		Target: t, Confirmed: conf, Possible: poss,
+	}, nil
+}
+
+// BlastRadiusInput is the blast_radius tool input.
+type BlastRadiusInput struct {
+	Principal string `json:"principal" jsonschema:"principal node ID, e.g. members:acme-actions or identity:bob"`
+}
+
+// BlastRadiusOutput is a principal's score and reach sets.
+type BlastRadiusOutput struct {
+	Summary   string        `json:"summary"`
+	Score     graph.Score   `json:"score"`
+	Confirmed graph.Reached `json:"confirmed"`
+	Possible  graph.Reached `json:"possible"`
+}
+
+// ReachSentence is the headline sentence for a score, confirmed numbers first.
+func ReachSentence(s graph.Score) string {
+	c := s.Confirmed
+	out := fmt.Sprintf("%s can control %s across %s (confirmed)", s.Principal,
+		plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
+	var term []string
+	if c.OIDC > 0 {
+		term = append(term, plural(c.OIDC, "OIDC trust", "OIDC trusts"))
+	}
+	if c.Secrets > 0 {
+		term = append(term, plural(c.Secrets, "secret scope", "secret scopes"))
+	}
+	if c.Runners > 0 {
+		term = append(term, plural(c.Runners, "self-hosted runner pool", "self-hosted runner pools"))
+	}
+	if len(term) > 0 {
+		out += ", including " + strings.Join(term, ", ")
+	}
+	return out + fmt.Sprintf("; %d more possible", s.Possible.Repos)
+}
+
+// BlastRadius scores a principal.
+func (e *Engine) BlastRadius(in BlastRadiusInput) (BlastRadiusOutput, error) {
+	p, err := e.resolve("principal", in.Principal)
+	if err != nil {
+		return BlastRadiusOutput{}, err
+	}
+	s := e.ix.BlastRadius(p)
+	r := e.ix.Reach(p, graph.Options{})
+	return BlastRadiusOutput{Summary: ReachSentence(s), Score: s, Confirmed: r.Confirmed, Possible: r.Possible}, nil
+}
+
+// PathsInput is the paths tool input.
+type PathsInput struct {
+	From string `json:"from" jsonschema:"principal node ID to start from"`
+	To   string `json:"to,omitempty" jsonschema:"optional target node ID; omit to list paths to everything reachable"`
+}
+
+// PathsOutput lists paths from a principal.
+type PathsOutput struct {
+	Summary   string       `json:"summary"`
+	From      string       `json:"from"`
+	To        string       `json:"to,omitempty"`
+	Confirmed []graph.Path `json:"confirmed"`
+	Possible  []graph.Path `json:"possible"`
+}
+
+// Paths returns shortest paths from a principal, optionally only to one target.
+func (e *Engine) Paths(in PathsInput) (PathsOutput, error) {
+	from, err := e.resolve("from", in.From)
+	if err != nil {
+		return PathsOutput{}, err
+	}
+	out := PathsOutput{From: from, Confirmed: []graph.Path{}, Possible: []graph.Path{}}
+	r := e.ix.Reach(from, graph.Options{})
+	if strings.TrimSpace(in.To) != "" {
+		to, err := e.resolve("to", in.To)
+		if err != nil {
+			return PathsOutput{}, err
+		}
+		out.To = to
+		p, ok := r.Paths[to]
+		switch {
+		case !ok:
+			out.Summary = fmt.Sprintf("%s has no path to %s, confirmed or possible", from, to)
+		case p.Unverified:
+			out.Possible = append(out.Possible, p)
+			out.Summary = fmt.Sprintf("%s can possibly reach %s in %s; a hop is not visible, so it is unconfirmed", from, to, plural(len(p.Hops), "hop", "hops"))
+		default:
+			out.Confirmed = append(out.Confirmed, p)
+			out.Summary = fmt.Sprintf("%s can reach %s in %s (confirmed)", from, to, plural(len(p.Hops), "hop", "hops"))
+		}
+		return out, nil
+	}
+	ps := make([]graph.Path, 0, len(r.Paths))
+	for _, p := range r.Paths {
+		ps = append(ps, p)
+	}
+	sort.Slice(ps, func(i, j int) bool {
+		if len(ps[i].Hops) != len(ps[j].Hops) {
+			return len(ps[i].Hops) < len(ps[j].Hops)
+		}
+		return ps[i].To < ps[j].To
+	})
+	out.Confirmed, out.Possible = splitPaths(ps)
+	out.Summary = fmt.Sprintf("%s has confirmed paths to %s; %d more possible", from,
+		plural(len(out.Confirmed), "node", "nodes"), len(out.Possible))
+	return out, nil
+}
+
+// TopRisksInput is the top_risks tool input.
+type TopRisksInput struct {
+	N int `json:"n,omitempty" jsonschema:"how many principals to return (default 10)"`
+}
+
+// TopRisksOutput ranks principals by confirmed score.
+type TopRisksOutput struct {
+	Summary string        `json:"summary"`
+	Risks   []graph.Score `json:"risks"`
+}
+
+// TopRisks ranks principals by confirmed blast radius.
+func (e *Engine) TopRisks(in TopRisksInput) (TopRisksOutput, error) {
+	n := in.N
+	if n < 0 {
+		return TopRisksOutput{}, fmt.Errorf("n must be positive, got %d", n)
+	}
+	if n == 0 {
+		n = DefaultTopN
+	}
+	risks := e.ix.TopPaths(n)
+	if risks == nil {
+		risks = []graph.Score{}
+	}
+	out := TopRisksOutput{Risks: risks}
+	if len(risks) == 0 {
+		out.Summary = "the graph has no principals"
+	} else {
+		out.Summary = "top risk: " + ReachSentence(risks[0])
+	}
+	return out, nil
+}
+
+// FixSpec describes one hypothetical fix.
+type FixSpec struct {
+	Type   string `json:"type" jsonschema:"pin_ref or lower_default_perm"`
+	Action string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
+	Org    string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
+	To     string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
+}
+
+// WhatIfInput is the what_if tool input.
+type WhatIfInput struct {
+	Fixes []FixSpec `json:"fixes" jsonschema:"fixes to apply together"`
+}
+
+// WhatIfOutput compares reach before and after the fixes.
+type WhatIfOutput struct {
+	Summary string      `json:"summary"`
+	Delta   graph.Delta `json:"delta"`
+}
+
+func (e *Engine) toFix(i int, f FixSpec) (graph.Fix, error) {
+	switch f.Type {
+	case "pin_ref":
+		a, err := e.resolve(fmt.Sprintf("fixes[%d].action", i), f.Action)
+		if err != nil {
+			return nil, err
+		}
+		if e.ix.Kind(a) != graph.KindActionRef {
+			return nil, fmt.Errorf("fixes[%d].action: %s is not an action ref", i, a)
+		}
+		return graph.PinRef{Action: a}, nil
+	case "lower_default_perm":
+		o, err := e.resolve(fmt.Sprintf("fixes[%d].org", i), f.Org)
+		if err != nil {
+			return nil, err
+		}
+		if e.ix.Kind(o) != graph.KindOrg {
+			return nil, fmt.Errorf("fixes[%d].org: %s is not an org", i, o)
+		}
+		if f.To != "read" && f.To != "none" {
+			return nil, fmt.Errorf("fixes[%d].to: want read or none, got %q", i, f.To)
+		}
+		return graph.LowerDefaultPerm{Org: o, To: f.To}, nil
+	}
+	return nil, fmt.Errorf("fixes[%d].type: want pin_ref or lower_default_perm, got %q", i, f.Type)
+}
+
+func pct(before, after int) float64 {
+	if before == 0 {
+		return 0
+	}
+	return 100 * float64(before-after) / float64(before)
+}
+
+// WhatIf applies fixes hypothetically.
+func (e *Engine) WhatIf(in WhatIfInput) (WhatIfOutput, error) {
+	if len(in.Fixes) == 0 {
+		return WhatIfOutput{}, fmt.Errorf("fixes is empty: give at least one {type:\"pin_ref\",action} or {type:\"lower_default_perm\",org,to}")
+	}
+	fixes := make([]graph.Fix, 0, len(in.Fixes))
+	for i, f := range in.Fixes {
+		fx, err := e.toFix(i, f)
+		if err != nil {
+			return WhatIfOutput{}, err
+		}
+		fixes = append(fixes, fx)
+	}
+	d := e.ix.WhatIf(fixes)
+	b, a := d.Before, d.After
+	return WhatIfOutput{
+		Summary: fmt.Sprintf("confirmed (principal, repo) pairs: %d -> %d (%.0f%% removed); possible pairs: %d -> %d",
+			b.ConfirmedPairs, a.ConfirmedPairs, pct(b.ConfirmedPairs, a.ConfirmedPairs), b.PossiblePairs, a.PossiblePairs),
+		Delta: d,
+	}, nil
+}
+
+// SuggestFixesInput is the suggest_fixes tool input.
+type SuggestFixesInput struct {
+	Budget int `json:"budget,omitempty" jsonschema:"maximum number of fixes (default 3)"`
+}
+
+// FixOut is one suggested fix.
+type FixOut struct {
+	FixID             string   `json:"fix_id"`
+	Fix               FixSpec  `json:"fix"`
+	Description       string   `json:"description"`
+	Edges             []string `json:"edges"`
+	Removed           int      `json:"removed" jsonschema:"confirmed (principal, repo) pairs this fix removes on top of earlier fixes"`
+	CumulativeRemoved int      `json:"cumulative_removed"`
+	Remaining         int      `json:"remaining"`
+	CumulativePct     float64  `json:"cumulative_pct" jsonschema:"percent of baseline confirmed pairs removed by this and earlier fixes"`
+}
+
+// SuggestFixesOutput is the greedy fix list.
+type SuggestFixesOutput struct {
+	Summary string   `json:"summary"`
+	Fixes   []FixOut `json:"fixes"`
+}
+
+// DescribeFix returns the FixSpec and a sentence for a graph fix.
+func DescribeFix(f graph.Fix) (FixSpec, string) {
+	switch v := f.(type) {
+	case graph.PinRef:
+		return FixSpec{Type: "pin_ref", Action: v.Action},
+			"Pin " + strings.TrimPrefix(v.Action, "action:") + " to a commit SHA in every workflow that uses it"
+	case graph.LowerDefaultPerm:
+		return FixSpec{Type: "lower_default_perm", Org: v.Org, To: v.To},
+			"Lower the default repository permission of " + strings.TrimPrefix(v.Org, "org:") + " to " + v.To
+	}
+	return FixSpec{}, f.ID()
+}
+
+// SuggestFixes runs the budgeted greedy.
+func (e *Engine) SuggestFixes(in SuggestFixesInput) (SuggestFixesOutput, error) {
+	b := in.Budget
+	if b < 0 {
+		return SuggestFixesOutput{}, fmt.Errorf("budget must be positive, got %d", b)
+	}
+	if b == 0 {
+		b = DefaultBudget
+	}
+	out := SuggestFixesOutput{Fixes: []FixOut{}}
+	for _, s := range e.ix.SuggestFixes(b) {
+		spec, desc := DescribeFix(s.Fix)
+		es := s.Edges
+		if es == nil {
+			es = []string{}
+		}
+		out.Fixes = append(out.Fixes, FixOut{FixID: s.FixID, Fix: spec, Description: desc, Edges: es,
+			Removed: s.Removed, CumulativeRemoved: s.CumulativeRemoved, Remaining: s.Remaining, CumulativePct: s.CumulativePct})
+	}
+	if len(out.Fixes) == 0 {
+		out.Summary = "no candidate fix removes confirmed reach"
+	} else {
+		last := out.Fixes[len(out.Fixes)-1]
+		out.Summary = fmt.Sprintf("%s remove %.0f%% of confirmed (principal, repo) pairs; first: %s",
+			plural(len(out.Fixes), "fix", "fixes"), last.CumulativePct, out.Fixes[0].Description)
+	}
+	return out, nil
+}
+
+// ExplainInput is the explain tool input.
+type ExplainInput struct {
+	From string `json:"from" jsonschema:"edge source node ID (a hop's from)"`
+	To   string `json:"to" jsonschema:"edge target node ID (a hop's to)"`
+	Kind string `json:"kind,omitempty" jsonschema:"optional edge kind, e.g. CAN_PUSH, USES, RESOLVES_TO, DEFINED_IN, EXECUTES_WITH, MEMBER_OF"`
+}
+
+// EdgeOut is one evidence edge.
+type EdgeOut struct {
+	From       string            `json:"from"`
+	To         string            `json:"to"`
+	Kind       string            `json:"kind"`
+	Evidence   string            `json:"evidence"`
+	SourceAPI  string            `json:"source_api"`
+	ObservedAt string            `json:"observed_at"`
+	Attrs      map[string]string `json:"attrs,omitempty"`
+	Reversed   bool              `json:"reversed,omitempty" jsonschema:"true when the evidence edge points the other way from the hop asked about"`
+}
+
+// ExplainOutput lists matching evidence edges.
+type ExplainOutput struct {
+	Summary string    `json:"summary"`
+	Edges   []EdgeOut `json:"edges"`
+}
+
+func edgeOut(ed graph.Edge, rev bool) EdgeOut {
+	at := ""
+	if !ed.ObservedAt.IsZero() {
+		at = ed.ObservedAt.UTC().Format(time.RFC3339)
+	}
+	return EdgeOut{From: ed.From, To: ed.To, Kind: string(ed.Kind), Evidence: string(ed.Evidence),
+		SourceAPI: ed.SourceAPI, ObservedAt: at, Attrs: ed.Attrs, Reversed: rev}
+}
+
+// EvidenceLabel is the human label for an evidence level. not_visible is
+// "not visible", never "off" or "absent".
+func EvidenceLabel(ev graph.Evidence) string {
+	switch ev {
+	case graph.Live:
+		return "live"
+	case graph.Audit:
+		return "audit"
+	}
+	return "not visible"
+}
+
+// Explain returns the evidence edges between two nodes. Path hops traverse
+// some edges backwards (DEFINED_IN, RESOLVES_TO, USES), so a hop's from/to is
+// also matched against the reversed edge.
+func (e *Engine) Explain(in ExplainInput) (ExplainOutput, error) {
+	from, err := e.resolve("from", in.From)
+	if err != nil {
+		return ExplainOutput{}, err
+	}
+	to, err := e.resolve("to", in.To)
+	if err != nil {
+		return ExplainOutput{}, err
+	}
+	kind := strings.ToUpper(strings.TrimSpace(in.Kind))
+	out := ExplainOutput{Edges: []EdgeOut{}}
+	collect := func(a, b string, rev bool) {
+		for _, ed := range e.ix.Out(a) {
+			if ed.To == b && (kind == "" || string(ed.Kind) == kind) {
+				out.Edges = append(out.Edges, edgeOut(ed, rev))
+			}
+		}
+	}
+	collect(from, to, false)
+	collect(to, from, true)
+	// MEMBER_OF points identity -> org:X, while hops use members:X.
+	if strings.HasPrefix(to, "members:") {
+		collect(from, "org:"+strings.TrimPrefix(to, "members:"), false)
+	}
+	if len(out.Edges) == 0 {
+		k := ""
+		if kind != "" {
+			k = " of kind " + kind
+		}
+		out.Summary = fmt.Sprintf("no edge%s between %s and %s", k, from, to)
+		return out, nil
+	}
+	first := out.Edges[0]
+	out.Summary = fmt.Sprintf("%s %s %s: evidence %s, from %s at %s", first.From, first.Kind, first.To,
+		EvidenceLabel(graph.Evidence(first.Evidence)), first.SourceAPI, first.ObservedAt)
+	if len(out.Edges) > 1 {
+		out.Summary += fmt.Sprintf(" (+%d more)", len(out.Edges)-1)
+	}
+	return out, nil
+}
+
+// CoverageInput is the coverage tool input (no fields).
+type CoverageInput struct{}
+
+// CoverageOutput lists what the collector could not see.
+type CoverageOutput struct {
+	Summary string           `json:"summary"`
+	Entries []graph.Coverage `json:"entries"`
+}
+
+// Coverage lists the facts the token could not see and the access that fixes each.
+func (e *Engine) Coverage(CoverageInput) (CoverageOutput, error) {
+	ents := append([]graph.Coverage{}, e.ix.Graph().Coverage...)
+	out := CoverageOutput{Entries: ents}
+	if len(ents) == 0 {
+		out.Summary = "every fact gop looked for was visible to the token"
+		return out, nil
+	}
+	scopes := map[string]bool{}
+	for _, c := range ents {
+		scopes[c.Scope] = true
+	}
+	out.Summary = fmt.Sprintf("%s not visible across %s; each entry names the access that fixes it",
+		plural(len(ents), "fact", "facts"), plural(len(scopes), "scope", "scopes"))
+	return out, nil
+}

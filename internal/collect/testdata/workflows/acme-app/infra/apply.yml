@@ -1,0 +1,7 @@
+name: apply
+on: [push]
+jobs:
+  apply:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: acme-actions/deploy@main

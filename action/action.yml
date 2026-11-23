@@ -1,0 +1,115 @@
+name: gop posture scan
+description: >-
+  Build gop's read-only evidence graph of a GitHub Enterprise (who can make code
+  run where) and upload graph.json plus an HTML report as a workflow artifact.
+  WARNING: artifacts are readable by anyone with read access to the repository
+  running this Action. graph.json and the report are an attack map of your
+  enterprise. Run this Action only in a PRIVATE repository.
+author: peleduri
+branding:
+  icon: shield
+  color: gray-dark
+
+inputs:
+  enterprise:
+    description: Enterprise slug, for example "acme".
+    required: true
+  token:
+    description: >-
+      Read-only token gop collects with. Prefer a short-lived GitHub App
+      installation token minted per run (for example with a create-app-token
+      step) over a personal access token. A per-org App installation token
+      cannot read enterprise settings: those facts, and any org the App is not
+      installed in, are reported as not_visible, never as "off". Do not store an
+      enterprise-owner PAT in Actions secrets: a long-lived enterprise-wide
+      credential reachable from a workflow is exactly the high-value CI path gop
+      reports. The App private key in CI secrets is itself a high-value
+      credential; keep it in a dedicated private repository with restricted
+      workflow access. See README "Running in GitHub Actions: token risk".
+    required: true
+  output-dir:
+    description: Directory for graph.json and report.html.
+    required: false
+    default: gop-out
+  version:
+    description: gop release to download, for example "v0.1.0", or "latest".
+    required: false
+    default: latest
+  retention-days:
+    description: >-
+      Days to keep the uploaded artifact. Keep it short: the artifact is an
+      attack map readable by anyone with read access to the repository.
+    required: false
+    default: "1"
+
+runs:
+  using: composite
+  steps:
+    - name: Download and verify gop
+      shell: bash
+      env:
+        GOP_VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ github.token }} # only used to resolve and download the public release
+      run: |
+        set -euo pipefail
+        case "${RUNNER_OS}" in
+          Linux) os=linux ;;
+          macOS) os=darwin ;;
+          *) echo "gop action: unsupported runner OS ${RUNNER_OS} (use Linux or macOS)"; exit 1 ;;
+        esac
+        case "${RUNNER_ARCH}" in
+          X64) arch=amd64 ;;
+          ARM64) arch=arm64 ;;
+          *) echo "gop action: unsupported runner arch ${RUNNER_ARCH}"; exit 1 ;;
+        esac
+        tag="${GOP_VERSION}"
+        if [ "${tag}" = "latest" ]; then
+          tag="$(gh release view --repo peleduri/gop --json tagName --jq .tagName)"
+        fi
+        if ! printf '%s' "${tag}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
+          echo "gop action: invalid version"; exit 1
+        fi
+        ver="${tag#v}"
+        archive="gop_${ver}_${os}_${arch}.tar.gz"
+        work="${RUNNER_TEMP}/gop-bin"
+        mkdir -p "${work}"
+        cd "${work}"
+        gh release download "${tag}" --repo peleduri/gop \
+          --pattern "${archive}" --pattern checksums.txt --pattern checksums.txt.sigstore.json --clobber
+        if command -v cosign >/dev/null 2>&1; then
+          cosign verify-blob checksums.txt \
+            --bundle checksums.txt.sigstore.json \
+            --certificate-identity "https://github.com/peleduri/gop/.github/workflows/release.yml@refs/tags/${tag}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          echo "gop action: cosign signature on checksums.txt verified"
+        else
+          echo "gop action: cosign not installed, skipping signature check (checksum is still verified)"
+        fi
+        grep -E "  ${archive}\$" checksums.txt > expected.sha256
+        if command -v sha256sum >/dev/null 2>&1; then sha256sum -c expected.sha256; else shasum -a 256 -c expected.sha256; fi
+        tar -xzf "${archive}" gop
+        chmod +x gop
+        echo "${work}" >> "${GITHUB_PATH}"
+
+    - name: Collect and report
+      shell: bash
+      env:
+        GOP_ENTERPRISE: ${{ inputs.enterprise }}
+        GOP_OUT: ${{ inputs.output-dir }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+        echo "::add-mask::${GITHUB_TOKEN}"
+        mkdir -p "${GOP_OUT}"
+        gop collect --enterprise "${GOP_ENTERPRISE}" --out "${GOP_OUT}/graph.json"
+        gop report --graph "${GOP_OUT}/graph.json" --out "${GOP_OUT}/report.html"
+
+    - name: Upload graph and report
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: gop-posture
+        path: |
+          ${{ inputs.output-dir }}/graph.json
+          ${{ inputs.output-dir }}/report.html
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: error

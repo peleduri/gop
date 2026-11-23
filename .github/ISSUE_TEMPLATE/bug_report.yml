@@ -1,0 +1,39 @@
+name: Bug report
+description: Something gop reports or does is wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste real graph.json content, org names, repo names or tokens. Reduce the problem to synthetic names (enterprise "acme", orgs "acme-actions", "acme-app").
+        Security vulnerabilities go through private vulnerability reporting (Security tab), not issues.
+  - type: input
+    id: version
+    attributes:
+      label: gop version
+      description: Output of `gop version`
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where
+      options: [gop collect, gop serve (MCP), gop report, GitHub Action, other]
+    validations:
+      required: true
+  - type: dropdown
+    id: token
+    attributes:
+      label: Token type
+      options: [GitHub App installation token, fine-grained PAT, classic PAT, other]
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened and what you expected
+      description: Include whether the fact was reported as live, audit or not_visible.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce (synthetic data only)

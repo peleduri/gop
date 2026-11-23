@@ -1,0 +1,7 @@
+name: old
+on: [push]
+jobs:
+  old:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: acme-actions/deploy@main
