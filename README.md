@@ -1,4 +1,4 @@
-# gop
+# gop: GitHub Enterprise Org Posture
 
 **Who can make code run where in your GitHub Enterprise.** gop maps an enterprise as an evidence graph and answers questions like: *members of acme-actions (default permission Write, 2FA not required) can push code that runs in 12 repos across 2 orgs, including a workflow with cloud OIDC. Which one change removes most of that?*
 
