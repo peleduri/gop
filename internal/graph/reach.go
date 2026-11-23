@@ -228,6 +228,66 @@ func refLock(n Node) string {
 	return ""
 }
 
+// RefState says whether an action ref can change without a new pin (see
+// Index.RefState).
+type RefState string
+
+const (
+	// RefPinned: the ref is a commit SHA.
+	RefPinned RefState = "pinned"
+	// RefLocked: a branch or tag that refLock gates ("true"), with known
+	// bypass actors and no via=ref_bypass edge for it: pushing cannot move it.
+	RefLocked RefState = "locked"
+	// RefPossiblyMutable: the gate is not visible (refLock "unknown", or
+	// locked with bypass=unknown). Reach keeps the hop as not_visible.
+	RefPossiblyMutable RefState = "possibly_mutable"
+	// RefMutable: unlocked, ambiguous (tag and branch), or locked with a
+	// bypass edge that applies.
+	RefMutable RefState = "mutable"
+)
+
+// RefState classifies action with the same decision buildControl makes for
+// its repo -> action hop: actionMutable first (a SHA pin is RefPinned), then
+// refLock and the via=ref_bypass edges into each RESOLVES_TO host.
+func (ix *Index) RefState(action string) RefState {
+	if !ix.actionMutable(action) {
+		return RefPinned
+	}
+	n := ix.nodes[action]
+	switch refLock(n) {
+	case "unknown":
+		return RefPossiblyMutable
+	case "true":
+		for _, e := range ix.out[action] {
+			if e.Kind == ResolvesTo && len(ix.bypassEdges(n, e.To)) > 0 {
+				return RefMutable
+			}
+		}
+		if n.Attrs[AttrBypass] == "unknown" {
+			return RefPossiblyMutable
+		}
+		return RefLocked
+	}
+	return RefMutable
+}
+
+// MutabilityNote is the label for a RefPossiblyMutable action ref, naming the
+// gate gop could not see; it is "" for any other state.
+func (ix *Index) MutabilityNote(action string) string {
+	if ix.RefState(action) != RefPossiblyMutable {
+		return ""
+	}
+	n := ix.nodes[action]
+	switch {
+	case refLock(n) == "true":
+		return "possibly mutable (bypass actors not visible)"
+	case n.Attrs[AttrRefKind] == "tag":
+		return "possibly mutable (immutability not visible)"
+	default:
+		return "possibly mutable (protection not visible)"
+	}
+}
+
 // bypassEdges lists the via=ref_bypass CAN_PUSH edges into host that apply to
 // action node n (their ref is the action's ref).
 func (ix *Index) bypassEdges(n Node, host string) []Edge {
@@ -546,25 +606,32 @@ func (ix *Index) WhoCanReach(target string) []Path {
 	return out
 }
 
-// PinnedExposure is a SHA-pinned action that a principal can still change,
-// because the pinned action (a composite action or reusable workflow) itself
-// uses a mutable ref. Pinning the outer action alone does not block the path.
+// PinnedExposure is a SHA-pinned (or locked) action that a principal can still
+// change, because the pinned action (a composite action or reusable workflow)
+// itself uses a mutable ref. Pinning the outer action alone does not block the
+// path.
 type PinnedExposure struct {
-	Action    string `json:"action"`    // the SHA-pinned action ref
-	Via       string `json:"via"`       // the mutable action ref on the path that opens it
-	Consumers int    `json:"consumers"` // workflows that use Action directly
-	Path      Path   `json:"path"`      // one shortest path to Action, confirmed preferred
+	Action    string `json:"action"`             // the SHA-pinned or locked action ref
+	Via       string `json:"via"`                // the mutable action ref on the path that opens it
+	ViaNote   string `json:"via_note,omitempty"` // MutabilityNote of Via, when it is only possibly mutable
+	Consumers int    `json:"consumers"`          // workflows that use Action directly
+	Path      Path   `json:"path"`               // one shortest path to Action, confirmed preferred
 }
 
-// PinnedExposures lists every immutable (SHA-pinned) action that some principal
-// can control through a nested mutable action, sorted by action ID. Each gets
-// one path, chosen like WhoCanReach: confirmed first, then fewer hops, then
-// principal ID.
+// PinnedExposures lists every action that cannot change without a new pin
+// (RefState RefPinned or RefLocked) that some principal can still control
+// through a nested mutable action, sorted by action ID. The paths come from
+// Reach, so a nested ref that refLock locks opens nothing, and one whose gate
+// is not visible gives a possible path with ViaNote set. Each gets one path,
+// chosen like WhoCanReach: confirmed first, then fewer hops, then principal
+// ID.
 func (ix *Index) PinnedExposures() []PinnedExposure {
 	cands := map[string]bool{}
 	for _, e := range ix.g.Edges {
-		if e.Kind == Uses && ix.Kind(e.From) == KindActionRef && !ix.actionMutable(e.From) {
-			cands[e.From] = true
+		if e.Kind == Uses && ix.Kind(e.From) == KindActionRef && !cands[e.From] {
+			if st := ix.RefState(e.From); st == RefPinned || st == RefLocked {
+				cands[e.From] = true
+			}
 		}
 	}
 	if len(cands) == 0 {
@@ -594,9 +661,14 @@ func (ix *Index) PinnedExposures() []PinnedExposure {
 	for _, a := range sortedCandKeys(best) {
 		pe := PinnedExposure{Action: a, Path: best[a]}
 		for _, h := range pe.Path.Hops {
-			if h.Kind == ResolvesTo {
+			// The hop into the nested ref: host -> action (RESOLVES_TO,
+			// reversed), or a via=ref_bypass CAN_PUSH straight into it.
+			if h.Kind == ResolvesTo || (h.Kind == CanPush && ix.Kind(h.To) == KindActionRef) {
 				pe.Via = h.To
 			}
+		}
+		if pe.Via != "" {
+			pe.ViaNote = ix.MutabilityNote(pe.Via)
 		}
 		for _, e := range ix.in[a] {
 			if e.Kind == Uses && ix.Kind(e.From) == KindWorkflow {

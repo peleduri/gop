@@ -49,7 +49,7 @@ var pageTmpl = template.Must(template.New("report").Parse(`<!doctype html>
 {{if .Pinned}}<h2>Pinned, still reachable</h2>
 <p class="note">A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:</p>
 {{range .Pinned}}<div class="path">
-<div><code>{{.Action}}</code> (used by {{.Consumers}} {{if eq .Consumers 1}}workflow{{else}}workflows{{end}}) runs <code>{{.Via}}</code>. <code>{{.Principal}}</code> can change it {{if .Path.Confirmed}}<span class="badge live">confirmed</span>{{else}}<span class="badge nv">possible: a hop is not visible</span>{{end}}</div>
+<div><code>{{.Action}}</code> (used by {{.Consumers}} {{if eq .Consumers 1}}workflow{{else}}workflows{{end}}) runs <code>{{.Via}}</code>{{if .ViaNote}} ({{.ViaNote}}){{end}}. <code>{{.Principal}}</code> can change it {{if .Path.Confirmed}}<span class="badge live">confirmed</span>{{else}}<span class="badge nv">possible: a hop is not visible</span>{{end}}</div>
 <ol>{{range .Path.Hops}}<li><code>{{.From}}</code> → <code>{{.To}}</code> <span class="src">{{.Kind}}{{if .Reverse}} (reversed){{end}}</span> <span class="badge {{.Class}}">{{.Evidence}}</span>{{if .SourceAPI}} <span class="src">{{.SourceAPI}}</span>{{end}}{{if .Reason}} <span class="src">undecided: {{.Reason}}</span>{{end}}</li>
 {{end}}</ol></div>
 {{end}}
