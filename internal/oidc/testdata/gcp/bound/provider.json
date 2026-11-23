@@ -1,0 +1,12 @@
+{
+  "attributeCondition": "assertion.repository_owner == 'acme-app'",
+  "attributeMapping": {
+    "attribute.repository": "assertion.repository",
+    "google.subject": "assertion.sub"
+  },
+  "name": "projects/acme-prod/locations/global/workloadIdentityPools/deploy/providers/github",
+  "oidc": {
+    "issuerUri": "https://token.actions.githubusercontent.com"
+  },
+  "state": "ACTIVE"
+}

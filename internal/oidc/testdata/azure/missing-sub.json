@@ -1,0 +1,14 @@
+{
+  "appId": "22222222-2222-2222-2222-222222222222",
+  "federatedCredentials": [
+    {
+      "audiences": ["api://AzureADTokenExchange"],
+      "claimsMatchingExpression": {
+        "languageVersion": 1,
+        "value": "claims['ref'] eq 'refs/heads/main'"
+      },
+      "issuer": "https://token.actions.githubusercontent.com",
+      "name": "any-main"
+    }
+  ]
+}

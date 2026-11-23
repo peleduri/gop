@@ -1,0 +1,14 @@
+{
+  "appId": "22222222-2222-2222-2222-222222222222",
+  "federatedCredentials": [
+    {
+      "audiences": ["api://AzureADTokenExchange"],
+      "claimsMatchingExpression": {
+        "languageVersion": 1,
+        "value": "claims['sub'] matches 'repo:acme-app/web:ref:refs/heads/*'"
+      },
+      "issuer": "https://token.actions.githubusercontent.com",
+      "name": "web-branches"
+    }
+  ]
+}

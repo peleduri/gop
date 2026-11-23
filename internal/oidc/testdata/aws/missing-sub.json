@@ -1,0 +1,23 @@
+{
+    "Role": {
+        "RoleName": "ci-readonly",
+        "Arn": "arn:aws:iam::111111111111:role/ci-readonly",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

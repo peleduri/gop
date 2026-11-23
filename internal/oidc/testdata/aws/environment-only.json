@@ -1,0 +1,22 @@
+{
+    "RoleName": "deploy-prod",
+    "Arn": "arn:aws:iam::111111111111:role/ci/deploy-prod",
+    "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": [
+                    "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com"
+                ]
+            },
+            "Action": ["sts:AssumeRoleWithWebIdentity", "sts:TagSession"],
+            "Condition": {
+                "StringEquals": {
+                    "token.actions.githubusercontent.com:aud": ["sts.amazonaws.com"],
+                    "token.actions.githubusercontent.com:sub": ["repo:acme-app/web:environment:prod"]
+                }
+            }
+        }
+    }
+}

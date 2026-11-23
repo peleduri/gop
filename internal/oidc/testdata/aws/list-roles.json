@@ -1,0 +1,49 @@
+{
+    "Roles": [
+        {
+            "RoleName": "eks-node",
+            "Arn": "arn:aws:iam::111111111111:role/eks-node",
+            "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Service": "ec2.amazonaws.com"},
+                        "Action": "sts:AssumeRole"
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Federated": "arn:aws:iam::111111111111:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLE0000"
+                        },
+                        "Action": "sts:AssumeRoleWithWebIdentity"
+                    }
+                ]
+            }
+        },
+        {
+            "RoleName": "release",
+            "Arn": "arn:aws:iam::111111111111:role/release",
+            "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Federated": "arn:aws:iam::111111111111:oidc-provider/token.actions.githubusercontent.com/acme"
+                        },
+                        "Action": "sts:AssumeRoleWithWebIdentity",
+                        "Condition": {
+                            "ForAnyValue:StringLike": {
+                                "token.actions.githubusercontent.com/acme:sub": "repo:acme-app/*:ref:refs/tags/v*"
+                            },
+                            "StringNotEquals": {
+                                "token.actions.githubusercontent.com/acme:sub": "repo:acme-app/sandbox:ref:refs/tags/v1"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

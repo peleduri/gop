@@ -1,0 +1,14 @@
+{
+  "attributeCondition": "assertion.repository == 'acme-app/web' && assertion.ref.startsWith('refs/heads/')",
+  "attributeMapping": {
+    "attribute.repository": "assertion.repository",
+    "attribute.ref": "assertion.ref",
+    "google.subject": "assertion.sub"
+  },
+  "name": "projects/acme-prod/locations/global/workloadIdentityPools/github/providers/github-branches",
+  "oidc": {
+    "allowedAudiences": ["https://iam.googleapis.com/projects/acme-prod/locations/global/workloadIdentityPools/github/providers/github-branches"],
+    "issuerUri": "https://token.actions.githubusercontent.com"
+  },
+  "state": "ACTIVE"
+}

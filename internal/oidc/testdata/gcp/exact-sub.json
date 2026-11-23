@@ -1,0 +1,14 @@
+{
+  "attributeCondition": "assertion.sub == 'repo:acme-app/web:ref:refs/heads/main'",
+  "attributeMapping": {
+    "attribute.repository": "assertion.repository",
+    "attribute.repository_owner": "assertion.repository_owner",
+    "google.subject": "assertion.sub"
+  },
+  "displayName": "GitHub main",
+  "name": "projects/acme-prod/locations/global/workloadIdentityPools/github/providers/github-main",
+  "oidc": {
+    "issuerUri": "https://token.actions.githubusercontent.com"
+  },
+  "state": "ACTIVE"
+}

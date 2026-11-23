@@ -1,0 +1,11 @@
+{
+  "attributeCondition": "assertion.repository_owner == 'acme-app' && assertion.workflow_ref.matches('^acme-app/[a-z]+/')",
+  "attributeMapping": {
+    "google.subject": "assertion.sub"
+  },
+  "name": "projects/acme-prod/locations/global/workloadIdentityPools/github/providers/github-regex",
+  "oidc": {
+    "issuerUri": "https://token.actions.githubusercontent.com"
+  },
+  "state": "ACTIVE"
+}

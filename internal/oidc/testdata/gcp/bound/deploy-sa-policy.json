@@ -1,0 +1,21 @@
+{
+  "serviceAccount": "deploy@acme-prod.iam.gserviceaccount.com",
+  "bindings": [
+    {
+      "role": "roles/iam.workloadIdentityUser",
+      "members": [
+        "principalSet://iam.googleapis.com/projects/111111111111/locations/global/workloadIdentityPools/deploy/attribute.repository/acme-app/web",
+        "principal://iam.googleapis.com/projects/111111111111/locations/global/workloadIdentityPools/deploy/subject/repo:acme-app/api:environment:prod",
+        "user:alice@acme.example"
+      ]
+    },
+    {
+      "role": "roles/storage.objectViewer",
+      "members": [
+        "principalSet://iam.googleapis.com/projects/111111111111/locations/global/workloadIdentityPools/deploy/*"
+      ]
+    }
+  ],
+  "etag": "BwAAAAAAAAA=",
+  "version": 1
+}
