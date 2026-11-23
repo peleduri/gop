@@ -41,8 +41,9 @@ const (
 const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
-  gop collect --enterprise <slug> --out graph.json [--orgs a,b]
+  gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH]
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
+              [--app-id N --app-key-file PATH]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
   gop serve   --graph graph.json | --demo  [--baseline old.json]
   gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
@@ -63,9 +64,14 @@ When the token cannot read the enterprise (an org-scoped App installation
 token, a non-owner token, or no read:enterprise), collect builds the graph
 per org: from --orgs, or else the token's own orgs. Enterprise-level facts
 are then not_visible and listed in coverage.
+GitHub App mode (--app-id and --app-key-file, or GOP_APP_ID and
+GOP_APP_PRIVATE_KEY with the PEM contents) mints a read-only installation
+token per org instead; it excludes GITHUB_TOKEN. The key stays in memory and
+is never printed.
 doctor is a read-only preflight for collect: token mode, scopes, SSO
 authorization gaps, rate limit, a time estimate and what will come out
-not_visible. Exit 0 all pass, 1 any fail, 3 warnings only.
+not_visible. In App mode it lists installations, the --orgs without one and
+any granted permission that is not read. Exit 0 all pass, 1 any fail, 3 warnings only.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
 validate checks graph.json against the published JSON Schema and that every
@@ -214,31 +220,31 @@ func (a *app) cmdCollect(args []string) error {
 	ent := fs.String("enterprise", "", "enterprise slug, e.g. acme")
 	out := fs.String("out", "", "path to write graph.json")
 	orgs := fs.String("orgs", "", "comma-separated org logins to limit collection to (default: all). "+
-		"When the token cannot read the enterprise, these orgs are collected and count as enterprise orgs")
+		"When the token cannot read the enterprise, or in GitHub App mode, these orgs are collected and count as enterprise orgs")
+	af := addAppFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if err := required("collect", "enterprise", *ent, "out", *out); err != nil {
 		return err
 	}
-	token := a.getenv("GITHUB_TOKEN")
-	if token == "" {
-		token = a.getenv("GH_TOKEN")
-	}
-	if token == "" {
-		return usagef("collect: set GITHUB_TOKEN (or GH_TOKEN) to a read-only token; gop never takes a token as a flag")
+	cr, err := a.resolveCreds("collect", af)
+	if err != nil {
+		return err
 	}
 	cfg := collect.Config{
-		Enterprise: *ent,
-		Token:      token,
-		Orgs:       splitList(*orgs),
-		Logf:       func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
+		Enterprise:       *ent,
+		Token:            cr.token,
+		AppID:            cr.appID,
+		AppPrivateKeyPEM: cr.appKey,
+		Orgs:             splitList(*orgs),
+		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	g, err := a.collect(ctx, cfg)
 	if err != nil {
-		return errors.New(scrub(err.Error(), token))
+		return errors.New(cr.redact(err.Error()))
 	}
 	return a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) })
 }

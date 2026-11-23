@@ -146,8 +146,8 @@ Prompts start a guided flow: `triage_enterprise` (optional `focus`: `oidc`, `sec
 ### CLI
 
 ```
-gop collect --enterprise <slug> --out graph.json [--orgs a,b]
-gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
+gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH]
+gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json] [--app-id N --app-key-file PATH]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
 gop serve   --graph graph.json | --demo  [--baseline old.json]
 gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
@@ -207,7 +207,7 @@ Release archives are signed keyless with cosign and ship with SPDX SBOMs and SLS
 
 ## Token and permissions
 
-gop only reads, and it takes the token only from `GITHUB_TOKEN` (or `GH_TOKEN`), never as a flag. Use a classic token from an **enterprise owner** with these scopes, or the equivalent read permissions on a GitHub App:
+gop only reads, and it takes the token only from `GITHUB_TOKEN` (or `GH_TOKEN`), never as a flag; in GitHub App mode it takes the App ID and private key instead (below). Use a classic token from an **enterprise owner** with these scopes, or the equivalent read permissions on a GitHub App:
 
 | Scope | Used for | If missing |
 |---|---|---|
@@ -218,14 +218,14 @@ gop only reads, and it takes the token only from `GITHUB_TOKEN` (or `GH_TOKEN`),
 
 Under SAML SSO enforcement the token must also be authorized for each org.
 
-Before a long first collection, run `GITHUB_TOKEN=... gop doctor --enterprise acme`. In a handful of read-only requests it reports the token kind and mode (below), missing or broader-than-needed scopes, a classic token with no expiry, orgs where the token is not authorized for SSO, the remaining REST and GraphQL budget, an estimate of requests and minutes for `collect`, and what will come out `not_visible`, each with the fix. It never prints the token. Exit 0 all pass, 1 any fail, 3 warnings only. The token kind comes from GitHub's documented prefixes (`ghp_`, `github_pat_`, `ghs_`, ...); fine-grained and App permissions are not exposed in headers, so doctor cannot check them.
+Before a long first collection, run `GITHUB_TOKEN=... gop doctor --enterprise acme`. In a handful of read-only requests it reports the token kind and mode (below), missing or broader-than-needed scopes, a classic token with no expiry, orgs where the token is not authorized for SSO, the remaining REST and GraphQL budget, an estimate of requests and minutes for `collect`, and what will come out `not_visible`, each with the fix. It never prints the token. Exit 0 all pass, 1 any fail, 3 warnings only. The token kind comes from GitHub's documented prefixes (`ghp_`, `github_pat_`, `ghs_`, ...); fine-grained and installation-token permissions are not exposed in headers, so doctor cannot check them. In App mode (`gop doctor --app-id N --app-key-file PATH`) doctor lists the App's installations, flags each `--orgs` entry without one, checks that every granted permission is `read` and that the App has each permission collect requests, mints one read-only token per org to probe it, and predicts what App mode leaves `not_visible`.
 
 ### Token modes
 
 | Mode | What gop sees |
 |---|---|
 | (a) Enterprise-owner token, run locally | Full enterprise settings plus every org and repo the owner can see. **The intended mode.** |
-| (b) GitHub App, one read-only installation token per org | gop signs an App JWT, lists the App's installations and mints an installation token per org (`POST /app/installations/{id}/access_tokens`, read permissions only: the one non-GET REST call gop makes, which changes no repository or org state). Each org's requests carry that org's token, so one run covers every installed org and cross-org paths still join. Enterprise APIs are not called: enterprise ownerInfo settings, SSO state, the enterprise org list and consumed licenses are `not_visible` (members come from each org's members API). Settings the org API returns (`GET /orgs/{org}`: default permission, 2FA, repo creation, private forks) stay `live`. A `uses:` owner outside the installed orgs gets `in_enterprise=unknown`. An `--orgs` entry without an installation is `not_visible` with coverage "install the App on X with read-only permissions"; a missing App permission gives coverage naming it. The private key is read from a file or `GOP_APP_PRIVATE_KEY`, held in memory and never logged or written; in CI it is itself a high-value credential. (Library support in `collect.Config` today; CLI flags follow.) Without App credentials, a single installation token passed as the token still works for its one org. |
+| (b) GitHub App, one read-only installation token per org | gop signs an App JWT, lists the App's installations and mints an installation token per org (`POST /app/installations/{id}/access_tokens`, read permissions only: the one non-GET REST call gop makes, which changes no repository or org state). Each org's requests carry that org's token, so one run covers every installed org and cross-org paths still join. Enterprise APIs are not called: enterprise ownerInfo settings, SSO state, the enterprise org list and consumed licenses are `not_visible` (members come from each org's members API). Settings the org API returns (`GET /orgs/{org}`: default permission, 2FA, repo creation, private forks) stay `live`. A `uses:` owner outside the installed orgs gets `in_enterprise=unknown`. An `--orgs` entry without an installation is `not_visible` with coverage "install the App on X with read-only permissions"; a missing App permission gives coverage naming it. Run it with `gop collect --enterprise acme --out graph.json --app-id 123456 --app-key-file app.pem`, or set `GOP_APP_ID` and `GOP_APP_PRIVATE_KEY` (the PEM contents); App credentials and `GITHUB_TOKEN` are mutually exclusive. The key is read once, held in memory and never logged or written, and gop warns when the key file's mode is wider than `0600`; in CI it is itself a high-value credential. Grant the App read-only permissions: repository Metadata, Contents, Administration and Actions, and organization Members and Administration. Creating and installing the App is a manual step. Without App credentials, a single installation token passed as the token still works for its one org. |
 | (c) A repository's `GITHUB_TOKEN` | One repository only. gop is not useful in this mode. |
 
 ### Rate limits
@@ -246,13 +246,16 @@ jobs:
       - uses: peleduri/gop/action@<full-commit-sha> # vX.Y.Z
         with:
           enterprise: acme
-          token: ${{ steps.app-token.outputs.token }}
+          app-id: ${{ vars.GOP_APP_ID }}
+          app-private-key: ${{ secrets.GOP_APP_PRIVATE_KEY }}
           retention-days: 1
 ```
 
+With `app-id` and `app-private-key` set, the Action runs gop in App mode (mode b): one read-only installation token per org the App is installed on, so a single run covers every installed org. The Action masks every line of the key and passes it only to `gop collect`. Without them it uses `token`, for example a token from a create-app-token step.
+
 Read this before you set it up:
 
-- **Prefer a read-only GitHub App installation token per org**, minted per run, over a PAT. An enterprise-owner PAT stored in Actions secrets creates exactly the high-value CI path gop reports: anyone who can change a workflow in that repository can use it.
+- **Prefer a read-only GitHub App** (App mode, or an installation token minted per run) over a PAT. An enterprise-owner PAT stored in Actions secrets creates exactly the high-value CI path gop reports: anyone who can change a workflow in that repository can use it.
 - With App tokens, enterprise settings and any org the App is not installed in show as `not_visible` in the report (mode b above). The App private key in secrets is a high-value credential; keep it in a dedicated private repository with restricted workflow edit access.
 - **Artifacts are readable by anyone with read access to the repository.** graph.json and report.html are an attack map. Run the Action only in a **private** repository, and keep `retention-days` at 1 (the default).
 - For full coverage, run gop locally with an enterprise-owner token (mode a) instead.

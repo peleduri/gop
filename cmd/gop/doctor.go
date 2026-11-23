@@ -24,6 +24,7 @@ func (a *app) cmdDoctor(args []string) error {
 	ghURL := fs.String("github-url", "", "REST API root (default https://api.github.com; GHES: https://HOST/api/v3)")
 	orgs := fs.String("orgs", "", "comma-separated org logins, as for collect --orgs")
 	format := fs.String("format", "text", "text or json")
+	af := addAppFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
@@ -34,12 +35,9 @@ func (a *app) cmdDoctor(args []string) error {
 	if f != "text" && f != "json" {
 		return usagef("doctor: --format must be text or json, got %q", *format)
 	}
-	token := a.getenv("GITHUB_TOKEN")
-	if token == "" {
-		token = a.getenv("GH_TOKEN")
-	}
-	if token == "" {
-		return usagef("doctor: set GITHUB_TOKEN (or GH_TOKEN); gop never takes a token as a flag")
+	cr, err := a.resolveCreds("doctor", af)
+	if err != nil {
+		return err
 	}
 	now := a.now
 	if now == nil {
@@ -48,15 +46,17 @@ func (a *app) cmdDoctor(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	rep, err := collect.Doctor(ctx, collect.DoctorConfig{
-		Enterprise: *ent,
-		Token:      token,
-		Orgs:       splitList(*orgs),
-		BaseURL:    *ghURL,
-		GraphQLURL: graphQLURL(*ghURL),
-		Now:        now,
+		Enterprise:       *ent,
+		Token:            cr.token,
+		AppID:            cr.appID,
+		AppPrivateKeyPEM: cr.appKey,
+		Orgs:             splitList(*orgs),
+		BaseURL:          *ghURL,
+		GraphQLURL:       graphQLURL(*ghURL),
+		Now:              now,
 	})
 	if err != nil {
-		return errors.New(scrub(err.Error(), token))
+		return errors.New(cr.redact(err.Error()))
 	}
 	if f == "json" {
 		err = writeJSON(a.stdout, rep)

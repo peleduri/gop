@@ -132,6 +132,9 @@ type appInstallation struct {
 	id        int64
 	login     string
 	suspended bool
+	// perms are the permissions the installation is granted, as listed by
+	// GET /app/installations (nil when the listing omits them).
+	perms map[string]string
 
 	mu      sync.Mutex
 	token   string
@@ -181,7 +184,8 @@ func (a *appAuth) listInstallations(ctx context.Context) error {
 			Account struct {
 				Login string `json:"login"`
 			} `json:"account"`
-			SuspendedAt *string `json:"suspended_at"`
+			SuspendedAt *string           `json:"suspended_at"`
+			Permissions map[string]string `json:"permissions"`
 		}
 		if err := json.Unmarshal(page, &batch); err != nil {
 			return fmt.Errorf("decoding app installations: %w", err)
@@ -192,6 +196,7 @@ func (a *appAuth) listInstallations(ctx context.Context) error {
 			}
 			a.installs[strings.ToLower(in.Account.Login)] = &appInstallation{
 				id: in.ID, login: in.Account.Login, suspended: in.SuspendedAt != nil && *in.SuspendedAt != "",
+				perms: in.Permissions,
 			}
 		}
 		return nil

@@ -76,6 +76,26 @@ jobs:
         with:
           version: v2.15.0
 
+  actionlint:
+    # Lints the workflows and the composite Action: actionlint loads
+    # action/action.yml through the fixture that uses it and checks its inputs.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - name: actionlint
+        # Pinned to a released version so the check is reproducible.
+        run: |
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 action/testdata/uses-action.yml
+
   govulncheck:
     runs-on: ubuntu-latest
     steps:

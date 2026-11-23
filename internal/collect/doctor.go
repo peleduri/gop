@@ -36,7 +36,10 @@ const (
 	KindOAuth          = "oauth"
 	KindAppUser        = "app_user"
 	KindInstallation   = "app_installation"
-	KindUnknown        = "unknown"
+	// KindApp is GitHub App mode: doctor signs an App JWT and mints a
+	// read-only installation token per org, as collect does.
+	KindApp     = "github_app"
+	KindUnknown = "unknown"
 )
 
 // Token modes from the README "Token modes" table.
@@ -74,9 +77,19 @@ type DoctorConfig struct {
 	// the enterprise (same meaning as collect --orgs).
 	Orgs []string
 
+	// GitHub App mode (mutually exclusive with Token), as in Config: doctor
+	// lists the App's installations, mints a read-only installation token
+	// per selected org and checks the granted permissions. The key is held
+	// in memory only and never printed.
+	AppID            int64
+	AppPrivateKeyPEM []byte
+	AppPermissions   map[string]string
+
 	BaseURL    string
 	GraphQLURL string
-	Client     *Client
+	// Client is the client doctor uses (with no token in App mode, where
+	// every request gets its token from the App).
+	Client *Client
 	// Now defaults to time.Now; tests fix it for stable estimates.
 	Now func() time.Time
 }
@@ -96,6 +109,10 @@ type DoctorToken struct {
 	Scopes      []string `json:"scopes"`
 	ScopesKnown bool     `json:"scopes_known"`
 	Expires     string   `json:"expires,omitempty"`
+	// AppID and Installations are set in GitHub App mode: the App ID and
+	// the account logins of its usable installations.
+	AppID         int64    `json:"app_id,omitempty"`
+	Installations []string `json:"installations,omitempty"`
 }
 
 // DoctorOrg is the probe result for one org.
@@ -226,6 +243,9 @@ const enterpriseQueryDoctor = `query($slug: String!) {
 func Doctor(ctx context.Context, cfg DoctorConfig) (*DoctorReport, error) {
 	if cfg.Enterprise == "" {
 		return nil, errors.New("doctor: enterprise slug is required")
+	}
+	if cfg.AppID != 0 || len(cfg.AppPrivateKeyPEM) > 0 {
+		return doctorApp(ctx, cfg)
 	}
 	c := cfg.Client
 	if c == nil {
@@ -513,47 +533,12 @@ func (d *doctor) orgs(ctx context.Context, e *doctorEnterprise) error {
 	}
 	readable := 0
 	for _, login := range logins {
-		o := DoctorOrg{Login: login}
-		var body struct {
-			PublicRepos       *int `json:"public_repos"`
-			TotalPrivateRepos *int `json:"total_private_repos"`
+		o, err := d.probeOrg(ctx, d.c, login)
+		if err != nil {
+			return err
 		}
-		_, err := d.c.GetJSONHeader(ctx, "/orgs/"+url.PathEscape(login), &body)
-		switch {
-		case err == nil:
-			o.Status = "ok"
+		if o.Status == "ok" {
 			readable++
-			if body.PublicRepos != nil || body.TotalPrivateRepos != nil {
-				n := 0
-				if body.PublicRepos != nil {
-					n += *body.PublicRepos
-				}
-				if body.TotalPrivateRepos != nil {
-					n += *body.TotalPrivateRepos
-				}
-				o.Repos = &n
-			}
-		case ctx.Err() != nil:
-			return ctx.Err()
-		case ssoRequired(err):
-			o.Status = "sso_unauthorized"
-			r.check("sso "+login, StatusFail, "token is not authorized for SAML SSO in "+login,
-				"authorize this token for SSO in "+login)
-			r.notVisible("org " + login + ": everything (token not authorized for SSO)")
-		case IsForbidden(err) || IsNotFound(err):
-			o.Status = "forbidden"
-			if IsNotFound(err) {
-				o.Status = "not_found"
-			}
-			fix := "membership in " + login + ", or check the org login"
-			if r.Token.Kind == KindInstallation {
-				fix = "install the App in " + login
-			}
-			r.check("org "+login, StatusWarn, "cannot read organization ("+statusText(err)+")", fix)
-			r.notVisible("org " + login + ": everything (organization not readable)")
-		default:
-			o.Status = "error"
-			r.check("org "+login, StatusWarn, "could not read organization ("+statusText(err)+")", "retry gop doctor")
 		}
 		r.Orgs = append(r.Orgs, o)
 	}
@@ -568,6 +553,54 @@ func (d *doctor) orgs(ctx context.Context, e *doctorEnterprise) error {
 		r.check("orgs checked", StatusInfo, fmt.Sprintf("checked the first %d of %d organizations", len(logins), total), "")
 	}
 	return nil
+}
+
+// probeOrg reads GET /orgs/{org} with c and records a check for an org it
+// cannot read. It returns an error only when ctx is done.
+func (d *doctor) probeOrg(ctx context.Context, c *Client, login string) (DoctorOrg, error) {
+	r := d.r
+	o := DoctorOrg{Login: login}
+	var body struct {
+		PublicRepos       *int `json:"public_repos"`
+		TotalPrivateRepos *int `json:"total_private_repos"`
+	}
+	_, err := c.GetJSONHeader(ctx, "/orgs/"+url.PathEscape(login), &body)
+	switch {
+	case err == nil:
+		o.Status = "ok"
+		if body.PublicRepos != nil || body.TotalPrivateRepos != nil {
+			n := 0
+			if body.PublicRepos != nil {
+				n += *body.PublicRepos
+			}
+			if body.TotalPrivateRepos != nil {
+				n += *body.TotalPrivateRepos
+			}
+			o.Repos = &n
+		}
+	case ctx.Err() != nil:
+		return o, ctx.Err()
+	case ssoRequired(err):
+		o.Status = "sso_unauthorized"
+		r.check("sso "+login, StatusFail, "token is not authorized for SAML SSO in "+login,
+			"authorize this token for SSO in "+login)
+		r.notVisible("org " + login + ": everything (token not authorized for SSO)")
+	case IsForbidden(err) || IsNotFound(err):
+		o.Status = "forbidden"
+		if IsNotFound(err) {
+			o.Status = "not_found"
+		}
+		fix := "membership in " + login + ", or check the org login"
+		if r.Token.Kind == KindInstallation || r.Token.Kind == KindApp {
+			fix = "install the App in " + login
+		}
+		r.check("org "+login, StatusWarn, "cannot read organization ("+statusText(err)+")", fix)
+		r.notVisible("org " + login + ": everything (organization not readable)")
+	default:
+		o.Status = "error"
+		r.check("org "+login, StatusWarn, "could not read organization ("+statusText(err)+")", "retry gop doctor")
+	}
+	return o, nil
 }
 
 // orgList returns the orgs collect would read, where they came from, and
@@ -781,6 +814,8 @@ func kindLabel(kind string) string {
 		return "GitHub App user token"
 	case KindInstallation:
 		return "GitHub App installation token"
+	case KindApp:
+		return "GitHub App (read-only installation token minted per org)"
 	}
 	return "token of unknown kind"
 }
@@ -821,6 +856,13 @@ func WriteDoctor(w io.Writer, r *DoctorReport) error {
 	}
 	if r.Token.Expires != "" {
 		fmt.Fprintf(&b, "  expires %s\n", r.Token.Expires)
+	}
+	if r.Token.AppID != 0 {
+		installs := "no installations"
+		if len(r.Token.Installations) > 0 {
+			installs = "installed on " + strings.Join(r.Token.Installations, ", ")
+		}
+		fmt.Fprintf(&b, "  app     %d (%s)\n", r.Token.AppID, installs)
 	}
 
 	b.WriteString("\nChecks\n")

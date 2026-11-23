@@ -1,0 +1,33 @@
+gop doctor: enterprise acme
+
+Token
+  kind    GitHub App (read-only installation token minted per org)
+  mode    (b) GitHub App, one read-only installation token per org
+  app     4242 (installed on acme-actions, acme-app)
+
+Checks
+  PASS  app                       App 4242 authenticated; installed on 2 organizations
+  WARN  enterprise                GitHub App mode: installation tokens cover one org each, so enterprise APIs are not called and enterprise settings are not_visible
+                                  fix: use an enterprise owner token with read:enterprise for enterprise settings
+  WARN  permissions acme-app      the App is granted contents:write; gop requests read-only tokens, but the key can mint tokens with these
+                                  fix: reduce the App's permissions to read only
+  WARN  installation acme-legacy  GitHub App not installed on acme-legacy
+                                  fix: install the App on acme-legacy with read-only permissions
+  INFO  orgs                      2 of 3 organizations readable (from --orgs)
+  PASS  rate limit                collect needs about 58 REST requests and 4990 of 5000 remain
+
+Rate limit
+  REST    4990 of 5000 remaining, resets 2026-11-23T12:40:00Z
+  GraphQL 5000 of 5000 remaining, resets 2026-11-23T12:40:00Z
+
+Estimate for gop collect
+  2 orgs, 6 repos (GET /orgs/{org} counts), 3 workflows per repo assumed
+  about 58 requests and 1 minutes
+
+Predicted not_visible
+  - enterprise settings (ownerInfo: SSO, 2FA, default permission, repo creation, visibility, deletion and fork policies); per-org values come from GET /orgs/{org} where readable, SSO stays not_visible
+  - the enterprise org list and membership (consumed licenses); orgs come from the App's installations and --orgs, members from each org's members API
+  - in_enterprise for action owners outside the installed orgs
+  - org acme-legacy: everything (GitHub App not installed on acme-legacy)
+
+Result: 3 warnings

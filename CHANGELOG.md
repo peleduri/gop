@@ -9,6 +9,16 @@ flags may change in minor releases.
 
 ### Added
 
+- GitHub App mode in the CLI, the Action and `gop doctor`. `gop collect
+  --app-id N --app-key-file PATH` (or `GOP_APP_ID` and `GOP_APP_PRIVATE_KEY`)
+  mints a read-only installation token per org; it is a usage error (exit 2)
+  together with `GITHUB_TOKEN`. The key is read once, never printed, and a key
+  file wider than `0600` gets a warning. The Action takes `app-id` and
+  `app-private-key` (masked line by line) and prefers them over `token`.
+  `gop doctor --app-id/--app-key-file` lists installations, flags `--orgs`
+  without one, checks that granted permissions are read-only and complete,
+  and predicts what App mode leaves `not_visible`. CI runs actionlint on the
+  workflows and the Action.
 - HTML report filters and per-org views. The report embeds the paths, fixes,
   org settings and coverage as one JSON block and a small inline script adds a
   filter bar (evidence, terminal kind, org, principal, action ref kind) whose
