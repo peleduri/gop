@@ -1,0 +1,15 @@
+{
+  "schema": "gop.graph/v1",
+  "valid": true,
+  "errors": [],
+  "warnings": [
+    {
+      "pointer": "/edges/0/evidence",
+      "message": "edge members:acme-legacy -> repo:acme-legacy/old-api is not_visible but no coverage entry has a scope for either end or its org"
+    },
+    {
+      "pointer": "/nodes/1/evidence",
+      "message": "node \"repo:acme-legacy/old-api\" is not_visible but no coverage entry has scope \"repo:acme-legacy/old-api\" or \"org:acme-legacy\""
+    }
+  ]
+}

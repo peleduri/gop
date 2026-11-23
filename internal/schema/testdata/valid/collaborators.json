@@ -1,0 +1,38 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "org:acme-actions", "kind": "org", "name": "acme-actions", "evidence": "live"},
+    {"id": "identity:alice", "kind": "identity", "name": "alice", "evidence": "live"},
+    {"id": "identity:bob", "kind": "identity", "name": "bob", "evidence": "live"},
+    {"id": "repo:acme-actions/deploy", "kind": "repo", "name": "deploy", "evidence": "live"},
+    {"id": "repo:acme-actions/setup", "kind": "repo", "name": "setup", "evidence": "live"},
+    {"id": "workflow:acme-actions/deploy/.github/workflows/release.yml", "kind": "workflow", "name": "release.yml", "evidence": "live"},
+    {"id": "action:acme-actions/setup@v1", "kind": "action_ref", "name": "acme-actions/setup@v1", "evidence": "live"},
+    {"id": "oidc:acme-actions/deploy", "kind": "oidc", "name": "id-token: write", "evidence": "live"}
+  ],
+  "edges": [
+    {"from": "identity:alice", "to": "org:acme-actions", "kind": "MEMBER_OF", "evidence": "live",
+     "source_api": "rest:/enterprises/{enterprise}/consumed-licenses", "observed_at": "2026-01-01T00:00:00Z", "attrs": {"role": "owner"}},
+    {"from": "identity:alice", "to": "repo:acme-actions/deploy", "kind": "CAN_PUSH", "evidence": "live",
+     "source_api": "rest:/enterprises/{enterprise}/consumed-licenses", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "org_owner", "permission": "admin"}},
+    {"from": "identity:bob", "to": "repo:acme-actions/deploy", "kind": "CAN_PUSH", "evidence": "live",
+     "source_api": "rest:/repos/{owner}/{repo}/collaborators", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "direct", "permission": "deployer", "base_role": "write"}},
+    {"from": "identity:bob", "to": "repo:acme-actions/setup", "kind": "CAN_PUSH", "evidence": "not_visible",
+     "source_api": "rest:/enterprises/{enterprise}/consumed-licenses", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "outside_collaborator", "permission": "unknown", "license_role": "acme-actions/setup:Write"}},
+    {"from": "workflow:acme-actions/deploy/.github/workflows/release.yml", "to": "action:acme-actions/setup@v1", "kind": "USES",
+     "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"ref_kind": "tag", "file": ".github/workflows/release.yml", "file_ref": "main", "line": "12", "col": "15"}},
+    {"from": "workflow:acme-actions/deploy/.github/workflows/release.yml", "to": "oidc:acme-actions/deploy", "kind": "EXECUTES_WITH",
+     "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"file": ".github/workflows/release.yml", "line": "5"}}
+  ],
+  "coverage": [
+    {"scope": "org:acme-actions", "fact": "can_push:collaborators", "reason": "collaborators of 1 repo could not be read",
+     "needs_fix": "org owner on acme-actions"}
+  ]
+}

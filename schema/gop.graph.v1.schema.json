@@ -90,7 +90,19 @@
         "evidence": {"$ref": "#/$defs/Evidence"},
         "source_api": {"type": "string"},
         "observed_at": {"type": "string", "format": "date-time"},
-        "attrs": {"$ref": "#/$defs/Attrs"}
+        "attrs": {"$ref": "#/$defs/EdgeAttrs"}
+      }
+    },
+    "EdgeAttrs": {
+      "description": "Edge attributes. Known keys are typed below; unknown keys are allowed.",
+      "allOf": [{"$ref": "#/$defs/Attrs"}],
+      "properties": {
+        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator. New values may be added within v1.", "type": "string", "minLength": 1},
+        "ref_kind": {"type": "string", "enum": ["sha", "tag", "branch"]},
+        "file": {"description": "Repo-relative path of the workflow or action file the edge was read from.", "type": "string", "minLength": 1},
+        "file_ref": {"description": "Commit or branch the file was read at, when known.", "type": "string"},
+        "line": {"description": "1-based line, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
+        "col": {"description": "1-based column, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"}
       }
     },
     "Coverage": {

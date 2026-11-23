@@ -183,4 +183,5 @@ The JSON Schema allows unknown fields and attribute keys for this reason. Consum
 
 | Version | gop release | Change |
 |---|---|---|
-| `gop.graph/v1` | v0.1.0 | First version. JSON Schema published in `schema/gop.graph.v1.schema.json`. |
+| `gop.graph/v1` | v0.1.0 | First version. |
+| `gop.graph/v1` | unreleased | Additive: JSON Schema published in `schema/gop.graph.v1.schema.json`; `file`, `file_ref`, `line`, `col` on `USES` and `EXECUTES_WITH` edges; `identity` nodes for licensed users; `CAN_PUSH` `via` values `org_owner`, `direct`, `outside_collaborator`. |

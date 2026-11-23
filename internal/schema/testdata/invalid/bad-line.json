@@ -1,0 +1,4 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "repo:acme-app/web", "kind": "repo", "name": "web", "evidence": "live"}, {"id": "workflow:acme-app/web/.github/workflows/ci.yml", "kind": "workflow", "name": "ci.yml", "evidence": "live"}, {"id": "oidc:acme-app/web", "kind": "oidc", "name": "oidc", "evidence": "live"}],
+ "edges": [{"from": "workflow:acme-app/web/.github/workflows/ci.yml", "to": "oidc:acme-app/web", "kind": "EXECUTES_WITH", "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z", "attrs": {"file": ".github/workflows/ci.yml", "line": "L7"}}],
+ "coverage": []}

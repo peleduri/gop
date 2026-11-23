@@ -351,6 +351,7 @@ func (a *app) cmdValidate(args []string) error {
 	if f == "json" {
 		enc := json.NewEncoder(a.stdout)
 		enc.SetIndent("", "  ")
+		enc.SetEscapeHTML(false)
 		if err := enc.Encode(res); err != nil {
 			return err
 		}

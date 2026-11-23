@@ -92,6 +92,7 @@ func TestInvalidFixtures(t *testing.T) {
 		"bad-edge-kind.json":           {"/edges/0/kind", `"PUSHES" is not one of`},
 		"bad-evidence.json":            {"/edges/0/evidence", `"seen" is not one of "live", "audit", "not_visible"`},
 		"bad-node-kind.json":           {"/nodes/0/kind", `"host" is not one of`},
+		"bad-line.json":                {"/edges/0/attrs/line", `"L7" does not match`},
 		"bad-observed-at.json":         {"/edges/0/observed_at", "RFC 3339"},
 		"bad-repo-id.json":             {"/nodes/0/id", `does not match ^repo:[^/]+/[^/]+$`},
 		"coverage-missing-fields.json": {"/coverage/0", `missing required field "needs_fix"`},
@@ -296,5 +297,66 @@ func TestPointerOrder(t *testing.T) {
 	want := []string{"", "/edges/2", "/edges/2/from", "/edges/10/to", "/nodes/0"}
 	if got := pointers(ps); !reflect.DeepEqual(got, want) {
 		t.Errorf("order %v, want %v", got, want)
+	}
+}
+
+// TestGoAttrValuesValidate builds a CAN_PUSH edge for every Via* constant and a
+// USES edge carrying every source position attribute from types.go, so a new
+// provenance value or attribute in Go can't be rejected by the schema.
+func TestGoAttrValuesValidate(t *testing.T) {
+	f, err := parser.ParseFile(token.NewFileSet(), filepath.Join("..", "graph", "types.go"), nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	named := map[string]string{}
+	for _, d := range f.Decls {
+		gd, ok := d.(*ast.GenDecl)
+		if !ok || gd.Tok != token.CONST {
+			continue
+		}
+		for _, s := range gd.Specs {
+			vs := s.(*ast.ValueSpec)
+			for i, n := range vs.Names {
+				if i < len(vs.Values) {
+					if lit, ok := vs.Values[i].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+						named[n.Name], _ = strconv.Unquote(lit.Value)
+					}
+				}
+			}
+		}
+	}
+	var vias []string
+	for name, v := range named {
+		if strings.HasPrefix(name, "Via") {
+			vias = append(vias, v)
+		}
+	}
+	if len(vias) < 4 {
+		t.Fatalf("found only %d Via* constants: %v", len(vias), vias)
+	}
+	g := graph.Graph{Schema: graph.SchemaVersion, Enterprise: "acme", Coverage: []graph.Coverage{}}
+	g.Nodes = []graph.Node{
+		{ID: "identity:alice", Kind: graph.KindIdentity, Name: "alice", Evidence: graph.Live},
+		{ID: "repo:acme-app/web", Kind: graph.KindRepo, Name: "web", Evidence: graph.Live},
+		{ID: "workflow:acme-app/web/.github/workflows/ci.yml", Kind: graph.KindWorkflow, Name: "ci.yml", Evidence: graph.Live},
+		{ID: "action:acme-actions/setup@v1", Kind: graph.KindActionRef, Name: "setup", Evidence: graph.Live},
+	}
+	for _, v := range vias {
+		g.Edges = append(g.Edges, graph.Edge{From: "identity:alice", To: "repo:acme-app/web", Kind: graph.CanPush,
+			Evidence: graph.Live, SourceAPI: "rest:test", Attrs: map[string]string{graph.AttrVia: v, "permission": "write"}})
+	}
+	g.Edges = append(g.Edges, graph.Edge{From: g.Nodes[2].ID, To: g.Nodes[3].ID, Kind: graph.Uses, Evidence: graph.Live,
+		SourceAPI: "rest:test", Attrs: map[string]string{graph.AttrRefKind: "tag", graph.AttrFile: ".github/workflows/ci.yml",
+			graph.AttrFileRef: "main", graph.AttrLine: "3", graph.AttrCol: "9"}})
+	data, err := json.Marshal(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := Validate(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Valid {
+		t.Fatalf("graph using every Via* value and source attr is invalid: %v", r.Errors)
 	}
 }
