@@ -53,6 +53,8 @@ Usage:
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
   gop validate --graph graph.json [--format text|json]
+  gop redact  --graph graph.json --out shareable.json [--salt-file key] [--keep-attr k1,k2]
+              [--map-out mapping.json]
   gop diff    OLD.json NEW.json [--format text|json|markdown] [--only paths,settings,edges,scores,coverage]
               [--fail-on confirmed-increase|any-new-path] [--force]
   gop fix-plan --graph graph.json | --demo  --pin <action> | --lower-default-perm <org> [--to read|none]
@@ -85,6 +87,11 @@ demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
 validate checks graph.json against the published JSON Schema and that every
 edge endpoint is a node. Exit 0 valid, 1 invalid, 2 usage error.
+redact writes a copy of the graph with every org, repo, user, team, action,
+workflow file, secret name, runner label and environment replaced by a stable
+synthetic name, keeping the structure, evidence and reach. Attach its output
+to a bug report, never a raw graph. It fails, writing nothing, when an
+original name of 3+ characters is still in the output.
 diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or load errors.
 --graph - reads the graph from stdin (report, paths, who): gop demo | gop report --graph - --out -
 fix-plan prints the change steps for one fix (workflow lines with diffs, settings
@@ -168,6 +175,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdWho(rest)
 	case "validate":
 		err = a.cmdValidate(rest)
+	case "redact":
+		err = a.cmdRedact(rest)
 	case "diff":
 		err = a.cmdDiff(rest)
 	case "mcp-config":

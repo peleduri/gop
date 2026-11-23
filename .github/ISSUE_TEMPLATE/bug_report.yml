@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Do not paste real graph.json content, org names, repo names or tokens. Reduce the problem to synthetic names (enterprise "acme", orgs "acme-actions", "acme-app").
+        Never attach or paste a raw graph.json: it is a map of who can run code where in your enterprise. Attach the output of `gop redact --graph graph.json --out shareable.json` instead, which renames every org, repo, user and secret and checks that no original name is left. Do not paste org names, repo names or tokens.
         Security vulnerabilities go through private vulnerability reporting (Security tab), not issues.
   - type: input
     id: version
@@ -37,3 +37,9 @@ body:
     id: repro
     attributes:
       label: Steps to reproduce (synthetic data only)
+  - type: textarea
+    id: graph
+    attributes:
+      label: Redacted graph (optional)
+      description: |
+        If the problem depends on your graph, run `gop redact --graph graph.json --out shareable.json` and attach shareable.json (drag the file here). Never a raw graph.json, and never the `--map-out` mapping file. Say which synthetic node IDs show the problem, e.g. `repo:acme-org-03/repo-012`.
