@@ -1,0 +1,4 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "action:acme-actions/deploy@v3", "kind": "action_ref", "name": "acme-actions/deploy@v3", "evidence": "live",
+            "attrs": {"ref_kind": "tag", "ref_kind_source": "api", "ref_immutable": "maybe"}}],
+ "edges": [], "coverage": []}

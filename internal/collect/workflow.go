@@ -166,8 +166,12 @@ var (
 )
 
 // RefKind classifies a git ref by its name: a 40-hex string is a sha, a "v<digit>"
-// or semver-like name is a tag, anything else is a branch. The tag/branch split
-// is a naming heuristic; the API is not asked.
+// or semver-like name is a tag, anything else is a branch (an abbreviated SHA
+// too: Actions does not accept one). The tag/branch split is only a fallback
+// guess: gop collect asks the API for every enterprise-internal ref
+// (resolveRefs, ref_kind_source=api) and keeps this guess, with
+// ref_kind_source=name and a coverage entry, only when the ref can't be looked
+// up. A name like release-2026 can be a tag, and v2-dev a branch.
 func RefKind(ref string) string {
 	switch {
 	case shaRe.MatchString(ref):

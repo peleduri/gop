@@ -28,6 +28,7 @@
         "owner": "acme-actions",
         "ref": "main",
         "ref_kind": "branch",
+        "ref_kind_source": "api",
         "ref_protected": "false",
         "ref_protection": "reviews",
         "repo": "deploy",
@@ -44,7 +45,9 @@
         "nested": "1",
         "owner": "acme-actions",
         "ref": "v1",
+        "ref_immutable": "false",
         "ref_kind": "tag",
+        "ref_kind_source": "api",
         "repo": "deploy",
         "runs_using": "composite"
       },
@@ -61,6 +64,7 @@
         "path": ".github/workflows/build.yml",
         "ref": "main",
         "ref_kind": "branch",
+        "ref_kind_source": "api",
         "ref_protected": "false",
         "ref_protection": "status_checks",
         "repo": "setup",
@@ -78,6 +82,7 @@
         "owner": "acme-actions",
         "ref": "main",
         "ref_kind": "branch",
+        "ref_kind_source": "api",
         "ref_protected": "false",
         "ref_protection": "status_checks",
         "repo": "setup",
@@ -95,6 +100,7 @@
         "owner": "acme-legacy",
         "ref": "v2",
         "ref_kind": "tag",
+        "ref_kind_source": "name",
         "repo": "hidden-tool"
       },
       "evidence": "live",
@@ -2001,6 +2007,12 @@
       "fact": "actions_access",
       "reason": "could not read the Actions access setting of acme-legacy/hidden-tool: github api GET /repos/acme-legacy/hidden-tool/actions/permissions/access: HTTP 404: Not Found",
       "needs_fix": "admin on acme-legacy/hidden-tool (or org owner)"
+    },
+    {
+      "scope": "action:acme-legacy/hidden-tool@v2",
+      "fact": "ref_kind",
+      "reason": "repository acme-legacy/hidden-tool not found or not visible to the token (NOT_FOUND: Could not resolve to a Repository with the name 'acme-legacy/hidden-tool'.); ref_kind is a guess from the name",
+      "needs_fix": "read access to acme-legacy/hidden-tool"
     }
   ]
 }

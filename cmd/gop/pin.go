@@ -205,15 +205,12 @@ func pin(ctx context.Context, c *collect.Client, u collect.ActionUse, g *graph.G
 	res.Replace, res.With = "uses: "+uses, "uses: "+value+" "+comment
 
 	res.RefKind = "unknown"
-	for _, k := range []struct{ path, kind string }{{"tags", "tag"}, {"heads", "branch"}} {
-		_, err := c.GetRaw(ctx, repoPath+"/git/ref/"+k.path+"/"+escapePath(u.Ref), "")
-		if err == nil {
-			res.RefKind = k.kind
-			break
-		}
-		if !collect.IsNotFound(err) {
-			res.Warnings = append(res.Warnings, "could not tell whether "+u.Ref+" is a tag or a branch: "+err.Error())
-			break
+	if l, err := collect.LookupRef(ctx, c, u.Owner, u.Repo, u.Ref); err != nil {
+		res.Warnings = append(res.Warnings, "could not tell whether "+u.Ref+" is a tag or a branch: "+err.Error())
+	} else if kind, ambiguous, found := l.Kind(); found {
+		res.RefKind = kind
+		if ambiguous {
+			res.Warnings = append(res.Warnings, u.Ref+" is both a tag and a branch in "+host+": gop reads it as the branch, the more mutable of the two")
 		}
 	}
 	if res.RefKind == "tag" {

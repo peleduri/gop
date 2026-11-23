@@ -10,7 +10,9 @@ import (
 // synthetic names (org:acme-o3, repo:acme-o3/r17, identity:u5, ...). It uses
 // every EdgeKind, every Evidence value, random ref_kind and via attributes
 // (including workflow -CAN_PUSH-> repo with via=token_write), CAN_TRIGGER
-// edges from org members, identities and external:anyone into workflows,
+// edges from org members, identities and external:anyone into workflows, ref
+// gates (ref_protected, ref_immutable, ref_ambiguous, bypass) with
+// via=ref_bypass CAN_PUSH edges into action host repos,
 // parallel edges and cycles through nested USES, and actions_access levels on
 // action host repos. A few edge endpoints are left
 // undeclared so kind inference from the ID is exercised too.
@@ -104,14 +106,41 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		repos = append(repos, host)
 		ref := refs[r.IntN(len(refs))]
 		id := fmt.Sprintf("action:%s/a%d@%s", owner, i, ref)
-		var attrs map[string]string
+		attrs := map[string]string{}
 		if r.IntN(5) == 0 {
-			attrs = map[string]string{AttrRefKind: []string{"sha", "tag", "branch"}[r.IntN(3)]}
+			attrs[AttrRefKind] = []string{"sha", "tag", "branch"}[r.IntN(3)]
+		}
+		// Ref gates: branch protection or tag immutability, bypass actors,
+		// ambiguous refs and the ref attr the bypass edges are matched on.
+		if r.IntN(3) == 0 {
+			key := []string{AttrRefProtected, AttrRefImmutable}[r.IntN(2)]
+			attrs[key] = []string{"true", "true", "false", "unknown"}[r.IntN(4)]
+			if key == AttrRefImmutable && r.IntN(2) == 0 {
+				attrs[AttrRefKind] = "tag"
+			}
+			if r.IntN(3) == 0 {
+				attrs[AttrBypass] = []string{"unknown", "none"}[r.IntN(2)]
+			}
+		}
+		if r.IntN(8) == 0 {
+			attrs[AttrRefAmbiguous] = "true"
+		}
+		bypassRef := ref
+		if r.IntN(4) == 0 {
+			bypassRef = "other"
+			attrs[AttrRef] = []string{ref, "other"}[r.IntN(2)]
+		}
+		if len(attrs) == 0 {
+			attrs = nil
 		}
 		node(id, KindActionRef, attrs)
 		actions = append(actions, id)
 		actionRefKind[id] = refKindOf[ref]
 		edge(id, host, ResolvesTo, nil)
+		for k := r.IntN(3); k > 0; k-- {
+			bypassers := append(append([]string{}, idents...), teams...)
+			edge(pick(bypassers), host, CanPush, map[string]string{AttrVia: ViaRefBypass, AttrRef: bypassRef})
+		}
 	}
 	for i := 0; i < nWorkflows; i++ {
 		repo := pick(repos)

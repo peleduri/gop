@@ -162,9 +162,10 @@ type FixSuggestion struct {
 }
 
 // Candidates returns every fix SuggestFixes considers, sorted by ID: a PinRef for
-// each mutable (branch/tag/unknown) action ref (for a ref_protected=true ref it
-// only removes the remaining via=ref_bypass paths, which the greedy's marginal
-// gain accounts for), and LowerDefaultPerm{To:"read"}
+// each mutable (branch/tag/unknown) action ref (for a ref_protected=true or
+// ref_immutable=true ref it only removes the remaining via=ref_bypass paths,
+// which the greedy's marginal gain accounts for; with no such edge and known
+// bypass actors there is no candidate), and LowerDefaultPerm{To:"read"}
 // for each org with default_perm write/admin or default-perm CAN_PUSH edges. A
 // candidate whose changed edges are all not_visible (or that changes nothing) is
 // dropped: gop does not recommend a fix for an edge it cannot confirm exists.
@@ -191,7 +192,7 @@ func (ix *Index) Candidates() []Fix {
 	for _, e := range ix.g.Edges {
 		switch e.Kind {
 		case ResolvesTo:
-			if ix.actionMutable(e.From) {
+			if ix.actionMutable(e.From) && !ix.lockedNoBypass(e) {
 				push(PinRef{Action: e.From})
 			}
 		case CanPush:

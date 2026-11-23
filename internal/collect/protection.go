@@ -94,9 +94,11 @@ type bypassGrant struct {
 	attrs     map[string]string
 }
 
-// refProtection is the protection verdict for one (repo, branch).
+// refProtection is the protection verdict for one (repo, branch), or the
+// immutability verdict for one (repo, tag).
 type refProtection struct {
 	protected     string // true | false | unknown
+	lockedBy      string // tags: ref_immutable_reason when protected is true
 	labels        map[string]bool
 	reason, fix   string // why protected is unknown
 	grants        []bypassGrant
@@ -199,6 +201,12 @@ func (k *collector) applyProtection(an *graph.Node, repoID, branch string, rp *r
 	if rp.protected != "true" {
 		return
 	}
+	k.applyBypass(an, full, branch, rp)
+}
+
+// applyBypass records the bypass attr of a locked ref (a protected branch or
+// an immutable tag) and coverage for bypass actors gop cannot resolve.
+func (k *collector) applyBypass(an *graph.Node, full, ref string, rp *refProtection) {
 	switch {
 	case rp.bypassUnknown:
 		setAttr(an, graph.AttrBypass, "unknown", graph.NotVisible)
@@ -228,7 +236,7 @@ func (k *collector) applyProtection(an *graph.Node, repoID, branch string, rp *r
 				uniq = append(uniq, u)
 			}
 		}
-		k.cover(an.ID, "ref_bypass", "bypass actors on "+full+"@"+branch+" that map to no principal: "+
+		k.cover(an.ID, "ref_bypass", "bypass actors on "+full+"@"+ref+" that map to no principal: "+
 			strings.Join(uniq, ", "), "admin on "+full+" to resolve repository roles; apps and deploy keys are not modelled yet")
 	}
 }
@@ -345,32 +353,46 @@ func (k *collector) refProtection(ctx context.Context, repoID, branch string, te
 			rp.bypassWhy = fmt.Sprintf("could not read ruleset %d on %s: %v", id, full, err)
 			continue
 		}
-		if rs.BypassActors == nil {
-			rp.bypassUnknown = true
-			rp.bypassWhy = fmt.Sprintf("bypass actors of ruleset %d on %s are visible to repository admins only", id, full)
-			continue
+		rs.ID = id
+		gs, err := k.rulesetGrants(ctx, owner, repoID, &rs, teamIDs, rp)
+		if err != nil {
+			return nil, err
 		}
-		for _, a := range *rs.BypassActors {
-			attrs := map[string]string{attrRuleSource: "ruleset:" + strconv.FormatInt(id, 10)}
-			if a.BypassMode != "" {
-				attrs[attrBypassMode] = a.BypassMode
-			}
-			var actorID int64
-			if a.ActorID != nil {
-				actorID = *a.ActorID
-			}
-			ps, err := k.resolveActor(ctx, owner, repoID, a.ActorType, actorID, teamIDs, rp)
-			if err != nil {
-				return nil, err
-			}
-			for _, p := range ps {
-				rsGrants = append(rsGrants, bypassGrant{principal: p, src: srcRuleset, attrs: attrs})
-			}
-		}
+		rsGrants = append(rsGrants, gs...)
 	}
 	// Ruleset grants first: the first grant per principal names the edge's source.
 	rp.grants = append(rsGrants, rp.grants...)
 	return rp, nil
+}
+
+// rulesetGrants maps the bypass actors of one ruleset to grants. When the
+// actors are not visible (repository admins only) it sets rp.bypassUnknown.
+func (k *collector) rulesetGrants(ctx context.Context, owner, repoID string, rs *apiRuleset, teamIDs map[string]map[int64]string, rp *refProtection) ([]bypassGrant, error) {
+	full := strings.TrimPrefix(repoID, "repo:")
+	if rs.BypassActors == nil {
+		rp.bypassUnknown = true
+		rp.bypassWhy = fmt.Sprintf("bypass actors of ruleset %d on %s are visible to repository admins only", rs.ID, full)
+		return nil, nil
+	}
+	var out []bypassGrant
+	for _, a := range *rs.BypassActors {
+		attrs := map[string]string{attrRuleSource: "ruleset:" + strconv.FormatInt(rs.ID, 10)}
+		if a.BypassMode != "" {
+			attrs[attrBypassMode] = a.BypassMode
+		}
+		var actorID int64
+		if a.ActorID != nil {
+			actorID = *a.ActorID
+		}
+		ps, err := k.resolveActor(ctx, owner, repoID, a.ActorType, actorID, teamIDs, rp)
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range ps {
+			out = append(out, bypassGrant{principal: p, src: srcRuleset, attrs: attrs})
+		}
+	}
+	return out, nil
 }
 
 // classicRules reads classic branch protection: labels, whether it protects,

@@ -220,7 +220,7 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 				mutable[e.From] = m
 			}
 			if m && !pinned[e.From] {
-				out = append(out, rev)
+				out = append(out, refResolves(g, e, rev)...)
 			}
 		case Uses:
 			switch refAccess(g, e) {
@@ -239,6 +239,61 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 		}
 	}
 	return out
+}
+
+// refResolves applies the ref gate (reach.go, RESOLVES_TO) to the reverse
+// hop rev of one RESOLVES_TO edge e of a mutable, unpinned action. It is
+// written from the rule table, not from refLock:
+//
+//	ref_ambiguous=true                 the hop is kept as is
+//	gate = ref_immutable when the node's ref_kind is tag, else ref_protected
+//	gate true                          no repo -> action hop; every CAN_PUSH into
+//	                                   the host repo with via=ref_bypass and ref
+//	                                   equal to the action's ref (ref attr, else
+//	                                   the ID after the last "@") becomes a
+//	                                   principal -> action hop with that edge's
+//	                                   evidence; bypass=unknown keeps the
+//	                                   repo -> action hop, not_visible
+//	gate unknown                       the hop, not_visible
+//	anything else                      the hop as is
+func refResolves(g *Graph, e Edge, rev refEdge) []refEdge {
+	var attrs map[string]string
+	declared := false
+	for _, n := range g.Nodes {
+		if n.ID == e.From {
+			attrs, declared = n.Attrs, true
+			break
+		}
+	}
+	if !declared || attrs["ref_ambiguous"] == "true" {
+		return []refEdge{rev}
+	}
+	gate := attrs["ref_protected"]
+	if attrs["ref_kind"] == "tag" {
+		gate = attrs["ref_immutable"]
+	}
+	hidden := rev
+	hidden.ev = NotVisible
+	switch gate {
+	case "true":
+		var out []refEdge
+		if attrs["bypass"] == "unknown" {
+			out = append(out, hidden)
+		}
+		ref := attrs["ref"]
+		if ref == "" {
+			ref = e.From[strings.LastIndex(e.From, "@")+1:]
+		}
+		for _, p := range g.Edges {
+			if p.Kind == CanPush && p.To == e.To && p.Attrs["via"] == "ref_bypass" && p.Attrs["ref"] == ref {
+				out = append(out, refEdge{from: p.From, to: e.From, kind: CanPush, ev: p.Evidence, sourceAPI: p.SourceAPI})
+			}
+		}
+		return out
+	case "unknown":
+		return []refEdge{hidden}
+	}
+	return []refEdge{rev}
 }
 
 // refAccess applies the actions access rule (reach.go, USES) to one USES
