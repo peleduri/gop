@@ -128,6 +128,21 @@ const (
 	AttrCol     = "col"      // 1-based column of the value start, integer as string
 )
 
+// OIDC claim inputs on workflow -EXECUTES_WITH-> oidc edges. Keys are named
+// after the GitHub Actions token claims (and the components of sub) that
+// cloud trust policies match on, so a matcher can compare them directly with
+// the patterns internal/oidc parses. All optional; values are strings.
+const (
+	AttrJobs            = "jobs"             // comma list of the job ids that can mint a token
+	AttrEnvironments    = "environments"     // comma list of those jobs' environment names; EnvDynamic for an expression
+	AttrJobWorkflowRef  = "job_workflow_ref" // comma list of called reusable workflows that mint it: owner/repo/path@refs/heads/x
+	AttrRepository      = "repository"       // owner/repo the workflow runs in
+	AttrRepositoryOwner = "repository_owner" // owner of that repo
+	// EnvDynamic in AttrEnvironments stands for an environment set by an
+	// expression such as ${{ inputs.env }}: any value is possible.
+	EnvDynamic = "*dynamic*"
+)
+
 // IsDemo reports whether g is synthetic demo data: the enterprise node
 // ("enterprise:<slug>") carries demo=true.
 func IsDemo(g *Graph) bool {

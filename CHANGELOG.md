@@ -61,8 +61,20 @@ flags may change in minor releases.
   (kept as a `cel` pattern and treated as possible). No cloud API calls; the
   graph wiring follows separately.
 
+- OIDC edges (`workflow -EXECUTES_WITH-> oidc`) carry the token claim inputs
+  a cloud trust matches on: `jobs` (the jobs that can mint a token),
+  `environments` (their `environment:` names, `*dynamic*` for an expression),
+  `repository`, `repository_owner`, and `job_workflow_ref` when an id-token job
+  calls an enterprise reusable workflow that mints the token. Additive; the
+  engine does not read them yet.
+
 ### Changed
 
+- OIDC detection follows job-level permissions: a job's own `permissions:`
+  replace the workflow-level value, so a workflow with `permissions: write-all`
+  whose jobs all set narrower permissions without `id-token: write` no longer
+  gets an OIDC edge. The edge's `line` points at the key that grants the
+  token (job-level when the job sets it).
 - Cross-org `USES` now depends on the Actions access setting of the repo that
   hosts the action. The collector reads
   `GET /repos/{owner}/{repo}/actions/permissions/access` once per private or

@@ -1,0 +1,11 @@
+name: oidc-deploy
+on:
+  workflow_call:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      id-token: write
+    steps:
+      - run: ./deploy.sh

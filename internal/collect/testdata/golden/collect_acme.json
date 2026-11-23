@@ -1481,8 +1481,11 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "file": ".github/workflows/deploy.yml",
+        "jobs": "deploy",
         "line": "5",
         "permission": "id-token: write",
+        "repository": "acme-app/billing",
+        "repository_owner": "acme-app",
         "scopes": "workflow"
       }
     },
@@ -1698,8 +1701,11 @@
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "file": ".github/workflows/index.yaml",
+        "jobs": "index",
         "line": "8",
         "permission": "id-token: write",
+        "repository": "acme-app/search",
+        "repository_owner": "acme-app",
         "scopes": "index"
       }
     },

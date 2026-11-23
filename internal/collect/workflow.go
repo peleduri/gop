@@ -41,10 +41,14 @@ func (u ActionUse) IsReusableWorkflow() bool {
 
 // WorkflowFacts is what gop extracts from one workflow file.
 type WorkflowFacts struct {
-	Uses            []ActionUse
+	Uses []ActionUse
+	Jobs []string // every job id, sorted
+	// IDTokenWrite is whether at least one job resolves to id-token: write
+	// (job-level permissions replace workflow-level ones).
 	IDTokenWrite    bool
-	IDTokenScopes   []string // "workflow" and/or job ids
-	Secrets         []string // names referenced as secrets.NAME (GITHUB_TOKEN excluded); "*" for dynamic access
+	IDTokenScopes   []string     // "workflow" (some job inherits it) and/or ids of jobs that grant it themselves
+	IDTokenJobs     []IDTokenJob // jobs that can mint an OIDC token, sorted by job id
+	Secrets         []string     // names referenced as secrets.NAME (GITHUB_TOKEN excluded); "*" for dynamic access
 	InheritsSecrets bool
 	SelfHosted      bool
 	RunnerLabels    []string
@@ -59,6 +63,42 @@ type WorkflowFacts struct {
 	TokenScopes        []string // other write scopes (e.g. id-token, packages), sorted; "write-all" for write-all
 	File               string   // repo-relative path, set by the caller
 	FileRef            string   // commit or branch the file was read at, set by the caller
+}
+
+// IDTokenJob is one job that can mint an OIDC token, with the inputs of the
+// token's claims that the workflow file decides.
+type IDTokenJob struct {
+	Job string
+	// Environment is the job's environment name as written ("" if none);
+	// an expression such as ${{ inputs.env }} is kept verbatim.
+	Environment string
+	// EnvironmentDynamic is true when Environment is an expression.
+	EnvironmentDynamic bool
+	Line               int // 1-based line of the id-token: write (or write-all) key that grants it
+}
+
+// IDTokenEnvironments returns the distinct environments of the id-token
+// jobs, sorted, with graph.EnvDynamic for expressions. Jobs without one add nothing.
+func (f *WorkflowFacts) IDTokenEnvironments() []string {
+	set := map[string]bool{}
+	for _, j := range f.IDTokenJobs {
+		switch {
+		case j.EnvironmentDynamic:
+			set[graph.EnvDynamic] = true
+		case j.Environment != "":
+			set[j.Environment] = true
+		}
+	}
+	return sortedSet(set)
+}
+
+// IDTokenJobIDs returns the ids of the id-token jobs, sorted.
+func (f *WorkflowFacts) IDTokenJobIDs() []string {
+	out := make([]string, 0, len(f.IDTokenJobs))
+	for _, j := range f.IDTokenJobs {
+		out = append(out, j.Job)
+	}
+	return out
 }
 
 // SetFile records where the workflow was read from on the facts and every use.
@@ -461,12 +501,9 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		return nil, err
 	}
 	wfMap := permMap(wfPerms, wfDeclared)
-	scopes, wfUsed := map[string]bool{}, false
-	if l := idTokenLine(wfPerms); l > 0 {
-		f.IDTokenWrite = true
-		f.IDTokenScopes = append(f.IDTokenScopes, "workflow")
-		f.IDTokenLines["workflow"] = l
-	}
+	wfIDLine := idTokenLine(wfPerms)
+	scopes, wfUsed, wfIDUsed := map[string]bool{}, false, false
+	var jobIDScopes []string
 	_, jobsNode := root.get("jobs")
 	jobs, err := w.mapping(jobsNode, "map[string]job")
 	if err != nil {
@@ -474,6 +511,9 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 	}
 	jobIDs := append([]string(nil), jobs.keys...)
 	sort.Strings(jobIDs)
+	if len(jobIDs) > 0 {
+		f.Jobs = jobIDs
+	}
 	labels := map[string]bool{}
 	for _, id := range jobIDs {
 		_, jv := jobs.get(id)
@@ -506,10 +546,20 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		} else {
 			wfUsed = true
 		}
-		if l := idTokenLine(jobPerms); l > 0 {
-			f.IDTokenWrite = true
-			f.IDTokenScopes = append(f.IDTokenScopes, id)
-			f.IDTokenLines[id] = l
+		if scopeLevel(perms, "id-token") == "write" {
+			ij := IDTokenJob{Job: id, Line: wfIDLine}
+			if fromJob {
+				ij.Line = idTokenLine(jobPerms)
+				jobIDScopes = append(jobIDScopes, id)
+				f.IDTokenLines[id] = ij.Line
+			} else {
+				wfIDUsed = true
+			}
+			if ij.Environment, err = w.environmentOf(field(job, "environment")); err != nil {
+				return nil, err
+			}
+			ij.EnvironmentDynamic = strings.Contains(ij.Environment, "${{")
+			f.IDTokenJobs = append(f.IDTokenJobs, ij)
 		}
 		if sec := field(job, "secrets"); sec.Kind == yaml.ScalarNode && strings.TrimSpace(sec.Value) == "inherit" {
 			f.InheritsSecrets = true
@@ -524,6 +574,12 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 			labels[l] = true
 		}
 	}
+	if wfIDUsed {
+		f.IDTokenScopes = append(f.IDTokenScopes, "workflow")
+		f.IDTokenLines["workflow"] = wfIDLine
+	}
+	f.IDTokenScopes = append(f.IDTokenScopes, jobIDScopes...)
+	f.IDTokenWrite = len(f.IDTokenJobs) > 0
 	if f.SelfHosted {
 		for l := range labels {
 			f.RunnerLabels = append(f.RunnerLabels, l)
@@ -633,6 +689,41 @@ func compositeUses(doc *yaml.Node) ([]ActionUse, string, error) {
 		}
 	}
 	return uses, using, nil
+}
+
+// environmentOf reads a job's environment: the string form or the name of
+// the mapping form ({name: prod, url: ...}). Anything else gives "".
+func (w *yamlWalk) environmentOf(n *yaml.Node) (string, error) {
+	n, err := w.resolve(n)
+	if err != nil || n == nil {
+		return "", err
+	}
+	switch n.Kind {
+	case yaml.ScalarNode:
+		if isNullNode(n) {
+			return "", nil
+		}
+		return strings.TrimSpace(n.Value), nil
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			k, err := w.resolve(n.Content[i])
+			if err != nil {
+				return "", err
+			}
+			if k.Kind != yaml.ScalarNode || k.Value != "name" {
+				continue
+			}
+			v, err := w.resolve(n.Content[i+1])
+			if err != nil {
+				return "", err
+			}
+			if v.Kind == yaml.ScalarNode && !isNullNode(v) {
+				return strings.TrimSpace(v.Value), nil
+			}
+			return "", nil
+		}
+	}
+	return "", nil
 }
 
 // idTokenLine returns the line that grants id-token: write in a permissions

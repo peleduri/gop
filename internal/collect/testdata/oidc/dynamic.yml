@@ -1,0 +1,16 @@
+name: promote
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        type: string
+permissions:
+  id-token: write
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.target }}
+      url: https://acme.example
+    steps:
+      - run: ./promote.sh

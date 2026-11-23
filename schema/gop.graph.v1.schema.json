@@ -110,7 +110,11 @@
       "allOf": [{"$ref": "#/$defs/Attrs"}],
       "properties": {
         "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator, team, ref_bypass, token_write. New values may be added within v1.", "type": "string", "minLength": 1},
-        "jobs": {"description": "Comma list of the job ids a via=token_write CAN_PUSH edge comes from.", "type": "string", "minLength": 1},
+        "jobs": {"description": "Comma list of job ids: those a via=token_write CAN_PUSH edge comes from, or those that can mint the token on an EXECUTES_WITH edge to oidc.", "type": "string", "minLength": 1},
+        "environments": {"description": "EXECUTES_WITH to oidc: comma list of the id-token jobs' environment names; *dynamic* for an expression.", "type": "string", "minLength": 1},
+        "job_workflow_ref": {"description": "EXECUTES_WITH to oidc: comma list of called reusable workflows that mint the token, as owner/repo/path@ref.", "type": "string", "minLength": 1},
+        "repository": {"description": "EXECUTES_WITH to oidc: the token's repository claim, owner/repo.", "type": "string", "minLength": 1},
+        "repository_owner": {"description": "EXECUTES_WITH to oidc: the token's repository_owner claim.", "type": "string", "minLength": 1},
         "ref": {"description": "Branch a via=ref_bypass CAN_PUSH edge applies to.", "type": "string", "minLength": 1},
         "ref_kind": {"type": "string", "enum": ["sha", "tag", "branch"]},
         "file": {"description": "Repo-relative path of the workflow or action file the edge was read from.", "type": "string", "minLength": 1},
