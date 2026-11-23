@@ -36,3 +36,12 @@ jobs:
           fail-on-reach-increase: "true"
           baseline-artifact: gop-posture
           retention-days: 7
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: ./action
+        with:
+          enterprise: acme
+          app-id: ${{ vars.GOP_APP_ID }}
+          app-private-key: ${{ secrets.GOP_APP_PRIVATE_KEY }}
+          retention-days: 1

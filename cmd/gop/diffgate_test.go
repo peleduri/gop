@@ -16,7 +16,9 @@ import (
 // (action/diff-gate.sh) against a freshly built gop and the diff fixtures.
 func TestActionDiffGate(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("the Action's shell steps run on Linux and macOS runners")
+		// "bash" may resolve to WSL here; CI's action-smoke job runs the
+		// script in Git Bash on a Windows runner instead.
+		t.Skip("the gate is tested on Windows by the action-smoke workflow")
 	}
 	bash, err := exec.LookPath("bash")
 	if err != nil {
