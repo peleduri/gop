@@ -131,6 +131,20 @@ flags may change in minor releases.
   leaves the configured REST or GraphQL scheme and host. `net/http` alone
   keeps it for a subdomain, another port on the same host name, or an
   `https` to `http` downgrade.
+- `gop redact --graph g.json --out shareable.json [--salt-file key]
+  [--keep-attr k1,k2] [--map-out mapping.json]` pseudonymizes a graph for bug
+  reports: orgs, repos, users, teams, actions, workflow files, secret names,
+  runner labels, environments and cloud names become stable synthetic names
+  (HMAC-SHA256 under the salt; SHAs stay 40-hex, tags become `v1.N`, branches
+  `branch-N`, third-party owners `ext-NN`), member, IP allow list and
+  Cartography `times_used` counts are bucketed, timestamps (including
+  `last_used`) shift by one offset and coverage text is rewritten through the
+  same map. Structure, evidence and reach are unchanged: reach
+  counts and scores on the redacted graph equal the original's, and it passes
+  `gop validate`. Attr keys gop does not define are dropped unless
+  `--keep-attr` names them. A self-check fails the run, writing nothing, if an
+  original name of 3+ characters is still in the output. The bug report
+  template asks for `gop redact` output, never a raw graph.
 
 ## [0.3.0] - 2026-11-24
 
