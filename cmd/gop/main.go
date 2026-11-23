@@ -18,6 +18,7 @@ import (
 
 	"github.com/peleduri/gop/internal/collect"
 	"github.com/peleduri/gop/internal/demo"
+	"github.com/peleduri/gop/internal/diff"
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
 	"github.com/peleduri/gop/internal/oidc"
@@ -50,6 +51,7 @@ Usage:
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
   gop serve   --graph graph.json | --demo  [--baseline old.json]
   gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
+              [--previous old.json]
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
   gop validate --graph graph.json [--format text|json]
@@ -436,6 +438,7 @@ func (a *app) cmdReport(args []string) error {
 	out := fs.String("out", "", `path to write the report ("-" for stdout)`)
 	format := fs.String("format", "", "html or md (default html, or md when --out ends in .md)")
 	top := fs.Int("top", 10, "principals in the risks table and paths section")
+	prev := fs.String("previous", "", "older graph.json: open the report with what changed since it (gop diff)")
 	useDemo := demoFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err
@@ -460,8 +463,20 @@ func (a *app) cmdReport(args []string) error {
 	if err != nil {
 		return err
 	}
+	opts := report.Options{Format: f, Top: *top, Version: version}
+	if strings.TrimSpace(*prev) != "" {
+		old, err := graph.LoadFile(*prev)
+		if err != nil {
+			return codeError{exitUsage, fmt.Errorf("report: load %s: %w", *prev, err)}
+		}
+		rep, err := diff.Compare(old, g)
+		if err != nil {
+			return codeError{exitUsage, fmt.Errorf("report: --previous: %w", err)}
+		}
+		opts.Changes = &rep
+	}
 	return a.writeFile(*out, func(w io.Writer) error {
-		return report.Render(w, g, report.Options{Format: f, Top: *top, Version: version})
+		return report.Render(w, g, opts)
 	})
 }
 

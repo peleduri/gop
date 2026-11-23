@@ -22,6 +22,30 @@ out.org = {
 out.inbound = GOP.inbound(D, "acme-app").map(function (p) { return p.from; })
   .filter(function (v, i, a) { return a.indexOf(v) === i; });
 
+out.a11y = {
+  tables: ids["gop-orgview"].find("table").map(function (t) {
+    var th = t.find("th");
+    return {
+      Caption: t.find("caption").map(function (c) { return c.textContent; }).join(""),
+      Th: th.length,
+      Scoped: th.filter(function (x) { return x.scope === "col"; }).length,
+    };
+  }),
+  focused: global.focused ? global.focused.tagName : "",
+};
+var badges = [];
+(function collect(e) {
+  e.childNodes.forEach(function (c) {
+    if (c instanceof El) { if (/\bbadge\b/.test(c.className)) { badges.push(c); } collect(c); }
+  });
+})(ids["gop-orgview"]);
+out.a11y.badges = badges.length;
+out.a11y.iconBadges = badges.filter(function (b) {
+  var i = b.childNodes[0];
+  return i instanceof El && i.attrs && i.attrs["aria-hidden"] === "true" && /[a-z]/.test(b.textContent);
+}).length;
+out.a11y.bannerQ = GOP.parseHash("#ev=confirmed&kind=oidc&q=identity%3Abob").f.q;
+
 go("#/org/acme-legacy");
 out.legacyText = ids["gop-orgview"].textContent;
 

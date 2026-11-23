@@ -151,7 +151,7 @@ gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography ex
 gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json] [--app-id N --app-key-file PATH]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
 gop serve   --graph graph.json | --demo  [--baseline old.json]
-gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
+gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N] [--previous old.json]
 gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>
 gop validate --graph graph.json [--format text|json]
@@ -173,6 +173,7 @@ gop version
 `gop redact` makes a graph safe to attach to a bug report. Every org, repo, user, team, action, workflow file, secret name, runner label, environment and cloud name becomes a stable synthetic name (`acme-org-03`, `acme-org-03/repo-012`, `user-007`, `.github/workflows/wf-004.yml`; SHAs become other 40-hex strings, tags `v1.N`, branches `branch-N`), member, IP allow list and observed role-use (`times_used`) counts are bucketed and timestamps, including `last_used`, shift by one offset. Structure, evidence and the attrs reach depends on are kept, so reach and scores are the same as on the real graph. Attr keys gop does not define are dropped unless `--keep-attr` names them. Names come from HMAC-SHA256 under the salt: `--salt-file` gives the same names on every run, and without it each run uses a random salt. Before writing, it checks that no original name of 3 or more characters appears in the output and fails, writing nothing, if one does. `--map-out` writes the real-to-synthetic mapping to a local file: keep it, never share it. Regenerate a report from the redacted graph instead of redacting report.html.
 
 `gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md).
+`gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md). `gop report --graph new.json --previous old.json` opens the HTML report with the same changes as a "What changed" banner; [docs/report.md](docs/report.md) describes the report, the banner and its accessibility checks.
 
 `gop export --format cypher graph.json > gop.cypher` writes an idempotent Neo4j script that loads gop's nodes, edges and computed reach next to [Cartography](https://github.com/cartography-cncf/cartography) data, linked to its GitHub repo, org and AWS role nodes. See [docs/cartography.md](docs/cartography.md#export-gop-to-neo4j).
 
@@ -313,7 +314,7 @@ Read this before you set it up:
 
 ### Fail the job when confirmed reach grows
 
-A scheduled run nobody reads catches nothing. With `fail-on-reach-increase: "true"`, the Action compares this run's graph with the `gop-posture` artifact (or the name in `baseline-artifact`) of the newest previous successful run of the same workflow on the default branch, using `gop diff --fail-on confirmed-increase`. When confirmed (principal, repo) pairs grew, for example a new unpinned ref or a raised default permission, the job fails after the artifact upload, so the normal Actions failure notification reaches you and the artifact is kept.
+A scheduled run nobody reads catches nothing. With `fail-on-reach-increase: "true"`, the Action compares this run's graph with the `gop-posture` artifact (or the name in `baseline-artifact`) of the newest previous successful run of the same workflow on the default branch, using `gop diff --fail-on confirmed-increase`. When confirmed (principal, repo) pairs grew, for example a new unpinned ref or a raised default permission, the job fails after the artifact upload, so the normal Actions failure notification reaches you and the artifact is kept. The run's `report.html` then opens with what changed since the baseline.
 
 ```yaml
 on:

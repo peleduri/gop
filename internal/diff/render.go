@@ -103,6 +103,10 @@ func (c SettingChange) newKnown() bool {
 	return c.Status == Changed || c.Status == GainedVisibility || c.Status == NodeAdded
 }
 
+// Phrase describes the change in one line, e.g. "acme-actions default_perm
+// read → write"; an unseen value reads "not visible", never off.
+func (c SettingChange) Phrase() string { return c.phrase() }
+
 func (c SettingChange) phrase() string {
 	o := value(c.Old, c.OldEvidence, c.oldKnown())
 	n := value(c.New, c.NewEvidence, c.newKnown())

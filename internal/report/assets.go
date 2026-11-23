@@ -19,12 +19,20 @@ const styleCSS = `
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1080px;margin:0 auto;padding:24px 16px 48px}
+header,nav,main,footer{max-width:1080px;margin:0 auto;padding-left:16px;padding-right:16px}
+header{padding-top:24px}
 a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.skip{position:absolute;left:-9999px;top:8px}.skip:focus{left:16px;background:var(--bg);padding:4px 8px}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+nav ul{list-style:none;display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 0;padding:0;font-size:.9rem}
 h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1.1rem;margin:32px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
 .meta,.note{color:var(--muted);font-size:.9rem}
 .headline{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:6px;padding:12px 16px;margin:16px 0}
-.headline p{margin:4px 0}.headline .big{font-size:1.15rem;font-weight:600}
+.headline p{margin:4px 0}.headline .big,.banner .big{font-size:1.15rem;font-weight:600}
+.banner{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:12px 16px;margin:16px 0}
+.banner h2{margin:0 0 4px;padding:0;border:0}.banner p{margin:4px 0}.banner h3{font-size:.95rem;margin:12px 0 4px}
+.banner ul{margin:0;padding-left:20px}.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:.9rem}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -44,7 +52,7 @@ code{font:.85em ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all
 .filters fieldset{border:1px solid var(--line);border-radius:4px;margin:0;padding:2px 8px;font-size:.85rem}
 .filters fieldset label{display:inline;margin-right:8px;color:var(--fg)}
 .orglinks a{margin-right:12px}
-footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
 `
 
 const scriptJS = `
@@ -115,8 +123,15 @@ return e;
 }
 function code(t){return h("code","",t);}
 function clear(e){while(e.firstChild){e.removeChild(e.firstChild);}}
-function evBadge(ev){return h("span","badge "+(ev==="live"?"live":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv"),ev);}
-function pathBadge(p){return p.ev==="confirmed"?h("span","badge live","confirmed"):h("span","badge nv","possible: a hop is not visible");}
+function icon(t){var e=h("span","",t);e.setAttribute("aria-hidden","true");return e;}
+function badge(cls,t,txt){return h("span","badge "+cls,icon(t)," "+txt);}
+function evBadge(ev){var c=ev==="live"?"live":ev==="audit"?"audit":ev==="supplied file"?"supplied":"nv";return badge(c,c==="supplied"?"≡":c==="nv"?"?":"✓",ev);}
+function pathBadge(p){return p.ev==="confirmed"?badge("live","✓","confirmed"):badge("nv","?","possible: a hop is not visible");}
+function table(cap,heads,tb){
+var tr=h("tr");
+heads.forEach(function(t){var th=h("th","",t);th.scope="col";tr.appendChild(th);});
+return h("div","scroll",h("table","",h("caption","vh",cap),h("thead","",tr),tb));
+}
 function plural(n,one,many){return n+" "+(n===1?one:many);}
 function pathEl(p){
 var ol=h("ol");
@@ -135,7 +150,7 @@ function fixTable(box,fs,none){
 if(!fs.length){box.appendChild(h("p","note",none));return;}
 var tb=h("tbody");
 fs.forEach(function(x){tb.appendChild(h("tr","",h("td","n",x.n),h("td","",x.desc,h("br"),h("span","src",code(x.id))),h("td","n",x.removed),h("td","n",x.pct)));});
-box.appendChild(h("div","scroll",h("table","",h("thead","",h("tr","",h("th","","#"),h("th","","Fix"),h("th","","Confirmed pairs removed"),h("th","","Cumulative removed"))),tb)));
+box.appendChild(table("Suggested fixes for this view",["#","Fix","Confirmed pairs removed","Cumulative removed"],tb));
 }
 function counts(ps){
 var c=0,pr={};
@@ -177,12 +192,12 @@ var org=null;
 D.orgs.forEach(function(o){if(o.name===name){org=o;}});
 var back=h("a","","← Back to the full report");back.href="#";
 v.appendChild(h("p","",back));
-v.appendChild(h("h2","","Org ",code(name)));
+var hd=h("h2","","Org ",code(name));hd.tabIndex=-1;v.appendChild(hd);
 var st=section("Settings","A setting gop could not see reads unknown, never off.");
 if(org){
 var tb=h("tbody");
-org.settings.forEach(function(a){tb.appendChild(h("tr","",h("td","",a.title),h("td","",a.known?a.value:h("span","badge nv",a.value)),h("td","",evBadge(a.evidence))));});
-st.appendChild(h("div","scroll",h("table","",h("thead","",h("tr","",h("th","","Setting"),h("th","","Value"),h("th","","Evidence"))),tb)));
+org.settings.forEach(function(a){tb.appendChild(h("tr","",h("td","",a.title),h("td","",a.known?a.value:badge("nv","?",a.value)),h("td","",evBadge(a.evidence))));});
+st.appendChild(table("Settings of "+name,["Setting","Value","Evidence"],tb));
 }else{st.appendChild(h("p","note","gop has no org node for this name: every setting is unknown."));}
 v.appendChild(st);
 var inb=GOP.inbound(D,name),s1=section("Inbound reach","Principals from other orgs that reach this org's repos and their impact.");
@@ -193,16 +208,19 @@ var s3=section("Fixes that touch this org");fixTable(s3,GOP.fixesFor(D,[name]),"
 var cov=GOP.coverageFor(D,name),s4=section("Coverage gaps");
 if(cov.length){
 var cb=h("tbody");
-cov.forEach(function(x){cb.appendChild(h("tr","",h("td","",code(x.scope)),h("td","",h("span","badge nv",x.fact)),h("td","",x.reason),h("td","",x.needs_fix)));});
-s4.appendChild(h("div","scroll",h("table","",h("thead","",h("tr","",h("th","","Scope"),h("th","","Not visible"),h("th","","Why"),h("th","","Access that fixes it"))),cb)));
+cov.forEach(function(x){cb.appendChild(h("tr","",h("td","",code(x.scope)),h("td","",badge("nv","?",x.fact)),h("td","",x.reason),h("td","",x.needs_fix)));});
+s4.appendChild(table("Coverage gaps of "+name,["Scope","Not visible","Why","Access that fixes it"],cb));
 }else{s4.appendChild(h("p","note","No coverage gap recorded for this org."));}
 v.appendChild(s4);
+return hd;
 }
-function route(){
+function focusOn(e){if(e&&e.focus){e.focus();}}
+function route(moved){
 var s=GOP.parseHash(location.hash),isOrg=s.route==="org";
 $("gop-static").hidden=isOrg;$("gop-explore").hidden=isOrg;$("gop-orgview").hidden=!isOrg;
-if(isOrg){renderOrg(s.org);window.scrollTo(0,0);return;}
+if(isOrg){var hd=renderOrg(s.org);window.scrollTo(0,0);if(moved){focusOn(hd);}return;}
 writeForm(s.f);renderExplore(s.f);
+if(moved&&location.hash.indexOf("=")>0){focusOn($("gop-explore-h"));}
 }
 function onInput(){
 var f=readForm(),hs=GOP.toHash(f);
@@ -213,7 +231,7 @@ form.addEventListener("input",onInput);
 form.addEventListener("change",onInput);
 form.addEventListener("submit",function(e){e.preventDefault();});
 $("gop-reset").addEventListener("click",function(){writeForm(GOP.blank());onInput();});
-window.addEventListener("hashchange",route);
+window.addEventListener("hashchange",function(){route(true);});
 route();
 })();}
 `

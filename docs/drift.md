@@ -111,6 +111,8 @@ Lost visibility and downgrades never trip `--fail-on`; watch the `coverage` sect
 - `markdown` renders the same content as tables, for a PR comment or job summary.
 - `json` encodes the full `diff.Report` (see [`internal/diff/diff.go`](../internal/diff/diff.go)); it decodes back into the same type.
 
+`gop report --graph new.json --previous old.json` puts the same comparison at the top of the HTML report as a "What changed" banner (see [report.md](report.md)).
+
 `--only` limits the sections shown. It does not change the leading summary (also `summary` in JSON), which always describes the full diff, or what `--fail-on` evaluates.
 
 ## From an agent

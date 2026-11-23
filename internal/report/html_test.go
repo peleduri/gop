@@ -164,9 +164,9 @@ func TestStaticSectionWithoutJS(t *testing.T) {
 	static = static[:strings.Index(static, `<section id="gop-explore" hidden>`)]
 	for _, want := range []string{
 		"Members of acme-actions can push code that runs in 12 repos", // headline
-		"<h2>Top paths</h2>", "oidc:acme-app/web", // top paths
-		"<h2>Suggested fixes</h2>", "Pin acme-actions/deploy@main to a commit SHA", // fixes
-		"<h2>Coverage</h2>", "org owner on acme-legacy", // coverage
+		`<h2 id="top-paths">Top paths</h2>`, "oidc:acme-app/web",      // top paths
+		`<h2 id="fixes">Suggested fixes</h2>`, "Pin acme-actions/deploy@main to a commit SHA", // fixes
+		`<h2 id="coverage">Coverage</h2>`, "org owner on acme-legacy", // coverage
 	} {
 		if !strings.Contains(static, want) {
 			t.Errorf("static section missing %q", want)
@@ -254,6 +254,19 @@ type harnessOut struct {
 			Orgs             []string
 		}
 	} `json:"junk"`
+	// A11y is what the script rendered for the acme-app org view: every
+	// table's caption and header scopes, the badges' icons, and the focus.
+	A11y struct {
+		Tables []struct {
+			Caption string
+			Th      int
+			Scoped  int
+		}
+		Badges     int
+		IconBadges int
+		Focused    string
+		BannerQ    string
+	} `json:"a11y"`
 }
 
 // TestInlineScriptInNode runs the served script under node with a fake DOM
@@ -319,7 +332,7 @@ func TestInlineScriptInNode(t *testing.T) {
 		}
 	}
 	// acme-legacy: the unseen IP allow list reads unknown, never off.
-	if !strings.Contains(h.LegacyText, "IP allow listunknownnot visible") || strings.Contains(h.LegacyText, "IP allow listoff") {
+	if !strings.Contains(h.LegacyText, "IP allow list? unknown? not visible") || strings.Contains(h.LegacyText, "IP allow listoff") {
 		t.Errorf("acme-legacy settings: %q", h.LegacyText)
 	}
 	if !strings.Contains(h.LegacyText, "org owner on acme-legacy") {
@@ -347,7 +360,7 @@ func TestInlineScriptInNode(t *testing.T) {
 		t.Errorf("filtered view: %+v", h.Filtered)
 	}
 	for _, s := range h.Filtered.Summaries {
-		if !strings.HasPrefix(s, "confirmed ") || !strings.HasSuffix(s, " oidc") {
+		if !strings.HasPrefix(s, "✓ confirmed ") || !strings.HasSuffix(s, " oidc") {
 			t.Errorf("filtered summary %q", s)
 		}
 	}
@@ -375,5 +388,24 @@ func TestInlineScriptInNode(t *testing.T) {
 	if j := h.Junk; j.Route != "" || j.F.Ev != "" || j.F.Kind != "" || j.F.Ref != "" || j.F.Q != "" ||
 		!reflect.DeepEqual(j.F.Orgs, []string{"acme-app"}) {
 		t.Errorf("junk hash parsed to %+v", j)
+	}
+
+	a := h.A11y
+	if len(a.Tables) == 0 {
+		t.Error("org view rendered no table")
+	}
+	for _, tb := range a.Tables {
+		if tb.Caption == "" || tb.Th == 0 || tb.Scoped != tb.Th {
+			t.Errorf("script-rendered table without caption or scoped headers: %+v", tb)
+		}
+	}
+	if a.Badges == 0 || a.IconBadges != a.Badges {
+		t.Errorf("%d of %d script-rendered evidence badges have an icon", a.IconBadges, a.Badges)
+	}
+	if a.Focused != "h2" {
+		t.Errorf("opening an org view focuses %q, want its h2", a.Focused)
+	}
+	if a.BannerQ != "identity:bob" {
+		t.Errorf("banner link q=identity%%3Abob parsed to %q", a.BannerQ)
 	}
 }
