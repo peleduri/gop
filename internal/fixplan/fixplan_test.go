@@ -14,6 +14,11 @@ const (
 	acmePath  = "../../testdata/acme/graph.json"
 	linesPath = "testdata/lines.json"
 	deployRef = "action:acme-actions/deploy@main"
+	// triggersPath is a public acme-app/docs whose preview.yml checks out the
+	// pull request's head on pull_request_target, with a write token.
+	triggersPath = "testdata/triggers.json"
+	previewWF    = "workflow:acme-app/docs/.github/workflows/preview.yml"
+	webCI        = "workflow:acme-app/web/.github/workflows/ci.yml"
 )
 
 func index(t *testing.T, path string) *graph.Index {
@@ -184,6 +189,9 @@ func TestGoldenRender(t *testing.T) {
 		{"pin_lines", linesPath, graph.PinRef{Action: deployRef}},
 		{"pin_acme", acmePath, graph.PinRef{Action: deployRef}},
 		{"lower_lines", linesPath, graph.LowerDefaultPerm{Org: "org:acme-actions", To: "read"}},
+		{"restrict_acme", acmePath, graph.RestrictToken{Workflow: webCI}},
+		{"restrict_triggers", triggersPath, graph.RestrictToken{Workflow: previewWF}},
+		{"harden_triggers", triggersPath, graph.HardenTrigger{Workflow: previewWF}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := Build(index(t, tc.path), tc.fix)

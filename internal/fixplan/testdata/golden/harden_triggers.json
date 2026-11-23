@@ -1,0 +1,236 @@
+{
+  "summary": "Stop acme-app/docs/.github/workflows/preview.yml from running attacker-controlled code on its risky triggers: 2 lines to edit across 1 repo; removes 2 of 2 confirmed (principal, repo) pairs (100%)",
+  "plan": {
+    "fix_id": "harden_trigger:workflow:acme-app/docs/.github/workflows/preview.yml",
+    "fix": {
+      "type": "harden_trigger",
+      "workflow": "workflow:acme-app/docs/.github/workflows/preview.yml"
+    },
+    "description": "Stop acme-app/docs/.github/workflows/preview.yml from running attacker-controlled code on its risky triggers",
+    "removes": {
+      "fixes": [
+        "harden_trigger:workflow:acme-app/docs/.github/workflows/preview.yml"
+      ],
+      "before": {
+        "principals": 3,
+        "confirmed": {
+          "repos": 2,
+          "orgs": 2,
+          "workflows": 4,
+          "secrets": 2,
+          "oidc": 2,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 2,
+          "secrets": 1,
+          "oidc": 1,
+          "runners": 0
+        },
+        "confirmed_pairs": 2,
+        "possible_pairs": 1,
+        "score": 34,
+        "possible_score": 17
+      },
+      "after": {
+        "principals": 3,
+        "confirmed": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 0,
+        "possible_pairs": 0,
+        "score": 0,
+        "possible_score": 0
+      },
+      "per_principal": [
+        {
+          "principal": "external:anyone",
+          "before": {
+            "principal": "external:anyone",
+            "confirmed": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 2,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 17,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "external:anyone",
+            "confirmed": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 0,
+            "possible_score": 0
+          }
+        },
+        {
+          "principal": "identity:bob",
+          "before": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 2,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 17,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 0,
+            "possible_score": 0
+          }
+        },
+        {
+          "principal": "members:acme-app",
+          "before": {
+            "principal": "members:acme-app",
+            "confirmed": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 2,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 0,
+            "possible_score": 17
+          },
+          "after": {
+            "principal": "members:acme-app",
+            "confirmed": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 0,
+            "possible_score": 0
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/docs",
+        "file": ".github/workflows/preview.yml",
+        "file_ref": "main",
+        "line": 14,
+        "change": "in job preview, remove `ref: ${{ github.event.pull_request.head.sha }}` from the actions/checkout step so it checks out the base commit, or drop the checkout",
+        "owner": "acme-app",
+        "edge": "external:anyone CAN_TRIGGER workflow:acme-app/docs/.github/workflows/preview.yml",
+        "evidence": "live",
+        "note": "on pull_request_target; can be triggered by external:anyone, members:acme-app [not visible]"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/docs",
+        "file": ".github/workflows/preview.yml",
+        "file_ref": "main",
+        "line": 23,
+        "change": "in job label, move `${{ github.event.pull_request.title }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ github.event.pull_request.title }}`) and read it as \"$UNTRUSTED\", so the text is data, not code",
+        "owner": "acme-app",
+        "edge": "identity:bob CAN_TRIGGER workflow:acme-app/docs/.github/workflows/preview.yml",
+        "evidence": "live",
+        "note": "on pull_request_target; can be triggered by identity:bob"
+      }
+    ],
+    "caveats": [
+      "make all 2 edits: gop removes the workflow's trigger edges as a whole, and one untrusted execution left in place keeps it attacker-controlled",
+      "gop matches a narrow set of patterns: review the whole job, including scripts and local actions it runs, for other uses of the pull request's code or text",
+      "if the job must build or test the pull request's code, do it in a separate pull_request workflow with a read-only token and no secrets, and pass results through an artifact"
+    ]
+  }
+}

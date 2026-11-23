@@ -55,7 +55,7 @@ Usage:
   gop diff    OLD.json NEW.json [--format text|json|markdown] [--only paths,settings,edges,scores,coverage]
               [--fail-on confirmed-increase|any-new-path] [--force]
   gop fix-plan --graph graph.json | --demo  --pin <action> | --lower-default-perm <org> [--to read|none]
-              [--format text|markdown|json]
+              | --restrict-token <workflow> | --harden-trigger <workflow> [--format text|markdown|json]
   gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
               [--github-url URL] [--format diff|text|json]
   gop mcp-config --client claude|cursor|vscode --graph graph.json

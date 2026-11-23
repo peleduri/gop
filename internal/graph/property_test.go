@@ -170,27 +170,38 @@ func refMutable(g *Graph, action string) bool {
 	return at < 0 || !refSHA.MatchString(action[at+1:])
 }
 
-// refFixes reads the hypothetical changes out of fixes: pinned action IDs, and
-// orgs whose default-permission CAN_PUSH edges from members:X are removed.
-func refFixes(fixes []Fix) (pinned, lowered map[string]bool) {
-	pinned, lowered = map[string]bool{}, map[string]bool{}
+// refFixSet is the reference reading of a fix list (see refFixes).
+type refFixSet struct {
+	pinned, lowered, restricted, hardened map[string]bool
+}
+
+// refFixes reads the hypothetical changes out of fixes: pinned action IDs,
+// orgs whose default-permission CAN_PUSH edges from members:X are removed,
+// workflows whose via=token_write CAN_PUSH edges are removed (RestrictToken),
+// and workflows whose incoming CAN_TRIGGER edges are removed (HardenTrigger).
+func refFixes(fixes []Fix) refFixSet {
+	fs := refFixSet{pinned: map[string]bool{}, lowered: map[string]bool{}, restricted: map[string]bool{}, hardened: map[string]bool{}}
 	for _, f := range fixes {
 		switch f := f.(type) {
 		case PinRef:
-			pinned[f.Action] = true
+			fs.pinned[f.Action] = true
 		case LowerDefaultPerm:
 			if f.To == "read" || f.To == "none" {
-				lowered[f.Org] = true
+				fs.lowered[f.Org] = true
 			}
+		case RestrictToken:
+			fs.restricted[f.Workflow] = true
+		case HardenTrigger:
+			fs.hardened[f.Workflow] = true
 		}
 	}
-	return pinned, lowered
+	return fs
 }
 
 // refControl derives the control edges of g under fixes, one per evidence
 // edge (parallel evidence edges give parallel control edges).
 func refControl(g *Graph, fixes []Fix) []refEdge {
-	pinned, lowered := refFixes(fixes)
+	fx := refFixes(fixes)
 	mutable := map[string]bool{}
 	var out []refEdge
 	for _, e := range g.Edges {
@@ -200,7 +211,11 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 		case CanPush:
 			// Any source pushes, including workflow -> repo (via=token_write):
 			// a write GITHUB_TOKEN controls the repo, it is not CI reach only.
-			if org, ok := strings.CutPrefix(e.From, "members:"); ok && e.Attrs[AttrVia] == ViaDefaultPerm && lowered["org:"+org] {
+			if org, ok := strings.CutPrefix(e.From, "members:"); ok && e.Attrs[AttrVia] == ViaDefaultPerm && fx.lowered["org:"+org] {
+				continue
+			}
+			// RestrictToken: the workflow's token is contents: read.
+			if e.Attrs[AttrVia] == ViaTokenWrite && fx.restricted[e.From] {
 				continue
 			}
 			out = append(out, fwd)
@@ -219,7 +234,7 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 				m = refMutable(g, e.From)
 				mutable[e.From] = m
 			}
-			if m && !pinned[e.From] {
+			if m && !fx.pinned[e.From] {
 				out = append(out, refResolves(g, e, rev)...)
 			}
 		case Uses:
@@ -234,7 +249,11 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 			out = append(out, fwd)
 		case CanTrigger:
 			// A principal that can cause a risky trigger of a workflow running
-			// attacker code controls the workflow, like a push would.
+			// attacker code controls the workflow, like a push would, unless
+			// HardenTrigger removed the untrusted execution.
+			if fx.hardened[e.To] {
+				continue
+			}
 			out = append(out, fwd)
 		}
 	}
@@ -822,6 +841,41 @@ func fixSets(cands []Fix, r *rand.Rand) [][]Fix {
 	return out
 }
 
+// extraFixSample bounds the non-candidate workflow fixes P6 adds per graph.
+const extraFixSample = 6
+
+// extraWorkflowFixes returns up to extraFixSample RestrictToken and
+// HardenTrigger fixes on workflows that Candidates does not propose: ones
+// whose token_write or CAN_TRIGGER edges are all not_visible, or that have
+// none (a no-op). Candidates already covers the verified ones; these check
+// that a fix on an unconfirmed or absent edge never grows reach either.
+func extraWorkflowFixes(g *Graph, cands []Fix, r *rand.Rand) []Fix {
+	have := map[string]bool{}
+	for _, c := range cands {
+		have[c.ID()] = true
+	}
+	seen := map[string]bool{}
+	var extra []Fix
+	for _, e := range g.Edges {
+		for _, w := range []string{e.From, e.To} {
+			if KindFromID(w) != KindWorkflow || seen[w] {
+				continue
+			}
+			seen[w] = true
+			for _, f := range []Fix{RestrictToken{Workflow: w}, HardenTrigger{Workflow: w}} {
+				if !have[f.ID()] {
+					extra = append(extra, f)
+				}
+			}
+		}
+	}
+	var out []Fix
+	for _, i := range sampleIdx(r, len(extra), extraFixSample) {
+		out = append(out, extra[i])
+	}
+	return out
+}
+
 func fixIDs(fs []Fix) []string {
 	var out []string
 	for _, f := range fs {
@@ -837,7 +891,7 @@ func propFixMonotonic(g *Graph, r *rand.Rand) error {
 	for _, p := range principals {
 		base[p] = ix.Reach(p, Options{})
 	}
-	cands := ix.Candidates()
+	cands := append(ix.Candidates(), extraWorkflowFixes(g, ix.Candidates(), r)...)
 	for n, fs := range fixSets(cands, r) {
 		cg := ix.buildControl(fs)
 		for _, p := range principals {

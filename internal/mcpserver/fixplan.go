@@ -15,7 +15,7 @@ import (
 
 // FixPlanInput is the fix_plan tool input: exactly one of Fix and SuggestionRank.
 type FixPlanInput struct {
-	Fix            *FixSpec `json:"fix,omitempty" jsonschema:"the fix to plan, as in what_if: {type:pin_ref,action} or {type:lower_default_perm,org,to}"`
+	Fix            *FixSpec `json:"fix,omitempty" jsonschema:"the fix to plan, as in what_if: {type:pin_ref,action}, {type:lower_default_perm,org,to}, {type:restrict_token,workflow} or {type:harden_trigger,workflow}"`
 	SuggestionRank int      `json:"suggestion_rank,omitempty" jsonschema:"1-based rank of a fix in the suggest_fixes output with the default budget; use instead of fix"`
 }
 
@@ -48,7 +48,7 @@ func (e *Engine) FixPlan(in FixPlanInput) (res FixPlanOutput, _ error) {
 		}
 		fx = sug[in.SuggestionRank-1].Fix
 	default:
-		return FixPlanOutput{}, errors.New(`give fix ({type:"pin_ref",action} or {type:"lower_default_perm",org,to}) or suggestion_rank`)
+		return FixPlanOutput{}, errors.New("give fix (" + fixShapes + ") or suggestion_rank")
 	}
 	p := fixplan.Build(e.ix, fx)
 	return FixPlanOutput{Summary: fixplan.Summary(p), Plan: p}, nil
@@ -61,7 +61,9 @@ func addFixPlanTool(s *mcp.Server, e *Engine) {
 		Name: "fix_plan",
 		Description: "Turn one fix into concrete change steps: for pin_ref, every workflow and nested action line " +
 			"that uses the ref (repo, file, line and a one-line diff when the graph has line attributes); for " +
-			"lower_default_perm, the org setting with its UI path and REST call, and the repos where members lose push. " +
+			"lower_default_perm, the org setting with its UI path and REST call, and the repos where members lose push; " +
+			"for restrict_token, where to set permissions: contents: read in the workflow (top level or per job); for " +
+			"harden_trigger, the job and line of each checkout of the pull request head or script injection, with the change. " +
 			"Pass fix (same shape as what_if) or suggestion_rank (1-based, from suggest_fixes). gop never runs the " +
 			"steps or calls write APIs: the REST call is text for whoever makes the change." + evidenceNote,
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: new(bool)},

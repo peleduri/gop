@@ -1,0 +1,175 @@
+{
+  "summary": "Set permissions: contents: read on the GITHUB_TOKEN of acme-app/web/.github/workflows/ci.yml: 1 line to edit across 1 repo; removes 0 of 25 confirmed (principal, repo) pairs (0%); confirmed workflows 27 -> 25, score 176.8 -> 174.5",
+  "plan": {
+    "fix_id": "restrict_token:workflow:acme-app/web/.github/workflows/ci.yml",
+    "fix": {
+      "type": "restrict_token",
+      "workflow": "workflow:acme-app/web/.github/workflows/ci.yml"
+    },
+    "description": "Set permissions: contents: read on the GITHUB_TOKEN of acme-app/web/.github/workflows/ci.yml",
+    "removes": {
+      "fixes": [
+        "restrict_token:workflow:acme-app/web/.github/workflows/ci.yml"
+      ],
+      "before": {
+        "principals": 6,
+        "confirmed": {
+          "repos": 25,
+          "orgs": 5,
+          "workflows": 27,
+          "secrets": 2,
+          "oidc": 2,
+          "runners": 2
+        },
+        "possible": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 1,
+          "secrets": 1,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 25,
+        "possible_pairs": 1,
+        "score": 176.75,
+        "possible_score": 19.125
+      },
+      "after": {
+        "principals": 6,
+        "confirmed": {
+          "repos": 25,
+          "orgs": 5,
+          "workflows": 25,
+          "secrets": 2,
+          "oidc": 2,
+          "runners": 2
+        },
+        "possible": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 1,
+          "secrets": 1,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 25,
+        "possible_pairs": 1,
+        "score": 174.5,
+        "possible_score": 19.125
+      },
+      "per_principal": [
+        {
+          "principal": "identity:bob",
+          "before": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 12,
+              "orgs": 2,
+              "workflows": 13,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 1
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 86.625,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 12,
+              "orgs": 2,
+              "workflows": 12,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 1
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 85.5,
+            "possible_score": 0
+          }
+        },
+        {
+          "principal": "members:acme-actions",
+          "before": {
+            "principal": "members:acme-actions",
+            "confirmed": {
+              "repos": 12,
+              "orgs": 2,
+              "workflows": 13,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 1
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 86.625,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "members:acme-actions",
+            "confirmed": {
+              "repos": 12,
+              "orgs": 2,
+              "workflows": 12,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 1
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 85.5,
+            "possible_score": 0
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/web",
+        "file": ".github/workflows/ci.yml",
+        "change": "add a top-level `permissions:` block with `contents: read` (plus any other scope the jobs need, such as `pull-requests: write`)",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/web/.github/workflows/ci.yml CAN_PUSH repo:acme-app/web",
+        "evidence": "live",
+        "note": "job build declares no permissions and take the repository's default workflow permissions, which allow write; a top-level block applies to exactly the jobs that declare none; this graph records no line for the permissions: key"
+      }
+    ],
+    "caveats": [
+      "jobs that push with the GITHUB_TOKEN (tags, release commits, bot updates) stop working: move them to a workflow only trusted events start, or give them a GitHub App token scoped to that repo",
+      "whoever controls acme-app/web/.github/workflows/ci.yml still runs code in acme-app/web's CI with its secrets, OIDC and runners; this fix removes only the push with the token",
+      "alternative for every workflow in the repo at once: set Settings > Actions > General > Workflow permissions to \"Read repository contents\" on acme-app/web (or the org); workflows that need write must then declare it"
+    ]
+  }
+}

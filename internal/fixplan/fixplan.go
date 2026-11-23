@@ -1,6 +1,7 @@
 // Package fixplan turns a graph fix (pin an action ref, lower an org's default
-// repository permission) into concrete change steps: the workflow lines to
-// edit, with a one-line diff each, and the settings to change.
+// repository permission, restrict a workflow's GITHUB_TOKEN, harden a risky
+// trigger) into concrete change steps: the workflow lines to edit, with a
+// one-line diff or the change to make, and the settings to change.
 //
 // gop is read-only. A plan is text for a human or a coding agent to act on with
 // their own credentials, outside gop: Build never runs a step, and the REST
@@ -29,10 +30,11 @@ const ConfirmFirst = "not visible to the token: confirm this exists first"
 
 // FixSpec describes one fix in the shape the MCP tools take.
 type FixSpec struct {
-	Type   string `json:"type" jsonschema:"pin_ref or lower_default_perm"`
-	Action string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
-	Org    string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
-	To     string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
+	Type     string `json:"type" jsonschema:"pin_ref, lower_default_perm, restrict_token or harden_trigger"`
+	Action   string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
+	Org      string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
+	To       string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
+	Workflow string `json:"workflow,omitempty" jsonschema:"for restrict_token and harden_trigger: the workflow node ID, e.g. workflow:acme-app/web/.github/workflows/ci.yml"`
 }
 
 // Step is one change a person or agent makes outside gop.
@@ -44,6 +46,7 @@ type Step struct {
 	Line    int    `json:"line,omitempty" jsonschema:"1-based line of the uses: value; 0 or absent when the graph has no line attributes"`
 	Col     int    `json:"col,omitempty"`
 	Diff    string `json:"diff,omitempty" jsonschema:"unified diff for the one line, when the line is known"`
+	Change  string `json:"change,omitempty" jsonschema:"the edit to make, in words, when a diff cannot be given"`
 	Setting string `json:"setting,omitempty" jsonschema:"where the setting lives in the GitHub UI"`
 	API     string `json:"api,omitempty" jsonschema:"the REST call that makes the same change, as text only: gop never calls it"`
 	Owner   string `json:"owner,omitempty" jsonschema:"org that must make the change"`
@@ -76,6 +79,12 @@ func Spec(f graph.Fix) (FixSpec, string) {
 	case graph.LowerDefaultPerm:
 		return FixSpec{Type: "lower_default_perm", Org: v.Org, To: v.To},
 			"Lower the default repository permission of " + strings.TrimPrefix(v.Org, "org:") + " to " + v.To
+	case graph.RestrictToken:
+		return FixSpec{Type: "restrict_token", Workflow: v.Workflow},
+			"Set permissions: contents: read on the GITHUB_TOKEN of " + strings.TrimPrefix(v.Workflow, "workflow:")
+	case graph.HardenTrigger:
+		return FixSpec{Type: "harden_trigger", Workflow: v.Workflow},
+			"Stop " + strings.TrimPrefix(v.Workflow, "workflow:") + " from running attacker-controlled code on its risky triggers"
 	}
 	return FixSpec{}, f.ID()
 }
@@ -89,6 +98,10 @@ func Build(ix *graph.Index, f graph.Fix) Plan {
 		buildPin(ix, v, &p)
 	case graph.LowerDefaultPerm:
 		buildLower(ix, v, &p)
+	case graph.RestrictToken:
+		buildRestrict(ix, v, &p)
+	case graph.HardenTrigger:
+		buildHarden(ix, v, &p)
 	}
 	p.Steps = confirmedFirst(p.Steps)
 	return p

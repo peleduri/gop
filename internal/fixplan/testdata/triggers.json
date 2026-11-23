@@ -1,0 +1,191 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-11-20T10:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {
+      "id": "enterprise:acme",
+      "kind": "enterprise",
+      "name": "acme",
+      "evidence": "live"
+    },
+    {
+      "id": "org:acme-app",
+      "kind": "org",
+      "name": "acme-app",
+      "evidence": "live",
+      "attrs": {
+        "default_perm": "read"
+      }
+    },
+    {
+      "id": "members:acme-app",
+      "kind": "org_members",
+      "name": "members of acme-app",
+      "evidence": "live"
+    },
+    {
+      "id": "external:anyone",
+      "kind": "external",
+      "name": "anyone on the internet",
+      "evidence": "live"
+    },
+    {
+      "id": "identity:bob",
+      "kind": "identity",
+      "name": "bob",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-app/docs",
+      "kind": "repo",
+      "name": "acme-app/docs",
+      "evidence": "live",
+      "attrs": {
+        "visibility": "public",
+        "default_branch": "main"
+      }
+    },
+    {
+      "id": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/preview.yml",
+      "evidence": "live",
+      "attrs": {
+        "repo": "acme-app/docs",
+        "path": ".github/workflows/preview.yml",
+        "risky_triggers": "pull_request_target",
+        "token_write": "true"
+      }
+    },
+    {
+      "id": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/build.yml",
+      "evidence": "live",
+      "attrs": {
+        "repo": "acme-app/docs",
+        "path": ".github/workflows/build.yml",
+        "token_write": "false"
+      }
+    },
+    {
+      "id": "secret:acme-app/docs",
+      "kind": "secret",
+      "name": "acme-app/docs",
+      "evidence": "live"
+    },
+    {
+      "id": "oidc:acme-app/docs",
+      "kind": "oidc",
+      "name": "acme-app/docs",
+      "evidence": "live"
+    }
+  ],
+  "edges": [
+    {
+      "from": "external:anyone",
+      "to": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "kind": "CAN_TRIGGER",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "trigger": "pull_request_target",
+        "exec": "checkout",
+        "job": "preview",
+        "detail": "ref: ${{ github.event.pull_request.head.sha }}",
+        "file": ".github/workflows/preview.yml",
+        "file_ref": "main",
+        "line": "14"
+      }
+    },
+    {
+      "from": "members:acme-app",
+      "to": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "kind": "CAN_TRIGGER",
+      "evidence": "not_visible",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "trigger": "pull_request_target",
+        "exec": "checkout",
+        "job": "preview",
+        "detail": "ref: ${{ github.event.pull_request.head.sha }}",
+        "file": ".github/workflows/preview.yml",
+        "file_ref": "main",
+        "line": "14"
+      }
+    },
+    {
+      "from": "identity:bob",
+      "to": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "kind": "CAN_TRIGGER",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "trigger": "pull_request_target",
+        "exec": "injection",
+        "job": "label",
+        "detail": "github.event.pull_request.title",
+        "file": ".github/workflows/preview.yml",
+        "file_ref": "main",
+        "line": "23"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "token_write",
+        "permission": "contents: write",
+        "jobs": "label,preview"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "secret:acme-app/docs",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "oidc:acme-app/docs",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z"
+    }
+  ],
+  "coverage": [
+    {
+      "scope": "repo:acme-app/docs",
+      "fact": "triggering_principals",
+      "reason": "could not read whether acme-app allows private forks",
+      "needs_fix": "org owner on acme-app"
+    }
+  ]
+}

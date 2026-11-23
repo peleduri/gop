@@ -55,6 +55,11 @@ func Summary(p Plan) string {
 	b, a := p.Removes.Before.ConfirmedPairs, p.Removes.After.ConfirmedPairs
 	out := fmt.Sprintf("%s: %s; removes %d of %d confirmed (principal, repo) pairs (%.0f%%)",
 		p.Description, strings.Join(parts, ", "), b-a, b, pct(b, a))
+	if bt, at := p.Removes.Before, p.Removes.After; b == a && at.Score < bt.Score {
+		// No (principal, repo) pair goes away, but reach inside the repos
+		// does (a RestrictToken leaves the repo as CI reach): say so.
+		out += fmt.Sprintf("; confirmed workflows %d -> %d, score %.1f -> %.1f", bt.Confirmed.Workflows, at.Confirmed.Workflows, bt.Score, at.Score)
+	}
 	if unconfirmed > 0 {
 		out += fmt.Sprintf("; %s not visible, listed last", plural(unconfirmed, "step is", "steps are"))
 	}
@@ -112,6 +117,9 @@ func meta(s Step, code func(string) string) []string {
 		out = append(out, e)
 	} else if l := evidenceLabel(s.Evidence); l != "" {
 		out = append(out, "evidence: "+l)
+	}
+	if s.Change != "" {
+		out = append(out, "change: "+s.Change)
 	}
 	if s.Note != "" {
 		out = append(out, "note: "+s.Note)

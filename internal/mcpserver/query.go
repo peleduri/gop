@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/peleduri/gop/internal/fixplan"
 	"github.com/peleduri/gop/internal/graph"
 )
 
@@ -362,13 +363,9 @@ func (e *Engine) TopRisks(in TopRisksInput) (res TopRisksOutput, _ error) {
 	return out, nil
 }
 
-// FixSpec describes one hypothetical fix.
-type FixSpec struct {
-	Type   string `json:"type" jsonschema:"pin_ref or lower_default_perm"`
-	Action string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
-	Org    string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
-	To     string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
-}
+// FixSpec describes one hypothetical fix. It is the fixplan type, so what_if,
+// suggest_fixes and fix_plan take and return the same shape.
+type FixSpec = fixplan.FixSpec
 
 // WhatIfInput is the what_if tool input.
 type WhatIfInput struct {
@@ -404,8 +401,20 @@ func (e *Engine) toFix(i int, f FixSpec) (graph.Fix, error) {
 			return nil, fmt.Errorf("fixes[%d].to: want read or none, got %q", i, f.To)
 		}
 		return graph.LowerDefaultPerm{Org: o, To: f.To}, nil
+	case "restrict_token", "harden_trigger":
+		w, err := e.resolve(fmt.Sprintf("fixes[%d].workflow", i), f.Workflow)
+		if err != nil {
+			return nil, err
+		}
+		if e.ix.Kind(w) != graph.KindWorkflow {
+			return nil, fmt.Errorf("fixes[%d].workflow: %s is not a workflow", i, w)
+		}
+		if f.Type == "restrict_token" {
+			return graph.RestrictToken{Workflow: w}, nil
+		}
+		return graph.HardenTrigger{Workflow: w}, nil
 	}
-	return nil, fmt.Errorf("fixes[%d].type: want pin_ref or lower_default_perm, got %q", i, f.Type)
+	return nil, fmt.Errorf("fixes[%d].type: want %s, got %q", i, fixTypes, f.Type)
 }
 
 func pct(before, after int) float64 {
@@ -419,7 +428,7 @@ func pct(before, after int) float64 {
 func (e *Engine) WhatIf(in WhatIfInput) (res WhatIfOutput, _ error) {
 	defer e.mark(&res.Summary)
 	if len(in.Fixes) == 0 {
-		return WhatIfOutput{}, fmt.Errorf("fixes is empty: give at least one {type:\"pin_ref\",action} or {type:\"lower_default_perm\",org,to}")
+		return WhatIfOutput{}, fmt.Errorf("fixes is empty: give at least one of %s", fixShapes)
 	}
 	fixes := make([]graph.Fix, 0, len(in.Fixes))
 	for i, f := range in.Fixes {
@@ -462,17 +471,13 @@ type SuggestFixesOutput struct {
 }
 
 // DescribeFix returns the FixSpec and a sentence for a graph fix.
-func DescribeFix(f graph.Fix) (FixSpec, string) {
-	switch v := f.(type) {
-	case graph.PinRef:
-		return FixSpec{Type: "pin_ref", Action: v.Action},
-			"Pin " + strings.TrimPrefix(v.Action, "action:") + " to a commit SHA in every workflow that uses it"
-	case graph.LowerDefaultPerm:
-		return FixSpec{Type: "lower_default_perm", Org: v.Org, To: v.To},
-			"Lower the default repository permission of " + strings.TrimPrefix(v.Org, "org:") + " to " + v.To
-	}
-	return FixSpec{}, f.ID()
-}
+func DescribeFix(f graph.Fix) (FixSpec, string) { return fixplan.Spec(f) }
+
+// fixTypes and fixShapes name the fix types in error messages.
+const (
+	fixTypes  = "pin_ref, lower_default_perm, restrict_token or harden_trigger"
+	fixShapes = `{type:"pin_ref",action}, {type:"lower_default_perm",org,to}, {type:"restrict_token",workflow} or {type:"harden_trigger",workflow}`
+)
 
 // SuggestFixes runs the budgeted greedy.
 func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ error) {

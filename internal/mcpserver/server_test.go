@@ -147,6 +147,54 @@ func TestWhatIfPinLowersConfirmedPairs(t *testing.T) {
 	}
 }
 
+// TestWhatIfRestrictToken: on the acme fixture, restricting web/ci.yml's
+// token removes its token_write edge: no (principal, repo) pair goes (web stays
+// CI reach) but the workflows reached only through the push, and the score, drop.
+func TestWhatIfRestrictToken(t *testing.T) {
+	cs := connect(t)
+	const webCI = "workflow:acme-app/web/.github/workflows/ci.yml"
+	var out WhatIfOutput
+	call(t, cs, "what_if", map[string]any{"fixes": []map[string]any{{"type": "restrict_token", "workflow": webCI}}}, &out)
+	d := out.Delta
+	if len(d.Fixes) != 1 || d.Fixes[0] != "restrict_token:"+webCI {
+		t.Errorf("fixes = %v", d.Fixes)
+	}
+	if d.After.Confirmed.Workflows >= d.Before.Confirmed.Workflows || d.After.Score >= d.Before.Score || d.After.ConfirmedPairs > d.Before.ConfirmedPairs {
+		t.Errorf("before %+v after %+v", d.Before, d.After)
+	}
+	lost := false
+	for _, pd := range d.PerPrincipal {
+		if pd.Principal == "members:acme-actions" && pd.After.Confirmed.Workflows < pd.Before.Confirmed.Workflows {
+			lost = true
+		}
+	}
+	if !lost {
+		t.Error("members:acme-actions should lose the workflows reached through the token push")
+	}
+}
+
+// TestWhatIfHardenTrigger: in the public docs variant, hardening preview.yml
+// removes everything anyone on the internet reached through it.
+func TestWhatIfHardenTrigger(t *testing.T) {
+	g, err := graph.LoadFile("../fixplan/testdata/triggers.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const preview = "workflow:acme-app/docs/.github/workflows/preview.yml"
+	var out WhatIfOutput
+	call(t, connectGraph(t, g), "what_if", map[string]any{"fixes": []map[string]any{{"type": "harden_trigger", "workflow": preview}}}, &out)
+	for _, pd := range out.Delta.PerPrincipal {
+		if pd.Principal == "external:anyone" && (pd.Before.Confirmed.Secrets != 1 || pd.After.Confirmed.Secrets != 0 || pd.After.Possible.Secrets != 0) {
+			t.Errorf("external:anyone secrets %+v -> %+v", pd.Before, pd.After)
+		}
+	}
+	var sug SuggestFixesOutput
+	call(t, connectGraph(t, g), "suggest_fixes", map[string]any{}, &sug)
+	if len(sug.Fixes) == 0 || sug.Fixes[0].Fix.Type != "harden_trigger" || sug.Fixes[0].Fix.Workflow != preview {
+		t.Errorf("suggest_fixes = %+v", sug.Fixes)
+	}
+}
+
 func TestSuggestFixes(t *testing.T) {
 	cs := connect(t)
 	var out SuggestFixesOutput
@@ -226,6 +274,9 @@ func TestWhatIfValidation(t *testing.T) {
 		{Fixes: []FixSpec{{Type: "nope"}}},
 		{Fixes: []FixSpec{{Type: "lower_default_perm", Org: "org:acme-actions", To: "write"}}},
 		{Fixes: []FixSpec{{Type: "pin_ref", Action: "repo:acme-app/web"}}},
+		{Fixes: []FixSpec{{Type: "restrict_token", Workflow: "repo:acme-app/web"}}},
+		{Fixes: []FixSpec{{Type: "harden_trigger"}}},
+		{Fixes: []FixSpec{{Type: "harden_trigger", Workflow: "workflow:acme-app/web/.github/workflows/nope.yml"}}},
 	} {
 		if _, err := e.WhatIf(in); err == nil {
 			t.Errorf("%+v: expected error", in)

@@ -21,7 +21,8 @@ import (
 //	                                     repo is expanded. A not_visible edge (default workflow
 //	                                     permissions not readable) makes that control possible.
 //	                                     The token can't edit .github/workflows/, but workflows run
-//	                                     repo code, so DEFINED_IN (reversed) still expands.
+//	                                     repo code, so DEFINED_IN (reversed) still expands. A
+//	                                     RestrictToken fix drops the workflow's token_write edges.
 //	repo      -RESOLVES_TO->  action     (reversed) pushing to the host repo changes the action,
 //	                                     only when the ref is mutable (branch or tag). A sha ref
 //	                                     (or a PinRef fix) blocks this hop. Branch protection
@@ -58,7 +59,8 @@ import (
 //	                                     attacker-controlled code: a forward control hop like CAN_PUSH.
 //	                                     The workflow is controlled, so its EXECUTES_WITH terminals are
 //	                                     reached, its repo counts as CI reach, and a via=token_write
-//	                                     CAN_PUSH expands to the repo.
+//	                                     CAN_PUSH expands to the repo. A HardenTrigger fix drops
+//	                                     every CAN_TRIGGER edge into its workflow.
 //	workflow  -EXECUTES_WITH-> secret|oidc|runner   terminal impact
 //	workflow  -CAN_ASSUME->   cloud_target  terminal impact: a token the workflow mints matches a
 //	                                     supplied cloud trust policy (gop enrich --oidc-trust). The
@@ -347,7 +349,12 @@ func (ix *Index) buildControl(fixes []Fix) *controlGraph {
 				}
 			}
 			add(e.To, e.From, e, true, false)
-		case ExecutesWith, CanTrigger, CanAssume:
+		case CanTrigger:
+			if fs.removesTrigger(e) {
+				continue
+			}
+			add(e.From, e.To, e, false, false)
+		case ExecutesWith, CanAssume:
 			add(e.From, e.To, e, false, false)
 		}
 	}

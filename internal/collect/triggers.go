@@ -32,6 +32,7 @@ type UntrustedExec struct {
 	Trigger string
 	Kind    string // ExecCheckout | ExecInjection
 	Detail  string // the matched value, e.g. "ref: ${{ github.event.pull_request.head.sha }}" or a context name
+	Line    int    // 1-based line of the matched with.ref/with.repository, run: or script: key (0 if unknown)
 }
 
 // riskyTriggers run in the base repo's context with its secrets on events that
@@ -131,7 +132,7 @@ func triggerFacts(doc *yaml.Node) (triggers []string, execs []UntrustedExec) {
 		found := jobPatterns(w, job)
 		for _, t := range risky {
 			for _, x := range found {
-				execs = append(execs, UntrustedExec{Job: id, Trigger: t, Kind: x.Kind, Detail: x.Detail})
+				execs = append(execs, UntrustedExec{Job: id, Trigger: t, Kind: x.Kind, Detail: x.Detail, Line: x.Line})
 			}
 		}
 	}
@@ -168,18 +169,23 @@ func parseOn(w *yamlWalk, n *yaml.Node) []string {
 }
 
 // jobPatterns returns the untrusted execution patterns in one job's steps, in
-// step order, at most one per (kind, detail).
+// step order, at most one per (kind, detail) with the line of its first match.
 func jobPatterns(w *yamlWalk, job *yamlMap) []UntrustedExec {
 	steps, err := w.sequence(field(job, "steps"), "steps")
 	if err != nil {
 		return nil
 	}
 	var out []UntrustedExec
-	seen := map[UntrustedExec]bool{}
-	add := func(kind, detail string) {
-		x := UntrustedExec{Kind: kind, Detail: truncate(detail, 200)}
-		if !seen[x] {
-			seen[x] = true
+	type key struct{ kind, detail string }
+	seen := map[key]bool{}
+	add := func(kind, detail string, at *yaml.Node) {
+		k := key{kind, truncate(detail, 200)}
+		if !seen[k] {
+			seen[k] = true
+			x := UntrustedExec{Kind: k.kind, Detail: k.detail}
+			if at != nil {
+				x.Line = at.Line
+			}
 			out = append(out, x)
 		}
 	}
@@ -191,29 +197,36 @@ func jobPatterns(w *yamlWalk, job *yamlMap) []UntrustedExec {
 		uses := strings.ToLower(scalarOf(w, field(step, "uses")))
 		with, _ := w.mapping(field(step, "with"), "with")
 		if strings.HasPrefix(uses, "actions/checkout@") {
-			for _, key := range []string{"ref", "repository"} {
-				v := scalarOf(w, field(with, key))
+			for _, name := range []string{"ref", "repository"} {
+				v := scalarOf(w, field(with, name))
+				kn, _ := with.get(name)
 				for _, u := range untrustedRefs {
 					if strings.Contains(v, u) {
-						add(ExecCheckout, key+": "+strings.TrimSpace(v))
+						add(ExecCheckout, name+": "+strings.TrimSpace(v), kn)
 						break
 					}
 				}
 			}
 		}
 		run := scalarOf(w, field(step, "run"))
+		runKey, _ := step.get("run")
 		for _, cmd := range untrustedFetch {
 			if strings.Contains(run, cmd) {
-				add(ExecCheckout, cmd)
+				add(ExecCheckout, cmd, runKey)
 			}
 		}
-		scripts := []string{run}
+		type script struct {
+			src string
+			at  *yaml.Node
+		}
+		scripts := []script{{run, runKey}}
 		if strings.HasPrefix(uses, "actions/github-script@") {
-			scripts = append(scripts, scalarOf(w, field(with, "script")))
+			sk, _ := with.get("script")
+			scripts = append(scripts, script{scalarOf(w, field(with, "script")), sk})
 		}
 		for _, s := range scripts {
-			for _, ctx := range injectedContexts(s) {
-				add(ExecInjection, ctx)
+			for _, ctx := range injectedContexts(s.src) {
+				add(ExecInjection, ctx, s.at)
 			}
 		}
 	}
@@ -291,12 +304,14 @@ func (k *collector) addTriggerFacts(o *orgState, repo *graph.Node, wid string, w
 		if p == externalAnyone {
 			k.node(externalAnyone, graph.KindExternal, "anyone on the internet")
 		}
-		k.edge(p, wid, graph.CanTrigger, t.ev, srcWorkflow, map[string]string{
+		attrs := map[string]string{
 			attrTrigger: t.exec.Trigger,
 			attrExec:    t.exec.Kind,
 			attrJob:     t.exec.Job,
 			attrDetail:  t.exec.Detail,
-		})
+		}
+		locate(attrs, f.File, f.FileRef, t.exec.Line, 0)
+		k.edge(p, wid, graph.CanTrigger, t.ev, srcWorkflow, attrs)
 	}
 }
 
