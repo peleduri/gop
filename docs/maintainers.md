@@ -10,6 +10,28 @@ The same run pushes the container image `ghcr.io/peleduri/gop` (multi-arch index
 
 GHCR creates the `gop` package on the first release that pushes it. If it shows as private, open the package settings (your profile, Packages, `gop`, Package settings), set visibility to **Public**, and check that `peleduri/gop` is listed under "Manage Actions access" with the **Write** role. Anonymous `docker pull` and `cosign verify` fail until the package is public.
 
+### Release notes
+
+Two configs produce release notes, both from PR titles and labels:
+
+- goreleaser writes the notes of every tag release (`changelog` in [`.goreleaser.yaml`](../.goreleaser.yaml), `use: github`). It groups commits by conventional commit prefix: Security (`sec`), Features (`feat`), Fixes (`fix`), Docs (`docs`), then Other changes; `test` and `chore` commits are left out. Because PRs are squash-merged, the commit message is the PR title, which [`.github/workflows/pr-title.yml`](../.github/workflows/pr-title.yml) checks. Fix a wrong title before merging; after merging it is in the notes.
+- GitHub's "Generate release notes" button (and the API) groups merged PRs by label with [`.github/release.yml`](../.github/release.yml): Security, Features, Fixes, Docs, Dependencies, Other changes. Label a PR `skip-changelog` to leave it out.
+
+Keep `CHANGELOG.md` by hand: move the `Unreleased` entries under the new version in the release PR.
+
+## Labels
+
+The label set is described in [`.github/labels.yml`](../.github/labels.yml): type labels (which also pick the release notes category), area, priority (`p0` to `p2`), size (`S`, `M`, `L`), `good first issue`, `help wanted` and `agent-ready`. No workflow syncs them, because that needs a token that can write to the repository. Sync them from your machine after changing the file:
+
+```sh
+scripts/sync-labels.sh            # print the gh commands, change nothing
+scripts/sync-labels.sh --apply    # create missing labels, update colors and descriptions
+```
+
+The script needs `gh auth login` with access to the repository. It never deletes a label: remove one by hand with `gh label delete <name> --repo peleduri/gop` after moving its issues to the replacement.
+
+When you triage, mark a few small, self-contained issues `good first issue` and keep their description specific about which files to touch.
+
 ## Homebrew tap: one-time setup
 
 `.goreleaser.yaml` has a `homebrew_casks` block for `peleduri/homebrew-tap`. Its `skip_upload` is templated on the `HOMEBREW_TAP_TOKEN` environment variable: without it, goreleaser still renders the cask into `dist/homebrew/Casks/gop.rb` but never pushes it. So releases keep working before this setup, in forks, and in the snapshot CI job.

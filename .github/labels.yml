@@ -1,0 +1,120 @@
+# The label set of peleduri/gop. This file is documentation and the input of
+# scripts/sync-labels.sh, which the maintainer runs locally (see
+# docs/maintainers.md#labels). No workflow applies it: syncing labels needs a
+# token that can write to the repository, and gop's workflows never get one on
+# pull requests.
+#
+# Keep entries as `name`, `color` (hex, no #) and `description`, one label per
+# list item, in this flat shape: the sync script reads it without a YAML
+# library. .github/release.yml groups release notes by the type labels below.
+
+# ---- type: what the change is (release notes categories) ----
+- name: feature
+  color: a2eeef
+  description: "New capability or behavior (release notes: Features)"
+- name: bug
+  color: d73a4a
+  description: "Something is wrong (release notes: Fixes)"
+- name: security
+  color: b60205
+  description: "Security fix or hardening (release notes: Security)"
+- name: docs
+  color: 0075ca
+  description: "Documentation only (release notes: Docs)"
+- name: dependencies
+  color: 0366d6
+  description: "Dependency update, usually from Dependabot (release notes: Dependencies)"
+- name: correctness
+  color: e99695
+  description: "A reach, score or evidence result that is wrong or unproven"
+- name: performance
+  color: fef2c0
+  description: "Speed or memory of collection or analysis"
+- name: testing
+  color: bfd4f2
+  description: "Tests, fixtures, goldens and CI checks"
+- name: dx
+  color: d4c5f9
+  description: "Contributor and user experience: setup, errors, docs flow"
+- name: skip-changelog
+  color: ededed
+  description: "Leave out of the generated release notes"
+
+# ---- area: which part of gop it touches ----
+- name: collector
+  color: c5def5
+  description: "Area: internal/collect (GitHub API reads, workflow parser)"
+- name: engine
+  color: c5def5
+  description: "Area: internal/graph (control graph, reach, score, fixes)"
+- name: mcp
+  color: c5def5
+  description: "Area: internal/mcpserver (tools, resources, prompts)"
+- name: report
+  color: c5def5
+  description: "Area: internal/report (HTML and Markdown report)"
+- name: cli
+  color: c5def5
+  description: "Area: cmd/gop subcommands and flags"
+- name: action
+  color: c5def5
+  description: "Area: the composite GitHub Action under action/"
+- name: oidc
+  color: c5def5
+  description: "Area: internal/oidc (supplied cloud trust files, gop enrich)"
+- name: drift
+  color: c5def5
+  description: "Area: internal/diff (snapshot comparison)"
+- name: coverage
+  color: c5def5
+  description: "Area: not_visible facts and coverage entries"
+- name: sarif
+  color: c5def5
+  description: "Area: SARIF output"
+- name: demo
+  color: c5def5
+  description: "Area: internal/demo (synthetic graphs)"
+- name: distribution
+  color: c5def5
+  description: "Area: releases, goreleaser, Homebrew, container images"
+
+# ---- priority ----
+- name: p0
+  color: b60205
+  description: "Priority: broken or unsafe, fix first"
+- name: p1
+  color: d93f0b
+  description: "Priority: next up"
+- name: p2
+  color: fbca04
+  description: "Priority: planned"
+
+# ---- size: rough effort ----
+- name: S
+  color: c2e0c6
+  description: "Size: small, about a day or less"
+- name: M
+  color: bfdadc
+  description: "Size: medium, a few days"
+- name: L
+  color: 9fc5c0
+  description: "Size: large, split it before starting"
+
+# ---- contributors ----
+- name: good first issue
+  color: 7057ff
+  description: "Small, well scoped, no deep model knowledge needed; a maintainer will help"
+- name: help wanted
+  color: 008672
+  description: "The maintainer would welcome a PR; may need more context than a good first issue"
+- name: agent-ready
+  color: 5319e7
+  description: "Spec is complete enough to implement without further design (by a person or a coding agent)"
+
+# ---- planning tracks ----
+- name: features-track
+  color: ededed
+  description: "Planning track: new features"
+- name: correctness-track
+  color: ededed
+  description: "Planning track: correctness and scale"
