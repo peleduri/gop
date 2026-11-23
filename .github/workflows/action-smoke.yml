@@ -55,7 +55,7 @@ jobs:
         run: gop version
       - name: Reach gate (action/diff-gate.sh)
         run: |
-          set -uo pipefail
+          set +e -uo pipefail
           gate() { # case, want result, want exit code
             out="${RUNNER_TEMP}/gate-$1"
             result="$(bash action/diff-gate.sh "internal/diff/testdata/$1/old.json" "internal/diff/testdata/$1/new.json" "${out}")"
