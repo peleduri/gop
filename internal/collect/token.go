@@ -136,10 +136,10 @@ func (k *collector) collectWorkflowDefaults(ctx context.Context, o *orgState, re
 		o.workflowDefault = od
 	}
 	od := o.workflowDefault
-	switch {
-	case od.perm == "read":
+	switch od.perm {
+	case "read":
 		return "read", srcOrgWorkflowPerms, "", nil
-	case od.perm == "write":
+	case "write":
 		reason = "could not read the repo's default workflow permissions (" + rerr.Error() + "); the org default is write, which the repo may restrict"
 	default:
 		reason = "could not read the default workflow permissions: repo: " + rerr.Error() + "; org: " + od.err.Error()
