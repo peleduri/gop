@@ -213,9 +213,12 @@ func TestParseResourceBound(t *testing.T) {
 	for name, data := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			// The race detector slows yaml parsing by an order of magnitude;
-			// the bound is about complexity, so scale it rather than skip.
-			limit := 2 * time.Second
+			// The bound is about complexity, not speed: the quadratic parser this
+			// replaced took about 20s on these inputs, the linear one about 0.1s.
+			// 10s leaves room for parallel subtests on small CI runners (and for
+			// goreleaser's hook running tests while it builds). The race detector
+			// slows yaml parsing by an order of magnitude, so scale it there.
+			limit := 10 * time.Second
 			if raceEnabled {
 				limit *= 10
 			}
