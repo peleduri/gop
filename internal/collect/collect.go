@@ -793,7 +793,7 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 		setAttr(rn, "collected", "false", graph.Live)
 		k.repoIDs[strings.ToLower(full)] = rid
 	}
-	k.edge(aid, rid, graph.ResolvesTo, graph.Live, srcOrgs, nil)
+	k.edge(aid, rid, graph.ResolvesTo, graph.Live, "derived:workflow.uses+graphql:enterprise.organizations", nil)
 	if !k.expanded[aid] {
 		k.expanded[aid] = true
 		cu := u
