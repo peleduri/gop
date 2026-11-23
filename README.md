@@ -147,6 +147,7 @@ gop serve   --graph graph.json
 gop report  --graph graph.json --out report.html [--format html|md] [--top N]
 gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>
+gop validate --graph graph.json [--format text|json]
 gop version
 ```
 
@@ -260,7 +261,7 @@ See [docs/threat-model.md](docs/threat-model.md) and [docs/schema.md](docs/schem
 
 ![gop collect writes graph.json; the engine reads it and serves the MCP server, the CLI and the HTML report](docs/assets/architecture.svg)
 
-`gop collect` writes one JSON document (`gop.graph/v1`, [schema](docs/schema.md)). Everything else reads that file: the engine indexes it once and answers reach, scoring, what-if and fix-planning queries for the MCP server, the CLI and the report. The fix planner is a budgeted greedy over grouped fixes, not an exact min-cut, and it never suggests a fix whose edges are all `not_visible`.
+`gop collect` writes one JSON document (`gop.graph/v1`, [schema](docs/schema.md), [JSON Schema](schema/gop.graph.v1.schema.json); check a file with `gop validate`). Everything else reads that file: the engine indexes it once and answers reach, scoring, what-if and fix-planning queries for the MCP server, the CLI and the report. The fix planner is a budgeted greedy over grouped fixes, not an exact min-cut, and it never suggests a fix whose edges are all `not_visible`.
 
 ## Roadmap
 

@@ -22,10 +22,18 @@ flags may change in minor releases.
 - Engine: `Index.ScoringPrincipals()`. Totals in `top_paths`, `what_if` and
   `suggest_fixes` count org members plus identities with their own grants, so
   adding one identity per licensed user does not multiply pair totals.
+- JSON Schema (draft 2020-12) for graph.json at
+  `schema/gop.graph.v1.schema.json`, and `gop validate --graph graph.json
+  [--format text|json]`: checks the schema version, JSON Schema conformance and
+  that every edge endpoint is a node, and warns about `not_visible` facts with
+  no coverage entry. Exit 0 valid, 1 invalid, 2 usage error.
+- `docs/schema.md`: Versioning and Changelog sections.
 
 ### Fixed
 
 - The blast-radius multiplier ignores `MEMBER_OF` targets that are not orgs.
+- `docs/schema.md`: the reach path example used `org_members:` IDs; the ID
+  prefix is `members:`.
 
 ## [0.1.0] - 2026-11-23
 

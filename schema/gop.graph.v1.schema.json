@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/peleduri/gop/schema/gop.graph.v1.schema.json",
+  "title": "gop evidence graph (gop.graph/v1)",
+  "description": "graph.json written by gop collect. The Go source of truth is internal/graph/types.go. Unknown fields and attribute keys are allowed so additive changes stay within v1; consumers must ignore what they do not know.",
+  "type": "object",
+  "required": ["schema", "collected_at", "enterprise", "nodes", "edges", "coverage"],
+  "properties": {
+    "schema": {
+      "description": "Schema version of this document.",
+      "const": "gop.graph/v1"
+    },
+    "collected_at": {
+      "description": "When collection finished (RFC 3339).",
+      "type": "string",
+      "format": "date-time"
+    },
+    "enterprise": {
+      "description": "Enterprise slug, e.g. acme.",
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/Node"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/Edge"}
+    },
+    "coverage": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/Coverage"}
+    }
+  },
+  "$defs": {
+    "Evidence": {
+      "description": "How a fact was observed. not_visible means unknown, not absent.",
+      "type": "string",
+      "enum": ["live", "audit", "not_visible"]
+    },
+    "NodeKind": {
+      "type": "string",
+      "enum": ["enterprise", "org", "org_members", "identity", "repo", "workflow", "action_ref", "secret", "oidc", "runner", "cloud_target"]
+    },
+    "EdgeKind": {
+      "type": "string",
+      "enum": ["CAN_PUSH", "USES", "RESOLVES_TO", "DEFINED_IN", "EXECUTES_WITH", "MEMBER_OF"]
+    },
+    "Attrs": {
+      "description": "Flat string attributes. Unknown keys are allowed.",
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "Node": {
+      "type": "object",
+      "required": ["id", "kind", "name", "evidence"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {"$ref": "#/$defs/NodeKind"},
+        "name": {"type": "string"},
+        "attrs": {"$ref": "#/$defs/Attrs"},
+        "evidence": {"$ref": "#/$defs/Evidence"},
+        "attr_evidence": {
+          "description": "Per-attribute evidence where it differs from evidence.",
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/Evidence"}
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "enterprise"}}}, "then": {"properties": {"id": {"pattern": "^enterprise:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "org"}}}, "then": {"properties": {"id": {"pattern": "^org:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "org_members"}}}, "then": {"properties": {"id": {"pattern": "^members:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "identity"}}}, "then": {"properties": {"id": {"pattern": "^identity:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "repo"}}}, "then": {"properties": {"id": {"pattern": "^repo:[^/]+/[^/]+$"}}}},
+        {"if": {"properties": {"kind": {"const": "workflow"}}}, "then": {"properties": {"id": {"pattern": "^workflow:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "action_ref"}}}, "then": {"properties": {"id": {"pattern": "^action:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "secret"}}}, "then": {"properties": {"id": {"pattern": "^secret:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "oidc"}}}, "then": {"properties": {"id": {"pattern": "^oidc:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "runner"}}}, "then": {"properties": {"id": {"pattern": "^runner:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "cloud_target"}}}, "then": {"properties": {"id": {"pattern": "^cloud:.+"}}}}
+      ]
+    },
+    "Edge": {
+      "type": "object",
+      "required": ["from", "to", "kind", "evidence", "source_api", "observed_at"],
+      "properties": {
+        "from": {"type": "string", "minLength": 1},
+        "to": {"type": "string", "minLength": 1},
+        "kind": {"$ref": "#/$defs/EdgeKind"},
+        "evidence": {"$ref": "#/$defs/Evidence"},
+        "source_api": {"type": "string"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "attrs": {"$ref": "#/$defs/Attrs"}
+      }
+    },
+    "Coverage": {
+      "type": "object",
+      "required": ["scope", "fact", "reason", "needs_fix"],
+      "properties": {
+        "scope": {"type": "string"},
+        "fact": {"type": "string"},
+        "reason": {"type": "string"},
+        "needs_fix": {"type": "string"}
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00.123456789Z",
+  "enterprise": "acme",
+  "future_field": "consumers ignore unknown fields",
+  "nodes": [
+    {"id": "enterprise:acme", "kind": "enterprise", "name": "acme", "evidence": "live"},
+    {"id": "org:acme-actions", "kind": "org", "name": "acme-actions", "evidence": "live",
+     "attrs": {"default_perm": "write", "two_factor": "required", "sso": "enforced", "new_key": "x"}},
+    {"id": "org:acme-legacy", "kind": "org", "name": "acme-legacy", "evidence": "live",
+     "attrs": {"ip_allow_list": "unknown"}, "attr_evidence": {"ip_allow_list": "not_visible"}},
+    {"id": "members:acme-actions", "kind": "org_members", "name": "acme-actions members", "evidence": "live"},
+    {"id": "identity:alice", "kind": "identity", "name": "alice", "evidence": "audit"},
+    {"id": "repo:acme-actions/deploy", "kind": "repo", "name": "deploy", "evidence": "live"},
+    {"id": "repo:acme-app/web", "kind": "repo", "name": "web", "evidence": "live"},
+    {"id": "repo:acme-legacy/old-api", "kind": "repo", "name": "old-api", "evidence": "not_visible"},
+    {"id": "workflow:acme-app/web/.github/workflows/release.yml", "kind": "workflow", "name": "release.yml", "evidence": "live"},
+    {"id": "action:acme-actions/deploy@main", "kind": "action_ref", "name": "acme-actions/deploy@main",
+     "attrs": {"ref_kind": "branch"}, "evidence": "live"},
+    {"id": "secret:acme-app/web", "kind": "secret", "name": "acme-app/web secrets", "evidence": "live"},
+    {"id": "oidc:acme-app/web", "kind": "oidc", "name": "id-token: write", "evidence": "live"},
+    {"id": "runner:acme-app/web", "kind": "runner", "name": "self-hosted", "evidence": "live"},
+    {"id": "cloud:aws:acme-prod", "kind": "cloud_target", "name": "aws account", "evidence": "live"}
+  ],
+  "edges": [
+    {"from": "members:acme-actions", "to": "repo:acme-actions/deploy", "kind": "CAN_PUSH", "evidence": "live",
+     "source_api": "rest:/orgs/{org}", "observed_at": "2026-01-01T00:00:00Z", "attrs": {"via": "default_perm"}},
+    {"from": "identity:alice", "to": "org:acme-actions", "kind": "MEMBER_OF", "evidence": "audit",
+     "source_api": "audit:org.add_member", "observed_at": "2026-01-01T00:00:00+02:00"},
+    {"from": "action:acme-actions/deploy@main", "to": "repo:acme-actions/deploy", "kind": "RESOLVES_TO", "evidence": "live",
+     "source_api": "rest:repos.get", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "action:acme-actions/deploy@main", "kind": "USES",
+     "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z", "attrs": {"ref_kind": "branch"}},
+    {"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "repo:acme-app/web", "kind": "DEFINED_IN",
+     "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "oidc:acme-app/web", "kind": "EXECUTES_WITH",
+     "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "secret:acme-app/web", "kind": "EXECUTES_WITH",
+     "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-app/web/.github/workflows/release.yml", "to": "runner:acme-app/web", "kind": "EXECUTES_WITH",
+     "evidence": "live", "source_api": "rest:repos.contents", "observed_at": "2026-01-01T00:00:00Z"}
+  ],
+  "coverage": [
+    {"scope": "org:acme-legacy", "fact": "repositories", "reason": "token is not an org owner",
+     "needs_fix": "org owner on acme-legacy"}
+  ]
+}
