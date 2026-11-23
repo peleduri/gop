@@ -186,7 +186,7 @@ const (
 // CAN_ASSUME edge and cloud_target node attribute keys from gop enrich
 // --cartography (a Cartography export, see docs/cartography.md).
 const (
-	AttrSource      = "source"       // CAN_ASSUME, cloud_target: cartography when the trust came from a Cartography export; absent for trust files
+	AttrSource      = "source"       // CAN_ASSUME, cloud_target: cartography when the trust came from a Cartography export; absent for trust files; action_ref: github.com on GHES for an owner that is not an org on the instance
 	AttrObservedUse = "observed_use" // CAN_ASSUME: true when CloudTrail (through Cartography) saw a workflow of this repo assume the role
 	AttrTimesUsed   = "times_used"   // CAN_ASSUME with observed_use: AssumeRoleWithWebIdentity count in Cartography's CloudTrail window, integer as string
 	AttrLastUsed    = "last_used"    // CAN_ASSUME with observed_use: time of the last such call, as the export gives it

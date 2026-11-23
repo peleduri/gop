@@ -37,6 +37,7 @@ func (k *collector) collectActionsAccess(ctx context.Context) error {
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
+	ghesReason, ghesFix, ghesSkip := k.ghesGate(capActionsAccess)
 	for _, id := range ids {
 		n, ok := k.nodes[id]
 		if !ok {
@@ -44,6 +45,11 @@ func (k *collector) collectActionsAccess(ctx context.Context) error {
 		}
 		if n.Attrs[graph.AttrVisibility] == "public" {
 			setAttr(n, graph.AttrActionsAccess, graph.AccessPublic, graph.Live)
+			continue
+		}
+		if ghesSkip {
+			setAttr(n, graph.AttrActionsAccess, graph.AccessUnknown, graph.NotVisible)
+			k.cover(id, graph.AttrActionsAccess, ghesReason, ghesFix)
 			continue
 		}
 		full := strings.TrimPrefix(id, "repo:")

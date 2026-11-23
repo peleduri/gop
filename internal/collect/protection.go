@@ -260,14 +260,19 @@ func (k *collector) refProtection(ctx context.Context, repoID, branch string, te
 	}
 
 	var rules []apiRule
-	err := k.cl(owner).GetPages(ctx, branchPath(owner, repo, "rules/branches", branch)+"?per_page=100", func(page []byte) error {
-		var batch []apiRule
-		if err := json.Unmarshal(page, &batch); err != nil {
-			return fmt.Errorf("decoding branch rules: %w", err)
-		}
-		rules = append(rules, batch...)
-		return nil
-	})
+	var err error
+	// Without rulesets on this GHES version only classic protection can
+	// protect the branch: read that, and say once why rulesets were not.
+	if !k.ghesSkip("enterprise:"+k.enterprise, capRulesets, capRulesets) {
+		err = k.cl(owner).GetPages(ctx, branchPath(owner, repo, "rules/branches", branch)+"?per_page=100", func(page []byte) error {
+			var batch []apiRule
+			if err := json.Unmarshal(page, &batch); err != nil {
+				return fmt.Errorf("decoding branch rules: %w", err)
+			}
+			rules = append(rules, batch...)
+			return nil
+		})
+	}
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()

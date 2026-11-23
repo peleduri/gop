@@ -42,6 +42,12 @@ type Config struct {
 	// DefaultAppPermissions). Every value must be "read".
 	AppPermissions map[string]string
 
+	// Host is the GitHub host, "github.com" or a GitHub Enterprise Server
+	// host such as "github.acme.example". Empty derives it from BaseURL
+	// (HostOf). On GHES gop reads the server version and skips the
+	// collectors it does not support (ghes.go).
+	Host string
+
 	// Client options, used when Client is nil.
 	BaseURL     string
 	GraphQLURL  string
@@ -152,6 +158,11 @@ type collector struct {
 	batch batchState
 	// progressFn receives progress updates (progress.go); nil means none.
 	progressFn func(Progress)
+	// host is the GitHub host; ghes is set when it is a GitHub Enterprise
+	// Server, and ghesVersion holds its version once read ("" = unknown).
+	host        string
+	ghes        bool
+	ghesVersion string
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -189,7 +200,9 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
 		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs, app: app,
 		batch: newBatchState(cfg), progressFn: progressFunc(cfg),
+		host: cfg.host(),
 	}
+	k.ghes = isGHES(k.host)
 	if err := k.run(ctx); err != nil {
 		return nil, err
 	}
@@ -218,6 +231,9 @@ func (k *collector) run(ctx context.Context) error {
 		collectOrgs = k.collectOrgsApp
 	}
 	if err := collectOrgs(ctx); err != nil {
+		return err
+	}
+	if err := k.detectGHES(ctx, ent); err != nil {
 		return err
 	}
 	k.progress(PhaseOrgs, len(k.orgs), len(k.orgs))
@@ -526,6 +542,15 @@ func (k *collector) collectSettings(ctx context.Context) error {
 		k.collectSettingsPerOrg()
 		return nil
 	}
+	if reason, fix, skip := k.ghesGate(capEnterpriseSettings); skip {
+		for _, spec := range settingSpecs {
+			k.cover("enterprise:"+k.enterprise, spec.attr, reason, fix)
+			for _, o := range k.orgs {
+				setAttr(o.node, spec.attr, "unknown", graph.NotVisible)
+			}
+		}
+		return nil
+	}
 	for _, spec := range settingSpecs {
 		assigned := map[string]string{}
 		var failure error
@@ -587,11 +612,15 @@ func (k *collector) collectMembers(ctx context.Context) error {
 	owners := map[string]map[string]bool{}
 	path := "/enterprises/" + url.PathEscape(k.enterprise) + "/consumed-licenses?per_page=100"
 	var err error
-	if k.app != nil {
+	ghesReason, ghesFix, ghesSkip := k.ghesGate(capConsumedLicenses)
+	switch {
+	case k.app != nil:
 		// Installation tokens cannot read the enterprise: members come from
 		// each org's members API instead.
 		err = errAppMode
-	} else {
+	case ghesSkip:
+		err = errors.New(ghesReason)
+	default:
 		err = k.collectLicenses(ctx, path, members, owners)
 	}
 	if err != nil {
@@ -599,12 +628,15 @@ func (k *collector) collectMembers(ctx context.Context) error {
 			return ctx.Err()
 		}
 		reason, fix := "could not read consumed licenses: "+err.Error(), "enterprise owner on "+k.enterprise
-		if k.app != nil {
+		switch {
+		case k.app != nil:
 			reason, fix = appEnterpriseReason+": consumed licenses are not read; members come from "+srcOrgMembers, enterpriseFix
+		case ghesSkip:
+			reason, fix = ghesReason+"; members come from "+srcOrgMembers, ghesFix
 		}
 		k.cover("enterprise:"+k.enterprise, graph.AttrMembers, reason, fix)
 	}
-	return k.finishMembers(ctx, err, members, owners)
+	return k.finishMembers(ctx, err, members, owners, ghesSkip)
 }
 
 // collectLicenses reads the enterprise consumed licenses into members and owners.
@@ -659,11 +691,14 @@ func (k *collector) collectLicenses(ctx context.Context, path string, members, o
 
 // finishMembers sets each collected org's member counts and owners, from the
 // licenses or, when they could not be read, from the org members API.
-func (k *collector) finishMembers(ctx context.Context, err error, members, owners map[string]map[string]bool) error {
+//
+// perOrg makes the org members API the fallback even when the enterprise is
+// visible (a GHES version without consumed licenses).
+func (k *collector) finishMembers(ctx context.Context, err error, members, owners map[string]map[string]bool, perOrg bool) error {
 	for _, o := range k.orgs {
 		mn := k.node("members:"+o.login, graph.KindOrgMembers, o.login+" members")
 		if err != nil {
-			if k.entHidden {
+			if k.entHidden || perOrg {
 				if ferr := k.collectOrgMembers(ctx, o, mn); ferr != nil {
 					return ferr
 				}
@@ -1229,6 +1264,11 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 	}
 	setAttr(an, attrInEnterprise, strconv.FormatBool(inside), graph.Live)
 	if !inside {
+		if k.ghes {
+			// Not an org on the instance: the runner fetches it from
+			// github.com (GitHub Connect or a local mirror).
+			setAttr(an, attrSource, graph.GitHubDotCom, graph.Live)
+		}
 		return
 	}
 	full := org + "/" + u.Repo

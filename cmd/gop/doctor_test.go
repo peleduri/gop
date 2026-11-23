@@ -154,7 +154,7 @@ func TestGoldenDoctor(t *testing.T) {
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
 			url := tc.srv.start(t)
-			args := append([]string{"--enterprise", "acme", "--github-url", url}, tc.extra...)
+			args := append([]string{"--enterprise", "acme", "--api-url", url, "--insecure-http"}, tc.extra...)
 			r := runDoctorApp(t, tc.srv.token, args...)
 			if r.code != tc.code {
 				t.Fatalf("exit %d, want %d: %+v", r.code, tc.code, r)
@@ -176,19 +176,6 @@ func TestDoctorUsage(t *testing.T) {
 	} {
 		if r := runDoctorApp(t, tc.token, tc.args...); r.code != exitUsage {
 			t.Errorf("%v: exit %d, want 2", tc.args, r.code)
-		}
-	}
-}
-
-func TestGraphQLURL(t *testing.T) {
-	for in, want := range map[string]string{
-		"":                             "",
-		"https://api.github.com":       "",
-		"https://ghes.example/api/v3":  "https://ghes.example/api/graphql",
-		"https://ghes.example/api/v3/": "https://ghes.example/api/graphql",
-	} {
-		if got := graphQLURL(in); got != want {
-			t.Errorf("%q: %q, want %q", in, got, want)
 		}
 	}
 }

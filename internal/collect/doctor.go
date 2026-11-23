@@ -407,7 +407,7 @@ func (d *doctor) enterprise(ctx context.Context) (*doctorEnterprise, error) {
 			return nil, ctx.Err()
 		}
 		d.r.check("enterprise", StatusFail, "enterprise GraphQL query failed: "+statusText(err),
-			"check --github-url (GHES: https://HOST/api/v3) and the enterprise slug")
+			"check --github-url (GHES: https://HOST) and the enterprise slug")
 		return out, nil
 	}
 	if e := data.Enterprise; e != nil {

@@ -348,6 +348,9 @@ func (k *collector) tagRuleset(ctx context.Context, owner, repoID, tag string, t
 	unknown := func(reason string) *refProtection {
 		return &refProtection{protected: "unknown", reason: reason, fix: "read access to " + full}
 	}
+	if reason, fix, skip := k.ghesGate(capRulesets); skip {
+		return &refProtection{protected: "unknown", reason: reason, fix: fix}, nil
+	}
 	var listed []struct {
 		ID          int64  `json:"id"`
 		Target      string `json:"target"`

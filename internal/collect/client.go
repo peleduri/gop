@@ -234,6 +234,7 @@ func newClient(o ClientOptions, requireToken bool) (*Client, error) {
 		}
 		hc = &http.Client{Timeout: t}
 	}
+	hc = withRedirectGuard(hc, base, o.GraphQLURL)
 	if o.MaxAttempts <= 0 {
 		o.MaxAttempts = defaultMaxAttempts
 	}
@@ -256,6 +257,38 @@ func newClient(o ClientOptions, requireToken bool) (*Client, error) {
 		now:         time.Now,
 		rate:        newRateTracker(),
 	}, nil
+}
+
+// maxRedirects matches net/http's default redirect limit.
+const maxRedirects = 10
+
+// withRedirectGuard returns a copy of hc whose redirects never carry the
+// token off the configured API hosts. net/http already drops Authorization
+// when a redirect leaves the original domain, but keeps it for a subdomain
+// and for an https to http downgrade on the same host; gop strips it for any
+// redirect whose scheme and host are not the REST or GraphQL endpoint's. A
+// CheckRedirect already set on hc still runs first.
+func withRedirectGuard(hc *http.Client, base *url.URL, graphqlURL string) *http.Client {
+	allowed := map[string]bool{strings.ToLower(base.Scheme + "://" + base.Host): true}
+	if g, err := url.Parse(graphqlURL); err == nil && g.Host != "" {
+		allowed[strings.ToLower(g.Scheme+"://"+g.Host)] = true
+	}
+	prev := hc.CheckRedirect
+	cp := *hc
+	cp.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if prev != nil {
+			if err := prev(req, via); err != nil {
+				return err
+			}
+		} else if len(via) >= maxRedirects {
+			return fmt.Errorf("stopped after %d redirects", maxRedirects)
+		}
+		if !allowed[strings.ToLower(req.URL.Scheme+"://"+req.URL.Host)] {
+			req.Header.Del("Authorization")
+		}
+		return nil
+	}
+	return &cp
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) error {

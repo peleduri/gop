@@ -21,10 +21,10 @@ const exitWarn = 3
 func (a *app) cmdDoctor(args []string) error {
 	fs := a.flags("doctor")
 	ent := fs.String("enterprise", "", "enterprise slug, e.g. acme")
-	ghURL := fs.String("github-url", "", "REST API root (default https://api.github.com; GHES: https://HOST/api/v3)")
 	orgs := fs.String("orgs", "", "comma-separated org logins, as for collect --orgs")
 	format := fs.String("format", "text", "text or json")
 	af := addAppFlags(fs)
+	uf := addURLFlags(fs, "doctor")
 	if err := parse(fs, args); err != nil {
 		return err
 	}
@@ -34,6 +34,10 @@ func (a *app) cmdDoctor(args []string) error {
 	f := strings.ToLower(*format)
 	if f != "text" && f != "json" {
 		return usagef("doctor: --format must be text or json, got %q", *format)
+	}
+	ep, err := uf.resolve(a.getenv)
+	if err != nil {
+		return err
 	}
 	cr, err := a.resolveCreds("doctor", af)
 	if err != nil {
@@ -51,8 +55,8 @@ func (a *app) cmdDoctor(args []string) error {
 		AppID:            cr.appID,
 		AppPrivateKeyPEM: cr.appKey,
 		Orgs:             splitList(*orgs),
-		BaseURL:          *ghURL,
-		GraphQLURL:       graphQLURL(*ghURL),
+		BaseURL:          ep.rest,
+		GraphQLURL:       ep.graphql,
 		Now:              now,
 	})
 	if err != nil {
@@ -73,14 +77,4 @@ func (a *app) cmdDoctor(args []string) error {
 		return codeError{exitWarn, fmt.Errorf("%d warnings", warns)}
 	}
 	return nil
-}
-
-// graphQLURL derives the GraphQL endpoint from a REST root: GHES serves it at
-// /api/graphql next to /api/v3. Empty means the client default (REST root + /graphql).
-func graphQLURL(rest string) string {
-	r := strings.TrimRight(rest, "/")
-	if strings.HasSuffix(r, "/api/v3") {
-		return strings.TrimSuffix(r, "/v3") + "/graphql"
-	}
-	return ""
 }

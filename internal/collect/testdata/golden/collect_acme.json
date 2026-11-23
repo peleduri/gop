@@ -139,6 +139,7 @@
       "kind": "enterprise",
       "name": "acme",
       "attrs": {
+        "host": "github.com",
         "orgs": "5"
       },
       "evidence": "live"

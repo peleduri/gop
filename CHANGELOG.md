@@ -32,6 +32,18 @@ flags may change in minor releases.
   credentials. GCP and Azure stay on trust files: Cartography does not store the
   GCP attribute mapping or Azure federated credentials (see
   `docs/cartography.md`).
+- GitHub Enterprise Server support. `gop collect`, `gop doctor` and `gop pin`
+  take `--github-url https://HOST` (or `GOP_GITHUB_URL`) and read
+  `https://HOST/api/v3` and `https://HOST/api/graphql`; `--api-url` and
+  `--graphql-url` override them for a proxy, and `http://` needs
+  `--insecure-http`. Collect reads the server version from `GET /meta` and
+  records `host` and `ghes_version` on the enterprise node (`host` is
+  `github.com` on github.com). Collectors the version lacks (enterprise
+  ownerInfo settings, consumed licenses, the Actions access setting,
+  rulesets; minimums in `docs/ghes.md`, not yet verified per version) are
+  skipped with coverage `not available on GHES <version>`, and the run
+  succeeds. Actions whose owner is not an org on the instance get
+  `source=github.com`. See `docs/ghes.md`.
 
 - The Action runs on Windows runners (x64 and ARM64): the download step
   (now `action/install-gop.sh`) fetches the `.zip` release, verifies it with
@@ -101,6 +113,24 @@ flags may change in minor releases.
 - CI checks PR titles against Conventional Commits (`pr-title` workflow, on
   `pull_request` with only `pull-requests: read`) and every repo-relative
   Markdown link and anchor (lychee, offline).
+
+### Changed
+
+- `--github-url` on `gop doctor` and `gop pin` now takes the instance URL
+  (`https://HOST`); a REST root ending in `/api/v3` still works.
+- `gop diff` refuses snapshots from different GitHub hosts (enterprise
+  `host` attribute) without `--force`.
+- `gop enrich` matches a cloud OIDC trust only when its issuer is the token
+  issuer of the graph's host (`https://token.actions.githubusercontent.com`
+  for github.com, `https://HOST/_services/token` for GHES). Graphs without
+  `host` match any GitHub issuer, as before.
+
+### Security
+
+- The API client removes the `Authorization` header on any redirect that
+  leaves the configured REST or GraphQL scheme and host. `net/http` alone
+  keeps it for a subdomain, another port on the same host name, or an
+  `https` to `http` downgrade.
 
 ## [0.3.0] - 2026-11-24
 
