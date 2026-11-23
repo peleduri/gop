@@ -75,3 +75,107 @@ func TestParseCompositeAction(t *testing.T) {
 		t.Errorf("node action: %v %q %v", uses, using, err)
 	}
 }
+
+func TestParseWorkflowPositions(t *testing.T) {
+	type pos struct {
+		raw       string
+		line, col int
+	}
+	cases := []struct {
+		name       string
+		src        string
+		uses       []pos
+		idToken    map[string]int
+		runsOnLine int
+	}{
+		{
+			name: "block style step and job",
+			src: `on: push
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: acme-actions/deploy@main
+      - run: echo hi
+      -   uses: "acme-actions/setup@v1"
+  b:
+    uses: acme-actions/setup/.github/workflows/build.yml@main
+`,
+			uses: []pos{
+				{"acme-actions/deploy@main", 9, 15},
+				{"acme-actions/setup@v1", 11, 17},
+				{"acme-actions/setup/.github/workflows/build.yml@main", 13, 11},
+			},
+			idToken: map[string]int{"a": 7},
+		},
+		{
+			name: "flow style",
+			src: `on: push
+permissions: write-all
+jobs:
+  a: {runs-on: [self-hosted, linux], steps: [{uses: acme-actions/deploy@main}, {run: x}]}
+  b:
+    runs-on:
+      - self-hosted
+    steps: [{uses: acme-actions/setup@main}]
+`,
+			uses: []pos{
+				{"acme-actions/deploy@main", 4, 53},
+				{"acme-actions/setup@main", 8, 20},
+			},
+			idToken:    map[string]int{"workflow": 2},
+			runsOnLine: 4,
+		},
+		{
+			name: "multi-document: first document only, lines from file start",
+			src: `---
+on: push
+jobs:
+  a:
+    runs-on:
+      - self-hosted
+    steps:
+      - uses: acme-actions/deploy@main
+---
+jobs:
+  z:
+    steps:
+      - uses: acme-actions/other@main
+`,
+			uses:       []pos{{"acme-actions/deploy@main", 8, 15}},
+			idToken:    map[string]int{},
+			runsOnLine: 5,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f, err := ParseWorkflow([]byte(tc.src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []pos
+			for _, u := range f.Uses {
+				got = append(got, pos{u.Raw, u.Line, u.Column})
+			}
+			if !reflect.DeepEqual(got, tc.uses) {
+				t.Errorf("uses = %+v, want %+v", got, tc.uses)
+			}
+			if !reflect.DeepEqual(f.IDTokenLines, tc.idToken) {
+				t.Errorf("id-token lines = %v, want %v", f.IDTokenLines, tc.idToken)
+			}
+			if f.RunsOnLine != tc.runsOnLine {
+				t.Errorf("runs-on line = %d, want %d", f.RunsOnLine, tc.runsOnLine)
+			}
+		})
+	}
+}
+
+func TestCompositeActionPositions(t *testing.T) {
+	uses, _, err := ParseCompositeAction([]byte("runs:\n  using: composite\n  steps:\n    - uses: acme-actions/setup@main\n"))
+	if err != nil || len(uses) != 1 || uses[0].Line != 4 || uses[0].Column != 13 {
+		t.Errorf("composite uses = %+v err=%v", uses, err)
+	}
+}

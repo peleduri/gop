@@ -527,10 +527,29 @@ func (e *Engine) Explain(in ExplainInput) (ExplainOutput, error) {
 	first := out.Edges[0]
 	out.Summary = fmt.Sprintf("%s %s %s: evidence %s, from %s at %s", first.From, first.Kind, first.To,
 		EvidenceLabel(graph.Evidence(first.Evidence)), first.SourceAPI, first.ObservedAt)
+	if loc := fileLine(first.Attrs); loc != "" {
+		out.Summary += ", at " + loc
+	}
 	if len(out.Edges) > 1 {
 		out.Summary += fmt.Sprintf(" (+%d more)", len(out.Edges)-1)
 	}
 	return out, nil
+}
+
+// fileLine renders an edge's source position as file:line (or file, when
+// the line is unknown). It is "" when the edge has no file attribute.
+func fileLine(attrs map[string]string) string {
+	f := attrs[graph.AttrFile]
+	if f == "" {
+		return ""
+	}
+	if l := attrs[graph.AttrLine]; l != "" {
+		f += ":" + l
+	}
+	if r := attrs[graph.AttrFileRef]; r != "" {
+		f += " (" + r + ")"
+	}
+	return f
 }
 
 // CoverageInput is the coverage tool input (no fields).
