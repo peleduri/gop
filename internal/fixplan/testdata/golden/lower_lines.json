@@ -1,0 +1,198 @@
+{
+  "summary": "Lower the default repository permission of acme-actions to read: 1 setting to change; removes 5 of 14 confirmed (principal, repo) pairs (36%); 1 step is not visible, listed last",
+  "plan": {
+    "fix_id": "default_perm:org:acme-actions->read",
+    "fix": {
+      "type": "lower_default_perm",
+      "org": "org:acme-actions",
+      "to": "read"
+    },
+    "description": "Lower the default repository permission of acme-actions to read",
+    "removes": {
+      "fixes": [
+        "default_perm:org:acme-actions->read"
+      ],
+      "before": {
+        "principals": 5,
+        "confirmed": {
+          "repos": 14,
+          "orgs": 6,
+          "workflows": 12,
+          "secrets": 0,
+          "oidc": 3,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 5,
+          "orgs": 3,
+          "workflows": 3,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 14,
+        "possible_pairs": 5,
+        "score": 56,
+        "possible_score": 12.5
+      },
+      "after": {
+        "principals": 5,
+        "confirmed": {
+          "repos": 9,
+          "orgs": 4,
+          "workflows": 8,
+          "secrets": 0,
+          "oidc": 2,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 2,
+          "orgs": 2,
+          "workflows": 2,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 9,
+        "possible_pairs": 2,
+        "score": 37,
+        "possible_score": 7
+      },
+      "per_principal": [
+        {
+          "principal": "identity:bob",
+          "before": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 5,
+              "orgs": 2,
+              "workflows": 4,
+              "secrets": 0,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 2,
+              "orgs": 1,
+              "workflows": 1,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 19,
+            "possible_score": 4.5
+          },
+          "after": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 5,
+              "orgs": 2,
+              "workflows": 4,
+              "secrets": 0,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 1,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 19,
+            "possible_score": 3.5
+          }
+        },
+        {
+          "principal": "members:acme-actions",
+          "before": {
+            "principal": "members:acme-actions",
+            "confirmed": {
+              "repos": 5,
+              "orgs": 2,
+              "workflows": 4,
+              "secrets": 0,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 2,
+              "orgs": 1,
+              "workflows": 1,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 19,
+            "possible_score": 4.5
+          },
+          "after": {
+            "principal": "members:acme-actions",
+            "confirmed": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 0,
+            "possible_score": 0
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "kind": "verify",
+        "repo": "acme-actions/deploy",
+        "owner": "acme-actions",
+        "edge": "members:acme-actions CAN_PUSH repo:acme-actions/deploy",
+        "evidence": "live",
+        "note": "before the change: members of acme-actions lose push to acme-actions/deploy (granted only by the base permission); give a team push first if members need it; other push grants kept: team:acme-actions/platform"
+      },
+      {
+        "kind": "verify",
+        "repo": "acme-actions/setup",
+        "owner": "acme-actions",
+        "edge": "members:acme-actions CAN_PUSH repo:acme-actions/setup",
+        "evidence": "live",
+        "note": "before the change: members of acme-actions lose push to acme-actions/setup (granted only by the base permission); give a team push first if members need it; other push grants kept: identity:bob"
+      },
+      {
+        "kind": "change_setting",
+        "setting": "Organization settings > Member privileges > Base permissions: Read",
+        "api": "PATCH /orgs/acme-actions {\"default_repository_permission\": \"read\"}",
+        "owner": "acme-actions",
+        "evidence": "live",
+        "note": "current base permission: write; an org owner of acme-actions makes this change; the API call is shown as text only, gop never calls it"
+      },
+      {
+        "kind": "verify",
+        "repo": "acme-actions/tools",
+        "owner": "acme-actions",
+        "edge": "members:acme-actions CAN_PUSH repo:acme-actions/tools",
+        "evidence": "not_visible",
+        "unconfirmed": true,
+        "note": "before the change: members of acme-actions lose push to acme-actions/tools (granted only by the base permission); give a team push first if members need it; not visible to the token: confirm this exists first"
+      }
+    ],
+    "caveats": [
+      "members who rely on the default write permission lose push to every acme-actions repo where they have no team, direct or owner grant",
+      "repos where members of acme-actions have push only through the base permission: acme-actions/deploy, acme-actions/setup, acme-actions/tools [not visible]"
+    ]
+  }
+}

@@ -125,6 +125,7 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 | `top_risks` | Principals ranked by confirmed blast radius. |
 | `what_if` | Reach before and after hypothetical fixes: `pin_ref` (pin an action to a SHA) or `lower_default_perm` (set an org's default permission to read or none). |
 | `suggest_fixes` | A greedy plan: the fixes that remove the most confirmed (principal, repo) pairs, with the cumulative percentage. |
+| `fix_plan` | Concrete change steps for one fix (`fix`, or `suggestion_rank` from `suggest_fixes`): every workflow line to edit with a one-line diff, or the org setting with its REST call as text. gop never runs the steps. |
 | `explain` | Why an edge exists: evidence, `source_api`, `observed_at` and attributes. |
 | `coverage` | What the token could not see, and the access that would make it visible. |
 | `diff` | What changed since a baseline snapshot (`gop serve --graph new.json --baseline old.json`): new and removed paths, settings, edges, score deltas and coverage, filterable by principal and target kind. Same report as `gop diff --format json`; lost visibility is never reported as a fix. |
@@ -140,9 +141,12 @@ gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>
 gop validate --graph graph.json [--format text|json]
 gop diff    OLD.json NEW.json [--format text|json|markdown] [--fail-on confirmed-increase|any-new-path]
+gop fix-plan --graph graph.json --pin <action> | --lower-default-perm <org> [--to read|none] [--format text|markdown|json]
 gop mcp-config --client claude|cursor|vscode --graph graph.json
 gop version
 ```
+
+`gop fix-plan` turns a fix into a checklist: for `--pin action:acme-actions/deploy@main`, every workflow and nested action that uses the ref, sorted by repo and file, with the line and a one-line diff when the graph has line attributes; for `--lower-default-perm org:acme-actions`, the setting with its UI path and REST call, and the repos where members lose push. Markdown output pastes into a ticket. gop never runs the steps or calls write APIs.
 
 `gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md).
 

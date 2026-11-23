@@ -1,0 +1,460 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-11-20T10:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {
+      "id": "enterprise:acme",
+      "kind": "enterprise",
+      "name": "acme",
+      "evidence": "live"
+    },
+    {
+      "id": "org:acme-actions",
+      "kind": "org",
+      "name": "acme-actions",
+      "evidence": "live",
+      "attrs": {
+        "default_perm": "write"
+      }
+    },
+    {
+      "id": "members:acme-actions",
+      "kind": "org_members",
+      "name": "all members of acme-actions",
+      "evidence": "live"
+    },
+    {
+      "id": "org:acme-app",
+      "kind": "org",
+      "name": "acme-app",
+      "evidence": "live",
+      "attrs": {
+        "default_perm": "read"
+      }
+    },
+    {
+      "id": "members:acme-app",
+      "kind": "org_members",
+      "name": "all members of acme-app",
+      "evidence": "live"
+    },
+    {
+      "id": "org:acme-legacy",
+      "kind": "org",
+      "name": "acme-legacy",
+      "evidence": "live",
+      "attrs": {
+        "default_perm": "write"
+      }
+    },
+    {
+      "id": "members:acme-legacy",
+      "kind": "org_members",
+      "name": "all members of acme-legacy",
+      "evidence": "live"
+    },
+    {
+      "id": "identity:bob",
+      "kind": "identity",
+      "name": "bob",
+      "evidence": "live"
+    },
+    {
+      "id": "team:acme-actions/platform",
+      "kind": "identity",
+      "name": "acme-actions/platform",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-actions/deploy",
+      "kind": "repo",
+      "name": "acme-actions/deploy",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-actions/setup",
+      "kind": "repo",
+      "name": "acme-actions/setup",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-actions/tools",
+      "kind": "repo",
+      "name": "acme-actions/tools",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-app/web",
+      "kind": "repo",
+      "name": "acme-app/web",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-app/api",
+      "kind": "repo",
+      "name": "acme-app/api",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-legacy/old-site",
+      "kind": "repo",
+      "name": "acme-legacy/old-site",
+      "evidence": "live"
+    },
+    {
+      "id": "action:acme-actions/deploy@main",
+      "kind": "action_ref",
+      "name": "acme-actions/deploy@main",
+      "evidence": "live",
+      "attrs": {
+        "owner": "acme-actions",
+        "repo": "deploy",
+        "ref": "main",
+        "ref_kind": "branch",
+        "runs_using": "composite"
+      }
+    },
+    {
+      "id": "action:acme-actions/setup@main",
+      "kind": "action_ref",
+      "name": "acme-actions/setup@main",
+      "evidence": "live",
+      "attrs": {
+        "owner": "acme-actions",
+        "repo": "setup",
+        "ref": "main",
+        "ref_kind": "branch",
+        "runs_using": "composite"
+      }
+    },
+    {
+      "id": "action:acme-actions/tools/.github/workflows/build.yml@main",
+      "kind": "action_ref",
+      "name": "acme-actions/tools/.github/workflows/build.yml@main",
+      "evidence": "live",
+      "attrs": {
+        "owner": "acme-actions",
+        "repo": "tools",
+        "path": ".github/workflows/build.yml",
+        "ref": "main",
+        "ref_kind": "branch",
+        "reusable_workflow": "true"
+      }
+    },
+    {
+      "id": "workflow:acme-app/web/.github/workflows/release.yml",
+      "kind": "workflow",
+      "name": "acme-app/web/.github/workflows/release.yml",
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-app/web/.github/workflows/ci.yml",
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/api/.github/workflows/deploy.yml",
+      "kind": "workflow",
+      "name": "acme-app/api/.github/workflows/deploy.yml",
+      "evidence": "live"
+    },
+    {
+      "id": "oidc:acme-app/web",
+      "kind": "oidc",
+      "name": "acme-app/web",
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-legacy/old-site/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-legacy/old-site/.github/workflows/ci.yml",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-app/docs",
+      "kind": "repo",
+      "name": "acme-app/docs",
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/build.yml",
+      "evidence": "live"
+    }
+  ],
+  "edges": [
+    {
+      "from": "members:acme-actions",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "graphql:organization.repositories.collaborators",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "default_perm",
+        "permission": "write"
+      }
+    },
+    {
+      "from": "members:acme-actions",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "graphql:organization.repositories.collaborators",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "default_perm",
+        "permission": "write"
+      }
+    },
+    {
+      "from": "members:acme-actions",
+      "to": "repo:acme-actions/tools",
+      "kind": "CAN_PUSH",
+      "evidence": "not_visible",
+      "source_api": "graphql:organization.repositories.collaborators",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "default_perm",
+        "permission": "write"
+      }
+    },
+    {
+      "from": "team:acme-actions/platform",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:/orgs/{org}/teams/{team}/repos",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "team",
+        "permission": "maintain"
+      }
+    },
+    {
+      "from": "identity:bob",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "graphql:organization.repositories.collaborators",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "direct",
+        "permission": "write"
+      }
+    },
+    {
+      "from": "identity:bob",
+      "to": "org:acme-actions",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "graphql:organization.membersWithRole",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "identity:bob",
+      "to": "team:acme-actions/platform",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "rest:/orgs/{org}/teams/{team}/members",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "action:acme-actions/deploy@main",
+      "to": "repo:acme-actions/deploy",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "action:acme-actions/setup@main",
+      "to": "repo:acme-actions/setup",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "action:acme-actions/tools/.github/workflows/build.yml@main",
+      "to": "repo:acme-actions/tools",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "action:acme-actions/deploy@main",
+      "to": "action:acme-actions/setup@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:action.yml",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "file": "action.yml",
+        "line": "6",
+        "col": "13",
+        "ref_kind": "branch",
+        "level": "step",
+        "file_ref": "main"
+      }
+    },
+    {
+      "from": "action:acme-actions/tools/.github/workflows/build.yml@main",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "file": ".github/workflows/build.yml",
+        "line": "9",
+        "col": "15",
+        "ref_kind": "branch",
+        "level": "step",
+        "file_ref": "main"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "repo:acme-app/web",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/actions/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "file": ".github/workflows/release.yml",
+        "line": "12",
+        "col": "15",
+        "ref_kind": "branch",
+        "level": "step"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "repo:acme-app/web",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/actions/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "file": ".github/workflows/ci.yml",
+        "line": "8",
+        "col": "15",
+        "ref_kind": "branch",
+        "level": "step"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/deploy.yml",
+      "to": "repo:acme-app/api",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/actions/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/deploy.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "file": ".github/workflows/deploy.yml",
+        "line": "10",
+        "col": "15",
+        "ref_kind": "branch",
+        "level": "step"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "oidc:acme-app/web",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "file": ".github/workflows/release.yml",
+        "line": "5",
+        "col": "7"
+      }
+    },
+    {
+      "from": "workflow:acme-legacy/old-site/.github/workflows/ci.yml",
+      "to": "repo:acme-legacy/old-site",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/actions/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-legacy/old-site/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "not_visible",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/actions/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "action:acme-actions/tools/.github/workflows/build.yml@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "file": ".github/workflows/build.yml",
+        "line": "5",
+        "col": "11",
+        "ref_kind": "branch",
+        "level": "job"
+      }
+    }
+  ],
+  "coverage": [
+    {
+      "scope": "org:acme-legacy",
+      "fact": "workflows",
+      "reason": "token cannot read acme-legacy contents",
+      "needs_fix": "read access to acme-legacy"
+    },
+    {
+      "scope": "repo:acme-actions/tools",
+      "fact": "collaborators",
+      "reason": "token is not an admin of the repo",
+      "needs_fix": "admin on acme-actions/tools"
+    }
+  ]
+}

@@ -7,6 +7,17 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+### Added
+
+- MCP tool `fix_plan` and `gop fix-plan` turn a fix into concrete change
+  steps: for `pin_ref`, one step per consuming workflow or nested action with
+  file, line and a one-line diff (a placeholder SHA plus a step to resolve it),
+  plus a caveat naming mutable refs the pinned action uses itself; for
+  `lower_default_perm`, the setting's UI path and REST call (text only) and the
+  repos where members lose push. Steps whose evidence is not visible are marked
+  and listed last. Output as text, markdown checklist or JSON. gop never runs
+  the steps or calls write APIs.
+
 ## [0.2.0] - 2026-11-23
 
 ### Added

@@ -273,3 +273,12 @@ func TotalsOf(scores []Score) Totals { return totalsOf(scores) }
 // Scores returns the blast radius of every scoring principal (ScoringPrincipals),
 // sorted by principal ID: the set TopPaths, WhatIf and Totals use.
 func (ix *Index) Scores() []Score { return ix.allScores(ix.base) }
+
+// FixEdges returns the evidence edges a fix changes: the RESOLVES_TO edge of a
+// PinRef's action, or the via=default_perm CAN_PUSH edges a LowerDefaultPerm removes.
+func FixEdges(ix *Index, f Fix) []Edge { return f.edges(ix) }
+
+// MutableRef reports whether an action ref can change without a new pin: its
+// ref_kind is branch or tag, or it is unknown and the ref does not look like a
+// commit SHA. It is the test Candidates uses for PinRef.
+func (ix *Index) MutableRef(action string) bool { return ix.actionMutable(action) }

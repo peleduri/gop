@@ -48,6 +48,8 @@ Usage:
   gop validate --graph graph.json [--format text|json]
   gop diff    OLD.json NEW.json [--format text|json|markdown] [--only paths,settings,edges,scores,coverage]
               [--fail-on confirmed-increase|any-new-path] [--force]
+  gop fix-plan --graph graph.json | --demo  --pin <action> | --lower-default-perm <org> [--to read|none]
+              [--format text|markdown|json]
   gop mcp-config --client claude|cursor|vscode --graph graph.json
   gop version
 
@@ -62,6 +64,8 @@ validate checks graph.json against the published JSON Schema and that every
 edge endpoint is a node. Exit 0 valid, 1 invalid, 2 usage error.
 diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or load errors.
 --graph - reads the graph from stdin (report, paths, who): gop demo | gop report --graph - --out -
+fix-plan prints the change steps for one fix (workflow lines with diffs, settings
+with their REST call as text). gop never runs them or calls write APIs.
 mcp-config prints the MCP client config for serve; it never writes files.
 Confirmed reach: every hop live or audit. Possible reach: at least one hop not visible.
 `
@@ -123,6 +127,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdDiff(rest)
 	case "mcp-config":
 		err = a.cmdMCPConfig(rest)
+	case "fix-plan":
+		err = a.cmdFixPlan(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":

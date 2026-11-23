@@ -85,7 +85,8 @@ func TestToolsListed(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]bool{"who_can_reach": true, "blast_radius": true, "paths": true, "top_risks": true,
-		"what_if": true, "suggest_fixes": true, "explain": true, "coverage": true, "diff": true}
+		"what_if": true, "suggest_fixes": true, "explain": true, "coverage": true, "diff": true,
+		"fix_plan": true}
 	for _, tl := range res.Tools {
 		if !want[tl.Name] {
 			t.Errorf("unexpected tool %s", tl.Name)

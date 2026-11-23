@@ -1,0 +1,250 @@
+{
+  "summary": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 9 lines to edit across 9 repos; removes 18 of 25 confirmed (principal, repo) pairs (72%)",
+  "plan": {
+    "fix_id": "pin:action:acme-actions/deploy@main",
+    "fix": {
+      "type": "pin_ref",
+      "action": "action:acme-actions/deploy@main"
+    },
+    "description": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it",
+    "removes": {
+      "fixes": [
+        "pin:action:acme-actions/deploy@main"
+      ],
+      "before": {
+        "principals": 6,
+        "confirmed": {
+          "repos": 25,
+          "orgs": 5,
+          "workflows": 23,
+          "secrets": 2,
+          "oidc": 2,
+          "runners": 2
+        },
+        "possible": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 1,
+          "secrets": 1,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 25,
+        "possible_pairs": 1,
+        "score": 172.25,
+        "possible_score": 19.125
+      },
+      "after": {
+        "principals": 6,
+        "confirmed": {
+          "repos": 7,
+          "orgs": 5,
+          "workflows": 5,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 1,
+          "secrets": 1,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 7,
+        "possible_pairs": 1,
+        "score": 39.5,
+        "possible_score": 19.125
+      },
+      "per_principal": [
+        {
+          "principal": "identity:bob",
+          "before": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 12,
+              "orgs": 2,
+              "workflows": 11,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 1
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 84.375,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 3,
+              "orgs": 2,
+              "workflows": 2,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 18,
+            "possible_score": 0
+          }
+        },
+        {
+          "principal": "members:acme-actions",
+          "before": {
+            "principal": "members:acme-actions",
+            "confirmed": {
+              "repos": 12,
+              "orgs": 2,
+              "workflows": 11,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 1
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 84.375,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "members:acme-actions",
+            "confirmed": {
+              "repos": 3,
+              "orgs": 2,
+              "workflows": 2,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 2.25,
+            "score": 18,
+            "possible_score": 0
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/admin",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/admin/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/api",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/api/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/billing",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/billing/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/docs",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/docs/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/gateway",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/gateway/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/mobile",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/mobile/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/search",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/search/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/web",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/web/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/worker",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/worker/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`"
+      },
+      {
+        "kind": "verify",
+        "repo": "acme-actions/deploy",
+        "owner": "acme-actions",
+        "note": "gop works offline and does not know the commit main points at: replace <sha-of-main> with the full commit SHA of main, resolved with `gop pin --action acme-actions/deploy@main` or read from the repository. Use the same SHA in every step."
+      }
+    ],
+    "caveats": [
+      "9 of 9 uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff"
+    ]
+  }
+}

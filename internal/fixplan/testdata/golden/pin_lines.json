@@ -1,0 +1,180 @@
+{
+  "summary": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 5 lines to edit across 4 repos; removes 3 of 14 confirmed (principal, repo) pairs (21%); 1 step is not visible, listed last",
+  "plan": {
+    "fix_id": "pin:action:acme-actions/deploy@main",
+    "fix": {
+      "type": "pin_ref",
+      "action": "action:acme-actions/deploy@main"
+    },
+    "description": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it",
+    "removes": {
+      "fixes": [
+        "pin:action:acme-actions/deploy@main"
+      ],
+      "before": {
+        "principals": 5,
+        "confirmed": {
+          "repos": 14,
+          "orgs": 6,
+          "workflows": 12,
+          "secrets": 0,
+          "oidc": 3,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 5,
+          "orgs": 3,
+          "workflows": 3,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 14,
+        "possible_pairs": 5,
+        "score": 56,
+        "possible_score": 12.5
+      },
+      "after": {
+        "principals": 5,
+        "confirmed": {
+          "repos": 11,
+          "orgs": 5,
+          "workflows": 8,
+          "secrets": 0,
+          "oidc": 2,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 4,
+          "orgs": 2,
+          "workflows": 2,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 11,
+        "possible_pairs": 4,
+        "score": 41,
+        "possible_score": 9
+      },
+      "per_principal": [
+        {
+          "principal": "team:acme-actions/platform",
+          "before": {
+            "principal": "team:acme-actions/platform",
+            "confirmed": {
+              "repos": 4,
+              "orgs": 2,
+              "workflows": 4,
+              "secrets": 0,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 1,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 18,
+            "possible_score": 3.5
+          },
+          "after": {
+            "principal": "team:acme-actions/platform",
+            "confirmed": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 3,
+            "possible_score": 0
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-actions/tools",
+        "file": ".github/workflows/build.yml",
+        "file_ref": "main",
+        "line": 9,
+        "col": 15,
+        "diff": "--- a/.github/workflows/build.yml\n+++ b/.github/workflows/build.yml\n@@ -9 +9 @@\n-uses: acme-actions/deploy@main\n+uses: acme-actions/deploy@<sha-of-main> # main\n",
+        "owner": "acme-actions",
+        "edge": "action:acme-actions/tools/.github/workflows/build.yml@main USES action:acme-actions/deploy@main",
+        "evidence": "live",
+        "note": "nested: this uses: line is inside acme-actions/tools/.github/workflows/build.yml@main; callers pick up the change only when that ref points at the new commit (a SHA or tag pin needs a new pin)"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/api",
+        "file": ".github/workflows/deploy.yml",
+        "line": 10,
+        "col": 15,
+        "diff": "--- a/.github/workflows/deploy.yml\n+++ b/.github/workflows/deploy.yml\n@@ -10 +10 @@\n-uses: acme-actions/deploy@main\n+uses: acme-actions/deploy@<sha-of-main> # main\n",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/api/.github/workflows/deploy.yml USES action:acme-actions/deploy@main",
+        "evidence": "live"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/web",
+        "file": ".github/workflows/ci.yml",
+        "line": 8,
+        "col": 15,
+        "diff": "--- a/.github/workflows/ci.yml\n+++ b/.github/workflows/ci.yml\n@@ -8 +8 @@\n-uses: acme-actions/deploy@main\n+uses: acme-actions/deploy@<sha-of-main> # main\n",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/web/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "live"
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/web",
+        "file": ".github/workflows/release.yml",
+        "line": 12,
+        "col": 15,
+        "diff": "--- a/.github/workflows/release.yml\n+++ b/.github/workflows/release.yml\n@@ -12 +12 @@\n-uses: acme-actions/deploy@main\n+uses: acme-actions/deploy@<sha-of-main> # main\n",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/web/.github/workflows/release.yml USES action:acme-actions/deploy@main",
+        "evidence": "live"
+      },
+      {
+        "kind": "verify",
+        "repo": "acme-actions/deploy",
+        "owner": "acme-actions",
+        "note": "gop works offline and does not know the commit main points at: replace <sha-of-main> with the full commit SHA of main, resolved with `gop pin --action acme-actions/deploy@main` or read from the repository. Use the same SHA in every step."
+      },
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-legacy/old-site",
+        "file": ".github/workflows/ci.yml",
+        "owner": "acme-legacy",
+        "edge": "workflow:acme-legacy/old-site/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+        "evidence": "not_visible",
+        "unconfirmed": true,
+        "note": "line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`; not visible to the token: confirm this exists first"
+      }
+    ],
+    "caveats": [
+      "1 of 5 uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff",
+      "diffs show the uses: entry without its indentation or list marker; keep those as they are in the file",
+      "pinning acme-actions/deploy@main alone does not close paths through the mutable refs it uses itself: acme-actions/setup@main (acme-actions/deploy@main action.yml:6). Pin those too (for example gop fix-plan --pin action:acme-actions/setup@main)"
+    ]
+  }
+}

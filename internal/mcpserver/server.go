@@ -54,6 +54,7 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 		"List what the token could not see (not_visible facts) and the access that would make each visible.",
 		e.Coverage, func(o CoverageOutput) string { return o.Summary })
 	addTool(s, "diff", diffDescription, newDiffer(g, opts.Baseline).Diff, func(o DiffOutput) string { return o.Summary })
+	addFixPlanTool(s, e)
 	return s
 }
 
