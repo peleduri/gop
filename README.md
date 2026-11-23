@@ -161,6 +161,7 @@ gop fix-plan --graph graph.json --pin <action> | --lower-default-perm <org> [--t
 gop sarif   --graph graph.json --out gop.sarif | --split-by-repo DIR [--top N] [--min-severity low|medium|high|critical] [--include-possible]
 gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]] [--github-url URL] [--format diff|text|json]
 gop export  --format cypher graph.json [--out gop.cypher] [--github-url URL]
+gop export  --format sql graph.json [graph2.json ...] [--out gop.sql]
 gop mcp-config --client claude|cursor|vscode --graph graph.json
 gop version
 ```
@@ -176,6 +177,8 @@ gop version
 `gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md). `gop report --graph new.json --previous old.json` opens the HTML report with the same changes as a "What changed" banner; [docs/report.md](docs/report.md) describes the report, the banner and its accessibility checks.
 
 `gop export --format cypher graph.json > gop.cypher` writes an idempotent Neo4j script that loads gop's nodes, edges and computed reach next to [Cartography](https://github.com/cartography-cncf/cartography) data, linked to its GitHub repo, org and AWS role nodes. See [docs/cartography.md](docs/cartography.md#export-gop-to-neo4j).
+
+`gop export --format sql graph.json --out gop.sql` writes the graph, its computed reach and its ranked findings (top risks and fix candidates) as a SQL script for SQLite or DuckDB (`sqlite3 gop.db < gop.sql`), for questions that count and group, BI tools and text-to-SQL tools. Several graphs load as several runs, so trends work; loading a run again replaces it. The file lists attack paths: keep it private. See [docs/sql.md](docs/sql.md) for the schema and example queries.
 
 `--graph -` reads the graph from stdin for `report`, `paths` and `who`. Node IDs look like `members:acme-actions`, `identity:bob`, `repo:acme-app/web`, `action:acme-actions/deploy@main`, `oidc:acme-app/web`. An unknown ID returns suggestions.
 
