@@ -1,0 +1,26 @@
+Since 2026-11-13: 3 new confirmed paths; acme-actions default_perm read → write.
+acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
+Confirmed (principal, repo) pairs: 3 → 5 (+2). Possible pairs: 0 → 0 (+0).
+
+Paths (3):
+  members:acme-actions -> secret:acme-app/api  [added: none → confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1
+      action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml
+      workflow:acme-app/api/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> secret:acme-app/api
+  members:acme-actions -> repo:acme-actions/deploy  [added: none → confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy
+  members:acme-actions -> repo:acme-app/api  [added: none → confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1
+      action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml
+      workflow:acme-app/api/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/api
+
+Settings (1):
+  acme-actions default_perm read → write  [evidence live → live]
+
+Edges (1):
+  + members:acme-actions CAN_PUSH repo:acme-actions/deploy  [live, via=default_perm]
+
+Scores (1):
+  members:acme-actions  confirmed 0 → 11.5 (+11.5)  possible 0 → 0 (+0)

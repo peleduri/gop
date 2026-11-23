@@ -1,0 +1,259 @@
+{
+  "summary": "Since 2026-11-13: 3 new confirmed paths; acme-actions default_perm read → write.",
+  "old": {
+    "enterprise": "acme",
+    "collected_at": "2026-11-13T10:00:00Z",
+    "schema": "gop.graph/v1"
+  },
+  "new": {
+    "enterprise": "acme",
+    "collected_at": "2026-11-20T10:00:00Z",
+    "schema": "gop.graph/v1"
+  },
+  "paths": [
+    {
+      "principal": "members:acme-actions",
+      "target": "secret:acme-app/api",
+      "target_kind": "secret",
+      "status": "added",
+      "new": {
+        "from": "members:acme-actions",
+        "to": "secret:acme-app/api",
+        "hops": [
+          {
+            "kind": "CAN_PUSH",
+            "from": "members:acme-actions",
+            "to": "repo:acme-actions/deploy",
+            "evidence": "live",
+            "source_api": "graphql:organization.membersCanPush"
+          },
+          {
+            "kind": "RESOLVES_TO",
+            "from": "repo:acme-actions/deploy",
+            "to": "action:acme-actions/deploy@v1",
+            "evidence": "live",
+            "source_api": "contents:action.yml",
+            "reverse": true
+          },
+          {
+            "kind": "USES",
+            "from": "action:acme-actions/deploy@v1",
+            "to": "workflow:acme-app/api/.github/workflows/ci.yml",
+            "evidence": "live",
+            "source_api": "contents:.github/workflows",
+            "reverse": true
+          },
+          {
+            "kind": "EXECUTES_WITH",
+            "from": "workflow:acme-app/api/.github/workflows/ci.yml",
+            "to": "secret:acme-app/api",
+            "evidence": "live",
+            "source_api": "contents:.github/workflows"
+          }
+        ],
+        "evidence": "live",
+        "unverified": false
+      }
+    },
+    {
+      "principal": "members:acme-actions",
+      "target": "repo:acme-actions/deploy",
+      "target_kind": "repo",
+      "status": "added",
+      "new": {
+        "from": "members:acme-actions",
+        "to": "repo:acme-actions/deploy",
+        "hops": [
+          {
+            "kind": "CAN_PUSH",
+            "from": "members:acme-actions",
+            "to": "repo:acme-actions/deploy",
+            "evidence": "live",
+            "source_api": "graphql:organization.membersCanPush"
+          }
+        ],
+        "evidence": "live",
+        "unverified": false
+      }
+    },
+    {
+      "principal": "members:acme-actions",
+      "target": "repo:acme-app/api",
+      "target_kind": "repo",
+      "status": "added",
+      "new": {
+        "from": "members:acme-actions",
+        "to": "repo:acme-app/api",
+        "hops": [
+          {
+            "kind": "CAN_PUSH",
+            "from": "members:acme-actions",
+            "to": "repo:acme-actions/deploy",
+            "evidence": "live",
+            "source_api": "graphql:organization.membersCanPush"
+          },
+          {
+            "kind": "RESOLVES_TO",
+            "from": "repo:acme-actions/deploy",
+            "to": "action:acme-actions/deploy@v1",
+            "evidence": "live",
+            "source_api": "contents:action.yml",
+            "reverse": true
+          },
+          {
+            "kind": "USES",
+            "from": "action:acme-actions/deploy@v1",
+            "to": "workflow:acme-app/api/.github/workflows/ci.yml",
+            "evidence": "live",
+            "source_api": "contents:.github/workflows",
+            "reverse": true
+          },
+          {
+            "kind": "DEFINED_IN",
+            "from": "workflow:acme-app/api/.github/workflows/ci.yml",
+            "to": "repo:acme-app/api",
+            "evidence": "live",
+            "source_api": "contents:.github/workflows"
+          }
+        ],
+        "evidence": "live",
+        "unverified": false
+      }
+    }
+  ],
+  "settings": [
+    {
+      "node": "org:acme-actions",
+      "key": "default_perm",
+      "status": "changed",
+      "old": "read",
+      "new": "write",
+      "old_evidence": "live",
+      "new_evidence": "live"
+    }
+  ],
+  "edges": {
+    "added": [
+      {
+        "from": "members:acme-actions",
+        "kind": "CAN_PUSH",
+        "to": "repo:acme-actions/deploy",
+        "status": "added",
+        "new": {
+          "evidence": "live",
+          "source_api": "graphql:organization.membersCanPush",
+          "attrs": {
+            "permission": "write",
+            "via": "default_perm"
+          }
+        }
+      }
+    ],
+    "removed": [],
+    "changed": [],
+    "lost_visibility": []
+  },
+  "scores": [
+    {
+      "principal": "members:acme-actions",
+      "old": {
+        "principal": "members:acme-actions",
+        "confirmed": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 1,
+        "score": 0,
+        "possible_score": 0
+      },
+      "new": {
+        "principal": "members:acme-actions",
+        "confirmed": {
+          "repos": 2,
+          "orgs": 2,
+          "workflows": 1,
+          "secrets": 1,
+          "oidc": 0,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 1,
+        "score": 11.5,
+        "possible_score": 0
+      },
+      "delta_confirmed": 11.5,
+      "delta_possible": 0
+    }
+  ],
+  "coverage": {
+    "opened": [],
+    "closed": []
+  },
+  "totals": {
+    "old": {
+      "principals": 4,
+      "confirmed": {
+        "repos": 3,
+        "orgs": 3,
+        "workflows": 2,
+        "secrets": 1,
+        "oidc": 1,
+        "runners": 0
+      },
+      "possible": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "confirmed_pairs": 3,
+      "possible_pairs": 0,
+      "score": 23,
+      "possible_score": 0
+    },
+    "new": {
+      "principals": 4,
+      "confirmed": {
+        "repos": 5,
+        "orgs": 5,
+        "workflows": 3,
+        "secrets": 2,
+        "oidc": 1,
+        "runners": 0
+      },
+      "possible": {
+        "repos": 0,
+        "orgs": 0,
+        "workflows": 0,
+        "secrets": 0,
+        "oidc": 0,
+        "runners": 0
+      },
+      "confirmed_pairs": 5,
+      "possible_pairs": 0,
+      "score": 34.5,
+      "possible_score": 0
+    }
+  }
+}

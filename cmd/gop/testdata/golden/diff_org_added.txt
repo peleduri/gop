@@ -1,0 +1,25 @@
+Since 2026-11-13: 2 new confirmed paths.
+acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
+Confirmed (principal, repo) pairs: 3 → 4 (+1). Possible pairs: 0 → 0 (+0).
+
+Paths (2):
+  members:acme-legacy -> runner:acme-legacy/old-api  [added: none → confirmed]
+      members:acme-legacy =[CAN_PUSH, live]=> repo:acme-legacy/old-api
+      repo:acme-legacy/old-api =[DEFINED_IN (reversed), live]=> workflow:acme-legacy/old-api/.github/workflows/ci.yml
+      workflow:acme-legacy/old-api/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> runner:acme-legacy/old-api
+  members:acme-legacy -> repo:acme-legacy/old-api  [added: none → confirmed]
+      members:acme-legacy =[CAN_PUSH, live]=> repo:acme-legacy/old-api
+
+Settings (4):
+  acme-legacy default_perm write (new)  [evidence absent → live]
+  acme-legacy sso none (new)  [evidence absent → live]
+  acme-legacy two_factor not_required (new)  [evidence absent → live]
+  acme-legacy/old-api visibility private (new)  [evidence absent → live]
+
+Edges (3):
+  + members:acme-legacy CAN_PUSH repo:acme-legacy/old-api  [live, via=default_perm]
+  + workflow:acme-legacy/old-api/.github/workflows/ci.yml DEFINED_IN repo:acme-legacy/old-api  [live]
+  + workflow:acme-legacy/old-api/.github/workflows/ci.yml EXECUTES_WITH runner:acme-legacy/old-api  [live]
+
+Scores (1):
+  members:acme-legacy  confirmed 0 → 14.625 (+14.625)  possible 0 → 0 (+0)

@@ -1,0 +1,30 @@
+Since 2026-11-13: 0 new confirmed paths, 3 lost visibility; acme-actions two_factor required → not visible (lost visibility).
+acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
+Confirmed (principal, repo) pairs: 3 → 1 (-2). Possible pairs: 0 → 0 (+0). 2 confirmed pairs lost visibility or became possible: unknown, not fixed.
+
+Paths (3):
+  identity:bob -> secret:acme-app/api  [lost visibility (the newer snapshot cannot see part of this path; reach unknown, not fixed): confirmed → none]
+      was identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy
+      was repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1
+      was action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml
+      was workflow:acme-app/api/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> secret:acme-app/api
+  identity:bob -> repo:acme-actions/deploy  [lost visibility (the newer snapshot cannot see part of this path; reach unknown, not fixed): confirmed → none]
+      was identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy
+  identity:bob -> repo:acme-app/api  [lost visibility (the newer snapshot cannot see part of this path; reach unknown, not fixed): confirmed → none]
+      was identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy
+      was repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1
+      was action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml
+      was workflow:acme-app/api/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/api
+
+Settings (1):
+  acme-actions two_factor required → not visible (lost visibility)  [evidence live → not visible]
+
+Edges (1):
+  ? lost visibility: identity:bob CAN_PUSH repo:acme-actions/deploy  [was live, via=direct]
+
+Scores (1):
+  identity:bob  confirmed 11.5 → 0 (-11.5)  possible 0 → 0 (+0)
+
+Coverage:
+  gap opened: org:acme-actions repositories: token is not an org owner (fix: org owner on acme-actions)
+  gap opened: org:acme-actions two_factor: token is not an org owner (fix: org owner on acme-actions)

@@ -44,12 +44,15 @@ Usage:
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
   gop validate --graph graph.json [--format text|json]
+  gop diff    OLD.json NEW.json [--format text|json|markdown] [--only paths,settings,edges,scores,coverage]
+              [--fail-on confirmed-increase|any-new-path] [--force]
   gop version
 
 collect reads the token from GITHUB_TOKEN (or GH_TOKEN). It only reads.
 serve runs an MCP server over stdio.
 validate checks graph.json against the published JSON Schema and that every
 edge endpoint is a node. Exit 0 valid, 1 invalid, 2 usage error.
+diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or load errors.
 Confirmed reach: every hop live or audit. Possible reach: at least one hop not visible.
 `
 
@@ -75,6 +78,14 @@ func (u usageError) Error() string { return u.msg }
 
 func usagef(format string, a ...any) error { return usageError{fmt.Sprintf(format, a...)} }
 
+// codeError carries a specific exit code (used by diff: 1 for --fail-on, 2 for load errors).
+type codeError struct {
+	code int
+	err  error
+}
+
+func (c codeError) Error() string { return c.err.Error() }
+
 func (a *app) run(args []string) int {
 	if len(args) == 0 {
 		fmt.Fprint(a.stderr, usage)
@@ -95,6 +106,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdWho(rest)
 	case "validate":
 		err = a.cmdValidate(rest)
+	case "diff":
+		err = a.cmdDiff(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":
@@ -102,12 +115,18 @@ func (a *app) run(args []string) int {
 	default:
 		err = usagef("unknown command %q", cmd)
 	}
-	var ue usageError
+	var (
+		ue usageError
+		ce codeError
+	)
 	switch {
 	case err == nil:
 		return exitOK
 	case errors.Is(err, flag.ErrHelp):
 		return exitOK
+	case errors.As(err, &ce):
+		fmt.Fprintf(a.stderr, "gop %s: %v\n", cmd, ce.err)
+		return ce.code
 	case errors.As(err, &ue):
 		fmt.Fprintf(a.stderr, "gop: %s\n\n%s", ue.msg, usage)
 		return exitUsage
