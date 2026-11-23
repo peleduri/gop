@@ -36,19 +36,27 @@ func TestEmbeddedSchemaCompiles(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	var doc map[string]any
-	if err := json.Unmarshal(pub.GraphV1, &doc); err != nil {
-		t.Fatal(err)
-	}
-	if got, want := doc["$id"], "https://github.com/peleduri/gop/schema/gop.graph.v1.schema.json"; got != want {
-		t.Errorf("$id = %v, want %s", got, want)
-	}
-	if got := doc["$schema"]; got != "https://json-schema.org/draft/2020-12/schema" {
-		t.Errorf("$schema = %v, want draft 2020-12", got)
-	}
-	props := doc["properties"].(map[string]any)
-	if got := props["schema"].(map[string]any)["const"]; got != graph.SchemaVersion {
-		t.Errorf("properties.schema.const = %v, want %s", got, graph.SchemaVersion)
+	for _, c := range []struct {
+		doc     []byte
+		id, ver string
+	}{
+		{pub.GraphV2, "https://github.com/peleduri/gop/schema/gop.graph.v2.schema.json", graph.SchemaVersion},
+		{pub.GraphV1, "https://github.com/peleduri/gop/schema/gop.graph.v1.schema.json", graph.SchemaV1},
+	} {
+		var doc map[string]any
+		if err := json.Unmarshal(c.doc, &doc); err != nil {
+			t.Fatal(err)
+		}
+		if got := doc["$id"]; got != c.id {
+			t.Errorf("$id = %v, want %s", got, c.id)
+		}
+		if got := doc["$schema"]; got != "https://json-schema.org/draft/2020-12/schema" {
+			t.Errorf("$schema = %v, want draft 2020-12", got)
+		}
+		props := doc["properties"].(map[string]any)
+		if got := props["schema"].(map[string]any)["const"]; got != c.ver {
+			t.Errorf("properties.schema.const = %v, want %s", got, c.ver)
+		}
 	}
 }
 
@@ -61,7 +69,7 @@ func TestValidFixtures(t *testing.T) {
 			if !r.Valid || len(r.Errors) > 0 {
 				t.Fatalf("want valid, got errors %v", r.Errors)
 			}
-			if r.Schema != graph.SchemaVersion {
+			if _, ok := Known[r.Schema]; !ok {
 				t.Errorf("schema = %q", r.Schema)
 			}
 		})
@@ -111,7 +119,8 @@ func TestInvalidFixtures(t *testing.T) {
 		"old-members-id.json":          {"/nodes/0/id", "does not match ^members:"},
 		"supplied-no-file.json":        {"/edges/0/attrs", "supplied edge must name the file"},
 		"truncated.json":               {"", "not valid JSON"},
-		"wrong-schema.json":            {"/schema", `unknown schema version "gop.graph/v2"`},
+		"wrong-schema.json":            {"/schema", `unknown schema version "gop.graph/v3"`},
+		"v1-inferred.json":             {"/edges/0/evidence", `"inferred" is not one of "live", "audit", "supplied", "not_visible"`},
 	}
 	files, _ := filepath.Glob("testdata/invalid/*.json")
 	if len(files) != len(want) {
@@ -152,7 +161,7 @@ func TestEveryNodeKindHasIDPattern(t *testing.T) {
 			} `json:"allOf"`
 		} `json:"$defs"`
 	}
-	if err := json.Unmarshal(pub.GraphV1, &doc); err != nil {
+	if err := json.Unmarshal(pub.GraphV2, &doc); err != nil {
 		t.Fatal(err)
 	}
 	var got []string
@@ -175,7 +184,7 @@ func TestEnumsMatchGoConstants(t *testing.T) {
 			Enum []string `json:"enum"`
 		} `json:"$defs"`
 	}
-	if err := json.Unmarshal(pub.GraphV1, &doc); err != nil {
+	if err := json.Unmarshal(pub.GraphV2, &doc); err != nil {
 		t.Fatal(err)
 	}
 	consts := goConstants(t)

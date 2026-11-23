@@ -197,7 +197,7 @@ func TestCollectCacheFlags(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	r := runApp(t, nil, nil, "validate", "--graph", fixture)
-	if r.code != exitOK || !strings.Contains(r.stdout, ": valid (gop.graph/v1, 0 errors, 0 warnings)") {
+	if r.code != exitOK || !strings.Contains(r.stdout, ": valid (gop.graph/v2, 0 errors, 0 warnings)") {
 		t.Fatalf("valid fixture: %+v", r)
 	}
 

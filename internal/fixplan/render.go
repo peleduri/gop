@@ -68,7 +68,7 @@ func Summary(p Plan) string {
 
 func evidenceLabel(ev graph.Evidence) string {
 	switch ev {
-	case graph.Live, graph.Audit:
+	case graph.Live, graph.Inferred, graph.Audit:
 		return string(ev)
 	case "":
 		return ""

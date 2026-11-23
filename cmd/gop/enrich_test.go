@@ -66,7 +66,7 @@ func TestEnrichEndToEnd(t *testing.T) {
 	}
 
 	v := runApp(t, nil, nil, "validate", "--graph", out)
-	if v.code != exitOK || !strings.Contains(v.stdout, "valid (gop.graph/v1, 0 errors, 0 warnings)") {
+	if v.code != exitOK || !strings.Contains(v.stdout, "valid (gop.graph/v2, 0 errors, 0 warnings)") {
 		t.Errorf("validate: %+v", v)
 	}
 

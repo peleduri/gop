@@ -53,6 +53,7 @@ func Staleness(collectedAt, now time.Time) string {
 // EvidenceMix counts facts by evidence level. NotVisible facts are unknown, not absent.
 type EvidenceMix struct {
 	Live       int `json:"live"`
+	Inferred   int `json:"inferred"`
 	Audit      int `json:"audit"`
 	Supplied   int `json:"supplied,omitempty"` // read from a user-supplied file (cloud trust policies)
 	NotVisible int `json:"not_visible"`
@@ -62,6 +63,8 @@ func (m *EvidenceMix) add(ev graph.Evidence) {
 	switch ev {
 	case graph.Live:
 		m.Live++
+	case graph.Inferred:
+		m.Inferred++
 	case graph.Audit:
 		m.Audit++
 	case graph.Supplied:
@@ -102,7 +105,7 @@ type Summary struct {
 }
 
 // summaryNote travels with the summary so a reader never takes not_visible for off.
-const summaryNote = "Confirmed reach means every hop was read live or from the audit log; possible reach " +
+const summaryNote = "Confirmed reach means every hop was read live, inferred by a documented rule, or read from a recent audit log entry; possible reach " +
 	"has at least one not_visible hop. not_visible means the token could not read the fact: it is " +
 	"unknown, not absent or off. top_principals is ranked by confirmed score."
 
@@ -185,10 +188,10 @@ func (e *Engine) NodeResource(id string) (NodeResource, error) {
 		r.Node = &n
 	}
 	for _, ed := range e.ix.In(id) {
-		r.In = append(r.In, edgeOut(ed, false))
+		r.In = append(r.In, edgeOut(e.ix, ed, false))
 	}
 	for _, ed := range e.ix.Out(id) {
-		r.Out = append(r.Out, edgeOut(ed, false))
+		r.Out = append(r.Out, edgeOut(e.ix, ed, false))
 	}
 	return r, nil
 }
@@ -202,7 +205,7 @@ func addResources(s *mcp.Server, e *Engine, now func() time.Time) {
 		Title:    "Graph summary",
 		MIMEType: "application/json",
 		Description: "Start here: enterprise, snapshot age, schema, node and edge counts by kind, evidence mix " +
-			"(live, audit, not_visible), orgs with default_perm, two_factor and sso, and the top 5 principals " +
+			"(live, inferred, audit, not_visible), orgs with default_perm, two_factor and sso, and the top 5 principals " +
 			"by confirmed score. Use the node IDs it lists instead of guessing.",
 	}, func(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		return jsonContents(req.Params.URI, e.Summary(now()))
@@ -225,7 +228,7 @@ func addResources(s *mcp.Server, e *Engine, now func() time.Time) {
 		Name:        "graph_schema",
 		Title:       "Graph schema",
 		MIMEType:    "text/markdown",
-		Description: "Node ID conventions, node kinds, edge kinds and their meaning, and evidence levels of the gop.graph/v1 schema.",
+		Description: "Node ID conventions, node kinds, edge kinds and their meaning, and evidence levels of the gop.graph/v2 schema.",
 	}, func(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{
 			{URI: req.Params.URI, MIMEType: "text/markdown", Text: docs.Schema},

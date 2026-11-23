@@ -66,14 +66,14 @@ func TestRedactEndToEnd(t *testing.T) {
 	}
 
 	v := runApp(t, nil, nil, "validate", "--graph", out)
-	if v.code != exitOK || !strings.Contains(v.stdout, "valid (gop.graph/v1, 0 errors") {
+	if v.code != exitOK || !strings.Contains(v.stdout, "valid (gop.graph/v2, 0 errors") {
 		t.Errorf("validate: %+v", v)
 	}
 }
 
 func TestRedactRandomSaltToStdout(t *testing.T) {
 	r := runApp(t, nil, nil, "redact", "--graph", fixture, "--out", "-")
-	if r.code != exitOK || !strings.Contains(r.stderr, "random salt") || !strings.Contains(r.stdout, `"schema": "gop.graph/v1"`) {
+	if r.code != exitOK || !strings.Contains(r.stderr, "random salt") || !strings.Contains(r.stdout, `"schema": "gop.graph/v2"`) {
 		t.Fatalf("redact: code %d stderr %q", r.code, r.stderr)
 	}
 	if strings.Contains(r.stdout, "acme-app") {

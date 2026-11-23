@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"testing"
+	"time"
 )
 
 // genEnterprise builds a synthetic enterprise with a realistic shape for the
@@ -24,7 +25,9 @@ import (
 //     direct pushes, 20% teams with team pushes, 20% plain org members (not
 //     scoring principals). external:anyone and some org members can cause a
 //     risky trigger in a few workflows.
-//   - About 1% of edges are not_visible and 10% audit; the rest are live.
+//   - About 1% of edges are not_visible, 10% audit (a fifth of those older
+//     than the 90-day maximum audit age, so stale) and 10% inferred; the rest
+//     are live.
 //
 // popularRepo (repo:acme-o1/r0) always runs the most popular action, which is
 // mutable, with a write token, so many principals reach it.
@@ -43,12 +46,18 @@ func genEnterprise(seed uint64, orgs, repos, actions, principals int) *Graph {
 			return NotVisible
 		case x < 11:
 			return Audit
+		case x < 21:
+			return Inferred
 		}
 		return Live
 	}
 	edge := func(from, to string, kind EdgeKind, attrs map[string]string) {
-		g.Edges = append(g.Edges, Edge{From: from, To: to, Kind: kind, Evidence: ev(),
-			SourceAPI: "bench:" + string(kind), ObservedAt: genTime, Attrs: attrs})
+		e := Edge{From: from, To: to, Kind: kind, Evidence: ev(),
+			SourceAPI: "bench:" + string(kind), ObservedAt: genTime, Attrs: attrs}
+		if e.Evidence == Audit && r.IntN(5) == 0 {
+			e.ObservedAt = genTime.Add(-120 * 24 * time.Hour)
+		}
+		g.Edges = append(g.Edges, e)
 	}
 	org := func(i int) string { return fmt.Sprintf("acme-o%d", i) }
 	consumer := func(i int) string { return org(1 + i%(orgs-1)) }

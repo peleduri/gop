@@ -293,11 +293,11 @@ func TestRefusesDifferentEnterprise(t *testing.T) {
 		t.Fatalf("forced: %v", err)
 	}
 	n = clone(t, o)
-	n.Schema = "gop.graph/v2"
+	n.Schema = "gop.graph/v3"
 	if _, err := Compare(o, n); !errors.Is(err, ErrSchemaMismatch) {
 		t.Fatalf("schema err = %v", err)
 	}
-	n.Schema = "gop.graph/v1.3"
+	n.Schema = graph.SchemaVersion + ".3"
 	if _, err := Compare(o, n); err != nil {
 		t.Fatalf("minor schema bump refused: %v", err)
 	}

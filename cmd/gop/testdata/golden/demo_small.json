@@ -1,5 +1,5 @@
 {
-  "schema": "gop.graph/v1",
+  "schema": "gop.graph/v2",
   "collected_at": "2026-01-01T00:00:00Z",
   "enterprise": "acme",
   "nodes": [
@@ -1909,11 +1909,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/deploy",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -1921,11 +1922,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/release",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -1933,11 +1935,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/setup",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -1945,11 +1948,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-004",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -1957,11 +1961,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-005",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -1969,11 +1974,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-006",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -1981,11 +1987,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-007",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -1993,11 +2000,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-008",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -2005,11 +2013,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-009",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -2017,11 +2026,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-010",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -2029,11 +2039,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-011",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },
@@ -2041,11 +2052,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-012",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "demo:default-perm",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "via": "default_perm"
       }
     },

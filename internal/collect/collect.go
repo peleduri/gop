@@ -881,7 +881,9 @@ func (k *collector) collectRepos(ctx context.Context, o *orgState) error {
 	return nil
 }
 
-// canPush adds members -> repo edges when the org default permission grants push.
+// canPush adds members -> repo edges when the org default permission grants
+// push. They are inferred (rule default_perm): derived from the org setting,
+// not read from each repo's permission list.
 func (k *collector) canPush(o *orgState) {
 	perm := o.node.Attrs[graph.AttrDefaultPerm]
 	if o.node.AttrEvidence[graph.AttrDefaultPerm] == graph.NotVisible {
@@ -898,8 +900,9 @@ func (k *collector) canPush(o *orgState) {
 		src = srcOrgREST
 	}
 	for _, r := range o.repos {
-		k.edge(mid, r.ID, graph.CanPush, graph.Live, src, map[string]string{
+		k.edge(mid, r.ID, graph.CanPush, graph.Inferred, src, map[string]string{
 			graph.AttrVia:       graph.ViaDefaultPerm,
+			graph.AttrRule:      graph.RuleDefaultPerm,
 			"permission":        perm,
 			graph.AttrTwoFactor: o.node.Attrs[graph.AttrTwoFactor],
 			graph.AttrSSO:       o.node.Attrs[graph.AttrSSO],
@@ -908,13 +911,14 @@ func (k *collector) canPush(o *orgState) {
 }
 
 // ownerPush adds identity -> repo edges for every owner of the org: an org
-// owner is admin on every repository in it.
+// owner is admin on every repository in it. They are inferred (rule
+// org_owner) from the owner list, not read from each repo.
 func (k *collector) ownerPush(o *orgState) {
 	for _, login := range o.owners {
 		idn := k.identity(login)
 		for _, r := range o.repos {
-			k.edge(idn.ID, r.ID, graph.CanPush, graph.Live, srcLicenses, map[string]string{
-				graph.AttrVia: graph.ViaOrgOwner, attrPermission: "admin",
+			k.edge(idn.ID, r.ID, graph.CanPush, graph.Inferred, srcLicenses, map[string]string{
+				graph.AttrVia: graph.ViaOrgOwner, graph.AttrRule: graph.RuleOrgOwner, attrPermission: "admin",
 			})
 		}
 	}
@@ -1362,8 +1366,8 @@ func (k *collector) pushToStubs() {
 				if k.entHidden {
 					src = srcOrgREST
 				}
-				k.edge(mid, rid, graph.CanPush, graph.Live, src, map[string]string{
-					graph.AttrVia: graph.ViaDefaultPerm, "permission": perm,
+				k.edge(mid, rid, graph.CanPush, graph.Inferred, src, map[string]string{
+					graph.AttrVia: graph.ViaDefaultPerm, graph.AttrRule: graph.RuleDefaultPerm, "permission": perm,
 					graph.AttrTwoFactor: o.node.Attrs[graph.AttrTwoFactor], graph.AttrSSO: o.node.Attrs[graph.AttrSSO],
 				})
 				continue

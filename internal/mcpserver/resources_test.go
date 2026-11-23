@@ -93,7 +93,7 @@ func TestSummaryResource(t *testing.T) {
 		t.Errorf("nodes %d edges %d gaps %d, want 53 49 2", s.Nodes, s.Edges, s.CoverageGaps)
 	}
 	if s.Evidence["nodes"] != (EvidenceMix{Live: 50, Audit: 2, NotVisible: 1}) ||
-		s.Evidence["edges"] != (EvidenceMix{Live: 46, Audit: 2, NotVisible: 1}) {
+		s.Evidence["edges"] != (EvidenceMix{Live: 44, Inferred: 2, Audit: 2, NotVisible: 1}) {
 		t.Errorf("evidence = %+v", s.Evidence)
 	}
 	if s.Enterprise != "acme" || s.Schema != graph.SchemaVersion || s.AgeHours != 30 || s.Staleness != "" {

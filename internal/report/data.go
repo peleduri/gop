@@ -75,7 +75,7 @@ type embHop struct {
 	From string `json:"from"`
 	To   string `json:"to"`
 	Kind string `json:"kind"`
-	Ev   string `json:"ev"` // live | audit | supplied file | not visible
+	Ev   string `json:"ev"` // live | inferred | audit | audit, stale | supplied file | not visible
 	API  string `json:"api,omitempty"`
 	Rev  bool   `json:"rev,omitempty"`
 	Why  string `json:"why,omitempty"` // why an undecided CAN_ASSUME match is possible only
@@ -259,7 +259,7 @@ func buildEmbedded(ix *graph.Index, g *graph.Graph, scores []graph.Score, fixes 
 			refs := map[string]bool{}
 			for _, h := range path.Hops {
 				ep.Hops = append(ep.Hops, embHop{From: h.From, To: h.To, Kind: string(h.Kind),
-					Ev: mcpserver.EvidenceLabel(h.Evidence), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason})
+					Ev: mcpserver.HopEvidenceLabel(h), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason})
 				for _, id := range []string{h.From, h.To} {
 					if ix.Kind(id) == graph.KindActionRef {
 						refs[refKind(ix, id)] = true

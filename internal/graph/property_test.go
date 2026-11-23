@@ -130,6 +130,19 @@ type refEdge struct {
 	sourceAPI string
 	reverse   bool
 	ci        bool // workflow -> repo it is defined in: recorded, never expanded
+	old       bool // the evidence edge is older than the maximum audit age
+	stale     bool // an audit hop demoted to not_visible because it is old
+}
+
+// refOld reports whether e was observed more than the maximum audit age
+// before g was collected: half the audit retention when the graph records
+// one, else 90 days. Written from the docs, not from AuditStale.
+func refOld(g *Graph, e Edge) bool {
+	maxAge := 90 * 24 * time.Hour
+	if g.AuditRetentionDays > 0 {
+		maxAge = time.Duration(g.AuditRetentionDays) * 12 * time.Hour
+	}
+	return !e.ObservedAt.IsZero() && !g.CollectedAt.IsZero() && g.CollectedAt.Sub(e.ObservedAt) > maxAge
 }
 
 var refSHA = regexp.MustCompile(`^[0-9a-f]{40}$`)
@@ -205,8 +218,9 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 	mutable := map[string]bool{}
 	var out []refEdge
 	for _, e := range g.Edges {
-		fwd := refEdge{from: e.From, to: e.To, kind: e.Kind, ev: e.Evidence, sourceAPI: e.SourceAPI}
-		rev := refEdge{from: e.To, to: e.From, kind: e.Kind, ev: e.Evidence, sourceAPI: e.SourceAPI, reverse: true}
+		old := refOld(g, e)
+		fwd := refEdge{from: e.From, to: e.To, kind: e.Kind, ev: e.Evidence, sourceAPI: e.SourceAPI, old: old}
+		rev := refEdge{from: e.To, to: e.From, kind: e.Kind, ev: e.Evidence, sourceAPI: e.SourceAPI, reverse: true, old: old}
 		switch e.Kind {
 		case CanPush:
 			// Any source pushes, including workflow -> repo (via=token_write):
@@ -257,6 +271,13 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 			out = append(out, fwd)
 		}
 	}
+	// A hop that is still audit after the gates, from an old audit fact,
+	// counts as not visible.
+	for i := range out {
+		if out[i].ev == Audit && out[i].old {
+			out[i].ev, out[i].stale = NotVisible, true
+		}
+	}
 	return out
 }
 
@@ -305,7 +326,7 @@ func refResolves(g *Graph, e Edge, rev refEdge) []refEdge {
 		}
 		for _, p := range g.Edges {
 			if p.Kind == CanPush && p.To == e.To && p.Attrs["via"] == "ref_bypass" && p.Attrs["ref"] == ref {
-				out = append(out, refEdge{from: p.From, to: e.From, kind: CanPush, ev: p.Evidence, sourceAPI: p.SourceAPI})
+				out = append(out, refEdge{from: p.From, to: e.From, kind: CanPush, ev: p.Evidence, sourceAPI: p.SourceAPI, old: refOld(g, p)})
 			}
 		}
 		return out
@@ -707,12 +728,13 @@ type hopKey struct {
 	ev        Evidence
 	sourceAPI string
 	reverse   bool
+	stale     bool
 }
 
 func checkPaths(g *Graph, p string, res Result, fixes []Fix) error {
 	ctl := map[hopKey][]bool{} // -> ci flags of matching control edges
 	for _, e := range refControl(g, fixes) {
-		k := hopKey{e.from, e.to, e.kind, e.ev, e.sourceAPI, e.reverse}
+		k := hopKey{e.from, e.to, e.kind, e.ev, e.sourceAPI, e.reverse, e.stale}
 		ctl[k] = append(ctl[k], e.ci)
 	}
 	confDist := refReach(g, p, fixes, true)
@@ -726,13 +748,13 @@ func checkPaths(g *Graph, p string, res Result, fixes []Fix) error {
 		if len(hs) == 0 || hs[0].From != p || hs[len(hs)-1].To != id {
 			return fmt.Errorf("%s: path to %s does not run from %s to %s: %+v", p, id, p, id, hs)
 		}
-		// Reference evidence order: live > audit > supplied > not_visible.
-		ev, unverified, supplied := Live, false, false
+		// Reference evidence order: live > inferred > audit > supplied > not_visible.
+		ev, unverified, supplied, stale := Live, false, false, false
 		for i, h := range hs {
 			if i+1 < len(hs) && h.To != hs[i+1].From {
 				return fmt.Errorf("%s: path to %s breaks at hop %d: %s then %s", p, id, i, h.To, hs[i+1].From)
 			}
-			cis, ok := ctl[hopKey{h.From, h.To, h.Kind, h.Evidence, h.SourceAPI, h.Reverse}]
+			cis, ok := ctl[hopKey{h.From, h.To, h.Kind, h.Evidence, h.SourceAPI, h.Reverse, h.Stale}]
 			if !ok {
 				return fmt.Errorf("%s: path to %s hop %d %+v matches no control edge", p, id, i, h)
 			}
@@ -744,15 +766,21 @@ func checkPaths(g *Graph, p string, res Result, fixes []Fix) error {
 				return fmt.Errorf("%s: path to %s expands through CI-only hop %d %s -> %s", p, id, i, h.From, h.To)
 			}
 			supplied = supplied || h.Evidence == Supplied || strings.HasPrefix(h.SourceAPI, "supplied:")
+			stale = stale || h.Stale
 			switch {
 			case !refVerified(h.Evidence):
 				unverified = true
 				ev = NotVisible
 			case h.Evidence == Supplied && ev != NotVisible:
 				ev = Supplied
-			case h.Evidence == Audit && ev == Live:
+			case h.Evidence == Audit && (ev == Live || ev == Inferred):
 				ev = Audit
+			case h.Evidence == Inferred && ev == Live:
+				ev = Inferred
 			}
+		}
+		if path.Stale != stale {
+			return fmt.Errorf("%s: path to %s has stale=%v, hops say %v", p, id, path.Stale, stale)
 		}
 		if path.Evidence != ev || path.Unverified != unverified {
 			return fmt.Errorf("%s: path to %s has evidence %s/unverified=%v, hops say %s/%v", p, id, path.Evidence, path.Unverified, ev, unverified)
@@ -893,7 +921,7 @@ func propFixMonotonic(g *Graph, r *rand.Rand) error {
 	}
 	cands := append(ix.Candidates(), extraWorkflowFixes(g, ix.Candidates(), r)...)
 	for n, fs := range fixSets(cands, r) {
-		cg := ix.buildControl(fs)
+		cg := ix.buildControl(fs, ix.MaxAuditAge(0))
 		for _, p := range principals {
 			after := ix.reach(cg, p)
 			// The random subsets are also checked against the reference model
@@ -1065,10 +1093,13 @@ func TestPropertyReferenceAgreesOnFixture(t *testing.T) {
 	}
 }
 
-// refVerified is the reference reading of evidence: live and audit facts, and
-// facts from a user-supplied file, are confirmed; not_visible (and anything
-// unknown) is not. Kept separate from Verified so a broken Verified fails P2.
-func refVerified(e Evidence) bool { return e == Live || e == Audit || e == "supplied" }
+// refVerified is the reference reading of evidence: live, inferred and audit
+// facts, and facts from a user-supplied file, are confirmed; not_visible (and
+// anything unknown) is not. Kept separate from Verified so a broken Verified
+// fails P2. Stale audit hops are already not_visible in refControl.
+func refVerified(e Evidence) bool {
+	return e == Live || e == "inferred" || e == Audit || e == "supplied"
+}
 
 // TestParallelEdgeTieBreak is the case P10 found: two parallel evidence edges
 // with the same evidence used to collapse to whichever came first in g.Edges,

@@ -13,7 +13,7 @@ members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)
           "kind": "CAN_PUSH",
           "from": "members:acme-actions",
           "to": "repo:acme-actions/deploy",
-          "evidence": "live",
+          "evidence": "inferred",
           "source_api": "rest:/orgs/{org}"
         },
         {
@@ -40,7 +40,7 @@ members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)
           "source_api": "contents:.github/workflows"
         }
       ],
-      "evidence": "live",
+      "evidence": "inferred",
       "unverified": false
     }
   ],

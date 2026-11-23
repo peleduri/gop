@@ -156,7 +156,7 @@ type hopView struct {
 	From, To, Kind, SourceAPI string
 	Reason                    string // why an undecided CAN_ASSUME match is possible only
 	Reverse                   bool
-	Evidence                  string // live | audit | supplied file | not visible
+	Evidence                  string // live | inferred | audit | audit, stale | supplied file | not visible
 	Class                     string // live | audit | supplied | nv
 }
 
@@ -409,7 +409,7 @@ func viewPath(p graph.Path) pathView {
 	pv := pathView{To: p.To, Confirmed: !p.Unverified, Note: p.SuppliedNote()}
 	for _, h := range p.Hops {
 		pv.Hops = append(pv.Hops, hopView{From: h.From, To: h.To, Kind: string(h.Kind), SourceAPI: h.SourceAPI, Reason: h.Reason,
-			Reverse: h.Reverse, Evidence: mcpserver.EvidenceLabel(h.Evidence), Class: evClass(h.Evidence)})
+			Reverse: h.Reverse, Evidence: mcpserver.HopEvidenceLabel(h), Class: evClass(h.Evidence)})
 	}
 	return pv
 }
@@ -418,6 +418,8 @@ func evClass(ev graph.Evidence) string {
 	switch ev {
 	case graph.Live:
 		return "live"
+	case graph.Inferred:
+		return "inferred"
 	case graph.Audit:
 		return "audit"
 	case graph.Supplied:

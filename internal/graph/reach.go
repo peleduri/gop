@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 // The control graph is directed controller -> controlled. It is derived from the
@@ -69,6 +70,10 @@ import (
 //	                                     job_workflow_ref) decide the match. Evidence supplied counts
 //	                                     as confirmed and sets Path.Supplied; an undecided match is
 //	                                     not_visible, so possible.
+//
+// Every hop takes its evidence edge's evidence, except an audit edge older
+// than the maximum audit age (Options.MaxAuditAge): its hop is not_visible
+// with Hop.Stale set, so it gives possible reach, never confirmed.
 type controlGraph struct {
 	out map[string][]cedge
 }
@@ -92,13 +97,18 @@ type Hop struct {
 	// Reason says why gop could not decide an undecided CAN_ASSUME match
 	// (the edge's attrs.reason); such a hop is not_visible.
 	Reason string `json:"reason,omitempty"`
+	// Stale is true when the hop's edge is audit evidence older than the
+	// maximum audit age: Evidence is then not_visible, and the edge itself
+	// stays audit.
+	Stale bool `json:"stale,omitempty"`
 }
 
 // Path is one shortest control path from a principal to a node. Evidence is the
 // weakest hop. Unverified is true when any hop is not_visible: such a path is
 // "possible" reach, never "confirmed". Supplied is true when a hop comes from a
 // user-supplied file (source_api "supplied:<file>"), not from GitHub or the
-// cloud: SuppliedNote says which.
+// cloud: SuppliedNote says which. Stale is true when a hop was demoted to
+// not_visible because its audit fact is too old (Hop.Stale).
 type Path struct {
 	From       string   `json:"from"`
 	To         string   `json:"to"`
@@ -106,6 +116,7 @@ type Path struct {
 	Evidence   Evidence `json:"evidence"`
 	Unverified bool     `json:"unverified"`
 	Supplied   bool     `json:"supplied,omitempty"`
+	Stale      bool     `json:"stale,omitempty"`
 }
 
 // SuppliedFiles lists the supplied files the path's hops were read from, in
@@ -133,6 +144,15 @@ func (p Path) SuppliedNote() string {
 	return "cloud hop from supplied trust file " + strings.Join(fs, ", ") + ", not read from the cloud"
 }
 
+func hopsStale(hops []Hop) bool {
+	for _, h := range hops {
+		if h.Stale {
+			return true
+		}
+	}
+	return false
+}
+
 func hopsSupplied(hops []Hop) bool {
 	for _, h := range hops {
 		if h.Evidence == Supplied || strings.HasPrefix(h.SourceAPI, SourceSupplied) {
@@ -156,7 +176,7 @@ type Reached struct {
 }
 
 // Result of Reach. Confirmed holds nodes reachable through a path where every hop
-// is live or audit. Possible holds nodes reachable only through paths with at least
+// is verified (live, inferred, fresh audit or supplied). Possible holds nodes reachable only through paths with at least
 // one not_visible hop; it never overlaps Confirmed. Paths has one shortest path for
 // every node in either set (confirmed nodes get a fully verified path).
 type Result struct {
@@ -170,6 +190,10 @@ type Result struct {
 type Options struct {
 	// Fixes are applied hypothetically before traversal (see WhatIf).
 	Fixes []Fix
+	// MaxAuditAge is how old (before the graph's CollectedAt) an audit edge
+	// may be and still count as confirmed. 0 means half of the graph's
+	// AuditRetentionDays when set, else DefaultMaxAuditAge.
+	MaxAuditAge time.Duration
 }
 
 var shaRe = regexp.MustCompile(`^[0-9a-f]{40}$`)
@@ -349,13 +373,16 @@ func (ix *Index) membersOf(orgID string) string {
 	return orgID
 }
 
-func (ix *Index) buildControl(fixes []Fix) *controlGraph { return ix.buildControlRec(fixes, nil) }
+func (ix *Index) buildControl(fixes []Fix, maxAuditAge time.Duration) *controlGraph {
+	return ix.buildControlRec(fixes, maxAuditAge, nil)
+}
 
 // buildControlRec is buildControl that also hands every control edge it
-// derives to rec (when set), with the evidence edge it came from, before
-// parallel edges collapse. The fix overlay (overlay.go) uses it to learn
-// which fixes can remove each control edge.
-func (ix *Index) buildControlRec(fixes []Fix, rec func(ce cedge, e Edge)) *controlGraph {
+// derives to rec (when set), with the evidence edge it came from (after a
+// stale audit edge is demoted to not_visible), before parallel edges
+// collapse. The fix overlay (overlay.go) uses it to learn which fixes can
+// remove each control edge.
+func (ix *Index) buildControlRec(fixes []Fix, maxAuditAge time.Duration, rec func(ce cedge, e Edge)) *controlGraph {
 	var fs fixSet
 	for _, f := range fixes {
 		f.apply(&fs)
@@ -371,16 +398,23 @@ func (ix *Index) buildControlRec(fixes []Fix, rec func(ce cedge, e Edge)) *contr
 		if e.Kind == CanAssume && e.Evidence == NotVisible {
 			ce.hop.Reason = e.Attrs[AttrReason]
 		}
+		if ix.AuditStale(e, maxAuditAge) {
+			e.Evidence = NotVisible
+			ce.hop.Evidence = NotVisible
+			ce.hop.Stale = true
+		}
 		// Parallel evidence edges collapse to one control edge: the strongest
 		// evidence wins, ties go to the smallest (kind, source_api). Without the
 		// tie-break the kept hop, and so the source_api in reported paths,
-		// depended on the order of g.Edges.
+		// depended on the order of g.Edges. Last, a fresh hop beats a stale
+		// one (both not_visible).
 		if rec != nil {
 			rec(ce, e)
 		}
 		if old, ok := best[k]; ok {
 			or, nr := evRank(old.hop.Evidence), evRank(e.Evidence)
-			if or > nr || (or == nr && (old.hop.Kind < e.Kind || (old.hop.Kind == e.Kind && old.hop.SourceAPI <= e.SourceAPI))) {
+			if or > nr || (or == nr && (old.hop.Kind < e.Kind || (old.hop.Kind == e.Kind && (old.hop.SourceAPI < e.SourceAPI ||
+				(old.hop.SourceAPI == e.SourceAPI && (!old.hop.Stale || ce.hop.Stale)))))) {
 				return
 			}
 		}
@@ -442,11 +476,14 @@ func (ix *Index) buildControlRec(fixes []Fix, rec func(ce cedge, e Edge)) *contr
 	return cg
 }
 
-func (ix *Index) control(fixes []Fix) *controlGraph {
-	if len(fixes) == 0 {
+// control returns the control graph for these fixes and audit age (0: the
+// graph default), reusing the base graph when neither changes it.
+func (ix *Index) control(fixes []Fix, maxAuditAge time.Duration) *controlGraph {
+	age := ix.MaxAuditAge(maxAuditAge)
+	if len(fixes) == 0 && age == ix.MaxAuditAge(0) {
 		return ix.base
 	}
-	return ix.buildControl(fixes)
+	return ix.buildControl(fixes, age)
 }
 
 type visit struct {
@@ -530,7 +567,7 @@ func Reach(g *Graph, from string, opts Options) Result {
 
 // Reach on a prebuilt index.
 func (ix *Index) Reach(from string, opts Options) Result {
-	return ix.reach(ix.control(opts.Fixes), from)
+	return ix.reach(ix.control(opts.Fixes, opts.MaxAuditAge), from)
 }
 
 func (ix *Index) reach(cg *controlGraph, from string) Result {
@@ -587,7 +624,7 @@ func (ix *Index) reach(cg *controlGraph, from string) Result {
 // pathOf is the Path for hops from a principal to a node.
 func pathOf(from, to string, hops []Hop) Path {
 	ev := pathEvidence(hops)
-	return Path{From: from, To: to, Hops: hops, Evidence: ev, Unverified: !Verified(ev), Supplied: hopsSupplied(hops)}
+	return Path{From: from, To: to, Hops: hops, Evidence: ev, Unverified: !Verified(ev), Supplied: hopsSupplied(hops), Stale: hopsStale(hops)}
 }
 
 // WhoCanReach lists, for each principal that can control target (a repo, workflow,

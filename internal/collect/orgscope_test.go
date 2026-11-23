@@ -120,7 +120,7 @@ func TestCollectWithoutEnterprise(t *testing.T) {
 
 	t.Run("planted cross-org path still exists", func(t *testing.T) {
 		e := ix.mustEdge(t, "members:acme-actions", "repo:acme-actions/deploy", graph.CanPush)
-		if e.Evidence != graph.Live || e.SourceAPI != srcOrgREST || e.Attrs[graph.AttrVia] != graph.ViaDefaultPerm {
+		if e.Evidence != graph.Inferred || e.SourceAPI != srcOrgREST || e.Attrs[graph.AttrVia] != graph.ViaDefaultPerm {
 			t.Errorf("CAN_PUSH = %+v", e)
 		}
 		r := ix.mustEdge(t, "action:acme-actions/deploy@main", "repo:acme-actions/deploy", graph.ResolvesTo)

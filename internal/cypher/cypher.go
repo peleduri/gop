@@ -253,6 +253,7 @@ func Write(w io.Writer, g *graph.Graph, opts Options) error {
 	}
 
 	// gop edges, grouped by relationship type, deduplicated by gop_key.
+	ix := graph.NewIndex(c)
 	byType := map[string][]row{}
 	seenKey := map[string]bool{}
 	for _, e := range c.Edges {
@@ -265,15 +266,15 @@ func Write(w io.Writer, g *graph.Graph, opts Options) error {
 		if !ok {
 			typ = otherEdge
 		}
-		byType[typ] = append(byType[typ], edgeRow(e, k, runLit))
+		byType[typ] = append(byType[typ], edgeRow(ix, e, k, runLit))
 	}
 	for _, typ := range sortedKeys(byType) {
 		x.unwind(byType[typ], matchEnds(ent)+" MERGE (a)-[r:"+typ+" {gop_key: row.props.gop_key}]->(b) SET r = row.props")
 	}
 
 	// Computed reach: one GOP_REACHES edge per (principal, impact) with the
-	// shortest path, confirmed when every hop is live, audit or supplied.
-	ix := graph.NewIndex(c)
+	// shortest path, confirmed when every hop is live, inferred, fresh audit
+	// or supplied.
 	var reach []row
 	for _, p := range ix.ScoringPrincipals() {
 		res := ix.Reach(p, graph.Options{})
@@ -361,16 +362,23 @@ func nodeRow(n graph.Node, ent, run string, declared bool) row {
 	return r
 }
 
-func edgeRow(e graph.Edge, key, run string) row {
+// edgeRow is one evidence edge. confirmed is false for not_visible and for a
+// stale audit fact, which then also gets stale: true.
+func edgeRow(ix *graph.Index, e graph.Edge, key, run string) row {
 	props := row{
 		{"gop_key", Quote(key)},
 		{"kind", Quote(string(e.Kind))},
 		{"evidence", Quote(string(e.Evidence))},
-		{"confirmed", strconv.FormatBool(graph.Verified(e.Evidence))},
+		{"confirmed", strconv.FormatBool(ix.EdgeVerified(e))},
+	}
+	if ix.AuditStale(e, ix.MaxAuditAge(0)) {
+		props = append(props, prop{"stale", "true"})
+	}
+	props = append(props, row{
 		{"source_api", Quote(e.SourceAPI)},
 		{"observed_at", Quote(e.ObservedAt.UTC().Format(time.RFC3339))},
 		{"gop_run", run},
-	}
+	}...)
 	props = append(props, attrProps(e.Attrs)...)
 	return row{{"from", Quote(e.From)}, {"to", Quote(e.To)}, {"props", props.String()}}
 }
@@ -390,6 +398,9 @@ func reachRow(p graph.Path, run string) row {
 		{"path", list(nodes)},
 		{"path_kinds", list(kinds)},
 		{"gop_run", run},
+	}
+	if p.Stale {
+		props = append(props, prop{"stale", "true"})
 	}
 	return row{{"from", Quote(p.From)}, {"to", Quote(p.To)}, {"props", props.String()}}
 }

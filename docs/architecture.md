@@ -176,7 +176,8 @@ Every change must keep these. Reviewers check them first.
    anything else before a request leaves the process; do not widen it. GraphQL
    mutations are refused too.
 2. **Every fact has evidence and a source.** Every node and edge carries an
-   evidence level (`live`, `audit`, `not_visible`, or `supplied` for facts read
+   evidence level (`live`, `inferred` for facts derived by a documented rule
+   named in `attrs.rule`, `audit`, `not_visible`, or `supplied` for facts read
    from user-supplied files) and every edge a `source_api` that names the call
    it came from. Per-attribute evidence goes in `attr_evidence` when it differs
    from the node's.

@@ -114,7 +114,7 @@ Enterprise Server instance (https://HOST): gop reads https://HOST/api/v3 and
 https://HOST/api/graphql, records host and ghes_version on the enterprise
 node and leaves APIs the version lacks not_visible. --api-url and
 --graphql-url override the endpoints for a proxy; http:// needs --insecure-http.
-Confirmed reach: every hop live, audit or supplied. Possible reach: at least one hop not visible.
+Confirmed reach: every hop live, inferred, audit or supplied. Possible reach: at least one hop not visible.
 `
 
 // collector is the seam to internal/collect, replaced in tests.

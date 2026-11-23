@@ -72,9 +72,9 @@ func writeMarkdown(w io.Writer, d data) error {
 		p(">\n> %s\n", md(d.PinLine))
 	}
 	if d.HasCloud {
-		p("\nConfirmed means every hop was read live or from the audit log, or (a cloud hop) from a supplied file: a cloud trust policy you supplied, not read from the cloud. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
+		p("\nConfirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry, or (a cloud hop) from a supplied file: a cloud trust policy you supplied, not read from the cloud. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
 	} else {
-		p("\nConfirmed means every hop was read live or from the audit log. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
+		p("\nConfirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
 	}
 
 	p("## Top risks\n\n")

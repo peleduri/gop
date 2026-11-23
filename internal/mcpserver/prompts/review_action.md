@@ -1,7 +1,7 @@
 Review the GitHub Action {{.Action}} with the gop tools: who can change it, who runs it, and what pinning it to a commit SHA would remove.
 
 Rules for every answer:
-- Keep confirmed and possible separate. Confirmed means every hop was read live or from the audit log. Possible means at least one hop is not_visible: the path may exist but is unproven. Never add possible numbers to confirmed numbers, and lead with confirmed.
+- Keep confirmed and possible separate. Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not_visible: the path may exist but is unproven. Never add possible numbers to confirmed numbers, and lead with confirmed.
 - Never say a setting (branch protection, ref_protected, bypass, default_perm) is off, absent or safe when it is not_visible. not_visible means the token could not read it: say "unknown (not visible)" and name the access that would make it visible.
 
 Steps:

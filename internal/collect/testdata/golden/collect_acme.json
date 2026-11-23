@@ -1,5 +1,5 @@
 {
-  "schema": "gop.graph/v1",
+  "schema": "gop.graph/v2",
   "collected_at": "0001-01-01T00:00:00Z",
   "enterprise": "acme",
   "nodes": [
@@ -1004,11 +1004,12 @@
       "from": "identity:alice",
       "to": "repo:acme-actions/deploy",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1016,11 +1017,12 @@
       "from": "identity:alice",
       "to": "repo:acme-actions/setup",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1028,11 +1030,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/admin",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1052,11 +1055,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/billing",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1064,11 +1068,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/docs",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1076,11 +1081,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/infra",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1088,11 +1094,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/mobile",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1100,11 +1107,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/notify",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1112,11 +1120,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/search",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1124,11 +1133,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/web",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1136,11 +1146,12 @@
       "from": "identity:alice",
       "to": "repo:acme-app/worker",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1253,11 +1264,12 @@
       "from": "identity:carol",
       "to": "repo:acme-secure/vault-proxy",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1265,11 +1277,12 @@
       "from": "identity:carol",
       "to": "repo:acme-secure/vendor-mirror",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "admin",
+        "rule": "org_owner",
         "via": "org_owner"
       }
     },
@@ -1324,11 +1337,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/deploy",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "sso": "configured",
         "two_factor": "not_required",
         "via": "default_perm"
@@ -1338,11 +1352,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/setup",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "sso": "configured",
         "two_factor": "not_required",
         "via": "default_perm"
@@ -1352,11 +1367,12 @@
       "from": "members:acme-legacy",
       "to": "repo:acme-legacy/hidden-tool",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "sso": "enforced",
         "two_factor": "not_required",
         "via": "default_perm"
@@ -1366,11 +1382,12 @@
       "from": "members:acme-legacy",
       "to": "repo:acme-legacy/old-site",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
       "observed_at": "0001-01-01T00:00:00Z",
       "attrs": {
         "permission": "write",
+        "rule": "default_perm",
         "sso": "enforced",
         "two_factor": "not_required",
         "via": "default_perm"

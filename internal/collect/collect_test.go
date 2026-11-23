@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"sync"
@@ -255,8 +256,10 @@ func TestCollectAcme(t *testing.T) {
 
 	t.Run("can push from default permission", func(t *testing.T) {
 		e := ix.mustEdge(t, "members:acme-actions", "repo:acme-actions/deploy", graph.CanPush)
-		if e.Evidence != graph.Live || e.SourceAPI != srcDefaultPerm {
-			t.Errorf("CAN_PUSH evidence/source = %q/%q", e.Evidence, e.SourceAPI)
+		// Derived from the org's default permission, not read from the
+		// repo's permission list: inferred, with the rule named.
+		if e.Evidence != graph.Inferred || e.SourceAPI != srcDefaultPerm || e.Attrs[graph.AttrRule] != graph.RuleDefaultPerm {
+			t.Errorf("CAN_PUSH evidence/source/rule = %q/%q/%q", e.Evidence, e.SourceAPI, e.Attrs[graph.AttrRule])
 		}
 		if e.Attrs[graph.AttrVia] != graph.ViaDefaultPerm || e.Attrs[graph.AttrTwoFactor] != "not_required" || e.Attrs[graph.AttrSSO] != "configured" {
 			t.Errorf("CAN_PUSH attrs = %v", e.Attrs)
@@ -264,6 +267,30 @@ func TestCollectAcme(t *testing.T) {
 		ix.mustEdge(t, "members:acme-legacy", "repo:acme-legacy/old-site", graph.CanPush)
 		ix.noEdge(t, "members:acme-app", "repo:acme-app/web", graph.CanPush)
 		ix.noEdge(t, "members:acme-secure", "repo:acme-secure/vault-proxy", graph.CanPush)
+	})
+
+	t.Run("inferred edges count as confirmed", func(t *testing.T) {
+		// Reading the derived edges as live would not change confirmed reach.
+		live := *g
+		live.Edges = append([]graph.Edge(nil), g.Edges...)
+		n := 0
+		for i, e := range live.Edges {
+			if e.Evidence == graph.Inferred {
+				if e.Attrs[graph.AttrRule] == "" {
+					t.Errorf("inferred edge %s -%s-> %s has no rule", e.From, e.Kind, e.To)
+				}
+				live.Edges[i].Evidence = graph.Live
+				n++
+			}
+		}
+		if n == 0 {
+			t.Fatal("no inferred edges collected")
+		}
+		got := graph.Reach(g, "members:acme-actions", graph.Options{}).Confirmed
+		want := graph.Reach(&live, "members:acme-actions", graph.Options{}).Confirmed
+		if !reflect.DeepEqual(got, want) || len(got.Repos) == 0 {
+			t.Errorf("confirmed reach with inferred = %+v, read live = %+v", got, want)
+		}
 	})
 
 	t.Run("transitive references", func(t *testing.T) {
@@ -382,7 +409,7 @@ func TestCanPushOrgOwners(t *testing.T) {
 
 	e := ix.mustEdge(t, "identity:alice", "repo:acme-app/web", graph.CanPush)
 	if e.Attrs[graph.AttrVia] != graph.ViaOrgOwner || e.Attrs["permission"] != "admin" ||
-		e.Evidence != graph.Live || e.SourceAPI != srcLicenses {
+		e.Evidence != graph.Inferred || e.Attrs[graph.AttrRule] != graph.RuleOrgOwner || e.SourceAPI != srcLicenses {
 		t.Errorf("owner edge = %+v", e)
 	}
 	// Owners reach every collected repo of the org, archived ones included.
@@ -1128,7 +1155,7 @@ func TestCoverageGaps(t *testing.T) {
 			t.Errorf("coverage = %+v, %v", c, ok)
 		}
 		e := ix.mustEdge(t, "members:acme-legacy", "repo:acme-legacy/hidden-tool", graph.CanPush)
-		if e.Evidence != graph.Live || e.Attrs[graph.AttrVia] != graph.ViaDefaultPerm {
+		if e.Evidence != graph.Inferred || e.Attrs[graph.AttrVia] != graph.ViaDefaultPerm || e.Attrs[graph.AttrRule] != graph.RuleDefaultPerm {
 			t.Errorf("edge = %+v", e)
 		}
 	})

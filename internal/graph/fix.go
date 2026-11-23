@@ -188,7 +188,7 @@ func WhatIf(g *Graph, fixes []Fix) Delta { return NewIndex(g).WhatIf(fixes) }
 // WhatIf on a prebuilt index.
 func (ix *Index) WhatIf(fixes []Fix) Delta {
 	before := ix.allScores(ix.base)
-	after := ix.allScores(ix.buildControl(fixes))
+	after := ix.allScores(ix.control(fixes, 0))
 	d := Delta{Before: totalsOf(before), After: totalsOf(after), Caveats: fixCaveats(ix, fixes)}
 	for _, f := range fixes {
 		d.Fixes = append(d.Fixes, f.ID())
@@ -223,8 +223,9 @@ type FixSuggestion struct {
 // org with default_perm write/admin or default-perm CAN_PUSH edges, a
 // RestrictToken for each workflow with a via=token_write CAN_PUSH edge, and a
 // HardenTrigger for each workflow with a CAN_TRIGGER edge into it. A
-// candidate whose changed edges are all not_visible (or that changes nothing) is
-// dropped: gop does not recommend a fix for an edge it cannot confirm exists.
+// candidate whose changed edges are all not_visible or stale audit facts (or
+// that changes nothing) is dropped: gop does not recommend a fix for an edge
+// it cannot confirm exists.
 func (ix *Index) Candidates() []Fix {
 	var cands []Fix
 	seen := map[string]bool{}
@@ -236,7 +237,7 @@ func (ix *Index) Candidates() []Fix {
 		es := f.edges(ix)
 		ok := false
 		for _, e := range es {
-			if Verified(e.Evidence) {
+			if ix.EdgeVerified(e) {
 				ok = true
 				break
 			}

@@ -2,7 +2,7 @@
 
 Since 2026-11-13: 3 new confirmed paths; acme-actions default_perm read → write.
 
-`acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z`
+`acme (gop.graph/v2): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z`
 
 | | Old | New | Change |
 |---|---|---|---|

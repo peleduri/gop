@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -378,5 +379,43 @@ func TestDemoWhatIfKeepsNestedPath(t *testing.T) {
 	call(t, cs, "who_can_reach", map[string]any{"target": "repo:acme-app/web"}, &who)
 	if len(who.Confirmed) == 0 {
 		t.Fatal("no confirmed principals for repo:acme-app/web")
+	}
+}
+
+func TestExplainInferredAndAudit(t *testing.T) {
+	g := loadAcme(t)
+	e := NewEngine(g)
+	ex, err := e.Explain(ExplainInput{From: "members:acme-actions", To: "repo:acme-actions/deploy", Kind: string(graph.CanPush)})
+	if err != nil || len(ex.Edges) != 1 || ex.Edges[0].Rule != graph.RuleDefaultPerm || ex.Edges[0].Stale != nil ||
+		!strings.Contains(ex.Summary, "evidence inferred") || !strings.Contains(ex.Summary, ", rule default_perm") {
+		t.Errorf("inferred explain = %+v err=%v", ex, err)
+	}
+	// acme-legacy's audit facts were observed at collection time.
+	wf, secret := "workflow:acme-legacy/old-api/.github/workflows/ci.yml", "secret:acme-legacy/old-api"
+	ex, err = e.Explain(ExplainInput{From: wf, To: secret})
+	if err != nil || len(ex.Edges) != 1 || ex.Edges[0].AgeDays == nil || *ex.Edges[0].AgeDays != 0 ||
+		ex.Edges[0].Stale == nil || *ex.Edges[0].Stale || !strings.Contains(ex.Summary, ", age_days 0, stale=false") {
+		t.Errorf("fresh audit explain = %+v err=%v", ex, err)
+	}
+	// Move the fact 200 days back: older than the 90-day default.
+	for i, ed := range g.Edges {
+		if ed.From == wf && ed.To == secret {
+			g.Edges[i].ObservedAt = g.CollectedAt.Add(-200 * 24 * time.Hour)
+		}
+	}
+	e = NewEngine(g)
+	ex, err = e.Explain(ExplainInput{From: wf, To: secret})
+	if err != nil || len(ex.Edges) != 1 || *ex.Edges[0].AgeDays != 200 || !*ex.Edges[0].Stale ||
+		!strings.Contains(ex.Summary, ", age_days 200, stale=true") {
+		t.Errorf("stale audit explain = %+v err=%v", ex, err)
+	}
+	var b strings.Builder
+	p, err := e.Paths(PathsInput{From: wf, To: secret})
+	if err != nil || len(p.Possible) != 1 {
+		t.Fatalf("paths = %+v err=%v", p, err)
+	}
+	WritePath(&b, p.Possible[0])
+	if !strings.Contains(b.String(), "[EXECUTES_WITH, audit, stale]") || !strings.Contains(b.String(), "not visible or stale") {
+		t.Errorf("stale path text = %q", b.String())
 	}
 }

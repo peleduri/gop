@@ -1,0 +1,4 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "members:acme-app", "kind": "org_members", "name": "acme-app members", "evidence": "live"}, {"id": "repo:acme-app/web", "kind": "repo", "name": "web", "evidence": "live"}],
+ "edges": [{"from": "members:acme-app", "to": "repo:acme-app/web", "kind": "CAN_PUSH", "evidence": "inferred", "source_api": "rest:/orgs/{org}", "observed_at": "2026-01-01T00:00:00Z", "attrs": {"via": "default_perm", "rule": "default_perm"}}],
+ "coverage": []}

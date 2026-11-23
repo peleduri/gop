@@ -429,7 +429,7 @@ func TestDefaultAttrsInSync(t *testing.T) {
 			Properties map[string]json.RawMessage `json:"properties"`
 		} `json:"$defs"`
 	}
-	if err := json.Unmarshal(pub.GraphV1, &doc); err != nil {
+	if err := json.Unmarshal(pub.GraphV2, &doc); err != nil {
 		t.Fatal(err)
 	}
 	for _, def := range []string{"NodeAttrs", "EdgeAttrs"} {

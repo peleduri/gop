@@ -5,11 +5,11 @@ gop never runs these steps or calls write APIs: make each change with your own a
 Steps (3):
   1. [verify] Verify acme-actions/deploy
        owner: acme-actions
-       evidence: members:acme-actions CAN_PUSH repo:acme-actions/deploy (live)
+       evidence: members:acme-actions CAN_PUSH repo:acme-actions/deploy (inferred)
        note: before the change: members of acme-actions lose push to acme-actions/deploy (granted only by the base permission); give a team push first if members need it; other push grants kept: identity:bob
   2. [verify] Verify acme-actions/setup
        owner: acme-actions
-       evidence: members:acme-actions CAN_PUSH repo:acme-actions/setup (live)
+       evidence: members:acme-actions CAN_PUSH repo:acme-actions/setup (inferred)
        note: before the change: members of acme-actions lose push to acme-actions/setup (granted only by the base permission); give a team push first if members need it
   3. [change_setting] Change setting in org acme-actions: Organization settings > Member privileges > Base permissions: Read
        API (text only): PATCH /orgs/acme-actions {"default_repository_permission": "read"}

@@ -2,7 +2,7 @@
 
 Since 2026-11-13: 0 new confirmed paths, 3 lost visibility; acme-actions two_factor required → not visible (lost visibility).
 
-`acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z`
+`acme (gop.graph/v2): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z`
 
 | | Old | New | Change |
 |---|---|---|---|

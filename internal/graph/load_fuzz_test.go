@@ -21,6 +21,7 @@ func FuzzLoad(f *testing.F) {
 	for _, s := range []string{
 		``, `{`, `null`, `[]`, `{"schema":"gop.graph/v1"}`,
 		`{"schema":"gop.graph/v1","nodes":null,"edges":null}`,
+		`{"schema":"gop.graph/v2","collected_at":"2026-11-20T10:00:00Z","audit_retention_days":180,"edges":[{"from":"members:acme","to":"repo:acme/web","kind":"CAN_PUSH","evidence":"inferred","attrs":{"rule":"default_perm"}},{"from":"identity:bob","to":"repo:acme/web","kind":"CAN_PUSH","evidence":"audit","observed_at":"2026-01-01T00:00:00Z"}]}`,
 		`{"schema":"gop.graph/v1","edges":[{"from":"members:acme","to":"repo:acme/web","kind":"CAN_PUSH","evidence":"live"}]}`,
 		`{"schema":"gop.graph/v1","edges":[{"from":"a","to":"a","kind":"USES","evidence":"not_visible"},{"from":"a","to":"a","kind":"RESOLVES_TO","evidence":"audit"}]}`,
 		`{"schema":"gop.graph/v1","edges":[{"from":"identity:x","to":"org:","kind":"MEMBER_OF","evidence":"live"},{"from":"members:","to":"repo:/","kind":"CAN_PUSH","evidence":"live","attrs":{"via":"default_perm"}}]}`,

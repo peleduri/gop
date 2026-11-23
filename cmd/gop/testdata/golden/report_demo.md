@@ -8,7 +8,7 @@ Enterprise **acme**, collected 2026-01-01T00:00:00Z
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
-Confirmed means every hop was read live or from the audit log. Possible means at least one hop is not visible to the token: unknown, not absent.
+Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks
 
@@ -40,7 +40,7 @@ Score counts confirmed reach only.
 A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:
 
 - **acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5** (used by 4 workflows) runs **acme-actions/setup@main**. members:acme-actions can change it (confirmed):
-  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **live**, demo:default-perm
+  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
   2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
 
@@ -50,7 +50,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 
 - **confirmed** to oidc:acme-app/payments
   1. identity:bob → members:acme-actions, MEMBER\_OF, **live**, demo:membership
-  2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **live**, demo:default-perm
+  2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
   3. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   4. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
   5. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
@@ -62,7 +62,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
 - **confirmed** to oidc:acme-secure/signer
   1. identity:bob → members:acme-actions, MEMBER\_OF, **live**, demo:membership
-  2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **live**, demo:default-perm
+  2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
   3. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   4. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
   5. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-secure/signer/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
@@ -71,18 +71,18 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 ### members:acme-actions
 
 - **confirmed** to oidc:acme-app/payments
-  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **live**, demo:default-perm
+  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
   2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
   4. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
   5. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
 - **confirmed** to oidc:acme-app/web
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **live**, demo:default-perm
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, demo:default-perm
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, demo:planted-cross-org
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
 - **confirmed** to oidc:acme-secure/signer
-  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **live**, demo:default-perm
+  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
   2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
   4. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-secure/signer/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action

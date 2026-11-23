@@ -1,5 +1,5 @@
 {
-  "schema": "gop.graph/v1",
+  "schema": "gop.graph/v2",
   "collected_at": "2026-11-20T10:00:00Z",
   "enterprise": "acme",
   "nodes": [
@@ -420,11 +420,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/deploy",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:/orgs/{org}",
       "observed_at": "2026-11-20T10:00:00Z",
       "attrs": {
         "via": "default_perm",
+        "rule": "default_perm",
         "permission": "write",
         "two_factor": "not_required",
         "sso": "configured"
@@ -434,11 +435,12 @@
       "from": "members:acme-actions",
       "to": "repo:acme-actions/setup",
       "kind": "CAN_PUSH",
-      "evidence": "live",
+      "evidence": "inferred",
       "source_api": "rest:/orgs/{org}",
       "observed_at": "2026-11-20T10:00:00Z",
       "attrs": {
         "via": "default_perm",
+        "rule": "default_perm",
         "permission": "write",
         "two_factor": "not_required",
         "sso": "configured"

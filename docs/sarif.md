@@ -72,7 +72,7 @@ Every result carries a `properties` bag:
 | `repository` | GOP001: the repo that owns the fix, e.g. `acme-app/web` |
 | `org` | GOP002: the org that owns the fix |
 | `edge` | the evidence edge behind the result, as `from KIND to` |
-| `evidence` | `live`, `audit`, `supplied` or `not_visible` |
+| `evidence` | `live`, `inferred`, `audit`, `supplied` or `not_visible` |
 | `possible` | true when the result holds only through a `not_visible` hop |
 | `confirmed_principals` | principals with a fully verified path |
 | `possible_principals` | principals whose path has a `not_visible` hop |
