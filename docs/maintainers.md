@@ -1,0 +1,35 @@
+# Maintainer notes
+
+## Releasing
+
+Push a `vX.Y.Z` tag. [`.github/workflows/release.yml`](../.github/workflows/release.yml) runs goreleaser, which builds the archives, signs `checksums.txt` keyless with cosign, attaches SBOMs, creates the GitHub release, and (once the tap is set up) pushes the Homebrew cask. The `release-snapshot` job in CI builds the same config on every PR with `--snapshot` and publishes nothing.
+
+## Homebrew tap: one-time setup
+
+`.goreleaser.yaml` has a `homebrew_casks` block for `peleduri/homebrew-tap`. Its `skip_upload` is templated on the `HOMEBREW_TAP_TOKEN` environment variable: without it, goreleaser still renders the cask into `dist/homebrew/Casks/gop.rb` but never pushes it. So releases keep working before this setup, in forks, and in the snapshot CI job.
+
+To turn it on:
+
+1. **Create the tap repository.** A public repository named `peleduri/homebrew-tap` (Homebrew maps `brew install peleduri/tap/gop` to `github.com/peleduri/homebrew-tap`). Initialize it with a README so it has a default branch. goreleaser writes `Casks/gop.rb` into it.
+2. **Create a fine-grained personal access token** (Settings, Developer settings, Fine-grained tokens):
+   - Resource owner: `peleduri`.
+   - Repository access: **Only select repositories**, `peleduri/homebrew-tap` only.
+   - Repository permissions: **Contents: Read and write**. Nothing else (Metadata: read is added automatically).
+   - Expiration: the shortest you are willing to rotate, for example 90 days. Put the rotation date in your calendar.
+3. **Store it as a secret** in `peleduri/gop`: Settings, Secrets and variables, Actions, New repository secret, name `HOMEBREW_TAP_TOKEN`. If you use a `release` environment, store it there instead so only the release job can read it.
+4. **Release.** The next tag push uploads the cask. Check the commit in `peleduri/homebrew-tap`, then:
+
+   ```sh
+   brew install peleduri/tap/gop
+   gop version
+   ```
+
+### Why it is wired this way
+
+- Only the goreleaser step in `release.yml` receives `HOMEBREW_TAP_TOKEN`; the attestation step and every CI job do not.
+- The token can write to the tap repository and nothing else. Whoever holds it can change what `brew install peleduri/tap/gop` installs, so treat it like a release credential and rotate it on expiry or when a maintainer leaves.
+- The cask only references archives on this repository's releases, with their SHA-256, so users can still run the cosign and attestation checks in [docs/install.md](install.md#verify-what-you-run).
+
+### Rotating or revoking
+
+Create a new token with the same scope, replace the `HOMEBREW_TAP_TOKEN` secret, then delete the old token. To stop publishing, delete the secret: the next release skips the cask upload.

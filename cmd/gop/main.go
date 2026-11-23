@@ -48,6 +48,7 @@ Usage:
   gop validate --graph graph.json [--format text|json]
   gop diff    OLD.json NEW.json [--format text|json|markdown] [--only paths,settings,edges,scores,coverage]
               [--fail-on confirmed-increase|any-new-path] [--force]
+  gop mcp-config --client claude|cursor|vscode --graph graph.json
   gop version
 
 collect reads the token from GITHUB_TOKEN (or GH_TOKEN). It only reads.
@@ -57,6 +58,7 @@ validate checks graph.json against the published JSON Schema and that every
 edge endpoint is a node. Exit 0 valid, 1 invalid, 2 usage error.
 diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or load errors.
 --graph - reads the graph from stdin (report, paths, who): gop demo | gop report --graph - --out -
+mcp-config prints the MCP client config for serve; it never writes files.
 Confirmed reach: every hop live or audit. Possible reach: at least one hop not visible.
 `
 
@@ -115,6 +117,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdValidate(rest)
 	case "diff":
 		err = a.cmdDiff(rest)
+	case "mcp-config":
+		err = a.cmdMCPConfig(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":

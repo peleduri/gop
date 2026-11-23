@@ -9,6 +9,15 @@ flags may change in minor releases.
 
 ### Added
 
+- `gop mcp-config --client claude|cursor|vscode --graph PATH` prints the MCP
+  client config (or the `claude mcp add` command) with the absolute graph path
+  filled in. It only prints; it never writes files.
+- Release config for a Homebrew cask in `peleduri/homebrew-tap` (tap coming
+  soon). The upload is skipped unless `HOMEBREW_TAP_TOKEN` is set; one-time
+  setup in `docs/maintainers.md`.
+- `docs/install.md` (Homebrew, release archive, checksum, cosign and
+  attestation verification, `go install`) and `docs/mcp-clients.md` (Claude
+  Code, Cursor, VS Code and generic stdio snippets).
 - `USES` and `EXECUTES_WITH` edges from workflow files and composite actions
   now carry their source position: `file`, `file_ref` (when known), `line` and,
   on `USES`, `col`. The `explain` summary shows `file:line`. Additive; graphs
