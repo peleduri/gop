@@ -188,7 +188,7 @@ gop only reads, and it takes the token only from `GITHUB_TOKEN` (or `GH_TOKEN`),
 
 | Scope | Used for | If missing |
 |---|---|---|
-| `read:enterprise` | Enterprise ownerInfo: org list, enterprise-level default permissions, 2FA and SSO policy, membership | Enterprise settings are `not_visible`; orgs are discovered only where the token is a member |
+| `read:enterprise` | Enterprise ownerInfo: org list, enterprise-level default permissions, 2FA and SSO policy, membership | Enterprise settings are `not_visible`; orgs come from `--orgs`, or are discovered only where the token is a member (`GET /user/orgs`) or installed (`GET /installation/repositories`) |
 | `read:org` | Org settings, repositories, IP allow lists | That org's settings and `CAN_PUSH` edges are `not_visible` |
 | `repo` | Workflow and action file contents in private and internal repositories (`USES`, `EXECUTES_WITH` edges) | Workflows in those repos are `not_visible`, so cross-org paths through them are unknown |
 | `read:audit_log` | Facts that only the audit log records (planned, not used yet) | No `audit` evidence |
@@ -200,7 +200,7 @@ Under SAML SSO enforcement the token must also be authorized for each org.
 | Mode | What gop sees |
 |---|---|
 | (a) Enterprise-owner token, run locally | Full enterprise settings plus every org and repo the owner can see. **The intended mode.** |
-| (b) Per-org GitHub App installation tokens | No enterprise ownerInfo: enterprise settings collectors are skipped and marked `not_visible`. The App must be installed in every org you want covered; uninstalled orgs are `not_visible`. In CI the App private key is itself a high-value credential. |
+| (b) Per-org GitHub App installation tokens | No enterprise ownerInfo: enterprise settings collectors are skipped and marked `not_visible`, and gop collects per org: the `--orgs` list, or the owners of the installation's repositories. Settings the org API returns (`GET /orgs/{org}`: default permission, 2FA, repo creation, private forks) stay `live`; SSO is `not_visible`. Members come from the org members API. An `uses:` owner outside the collected orgs gets `in_enterprise=unknown`, not "outside". The App must be installed in every org you want covered; uninstalled orgs are `not_visible`. In CI the App private key is itself a high-value credential. |
 | (c) A repository's `GITHUB_TOKEN` | One repository only. gop is not useful in this mode. |
 
 ### Rate limits

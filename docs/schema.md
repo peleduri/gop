@@ -74,7 +74,10 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `ip_allow_list` | org | `on`, `off`, `unknown` |
 | `ip_allow_entries` | org | integer as string |
 | `members` | org | integer as string |
-| `archived` | org, repo | `true`, `false` |
+| `archived` | org, repo | `true`, `false` (`unknown`, `not_visible` for an org the token can't read) |
+| `orgs` | enterprise | Number of enterprise orgs, integer as string; `unknown` (`not_visible`) when the token cannot read the enterprise |
+| `in_enterprise_source` | org | Only when the token cannot read the enterprise: where the org came from: `config` (`--orgs`, counted as an enterprise org), `user_orgs` (`GET /user/orgs`) or `installation` (owners in `GET /installation/repositories`). `source` holds the API label. |
+| `in_enterprise` | action_ref | `true` when the owner is an enterprise org (then a `RESOLVES_TO` edge points at the hosting repo), `false` when it is not. `unknown` (`not_visible`) when the token cannot read the enterprise and the owner is not a collected org: the owner may be an enterprise org gop can't see, so the reference is not resolved and one aggregated coverage entry (`scope: enterprise:<slug>`, `fact: in_enterprise`) names up to 20 such owners. It never reads as outside the enterprise. |
 | `visibility` | repo | `public`, `private`, `internal` |
 | `collaborators` | repo | `unknown` (`not_visible`) when the token could not list the repo's direct collaborators |
 | `members` | team | Everyone who holds the team's grants (`GET /orgs/{org}/teams/{slug}/members?role=all`, which includes child teams' members), integer as string; `unknown` (`not_visible`) when the list was refused |

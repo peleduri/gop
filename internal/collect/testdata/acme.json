@@ -2,7 +2,7 @@
   "enterprise": "acme",
   "orgs": [
     {
-      "login": "acme-actions", "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "login": "acme-actions", "org_rest": {"default_repository_permission": "write", "two_factor_requirement_enabled": false, "members_can_create_repositories": true, "members_can_create_public_repositories": true, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": true, "members_can_fork_private_repositories": true}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
       "settings": {
         "samlIdentityProviderSettingOrganizations": "CONFIGURED",
         "twoFactorRequiredSettingOrganizations": "false",
@@ -33,7 +33,7 @@
       ]
     },
     {
-      "login": "acme-app", "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "login": "acme-app", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true, "members_can_create_repositories": true, "members_can_create_public_repositories": false, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": false, "members_can_fork_private_repositories": false}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
       "settings": {
         "samlIdentityProviderSettingOrganizations": "CONFIGURED",
         "twoFactorRequiredSettingOrganizations": "true",
@@ -69,7 +69,7 @@
       ]
     },
     {
-      "login": "acme-legacy", "owner": false,
+      "login": "acme-legacy", "org_rest": {}, "owner": false,
       "settings": {
         "samlIdentityProviderSettingOrganizations": "ENFORCED",
         "twoFactorRequiredSettingOrganizations": "false",
@@ -92,7 +92,7 @@
       ]
     },
     {
-      "login": "acme-secure", "owner": true, "ip_allow_list": "ENABLED", "ip_entries": 3,
+      "login": "acme-secure", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true}, "owner": true, "ip_allow_list": "ENABLED", "ip_entries": 3,
       "settings": {
         "samlIdentityProviderSettingOrganizations": "ENFORCED",
         "twoFactorRequiredSettingOrganizations": "true",
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "login": "acme-archive", "owner": true, "archived_at": "2024-01-01T00:00:00Z",
+      "login": "acme-archive", "org_rest": {"archived_at": "2024-01-01T00:00:00Z"}, "owner": true, "archived_at": "2024-01-01T00:00:00Z",
       "settings": {
         "samlIdentityProviderSettingOrganizations": "UNCONFIGURED",
         "twoFactorRequiredSettingOrganizations": "false",

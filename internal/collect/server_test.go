@@ -34,6 +34,8 @@ type fixture struct {
 		OutsideCollaborators []string          `json:"outside_collaborators"`
 		CustomRoles          []json.RawMessage `json:"custom_roles"`
 		Teams                []fixtureTeam     `json:"teams"`
+		// OrgREST is the GET /orgs/{org} body (login is added by the server).
+		OrgREST map[string]any `json:"org_rest"`
 	} `json:"orgs"`
 	Users []json.RawMessage `json:"users"`
 }
@@ -66,6 +68,20 @@ type fakeGitHub struct {
 	// forbidCollab makes /repos/{o}/{r}/collaborators return 403 for "o/r",
 	// on top of the fixture's collaborators_forbidden flag and non-owner orgs.
 	forbidCollab map[string]bool
+
+	// enterpriseForbidden answers every enterprise GraphQL query with
+	// enterprise:null + FORBIDDEN and consumed-licenses with 403, like a token
+	// without read:enterprise.
+	enterpriseForbidden bool
+	// installation makes the token an App installation token: /user/orgs is
+	// refused and /installation/repositories lists every fixture repo.
+	installation bool
+	// noUserOrgs makes /user/orgs return an empty list.
+	noUserOrgs bool
+	// extraWorkflows adds workflow files on top of testdata/workflows, keyed
+	// "owner/repo/file.yml", so one test can plant a reference without
+	// changing the shared fixture.
+	extraWorkflows map[string]string
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -74,7 +90,8 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{}}
+	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{},
+		extraWorkflows: map[string]string{}}
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
 		t.Fatal(err)
 	}
@@ -132,12 +149,22 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case p == "/graphql" && r.Method == http.MethodPost:
 		f.graphql(w, r)
+	case p == "/enterprises/"+f.fx.Enterprise+"/consumed-licenses" && f.enterpriseForbidden:
+		writeJSON(w, 403, map[string]string{"message": "Resource not accessible by personal access token"})
 	case p == "/enterprises/"+f.fx.Enterprise+"/consumed-licenses":
 		f.paged(w, r, f.fx.Users, func(page []json.RawMessage) any {
 			return map[string]any{"total_seats_consumed": len(f.fx.Users), "users": page}
 		})
 	case strings.HasPrefix(p, "/orgs/") && strings.Contains(p, "/teams"):
 		f.teams(w, r, strings.TrimPrefix(p, "/orgs/"))
+	case p == "/user/orgs":
+		f.userOrgs(w, r)
+	case p == "/installation/repositories":
+		f.installationRepos(w, r)
+	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/members"):
+		f.orgMembers(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/members"))
+	case strings.HasPrefix(p, "/orgs/") && !strings.Contains(strings.TrimPrefix(p, "/orgs/"), "/"):
+		f.org(w, strings.TrimPrefix(p, "/orgs/"))
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/repos"):
 		f.repos(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/repos"))
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/outside_collaborators"):
@@ -429,10 +456,18 @@ func (f *fakeGitHub) contents(w http.ResponseWriter, r *http.Request) {
 	}
 	owner, repo, path := parts[0], parts[1], parts[3]
 	wfDir := filepath.Join("testdata", "workflows", owner, repo)
+	f.mu.Lock()
+	extra := map[string]string{}
+	for k, v := range f.extraWorkflows {
+		if name, ok := strings.CutPrefix(k, owner+"/"+repo+"/"); ok {
+			extra[name] = v
+		}
+	}
+	f.mu.Unlock()
 	switch {
 	case path == ".github/workflows":
 		ents, err := os.ReadDir(wfDir)
-		if err != nil {
+		if err != nil && len(extra) == 0 {
 			notFound()
 			return
 		}
@@ -440,9 +475,17 @@ func (f *fakeGitHub) contents(w http.ResponseWriter, r *http.Request) {
 		for _, e := range ents {
 			out = append(out, map[string]any{"type": "file", "name": e.Name(), "path": ".github/workflows/" + e.Name()})
 		}
+		for name := range extra {
+			out = append(out, map[string]any{"type": "file", "name": name, "path": ".github/workflows/" + name})
+		}
 		writeJSON(w, 200, out)
 	case strings.HasPrefix(path, ".github/workflows/"):
-		data, err := os.ReadFile(filepath.Join(wfDir, strings.TrimPrefix(path, ".github/workflows/")))
+		name := strings.TrimPrefix(path, ".github/workflows/")
+		if body, ok := extra[name]; ok {
+			writeJSON(w, 200, fileEntry(path, []byte(body)))
+			return
+		}
+		data, err := os.ReadFile(filepath.Join(wfDir, name))
 		if err != nil {
 			notFound()
 			return
@@ -496,6 +539,11 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := req.Query
+	if f.enterpriseForbidden && strings.Contains(q, "enterprise(slug") {
+		writeJSON(w, 200, map[string]any{"data": map[string]any{"enterprise": nil},
+			"errors": []map[string]any{{"type": "FORBIDDEN", "path": []string{"enterprise"}, "message": "must be an enterprise owner"}}})
+		return
+	}
 	switch {
 	case strings.Contains(q, "ownerInfo"):
 		m := settingFieldRe.FindStringSubmatch(q)
@@ -553,4 +601,91 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, 200, map[string]any{"errors": []map[string]any{{"message": "unsupported query"}}})
 	}
+}
+
+// userOrgs serves /user/orgs: every fixture org for a user token, 403 for an
+// installation token.
+func (f *fakeGitHub) userOrgs(w http.ResponseWriter, r *http.Request) {
+	if f.installation {
+		writeJSON(w, 403, map[string]string{"message": "Resource not accessible by integration"})
+		return
+	}
+	var items []json.RawMessage
+	if !f.noUserOrgs {
+		for _, o := range f.fx.Orgs {
+			b, _ := json.Marshal(map[string]any{"login": o.Login})
+			items = append(items, b)
+		}
+	}
+	f.paged(w, r, items, listPage)
+}
+
+// installationRepos serves /installation/repositories for installation tokens.
+func (f *fakeGitHub) installationRepos(w http.ResponseWriter, r *http.Request) {
+	if !f.installation {
+		writeJSON(w, 403, map[string]string{"message": "This endpoint requires an installation access token"})
+		return
+	}
+	var items []json.RawMessage
+	for _, o := range f.fx.Orgs {
+		for _, raw := range o.Repos {
+			var m struct {
+				Name string `json:"name"`
+			}
+			_ = json.Unmarshal(raw, &m)
+			b, _ := json.Marshal(map[string]any{"name": m.Name, "full_name": o.Login + "/" + m.Name,
+				"owner": map[string]any{"login": o.Login, "type": "Organization"}})
+			items = append(items, b)
+		}
+	}
+	f.paged(w, r, items, func(page []json.RawMessage) any {
+		return map[string]any{"total_count": len(items), "repositories": listPage(page)}
+	})
+}
+
+// org serves GET /orgs/{org} from the fixture's org_rest block.
+func (f *fakeGitHub) org(w http.ResponseWriter, org string) {
+	for _, o := range f.fx.Orgs {
+		if o.Login != org {
+			continue
+		}
+		body := map[string]any{"login": o.Login}
+		for k, v := range o.OrgREST {
+			body[k] = v
+		}
+		writeJSON(w, 200, body)
+		return
+	}
+	notFoundOrForbidden(w, 404)
+}
+
+// orgMembers serves /orgs/{org}/members[?role=admin] from the fixture users'
+// "org:Role" license roles.
+func (f *fakeGitHub) orgMembers(w http.ResponseWriter, r *http.Request, org string) {
+	known := false
+	for _, o := range f.fx.Orgs {
+		known = known || o.Login == org
+	}
+	if !known {
+		notFoundOrForbidden(w, 404)
+		return
+	}
+	admin := r.URL.Query().Get("role") == "admin"
+	var items []json.RawMessage
+	for _, raw := range f.fx.Users {
+		var u struct {
+			Login string   `json:"github_com_login"`
+			Roles []string `json:"github_com_member_roles"`
+		}
+		_ = json.Unmarshal(raw, &u)
+		for _, role := range u.Roles {
+			scope, rl, _ := strings.Cut(role, ":")
+			if scope == org && (!admin || rl == "Owner") {
+				b, _ := json.Marshal(map[string]any{"login": u.Login, "type": "User"})
+				items = append(items, b)
+				break
+			}
+		}
+	}
+	f.paged(w, r, items, listPage)
 }

@@ -18,6 +18,16 @@ flags may change in minor releases.
 - `docs/install.md` (Homebrew, release archive, checksum, cosign and
   attestation verification, `go install`) and `docs/mcp-clients.md` (Claude
   Code, Cursor, VS Code and generic stdio snippets).
+- Collector: per-org mode when the token cannot read the enterprise (org-scoped
+  App installation tokens, non-owner PATs, no `read:enterprise`). Instead of
+  failing, gop records an `enterprise` coverage entry, sets the enterprise
+  `orgs=unknown`, and collects the `--orgs` list (counted as enterprise orgs)
+  or the orgs discovered through `GET /user/orgs` or
+  `GET /installation/repositories`. Org settings fall back to `GET /orgs/{org}`
+  and members to `GET /orgs/{org}/members`; what neither returns stays
+  `not_visible` with one coverage entry per setting at enterprise scope. Action
+  owners outside the collected orgs get `in_enterprise=unknown` (`not_visible`)
+  and one aggregated coverage entry, never `false`.
 - `USES` and `EXECUTES_WITH` edges from workflow files and composite actions
   now carry their source position: `file`, `file_ref` (when known), `line` and,
   on `USES`, `col`. The `explain` summary shows `file:line`. Additive; graphs

@@ -52,6 +52,10 @@ Usage:
   gop version
 
 collect reads the token from GITHUB_TOKEN (or GH_TOKEN). It only reads.
+When the token cannot read the enterprise (an org-scoped App installation
+token, a non-owner token, or no read:enterprise), collect builds the graph
+per org: from --orgs, or else the token's own orgs. Enterprise-level facts
+are then not_visible and listed in coverage.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio.
 validate checks graph.json against the published JSON Schema and that every
@@ -181,7 +185,8 @@ func (a *app) cmdCollect(args []string) error {
 	fs := a.flags("collect")
 	ent := fs.String("enterprise", "", "enterprise slug, e.g. acme")
 	out := fs.String("out", "", "path to write graph.json")
-	orgs := fs.String("orgs", "", "comma-separated org logins to limit collection to (default: all)")
+	orgs := fs.String("orgs", "", "comma-separated org logins to limit collection to (default: all). "+
+		"When the token cannot read the enterprise, these orgs are collected and count as enterprise orgs")
 	if err := parse(fs, args); err != nil {
 		return err
 	}
