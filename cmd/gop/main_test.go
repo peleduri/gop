@@ -57,7 +57,8 @@ func TestUsageErrors(t *testing.T) {
 		{"who", "--graph", fixture, "extra", "--target"}, // positional arg
 		{"serve"},
 		{"collect", "--enterprise", "acme"}, // missing --out
-		{"validate"},                        // missing --graph
+		{"collect", "--enterprise", "acme", "--out", "g.json", "--resume"}, // --resume without --cache-dir
+		{"validate"}, // missing --graph
 		{"validate", "--graph", fixture, "--format", "yaml"},
 		{"validate", "--graph", fixture, "extra"},
 		{"demo", "--size", "huge"},
@@ -174,6 +175,23 @@ func TestCollectTokenFromEnvOnly(t *testing.T) {
 	r = runApp(t, map[string]string{"GITHUB_TOKEN": tok}, failing, "collect", "--enterprise", "acme", "--out", out)
 	if r.code != exitRuntime || strings.Contains(r.stderr+r.stdout, tok) {
 		t.Fatalf("token leaked or wrong code: %+v", r)
+	}
+}
+
+func TestCollectCacheFlags(t *testing.T) {
+	var got collect.Config
+	fake := func(_ context.Context, cfg collect.Config) (*graph.Graph, error) {
+		got = cfg
+		return graph.LoadFile(fixture)
+	}
+	dir := filepath.Join(t.TempDir(), "gop-cache")
+	r := runApp(t, map[string]string{"GITHUB_TOKEN": "test-token-value-123"}, fake, "collect", "--enterprise", "acme",
+		"--out", filepath.Join(t.TempDir(), "g.json"), "--cache-dir", dir, "--resume")
+	if r.code != 0 {
+		t.Fatalf("collect: %+v", r)
+	}
+	if got.CacheDir != dir || !got.Resume {
+		t.Errorf("config = CacheDir %q Resume %v", got.CacheDir, got.Resume)
 	}
 }
 

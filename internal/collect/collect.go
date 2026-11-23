@@ -68,6 +68,17 @@ type Config struct {
 	// Progress, when set, receives progress updates. When nil and Logf is
 	// set, a line is logged at most every 5 seconds.
 	Progress func(Progress)
+
+	// CacheDir, when set, turns on the on-disk REST response cache
+	// (cache.go): cached GETs are revalidated with If-None-Match or
+	// If-Modified-Since, and a 304 serves the cached body. Empty (the
+	// default) means no cache. The directory holds API responses, as
+	// sensitive as graph.json; gop creates it 0700 and refuses one other
+	// users can read.
+	CacheDir string
+	// Resume, with CacheDir, reuses without a request every entry the
+	// interrupted previous run (same enterprise and orgs) fetched.
+	Resume bool
 }
 
 // Source API labels recorded on edges and used in coverage.
@@ -184,6 +195,14 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 			return nil, err
 		}
 	}
+	var cache *responseCache
+	if cfg.CacheDir != "" {
+		var err error
+		if cache, err = openCache(cfg.CacheDir); err != nil {
+			return nil, err
+		}
+		c = c.withCache(cache)
+	}
 	var app *appAuth
 	if cfg.appMode() {
 		var err error
@@ -203,11 +222,27 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		host: cfg.host(),
 	}
 	k.ghes = isGHES(k.host)
+	if cache != nil {
+		resumed, err := cache.beginRun(cfg.Enterprise, cfg.Orgs, cfg.Resume, k.now)
+		if err != nil {
+			return nil, err
+		}
+		if resumed {
+			k.logf("collect: cache: resuming the interrupted run started %s", cache.resumeSince.UTC().Format(time.RFC3339))
+		}
+	}
 	if err := k.run(ctx); err != nil {
 		return nil, err
 	}
 	g := k.graph()
 	k.logCoverage(g)
+	if cache != nil {
+		st := cache.Stats()
+		k.logf("collect: cache %d hits (304), %d fetched, %d resumed", st.Hits, st.Fetched, st.Resumed)
+		if err := cache.endRun(); err != nil {
+			k.logf("collect: cache: removing %s: %v", cacheRunFile, err)
+		}
+	}
 	return g, nil
 }
 
@@ -326,7 +361,7 @@ func (k *collector) edge(from, to string, kind graph.EdgeKind, ev graph.Evidence
 	if _, ok := k.edges[key]; ok {
 		return
 	}
-	k.edges[key] = &graph.Edge{From: from, To: to, Kind: kind, Evidence: ev, SourceAPI: src, ObservedAt: k.now, Attrs: attrs}
+	k.edges[key] = &graph.Edge{From: from, To: to, Kind: kind, Evidence: ev, SourceAPI: src, ObservedAt: k.observedAt(), Attrs: attrs}
 }
 
 func (k *collector) cover(scope, fact, reason, fix string) {

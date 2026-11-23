@@ -9,6 +9,23 @@ flags may change in minor releases.
 
 ### Added
 
+- Opt-in REST response cache for `gop collect`: `--cache-dir DIR`
+  (`Config.CacheDir`, off by default) stores `GET` responses that are `200`
+  with an `ETag` or `Last-Modified` and revalidates them on the next run with
+  `If-None-Match` or `If-Modified-Since`; a `304` serves the cached body and
+  does not count against the primary rate limit. `--resume` (`Config.Resume`)
+  makes an interrupted collection of the same enterprise and orgs reuse every
+  response it already fetched without a request (`DIR/run.json` records the
+  run start and is removed on success). Entries are keyed by method, absolute
+  URL (host included), `Accept` type and a token fingerprint, so tokens and
+  hosts never share entries; the token and request headers are never written.
+  GraphQL, errors and the App token mint are never cached. Edges built from a
+  resumed body keep that entry's `fetched_at` as `observed_at`. The progress
+  line and a final `collect: cache N hits (304), M fetched, K resumed` line
+  report the counts. The cache directory is created `0700` (an existing one
+  other users can read is refused) with `0600` files written atomically; it
+  holds API responses as sensitive as graph.json (see
+  `docs/threat-model.md`).
 - Action input `fail-on-reach-increase` (default `"false"`) with
   `baseline-artifact` (default `gop-posture`): compares the run's graph with
   the artifact of the previous successful run of the same workflow on the

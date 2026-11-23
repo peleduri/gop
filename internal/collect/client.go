@@ -70,6 +70,11 @@ type Client struct {
 	// and WithTokenSource share it, so RateState reports the latest response
 	// of any of them.
 	rate *rateTracker
+	// cache, when set, stores GET responses for conditional requests and
+	// resume (cache.go). observed records the fetch time of the last
+	// response served from it; copies share both.
+	cache    *responseCache
+	observed *observedTracker
 }
 
 // RateState is the last rate-limit budget the client saw. A remaining count
@@ -256,6 +261,7 @@ func newClient(o ClientOptions, requireToken bool) (*Client, error) {
 		sleep:       sleepCtx,
 		now:         time.Now,
 		rate:        newRateTracker(),
+		observed:    &observedTracker{},
 	}, nil
 }
 
@@ -378,6 +384,10 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 	}
 	var lastErr error
 	backoff := time.Second
+	var (
+		key string      // cache key of the current token
+		ent *cacheEntry // cached entry for key, nil when none
+	)
 	for attempt := 1; attempt <= c.maxAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -385,6 +395,17 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 		tok, err := c.authToken(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("github api %s %s: %w", method, redactedPath(u), err)
+		}
+		if c.cacheable(method) {
+			// The key changes only when the token does (a re-minted App token).
+			if k := cacheKey(method, u, accept, tok); k != key {
+				key, ent = k, c.cache.load(k)
+				if ent != nil && c.cache.resumable(ent) {
+					c.cache.count(func(s *CacheStats) { s.Resumed++ })
+					c.observed.set(ent.FetchedAt)
+					return ent.response(), nil
+				}
+			}
 		}
 		var rd io.Reader
 		if body != nil {
@@ -400,6 +421,13 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 		req.Header.Set("User-Agent", "gop-collector")
 		if body != nil {
 			req.Header.Set("Content-Type", "application/json")
+		}
+		if ent != nil {
+			if ent.ETag != "" {
+				req.Header.Set("If-None-Match", ent.ETag)
+			} else if ent.LastModified != "" {
+				req.Header.Set("If-Modified-Since", ent.LastModified)
+			}
 		}
 		resp, err := c.http.Do(req)
 		if err != nil {
@@ -424,7 +452,14 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 		}
 		r := &response{status: resp.StatusCode, header: resp.Header, body: data}
 		c.noteRateHeaders(resp.Header, method == http.MethodPost && strings.HasSuffix(u.Path, "/graphql"))
+		c.observed.set(time.Time{})
+		if r.status == http.StatusNotModified && ent != nil {
+			return c.cacheRevalidated(key, ent), nil
+		}
 		if r.status >= 200 && r.status < 300 {
+			if c.cacheable(method) {
+				c.cacheStore(key, u, r)
+			}
 			return r, nil
 		}
 		apiErr := &APIError{Method: method, Path: redactedPath(u), StatusCode: r.status, Message: errorMessage(data), header: r.header}

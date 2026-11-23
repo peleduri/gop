@@ -146,7 +146,7 @@ Prompts start a guided flow: `triage_enterprise` (optional `focus`: `oidc`, `sec
 ### CLI
 
 ```
-gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
+gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>] [--cache-dir DIR [--resume]]
 gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] --out graph2.json
 gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json] [--app-id N --app-key-file PATH]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
@@ -241,7 +241,7 @@ Scoring: each cloud role a principal reaches adds 13 to its blast radius score. 
 - Workflow files: the Actions and reusable workflows they use, `id-token: write`, secrets and self-hosted runners. Composite Actions and reusable workflows are expanded recursively at the referenced ref.
 - The Actions access setting of each private or internal repo that hosts a referenced Action. A workflow in another org can only use the Action when the setting allows it; when the setting can't be read (it needs repo admin), cross-org paths through the Action are possible, not confirmed.
 
-Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, audit log facts, branch protection and environment rules, and resumable collection.
+Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, audit log facts, branch protection and environment rules.
 
 GitHub Enterprise Server: `gop collect --github-url https://github.acme.example` (or `GOP_GITHUB_URL`) reads `/api/v3` and `/api/graphql` on that host and leaves the APIs its version lacks `not_visible`. See [docs/ghes.md](docs/ghes.md).
 
@@ -280,7 +280,7 @@ Before a long first collection, run `GITHUB_TOKEN=... gop doctor --enterprise ac
 
 ### Rate limits
 
-A token gets 5,000 REST requests per hour (GitHub Apps scale with installation size). Large enterprises take a while to collect. Collection is sequential today; it retries transient errors and waits out rate limits. Workflow and action files are read in batched GraphQL queries (25 repositories per query by default, halved automatically when GitHub reports a query too expensive), so they do not cost one REST request per file; a repository the batch cannot read falls back to REST. While it runs, `gop collect` prints a progress line to stderr at most every 5 seconds with the phase, the count done and the remaining REST and GraphQL budget. Resuming an interrupted collection is planned.
+A token gets 5,000 REST requests per hour (GitHub Apps scale with installation size). Large enterprises take a while to collect. Collection is sequential today; it retries transient errors and waits out rate limits. Workflow and action files are read in batched GraphQL queries (25 repositories per query by default, halved automatically when GitHub reports a query too expensive), so they do not cost one REST request per file; a repository the batch cannot read falls back to REST. While it runs, `gop collect` prints a progress line to stderr at most every 5 seconds with the phase, the count done and the remaining REST and GraphQL budget. With `--cache-dir DIR` (off by default) gop keeps REST responses on disk and revalidates them on the next run with conditional requests, which GitHub does not count against the primary rate limit when the answer is `304 Not Modified`; add `--resume` to continue an interrupted collection of the same enterprise and orgs without re-requesting what it already fetched. The directory holds API responses as sensitive as graph.json: delete it after use and never commit it (see [docs/threat-model.md](docs/threat-model.md)).
 
 ## Running in GitHub Actions: token risk
 
@@ -367,7 +367,7 @@ Planned, roughly in order. Each item will get a [GitHub issue](https://github.co
 - Audit log collection (`audit` evidence)
 - Branch protection, rulesets and environment protection as conditions on edges
 - `what-if` and `fix` CLI subcommands (available over MCP today)
-- Resumable and parallel collection
+- Parallel collection
 - Diff between two collections
 
 ## Contributing

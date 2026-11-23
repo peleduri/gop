@@ -18,7 +18,7 @@ Anything the token cannot read is recorded as `not_visible` with a `coverage` en
 
 - **No writes.** gop makes no POST, PATCH, PUT or DELETE calls that change GitHub state. A guard in the API client refuses every non-GET REST request before it is sent, and refuses GraphQL mutations. The one allowlisted exception is GitHub App mode's `POST /app/installations/{id}/access_tokens`, which mints a short-lived read-only installation token and changes no repository or org state. A test walks a full App-mode collection and fails on any other write-method request.
 - **No telemetry.** gop sends nothing to the maintainer or any third party. The only network traffic is read requests to the GitHub API host you configure.
-- **No hidden storage.** gop writes only the files you ask for (graph.json, report.html). It does not cache the token.
+- **No hidden storage.** gop writes only the files you ask for (graph.json, report.html, and the response cache when you pass `--cache-dir`). It never writes the token.
 
 `gop serve` speaks MCP over stdio. Its answers go to the agent you connect and, through it, to that agent's model provider. That flow is your choice; gop does not make it.
 
@@ -50,10 +50,19 @@ Anything the token cannot read is recorded as `not_visible` with a `coverage` en
 
 graph.json (and the HTML report built from it) **maps your attack paths**: which org's members can push code that runs with which secrets, OIDC trusts and runners, and where your visibility gaps are. Treat it like a penetration test report:
 
-- Never commit it. The repository `.gitignore` excludes `/graph.json` and `/report.html`; add the same to any repository where you run gop.
+- Never commit it. The repository `.gitignore` excludes `/graph.json`, `/report.html` and `/gop-cache/`; add the same to any repository where you run gop.
 - Store it encrypted at rest and delete it when you are done.
 - When produced by the Action, the artifact is readable by anyone with read access to that repository. Run the Action only in a private repository and keep artifact retention at 1 day.
 - Do not paste it into issues, chats or bug reports. Reduce problems to synthetic data (`acme`, `acme-actions`, `acme-app`).
+
+## The response cache is sensitive too
+
+`gop collect --cache-dir DIR` (off by default) stores raw API responses: repository lists, workflow file contents, collaborators, team members and org settings. That is the same data graph.json is built from, so treat the directory the same way:
+
+- It is off unless you pass `--cache-dir`. gop creates the directory `0700` and every file `0600`, written atomically, and refuses an existing directory that other users can read.
+- It never contains the token or any request header. Entry file names are a SHA-256 of the method, the absolute URL (host included), the `Accept` type and a 16-hex-digit fingerprint of the token's SHA-256, so two tokens (which may see different data) and two hosts never share an entry. An entry stores the redacted path, `ETag`/`Last-Modified`, status, the `Link` header, the body and `fetched_at`.
+- Only `GET` responses that are `200` with a validator are stored. GraphQL, errors, redirects and the App installation-token mint are never cached.
+- Delete it when the collection is done (`rm -rf DIR`); nothing expires on its own. Keep it on the machine that ran the collection, never in a CI cache or artifact, and never commit it: add `/gop-cache/` (or your directory) to `.gitignore` next to `/graph.json` and `/report.html`.
 
 ## Supply chain
 

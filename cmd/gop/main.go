@@ -261,6 +261,11 @@ func (a *app) cmdCollect(args []string) error {
 		"When the token cannot read the enterprise, or in GitHub App mode, these orgs are collected and count as enterprise orgs")
 	af := addAppFlags(fs)
 	uf := addURLFlags(fs, "collect")
+	cacheDir := fs.String("cache-dir", "", "directory for an on-disk REST response cache (off by default): re-runs send conditional "+
+		"requests and unchanged responses do not count against the rate limit. It holds API responses as sensitive as graph.json: "+
+		"gop creates it 0700; delete it after use and never commit it")
+	resume := fs.Bool("resume", false, "with --cache-dir, resume an interrupted collection of the same enterprise and orgs "+
+		"without re-requesting what it already fetched")
 	var trusts trustFlag
 	fs.Var(&trusts, "oidc-trust", trustUsage+" (runs gop enrich after collection)")
 	if err := parse(fs, args); err != nil {
@@ -268,6 +273,9 @@ func (a *app) cmdCollect(args []string) error {
 	}
 	if err := required("collect", "enterprise", *ent, "out", *out); err != nil {
 		return err
+	}
+	if *resume && *cacheDir == "" {
+		return usagef("collect: --resume needs --cache-dir")
 	}
 	ep, err := uf.resolve(a.getenv)
 	if err != nil {
@@ -292,6 +300,8 @@ func (a *app) cmdCollect(args []string) error {
 		Host:             ep.host,
 		BaseURL:          ep.rest,
 		GraphQLURL:       ep.graphql,
+		CacheDir:         *cacheDir,
+		Resume:           *resume,
 		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
