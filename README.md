@@ -147,7 +147,7 @@ Prompts start a guided flow: `triage_enterprise` (optional `focus`: `oidc`, `sec
 
 ```
 gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
-gop enrich  --graph graph.json --oidc-trust <file|dir>[,...] --out graph2.json
+gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] --out graph2.json
 gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json] [--app-id N --app-key-file PATH]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
 gop serve   --graph graph.json | --demo  [--baseline old.json]
@@ -216,6 +216,8 @@ through a not visible hop (cloud hop from supplied trust file trust/aws/deploy.j
 ```
 
 Members of acme-actions can push code that assumes `role/deploy` in AWS account 111111111111, because `release.yml` runs in the `prod` environment that the role trusts (`repo:acme-app/web:environment:prod`) and uses an action they can push to.
+
+Works with Cartography: if you run [Cartography](https://github.com/cartography-cncf/cartography), run the shipped query [`docs/cartography/oidc-trusts.cypher`](docs/cartography/oidc-trusts.cypher) and pass the export with `gop enrich --cartography export.json` instead of exporting trust files by hand (AWS only). Roles CloudTrail saw a repo assume are marked `observed_use` on the matching edge. See [docs/cartography.md](docs/cartography.md).
 
 The evidence caveat: the cloud hop comes from your file, not from the cloud. gop counts it as confirmed because you assert the file is what is deployed, but it carries evidence `supplied`, `Path.Supplied` is set, and every summary, report and MCP answer says "cloud hop from supplied trust file <file>, not read from the cloud". A stale export gives stale answers.
 

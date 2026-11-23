@@ -43,7 +43,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
-  gop enrich  --graph graph.json --oidc-trust <file|dir>[,...] --out graph2.json
+  gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] --out graph2.json
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
               [--app-id N --app-key-file PATH]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
@@ -76,9 +76,9 @@ doctor is a read-only preflight for collect: token mode, scopes, SSO
 authorization gaps, rate limit, a time estimate and what will come out
 not_visible. In App mode it lists installations, the --orgs without one and
 any granted permission that is not read. Exit 0 all pass, 1 any fail, 3 warnings only.
-enrich reads cloud OIDC trust files you export (AWS, GCP, Azure) and adds the
-cloud roles each workflow's token can assume (CAN_ASSUME). Offline: no token,
-no cloud API. Those hops have evidence "supplied" and every path through them
+enrich reads cloud OIDC trust files you export (AWS, GCP, Azure), or a
+Cartography export (--cartography, AWS; one or both), and adds the cloud roles each
+workflow's token can assume (CAN_ASSUME). Offline: no token, no cloud API. Those hops have evidence "supplied" and every path through them
 says it comes from a supplied file, not from the cloud.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
@@ -270,7 +270,7 @@ func (a *app) cmdCollect(args []string) error {
 		return errors.New(cr.redact(err.Error()))
 	}
 	if len(trusts) > 0 {
-		if err := a.enrich(g, trusts); err != nil {
+		if err := a.enrich(g, trusts, ""); err != nil {
 			return err
 		}
 	}
