@@ -8,6 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/peleduri/gop/internal/demo"
 	"github.com/peleduri/gop/internal/graph"
 )
 
@@ -22,8 +23,13 @@ func loadAcme(t *testing.T) *graph.Graph {
 
 func connect(t *testing.T) *mcp.ClientSession {
 	t.Helper()
+	return connectGraph(t, loadAcme(t))
+}
+
+func connectGraph(t *testing.T, g *graph.Graph) *mcp.ClientSession {
+	t.Helper()
 	ctx := context.Background()
-	srv := NewServer(loadAcme(t), "test")
+	srv := NewServer(g, "test")
 	st, ct := mcp.NewInMemoryTransports()
 	ss, err := srv.Connect(ctx, st, nil)
 	if err != nil {
@@ -249,5 +255,61 @@ func TestExplainFileLine(t *testing.T) {
 	ex, err = NewEngine(g).Explain(ExplainInput{From: ed.From, To: ed.To, Kind: string(graph.Uses)})
 	if err != nil || !strings.HasSuffix(ex.Summary, ", at .github/workflows/release.yml:42 (main)") {
 		t.Errorf("summary = %q err=%v", ex.Summary, err)
+	}
+}
+
+// demoCalls is one valid call per tool against the demo graph.
+var demoCalls = map[string]map[string]any{
+	"who_can_reach": {"target": "repo:acme-app/web"},
+	"blast_radius":  {"principal": demo.ActionsMembers},
+	"paths":         {"from": demo.ActionsMembers, "to": "oidc:acme-secure/signer"},
+	"top_risks":     {"n": 3},
+	"what_if":       {"fixes": []map[string]any{{"type": "pin_ref", "action": demo.DeployMain}}},
+	"suggest_fixes": {"budget": 2},
+	"explain":       {"from": demo.SetupMain, "to": demo.ReleaseSHA},
+	"coverage":      {},
+}
+
+func TestDemoMarkerOnEveryTool(t *testing.T) {
+	cs := connectGraph(t, demo.Generate(demo.Options{Seed: 1}))
+	tools, err := cs.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range tools.Tools {
+		args, ok := demoCalls[tool.Name]
+		if !ok {
+			t.Errorf("no demo call for tool %s", tool.Name)
+			continue
+		}
+		var out struct {
+			Summary string `json:"summary"`
+		}
+		res := call(t, cs, tool.Name, args, &out)
+		if !strings.HasPrefix(text(res), DemoMarker+" ") || !strings.HasPrefix(out.Summary, DemoMarker+" ") {
+			t.Errorf("%s: summary not marked: %q", tool.Name, out.Summary)
+		}
+	}
+	// A collected graph is never marked.
+	var out struct {
+		Summary string `json:"summary"`
+	}
+	call(t, connect(t), "coverage", map[string]any{}, &out)
+	if strings.Contains(out.Summary, DemoMarker) {
+		t.Errorf("non-demo summary marked: %q", out.Summary)
+	}
+}
+
+func TestDemoWhatIfKeepsNestedPath(t *testing.T) {
+	cs := connectGraph(t, demo.Generate(demo.Options{Seed: 1}))
+	var w WhatIfOutput
+	call(t, cs, "what_if", demoCalls["what_if"], &w)
+	if w.Delta.After.ConfirmedPairs >= w.Delta.Before.ConfirmedPairs {
+		t.Errorf("pin did not lower confirmed pairs: %+v", w.Delta.Before)
+	}
+	var who WhoCanReachOutput
+	call(t, cs, "who_can_reach", map[string]any{"target": "repo:acme-app/web"}, &who)
+	if len(who.Confirmed) == 0 {
+		t.Fatal("no confirmed principals for repo:acme-app/web")
 	}
 }

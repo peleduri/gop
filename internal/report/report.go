@@ -46,6 +46,7 @@ func Render(w io.Writer, g *graph.Graph, opts Options) error {
 }
 
 type data struct {
+	Demo        bool // synthetic graph from gop demo: the title says so
 	Version     string
 	Enterprise  string
 	CollectedAt string
@@ -53,6 +54,8 @@ type data struct {
 	FixLine     string
 	Risks       []riskRow
 	Fixes       []fixRow
+	PinLine     string
+	Pinned      []pinnedRow
 	Paths       []principalPaths
 	Orgs        []orgRow
 	Coverage    []graph.Coverage
@@ -72,6 +75,15 @@ type fixRow struct {
 	FixID         string
 	Removed       int
 	CumulativePct string
+}
+
+// pinnedRow is a SHA-pinned action that is still controllable through a
+// nested mutable action.
+type pinnedRow struct {
+	Action, Via string
+	Consumers   int
+	Path        pathView
+	Principal   string
 }
 
 type principalPaths struct {
@@ -112,7 +124,7 @@ var orgCols = []struct{ Key, Title string }{
 
 func build(g *graph.Graph, opts Options) data {
 	ix := graph.NewIndex(g)
-	d := data{Version: opts.Version, Enterprise: g.Enterprise}
+	d := data{Demo: graph.IsDemo(g), Version: opts.Version, Enterprise: g.Enterprise}
 	if !g.CollectedAt.IsZero() {
 		d.CollectedAt = g.CollectedAt.UTC().Format(time.RFC3339)
 	}
@@ -139,6 +151,19 @@ func build(g *graph.Graph, opts Options) data {
 	}
 	if len(d.Fixes) > 0 {
 		d.FixLine = fmt.Sprintf("%s to remove %s of confirmed reach.", d.Fixes[0].Description, d.Fixes[0].CumulativePct)
+	}
+	for _, pe := range ix.PinnedExposures() {
+		d.Pinned = append(d.Pinned, pinnedRow{Action: strings.TrimPrefix(pe.Action, "action:"),
+			Via: strings.TrimPrefix(pe.Via, "action:"), Consumers: pe.Consumers,
+			Principal: pe.Path.From, Path: viewPath(pe.Path)})
+	}
+	if n := len(d.Pinned); n > 0 {
+		verb := "run"
+		if n == 1 {
+			verb = "runs"
+		}
+		d.PinLine = fmt.Sprintf("Pinning is not enough: %s pinned to a commit SHA still %s a mutable ref that someone can push to.",
+			plural(n, "action", "actions"), verb)
 	}
 	for _, n := range g.Nodes {
 		if n.Kind != graph.KindOrg {
@@ -286,14 +311,18 @@ func pickPaths(ix *graph.Index, principal string) []pathView {
 	}
 	out := make([]pathView, 0, len(chosen))
 	for _, p := range chosen {
-		pv := pathView{To: p.To, Confirmed: !p.Unverified}
-		for _, h := range p.Hops {
-			pv.Hops = append(pv.Hops, hopView{From: h.From, To: h.To, Kind: string(h.Kind), SourceAPI: h.SourceAPI,
-				Reverse: h.Reverse, Evidence: mcpserver.EvidenceLabel(h.Evidence), Class: evClass(h.Evidence)})
-		}
-		out = append(out, pv)
+		out = append(out, viewPath(p))
 	}
 	return out
+}
+
+func viewPath(p graph.Path) pathView {
+	pv := pathView{To: p.To, Confirmed: !p.Unverified}
+	for _, h := range p.Hops {
+		pv.Hops = append(pv.Hops, hopView{From: h.From, To: h.To, Kind: string(h.Kind), SourceAPI: h.SourceAPI,
+			Reverse: h.Reverse, Evidence: mcpserver.EvidenceLabel(h.Evidence), Class: evClass(h.Evidence)})
+	}
+	return pv
 }
 
 func evClass(ev graph.Evidence) string {

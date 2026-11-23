@@ -85,6 +85,8 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `file_ref` | `USES`, `EXECUTES_WITH` edge | Commit or branch the file was read at, when known (the repo's default branch for top-level workflows, the parent `uses:` ref for nested files). |
 | `line` | `USES`, `EXECUTES_WITH` edge | 1-based line, integer as string: the `uses:` value on `USES`, the `id-token: write` (or `write-all`) key on the OIDC edge, the `runs-on:` key on the runner edge. |
 | `col` | `USES` edge | 1-based column where the `uses:` value starts (the opening quote, if quoted), integer as string. |
+| `demo` | enterprise | `true` on a synthetic graph from `gop demo`; MCP summaries and the report title then start with `[demo data]` |
+| `source_api` | any node (demo graphs only) | `demo:<generator rule>`, matching the edges' `source_api` |
 
 ## Edge
 

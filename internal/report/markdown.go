@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/peleduri/gop/internal/mcpserver"
 )
 
 // mdEsc makes a value safe inside Markdown text and table cells: HTML is
@@ -17,17 +19,34 @@ var mdEsc = strings.NewReplacer(
 
 func md(s string) string { return mdEsc.Replace(s) }
 
+func writeMDHops(p func(string, ...any), hops []hopView) {
+	for i, h := range hops {
+		kind := h.Kind
+		if h.Reverse {
+			kind += " (reversed)"
+		}
+		p("  %d. %s → %s, %s, **%s**, %s\n", i+1, md(h.From), md(h.To), md(kind), h.Evidence, md(h.SourceAPI))
+	}
+}
+
 func writeMarkdown(w io.Writer, d data) error {
 	b := bufio.NewWriter(w)
 	p := func(format string, a ...any) { fmt.Fprintf(b, format, a...) }
 
-	p("# gop: who can make code run where\n\n")
+	title := "gop: who can make code run where"
+	if d.Demo {
+		title = mcpserver.DemoMarker + " " + title
+	}
+	p("# %s\n\n", title)
 	if d.Enterprise != "" || d.CollectedAt != "" {
 		p("Enterprise **%s**, collected %s\n\n", md(d.Enterprise), md(d.CollectedAt))
 	}
 	p("> %s\n", md(d.Headline))
 	if d.FixLine != "" {
 		p(">\n> %s\n", md(d.FixLine))
+	}
+	if d.PinLine != "" {
+		p(">\n> %s\n", md(d.PinLine))
 	}
 	p("\nConfirmed means every hop was read live or from the audit log. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
 
@@ -57,6 +76,22 @@ func writeMarkdown(w io.Writer, d data) error {
 		p("\n")
 	}
 
+	if len(d.Pinned) > 0 {
+		p("## Pinned, still reachable\n\n")
+		p("A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:\n\n")
+		for _, r := range d.Pinned {
+			p("- **%s** (used by %s) runs **%s**. %s can change it", md(r.Action),
+				plural(r.Consumers, "workflow", "workflows"), md(r.Via), md(r.Principal))
+			if r.Path.Confirmed {
+				p(" (confirmed):\n")
+			} else {
+				p(" (possible: a hop is not visible):\n")
+			}
+			writeMDHops(p, r.Path.Hops)
+		}
+		p("\n")
+	}
+
 	p("## Top paths\n\n")
 	for _, pp := range d.Paths {
 		p("### %s\n\n", md(pp.Principal))
@@ -66,13 +101,7 @@ func writeMarkdown(w io.Writer, d data) error {
 				status = "possible: a hop is not visible"
 			}
 			p("- **%s** to %s\n", status, md(pv.To))
-			for i, h := range pv.Hops {
-				kind := h.Kind
-				if h.Reverse {
-					kind += " (reversed)"
-				}
-				p("  %d. %s → %s, %s, **%s**, %s\n", i+1, md(h.From), md(h.To), md(kind), h.Evidence, md(h.SourceAPI))
-			}
+			writeMDHops(p, pv.Hops)
 		}
 		p("\n")
 	}
