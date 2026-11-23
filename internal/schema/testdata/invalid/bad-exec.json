@@ -1,0 +1,6 @@
+{"schema": "gop.graph/v1", "collected_at": "2026-01-01T00:00:00Z", "enterprise": "acme",
+ "nodes": [{"id": "external:anyone", "kind": "external", "name": "anyone on the internet", "evidence": "live"},
+           {"id": "workflow:acme-app/docs/.github/workflows/preview.yml", "kind": "workflow", "name": "preview.yml", "evidence": "live"}],
+ "edges": [{"from": "external:anyone", "to": "workflow:acme-app/docs/.github/workflows/preview.yml", "kind": "CAN_TRIGGER", "evidence": "live",
+            "source_api": "rest:test", "observed_at": "2026-01-01T00:00:00Z", "attrs": {"trigger": "pull_request_target", "exec": "fork"}}],
+ "coverage": []}

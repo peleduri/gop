@@ -18,6 +18,20 @@ flags may change in minor releases.
   coverage gaps. A CSP meta tag pins the one style and one script by hash, so
   the file cannot load anything remote. With JavaScript off the report reads as
   before. Embedded paths are capped at 500 per target org, with a note when cut.
+- Collector and engine: risky triggers are reach. A workflow on
+  `pull_request_target`, `workflow_run`, `issue_comment`, `issues`,
+  `pull_request_review(_comment)` or `discussion(_comment)` that checks out
+  the pull request's head or interpolates attacker text (`${{
+  github.event.comment.body }}`, `github.head_ref`, ...) into a script gets
+  `principal -CAN_TRIGGER-> workflow` from whoever can cause the event:
+  `external:anyone` (new node kind `external`) for a public repo, every
+  collected org's members for an internal one, the org's members for a
+  private one when the default permission allows read. Fork triggers also
+  need the org to allow private forks; an unreadable setting makes the edge
+  `not_visible`. The engine treats `CAN_TRIGGER` as a control hop, so anyone
+  on the internet can now reach a public repo's secrets through such a
+  workflow. Workflows get `risky_triggers`; plain `pull_request` gets no edge
+  (read-only token, no secrets from forks). See docs/schema.md, Triggers.
 - `gop pin --action owner/repo@ref` resolves an action ref to its commit SHA
   with read-only GET requests (the commit, then whether the ref is a tag or a
   branch) and prints the pinned `uses:` value. With `--graph`, it reads each

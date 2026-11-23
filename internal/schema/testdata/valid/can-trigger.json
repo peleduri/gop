@@ -1,0 +1,31 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "external:anyone", "kind": "external", "name": "anyone on the internet", "evidence": "live"},
+    {"id": "members:acme-app", "kind": "org_members", "name": "acme-app members", "evidence": "live"},
+    {"id": "repo:acme-app/docs", "kind": "repo", "name": "acme-app/docs", "evidence": "live", "attrs": {"visibility": "public"}},
+    {"id": "repo:acme-app/web", "kind": "repo", "name": "acme-app/web", "evidence": "live", "attrs": {"visibility": "internal"}},
+    {"id": "secret:acme-app/docs", "kind": "secret", "name": "acme-app/docs secrets", "evidence": "live"},
+    {"id": "workflow:acme-app/docs/.github/workflows/preview.yml", "kind": "workflow", "name": "acme-app/docs/.github/workflows/preview.yml",
+     "evidence": "live", "attrs": {"risky_triggers": "pull_request_target", "token_write": "false"}},
+    {"id": "workflow:acme-app/web/.github/workflows/triage.yml", "kind": "workflow", "name": "acme-app/web/.github/workflows/triage.yml",
+     "evidence": "live", "attrs": {"risky_triggers": "issue_comment,pull_request_target", "token_write": "false"}}
+  ],
+  "edges": [
+    {"from": "external:anyone", "to": "workflow:acme-app/docs/.github/workflows/preview.yml", "kind": "CAN_TRIGGER", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"trigger": "pull_request_target", "exec": "checkout", "job": "preview", "detail": "ref: ${{ github.event.pull_request.head.sha }}"}},
+    {"from": "members:acme-app", "to": "workflow:acme-app/web/.github/workflows/triage.yml", "kind": "CAN_TRIGGER", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"trigger": "issue_comment", "exec": "injection", "job": "triage", "detail": "github.event.comment.body"}},
+    {"from": "workflow:acme-app/docs/.github/workflows/preview.yml", "to": "repo:acme-app/docs", "kind": "DEFINED_IN", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows", "observed_at": "2026-01-01T00:00:00Z"},
+    {"from": "workflow:acme-app/docs/.github/workflows/preview.yml", "to": "secret:acme-app/docs", "kind": "EXECUTES_WITH", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}", "observed_at": "2026-01-01T00:00:00Z", "attrs": {"secrets": "NPM_TOKEN"}},
+    {"from": "workflow:acme-app/web/.github/workflows/triage.yml", "to": "repo:acme-app/web", "kind": "DEFINED_IN", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows", "observed_at": "2026-01-01T00:00:00Z"}
+  ],
+  "coverage": []
+}

@@ -40,11 +40,11 @@
     },
     "NodeKind": {
       "type": "string",
-      "enum": ["enterprise", "org", "org_members", "identity", "repo", "workflow", "action_ref", "secret", "oidc", "runner", "cloud_target"]
+      "enum": ["enterprise", "org", "org_members", "identity", "repo", "workflow", "action_ref", "secret", "oidc", "runner", "cloud_target", "external"]
     },
     "EdgeKind": {
       "type": "string",
-      "enum": ["CAN_PUSH", "USES", "RESOLVES_TO", "DEFINED_IN", "EXECUTES_WITH", "MEMBER_OF"]
+      "enum": ["CAN_PUSH", "USES", "RESOLVES_TO", "DEFINED_IN", "EXECUTES_WITH", "MEMBER_OF", "CAN_TRIGGER"]
     },
     "Attrs": {
       "description": "Flat string attributes. Unknown keys are allowed.",
@@ -77,7 +77,8 @@
         {"if": {"properties": {"kind": {"const": "secret"}}}, "then": {"properties": {"id": {"pattern": "^secret:.+"}}}},
         {"if": {"properties": {"kind": {"const": "oidc"}}}, "then": {"properties": {"id": {"pattern": "^oidc:.+"}}}},
         {"if": {"properties": {"kind": {"const": "runner"}}}, "then": {"properties": {"id": {"pattern": "^runner:.+"}}}},
-        {"if": {"properties": {"kind": {"const": "cloud_target"}}}, "then": {"properties": {"id": {"pattern": "^cloud:.+"}}}}
+        {"if": {"properties": {"kind": {"const": "cloud_target"}}}, "then": {"properties": {"id": {"pattern": "^cloud:.+"}}}},
+        {"if": {"properties": {"kind": {"const": "external"}}}, "then": {"properties": {"id": {"pattern": "^external:.+"}}}}
       ]
     },
     "Edge": {
@@ -102,6 +103,7 @@
         "bypass": {"description": "Comma list of principal IDs that can land code on the protected branch alone, none, or unknown.", "type": "string", "minLength": 1},
         "token_write": {"description": "workflow: whether its GITHUB_TOKEN has contents: write on its own repo (unknown when the default workflow permissions are not visible).", "type": "string", "enum": ["true", "false", "unknown"]},
         "token_scopes": {"description": "workflow: comma list of the token's other write scopes, e.g. id-token,packages, or write-all. Display only.", "type": "string", "minLength": 1},
+        "risky_triggers": {"description": "workflow: comma list of its triggers that run in the base repo's context on events people without push access can cause (pull_request_target, workflow_run, issue_comment, ...).", "type": "string", "minLength": 1},
         "actions_access": {"description": "Repo hosting a referenced action: its Actions access setting (who outside the repo may use its actions), public for public repos, or unknown.", "type": "string", "enum": ["none", "user", "organization", "enterprise", "public", "unknown"]}
       }
     },
@@ -121,6 +123,8 @@
         "file_ref": {"description": "Commit or branch the file was read at, when known.", "type": "string"},
         "line": {"description": "1-based line, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
         "col": {"description": "1-based column, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
+        "trigger": {"description": "CAN_TRIGGER: the risky trigger the principal can cause, e.g. pull_request_target.", "type": "string", "minLength": 1},
+        "exec": {"description": "CAN_TRIGGER: how the workflow runs attacker input.", "type": "string", "enum": ["checkout", "injection"]},
         "consumer_org": {"description": "USES edge into an enterprise-hosted action: org of the using workflow or action.", "type": "string", "minLength": 1}
       }
     },

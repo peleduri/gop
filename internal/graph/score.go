@@ -83,6 +83,8 @@ func (ix *Index) orgAttr(org, principal, key string) string {
 func (ix *Index) multiplier(principal string) float64 {
 	var orgs []string
 	switch ix.Kind(principal) {
+	case KindExternal:
+		return 1.0 // no org controls apply to anyone on the internet
 	case KindOrgMembers:
 		orgs = []string{OrgOf(principal)}
 	case KindIdentity:

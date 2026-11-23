@@ -1,0 +1,371 @@
+package collect
+
+import (
+	"regexp"
+	"sort"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/peleduri/gop/internal/graph"
+)
+
+// Some triggers run a workflow in the base repo's context (its secrets, a
+// possibly write GITHUB_TOKEN) on an event that people without push access can
+// cause: opening a pull request from a fork, commenting on an issue. Such a
+// workflow is attacker-controlled when it checks out and runs the pull
+// request's code, or interpolates attacker text into a script. gop then emits
+// principal -CAN_TRIGGER-> workflow for the principals who can cause the event.
+//
+// The heuristics below are deliberately narrow: a false positive is a loud
+// finding, so they match exact context names rather than broad patterns.
+
+// Untrusted execution kinds (UntrustedExec.Kind, CAN_TRIGGER attr exec).
+const (
+	ExecCheckout  = "checkout"  // the job checks out the pull request's head
+	ExecInjection = "injection" // attacker text is interpolated into a script
+)
+
+// UntrustedExec is one job that runs attacker-controlled code under a risky trigger.
+type UntrustedExec struct {
+	Job     string
+	Trigger string
+	Kind    string // ExecCheckout | ExecInjection
+	Detail  string // the matched value, e.g. "ref: ${{ github.event.pull_request.head.sha }}" or a context name
+}
+
+// riskyTriggers run in the base repo's context with its secrets on events that
+// people without push access can cause. Plain pull_request is not here: from a
+// fork it gets a read-only token and no secrets.
+var riskyTriggers = map[string]bool{
+	"pull_request_target":         true,
+	"workflow_run":                true,
+	"issue_comment":               true,
+	"pull_request_review":         true,
+	"pull_request_review_comment": true,
+	"discussion":                  true,
+	"discussion_comment":          true,
+	"issues":                      true,
+}
+
+// forkTriggers need a pull request from a fork (workflow_run: an upstream
+// workflow that a fork's pull request starts). The others need only read
+// access: anyone who can read a repo can open or comment on its issues and
+// review its pull requests.
+var forkTriggers = map[string]bool{
+	"pull_request_target": true,
+	"workflow_run":        true,
+}
+
+// RiskyTriggers returns the workflow's triggers that can run attacker input, sorted.
+func (f *WorkflowFacts) RiskyTriggers() []string {
+	var out []string
+	for _, t := range f.Triggers {
+		if riskyTriggers[t] {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// untrustedRefs are the values of actions/checkout with.ref or with.repository
+// that select the pull request's code.
+var untrustedRefs = []string{
+	"github.event.pull_request.head.",
+	"github.head_ref",
+	"refs/pull/",
+	"github.event.workflow_run.head_",
+	"github.event.issue.pull_request",
+}
+
+// untrustedFetch are run: commands that fetch the pull request's code.
+var untrustedFetch = []string{
+	"gh pr checkout",
+	"git fetch origin pull/",
+}
+
+// attackerContexts are expression contexts whose value the attacker writes.
+var attackerContexts = regexp.MustCompile(`\bgithub\.(?:` +
+	`event\.(?:issue|pull_request|comment|review|discussion)\.(?:title|body|head\.ref|head\.label)` +
+	`|head_ref` +
+	`|event\.workflow_run\.head_branch` +
+	`|event\.commits(?:\.\*|\[[^\]]*\])\.message` +
+	`)\b`)
+
+// exprRe matches one ${{ ... }} expression.
+var exprRe = regexp.MustCompile(`\$\{\{(.*?)\}\}`)
+
+// triggerFacts reads the on: triggers and the untrusted execution patterns of
+// every job. It is lenient: a shape it does not understand yields nothing
+// rather than an error (GitHub rejects such files anyway), so it never turns a
+// readable workflow into a parse error.
+func triggerFacts(doc *yaml.Node) (triggers []string, execs []UntrustedExec) {
+	w := &yamlWalk{}
+	root, err := w.mapping(rootMap(doc), "workflow")
+	if err != nil {
+		return nil, nil
+	}
+	triggers = parseOn(w, field(root, "on"))
+	var risky []string
+	for _, t := range triggers {
+		if riskyTriggers[t] {
+			risky = append(risky, t)
+		}
+	}
+	if len(risky) == 0 {
+		return triggers, nil
+	}
+	_, jobsNode := root.get("jobs")
+	jobs, err := w.mapping(jobsNode, "jobs")
+	if err != nil {
+		return triggers, nil
+	}
+	ids := append([]string(nil), jobs.keys...)
+	sort.Strings(ids)
+	for _, id := range ids {
+		_, jv := jobs.get(id)
+		job, err := w.mapping(jv, "job")
+		if err != nil {
+			continue
+		}
+		found := jobPatterns(w, job)
+		for _, t := range risky {
+			for _, x := range found {
+				execs = append(execs, UntrustedExec{Job: id, Trigger: t, Kind: x.Kind, Detail: x.Detail})
+			}
+		}
+	}
+	return triggers, execs
+}
+
+// parseOn reads on: as a string, a list or a map, sorted and deduplicated.
+func parseOn(w *yamlWalk, n *yaml.Node) []string {
+	n, err := w.resolve(n)
+	if err != nil || isNullNode(n) {
+		return nil
+	}
+	set := map[string]bool{}
+	switch n.Kind {
+	case yaml.ScalarNode:
+		set[strings.TrimSpace(n.Value)] = true
+	case yaml.SequenceNode:
+		for _, c := range n.Content {
+			if c, err := w.resolve(c); err == nil && c.Kind == yaml.ScalarNode {
+				set[strings.TrimSpace(c.Value)] = true
+			}
+		}
+	case yaml.MappingNode:
+		m, err := w.mapping(n, "on")
+		if err != nil {
+			return nil
+		}
+		for _, k := range m.keys {
+			set[strings.TrimSpace(k)] = true
+		}
+	}
+	delete(set, "")
+	return sortedSet(set)
+}
+
+// jobPatterns returns the untrusted execution patterns in one job's steps, in
+// step order, at most one per (kind, detail).
+func jobPatterns(w *yamlWalk, job *yamlMap) []UntrustedExec {
+	steps, err := w.sequence(field(job, "steps"), "steps")
+	if err != nil {
+		return nil
+	}
+	var out []UntrustedExec
+	seen := map[UntrustedExec]bool{}
+	add := func(kind, detail string) {
+		x := UntrustedExec{Kind: kind, Detail: truncate(detail, 200)}
+		if !seen[x] {
+			seen[x] = true
+			out = append(out, x)
+		}
+	}
+	for _, sn := range steps {
+		step, err := w.mapping(sn, "step")
+		if err != nil {
+			continue
+		}
+		uses := strings.ToLower(scalarOf(w, field(step, "uses")))
+		with, _ := w.mapping(field(step, "with"), "with")
+		if strings.HasPrefix(uses, "actions/checkout@") {
+			for _, key := range []string{"ref", "repository"} {
+				v := scalarOf(w, field(with, key))
+				for _, u := range untrustedRefs {
+					if strings.Contains(v, u) {
+						add(ExecCheckout, key+": "+strings.TrimSpace(v))
+						break
+					}
+				}
+			}
+		}
+		run := scalarOf(w, field(step, "run"))
+		for _, cmd := range untrustedFetch {
+			if strings.Contains(run, cmd) {
+				add(ExecCheckout, cmd)
+			}
+		}
+		scripts := []string{run}
+		if strings.HasPrefix(uses, "actions/github-script@") {
+			scripts = append(scripts, scalarOf(w, field(with, "script")))
+		}
+		for _, s := range scripts {
+			for _, ctx := range injectedContexts(s) {
+				add(ExecInjection, ctx)
+			}
+		}
+	}
+	return out
+}
+
+// injectedContexts returns the attacker-controlled contexts used inside ${{ }} in s.
+func injectedContexts(s string) []string {
+	if !strings.Contains(s, "${{") {
+		return nil
+	}
+	var out []string
+	for _, m := range exprRe.FindAllStringSubmatch(s, -1) {
+		out = append(out, attackerContexts.FindAllString(m[1], -1)...)
+	}
+	return out
+}
+
+// scalarOf returns n's scalar value (alias-resolved), or "".
+func scalarOf(w *yamlWalk, n *yaml.Node) string {
+	n, err := w.resolve(n)
+	if err != nil || n == nil || n.Kind != yaml.ScalarNode {
+		return ""
+	}
+	return n.Value
+}
+
+// ---- who can trigger ----
+
+// Workflow attribute keys and the coverage fact for triggers.
+const (
+	attrRiskyTriggers = "risky_triggers" // comma list of the workflow's risky triggers
+	attrTrigger       = "trigger"        // CAN_TRIGGER: the trigger
+	attrExec          = "exec"           // CAN_TRIGGER: checkout | injection
+	attrJob           = "job"            // CAN_TRIGGER: the job id
+	attrDetail        = "detail"         // CAN_TRIGGER: the matched value
+	factTriggering    = "triggering_principals"
+)
+
+// externalAnyone is the principal for anyone on the internet.
+const externalAnyone = "external:anyone"
+
+// trigger is one principal that can cause an untrusted execution.
+type trigger struct {
+	principal string
+	ev        graph.Evidence
+	exec      UntrustedExec
+}
+
+// addTriggerFacts records risky_triggers on the workflow and one CAN_TRIGGER
+// edge per principal that can cause one of its untrusted executions.
+func (k *collector) addTriggerFacts(o *orgState, repo *graph.Node, wid string, wn *graph.Node, f *WorkflowFacts) {
+	if r := f.RiskyTriggers(); len(r) > 0 {
+		setAttr(wn, attrRiskyTriggers, strings.Join(r, ","), graph.Live)
+	}
+	if len(f.UntrustedExec) == 0 {
+		return
+	}
+	best := map[string]trigger{}
+	var order []string
+	for _, x := range f.UntrustedExec {
+		for _, t := range k.triggerers(o, repo, x) {
+			old, ok := best[t.principal]
+			if !ok {
+				order = append(order, t.principal)
+			}
+			// The strongest evidence wins; ties keep the first exec (sorted by job).
+			if !ok || (old.ev == graph.NotVisible && t.ev != graph.NotVisible) {
+				best[t.principal] = t
+			}
+		}
+	}
+	for _, p := range order {
+		t := best[p]
+		if p == externalAnyone {
+			k.node(externalAnyone, graph.KindExternal, "anyone on the internet")
+		}
+		k.edge(p, wid, graph.CanTrigger, t.ev, srcWorkflow, map[string]string{
+			attrTrigger: t.exec.Trigger,
+			attrExec:    t.exec.Kind,
+			attrJob:     t.exec.Job,
+			attrDetail:  t.exec.Detail,
+		})
+	}
+}
+
+// triggerers returns who can cause x's trigger on repo, by visibility:
+//
+//	public:   anyone on the internet.
+//	internal: the members of every collected org (every enterprise member can
+//	          read an internal repo).
+//	private:  the members of the repo's org when its default permission is at
+//	          least read; otherwise only collaborators and teams with read
+//	          access can, which gop does not collect (coverage).
+//
+// A fork trigger on an internal or private repo also needs the repo's org to
+// allow forking private and internal repos. A fact the token can't read makes
+// the edge not_visible.
+func (k *collector) triggerers(o *orgState, repo *graph.Node, x UntrustedExec) []trigger {
+	ev := graph.Live
+	if repo.AttrEvidence[graph.AttrVisibility] == graph.NotVisible {
+		ev = graph.NotVisible
+	}
+	vis := repo.Attrs[graph.AttrVisibility]
+	if vis == "public" || (vis != "internal" && vis != "private") {
+		if vis != "public" {
+			ev = graph.NotVisible // visibility unknown: maybe public
+		}
+		return []trigger{{principal: externalAnyone, ev: ev, exec: x}}
+	}
+	if forkTriggers[x.Trigger] {
+		switch orgSetting(o, graph.AttrPrivateForks) {
+		case "true":
+		case "false":
+			return nil // nobody without push access can open a pull request
+		default:
+			ev = graph.NotVisible
+		}
+	}
+	if vis == "internal" {
+		var out []trigger
+		for _, other := range k.orgs {
+			if !other.archived {
+				out = append(out, trigger{principal: "members:" + other.login, ev: ev, exec: x})
+			}
+		}
+		if k.entHidden {
+			k.cover(repo.ID, factTriggering, "token cannot read enterprise "+k.enterprise+
+				": members of enterprise orgs gop can't see can also trigger workflows in this internal repository",
+				"enterprise owner on "+k.enterprise)
+		}
+		return out
+	}
+	switch orgSetting(o, graph.AttrDefaultPerm) {
+	case "read", "write", "admin":
+	case "none":
+		k.cover(repo.ID, factTriggering, "org default permission is none: collaborators and teams with read access can trigger "+
+			x.Trigger+", and gop collects push grants only", "none (gop does not collect read grants yet)")
+		return nil
+	default:
+		ev = graph.NotVisible
+	}
+	return []trigger{{principal: "members:" + o.login, ev: ev, exec: x}}
+}
+
+// orgSetting returns an org attribute, or "unknown" when it is not visible.
+func orgSetting(o *orgState, key string) string {
+	if o.node.AttrEvidence[key] == graph.NotVisible {
+		return "unknown"
+	}
+	if v := o.node.Attrs[key]; v != "" {
+		return v
+	}
+	return "unknown"
+}
