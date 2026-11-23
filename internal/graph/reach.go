@@ -34,6 +34,12 @@ import (
 //	                                       unknown: the repo -> action hop is not_visible, so the
 //	                                                path is possible, never confirmed.
 //	                                       false or missing: the hop is unchanged.
+//	                                     A tag (node ref_kind=tag) is gated the same way
+//	                                     through ref_immutable instead (an immutable release
+//	                                     or a tag ruleset blocking update and deletion), with
+//	                                     ref_bypass edges whose ref is the tag. A ref with
+//	                                     ref_ambiguous=true (both a tag and a branch) is not
+//	                                     gated at all: the more mutable reading wins.
 //	                                     Only this hop is gated. DEFINED_IN stays unconditional:
 //	                                     a push to any unprotected branch runs that branch's copy
 //	                                     of an on: push workflow with the repo's secrets.
@@ -151,28 +157,66 @@ func (ix *Index) actionMutable(action string) bool {
 	return true
 }
 
+// refLock is the one gate on an action's repo -> action hop, shared by branch
+// protection and tag immutability: "true" (pushing alone cannot change the
+// ref; only ref_bypass principals can), "unknown" (not visible: the hop stays,
+// not_visible) or "" (no gate). A tag reads ref_immutable, anything else reads
+// ref_protected, and ref_ambiguous=true (both a tag and a branch) is never
+// gated.
+func refLock(n Node) string {
+	if n.Attrs[AttrRefAmbiguous] == "true" {
+		return ""
+	}
+	v := n.Attrs[AttrRefProtected]
+	if n.Attrs[AttrRefKind] == "tag" {
+		v = n.Attrs[AttrRefImmutable]
+	}
+	if v == "true" || v == "unknown" {
+		return v
+	}
+	return ""
+}
+
+// bypassEdges lists the via=ref_bypass CAN_PUSH edges into host that apply to
+// action node n (their ref is the action's ref).
+func (ix *Index) bypassEdges(n Node, host string) []Edge {
+	ref := actionRef(n)
+	var out []Edge
+	for _, p := range ix.in[host] {
+		if p.Kind == CanPush && p.Attrs[AttrVia] == ViaRefBypass && p.Attrs[AttrRef] == ref {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // addResolves adds the control hops for one RESOLVES_TO edge of a mutable,
-// unpinned action, gated by the action's branch protection (see the rules above).
+// unpinned action, gated by refLock (see the rules above).
 func (ix *Index) addResolves(e Edge, add func(from, to string, e Edge, reverse, ci bool)) {
 	n := ix.nodes[e.From]
 	hidden := e
 	hidden.Evidence = NotVisible
-	switch n.Attrs[AttrRefProtected] {
+	switch refLock(n) {
 	case "true":
 		if n.Attrs[AttrBypass] == "unknown" {
 			add(e.To, e.From, hidden, true, false)
 		}
-		ref := actionRef(n)
-		for _, p := range ix.in[e.To] {
-			if p.Kind == CanPush && p.Attrs[AttrVia] == ViaRefBypass && p.Attrs[AttrRef] == ref {
-				add(p.From, e.From, p, false, false)
-			}
+		for _, p := range ix.bypassEdges(n, e.To) {
+			add(p.From, e.From, p, false, false)
 		}
 	case "unknown":
 		add(e.To, e.From, hidden, true, false)
 	default:
 		add(e.To, e.From, e, true, false)
 	}
+}
+
+// lockedNoBypass reports whether the RESOLVES_TO edge e is fully gated: its
+// action's ref is locked (refLock "true"), its bypass actors are known, and no
+// ref_bypass edge applies. A pin then changes nothing.
+func (ix *Index) lockedNoBypass(e Edge) bool {
+	n := ix.nodes[e.From]
+	return refLock(n) == "true" && n.Attrs[AttrBypass] != "unknown" && len(ix.bypassEdges(n, e.To)) == 0
 }
 
 // actionRef is the ref of an action_ref node: its ref attr, else the part of

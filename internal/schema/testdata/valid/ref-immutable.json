@@ -1,0 +1,31 @@
+{
+  "schema": "gop.graph/v1",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "team:acme-actions/release", "kind": "identity", "name": "acme-actions/release", "evidence": "live",
+     "attrs": {"org": "acme-actions", "slug": "release"}},
+    {"id": "repo:acme-actions/deploy", "kind": "repo", "name": "acme-actions/deploy", "evidence": "live"},
+    {"id": "action:acme-actions/deploy@v3", "kind": "action_ref", "name": "acme-actions/deploy@v3", "evidence": "live",
+     "attrs": {"ref": "v3", "ref_kind": "tag", "ref_kind_source": "api", "ref_immutable": "true",
+               "ref_immutable_reason": "tag_ruleset", "bypass": "team:acme-actions/release"}},
+    {"id": "action:acme-actions/deploy@v4", "kind": "action_ref", "name": "acme-actions/deploy@v4", "evidence": "live",
+     "attrs": {"ref": "v4", "ref_kind": "tag", "ref_kind_source": "api", "ref_immutable": "unknown"},
+     "attr_evidence": {"ref_immutable": "not_visible"}},
+    {"id": "action:acme-actions/deploy@both", "kind": "action_ref", "name": "acme-actions/deploy@both", "evidence": "live",
+     "attrs": {"ref": "both", "ref_kind": "branch", "ref_kind_source": "api", "ref_ambiguous": "true"}},
+    {"id": "action:acme-actions/deploy@v9", "kind": "action_ref", "name": "acme-actions/deploy@v9", "evidence": "live",
+     "attrs": {"ref": "v9", "ref_kind": "tag", "ref_kind_source": "name"}}
+  ],
+  "edges": [
+    {"from": "team:acme-actions/release", "to": "repo:acme-actions/deploy", "kind": "CAN_PUSH", "evidence": "live",
+     "source_api": "rest:GET /repos/{owner}/{repo}/rulesets/{ruleset_id}", "observed_at": "2026-01-01T00:00:00Z",
+     "attrs": {"via": "ref_bypass", "ref": "v3", "permission": "bypass", "rule_source": "ruleset:20", "bypass_mode": "always"}}
+  ],
+  "coverage": [
+    {"scope": "action:acme-actions/deploy@v4", "fact": "ref_immutable",
+     "reason": "could not list the rulesets of acme-actions/deploy: 403", "needs_fix": "read access to acme-actions/deploy"},
+    {"scope": "action:acme-actions/deploy@v9", "fact": "ref_kind",
+     "reason": "neither refs/tags/v9 nor refs/heads/v9 exists in acme-actions/deploy; ref_kind is a guess from the name", "needs_fix": "read access to acme-actions/deploy"}
+  ]
+}

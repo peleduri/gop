@@ -44,6 +44,8 @@ type fakeGitHub struct {
 	requests []string
 	// tagMessage, when set, makes the tag lookup fail with 403 and this message.
 	tagMessage string
+	// mainTag makes main a tag as well as a branch.
+	mainTag bool
 }
 
 func (f *fakeGitHub) handler(t *testing.T) http.HandlerFunc {
@@ -66,6 +68,8 @@ func (f *fakeGitHub) handler(t *testing.T) http.HandlerFunc {
 			_, _ = w.Write([]byte(tagSHA))
 		case p == "/repos/acme-actions/deploy/git/ref/tags/v1":
 			_, _ = w.Write([]byte(`{"ref":"refs/tags/v1"}`))
+		case p == "/repos/acme-actions/deploy/git/ref/tags/main" && f.mainTag:
+			_, _ = w.Write([]byte(`{"ref":"refs/tags/main"}`))
 		case p == "/repos/acme-actions/deploy/git/ref/tags/main" && f.tagMessage != "":
 			w.WriteHeader(http.StatusForbidden)
 			_, _ = w.Write([]byte(`{"message":"` + f.tagMessage + `"}`))
@@ -152,6 +156,13 @@ func TestPinTag(t *testing.T) {
 		if !strings.Contains(r.stdout, want) {
 			t.Errorf("missing %q in:\n%s", want, r.stdout)
 		}
+	}
+}
+
+func TestPinAmbiguousRef(t *testing.T) {
+	r := runPin(t, &fakeGitHub{mainTag: true}, "--action", "acme-actions/deploy@main", "--format", "text")
+	if r.code != exitOK || !strings.Contains(r.stdout, "ref kind: branch") || !strings.Contains(r.stdout, "both a tag and a branch") {
+		t.Fatalf("%+v", r)
 	}
 }
 

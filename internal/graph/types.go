@@ -185,7 +185,24 @@ const (
 	AttrRefProtected  = "ref_protected"  // true | false | unknown (not_visible): pushing to the host repo alone cannot change the branch
 	AttrRefProtection = "ref_protection" // comma list: reviews, dismiss_stale, last_push_approval, status_checks, push_restricted, admins_enforced
 	AttrBypass        = "bypass"         // comma list of principal IDs that can land code alone, "none", or "unknown" (not_visible)
-	AttrRef           = "ref"            // branch name on via=ref_bypass edges; the ref on action_ref nodes
+	AttrRef           = "ref"            // branch or tag name on via=ref_bypass edges; the ref on action_ref nodes
+)
+
+// How an action ref's kind was decided, and whether a tag can move (on
+// enterprise-internal action_ref nodes).
+const (
+	AttrRefKindSource  = "ref_kind_source"      // api (looked up) | name (the name heuristic, a fallback)
+	AttrRefAmbiguous   = "ref_ambiguous"        // true: the name is both a tag and a branch; ref_kind=branch, the more mutable reading
+	AttrRefImmutable   = "ref_immutable"        // true | false | unknown (not_visible), ref_kind=tag only: pushing alone cannot move the tag
+	AttrRefImmutableBy = "ref_immutable_reason" // immutable_release | tag_ruleset, when ref_immutable=true
+)
+
+// Values of ref_kind_source and ref_immutable_reason.
+const (
+	RefKindSourceAPI    = "api"
+	RefKindSourceName   = "name"
+	RefImmutableRelease = "immutable_release"
+	RefImmutableRuleset = "tag_ruleset"
 )
 
 // Actions access of repos that host enterprise-internal actions, and the

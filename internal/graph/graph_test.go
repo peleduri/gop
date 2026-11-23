@@ -668,3 +668,93 @@ func TestCanTriggerControlsWorkflow(t *testing.T) {
 		t.Errorf("WhoCanReach(%s) = %+v", secret, who)
 	}
 }
+
+// tagGraph: members:x push to repo:x/deploy, which hosts action x/deploy@v3
+// (a tag), used by a workflow in o/app that holds secrets. team:x/release may
+// bypass the tag ruleset on v3; team:x/other bypasses a branch named main.
+func tagGraph(attrs map[string]string) *Graph {
+	a := map[string]string{AttrRefKind: "tag", AttrRef: "v3"}
+	for k, v := range attrs {
+		a[k] = v
+	}
+	return &Graph{Schema: SchemaVersion,
+		Nodes: []Node{
+			{ID: "action:x/deploy@v3", Kind: KindActionRef, Name: "x/deploy@v3", Evidence: Live, Attrs: a},
+			{ID: "team:x/release", Kind: KindIdentity, Name: "x/release", Evidence: Live},
+			{ID: "team:x/other", Kind: KindIdentity, Name: "x/other", Evidence: Live},
+		},
+		Edges: []Edge{
+			edge("members:x", "CAN_PUSH", "repo:x/deploy", AttrVia, ViaDefaultPerm),
+			edge("team:x/release", "CAN_PUSH", "repo:x/deploy", AttrVia, ViaRefBypass, AttrRef, "v3"),
+			edge("team:x/other", "CAN_PUSH", "repo:x/deploy", AttrVia, ViaRefBypass, AttrRef, "main"),
+			edge("workflow:o/app/.github/workflows/ci.yml", "DEFINED_IN", "repo:o/app"),
+			edge("workflow:o/app/.github/workflows/ci.yml", "USES", "action:x/deploy@v3", AttrRefKind, "tag"),
+			edge("action:x/deploy@v3", "RESOLVES_TO", "repo:x/deploy"),
+			edge("workflow:o/app/.github/workflows/ci.yml", "EXECUTES_WITH", "secret:o/app"),
+		}}
+}
+
+func TestRefImmutableGatesResolvesTo(t *testing.T) {
+	const secret = "secret:o/app"
+	cases := []struct {
+		name  string
+		attrs map[string]string
+		// reach of secret:o/app for members:x, team:x/release, team:x/other:
+		// "c" confirmed, "p" possible, "" none
+		members, release, other string
+		pin                     bool // Candidates has pin:action:x/deploy@v3
+	}{
+		{"no attr", nil, "c", "c", "c", true},
+		{"mutable", map[string]string{AttrRefImmutable: "false"}, "c", "c", "c", true},
+		{"immutable release", map[string]string{AttrRefImmutable: "true", AttrRefImmutableBy: RefImmutableRelease, AttrBypass: "none"}, "", "c", "", true},
+		{"unknown", map[string]string{AttrRefImmutable: "unknown"}, "p", "p", "p", true},
+		{"bypass unknown", map[string]string{AttrRefImmutable: "true", AttrBypass: "unknown"}, "p", "c", "p", true},
+		{"ambiguous", map[string]string{AttrRefImmutable: "true", AttrRefAmbiguous: "true", AttrRefKind: "branch"}, "c", "c", "c", true},
+		// ref_protected is the branch gate: a tag reads ref_immutable only.
+		{"protected tag", map[string]string{AttrRefProtected: "true"}, "c", "c", "c", true},
+		{"immutable branch", map[string]string{AttrRefKind: "branch", AttrRefImmutable: "true"}, "c", "c", "c", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ix := NewIndex(tagGraph(tc.attrs))
+			for p, want := range map[string]string{"members:x": tc.members, "team:x/release": tc.release, "team:x/other": tc.other} {
+				r := ix.Reach(p, Options{})
+				got := ""
+				switch {
+				case slices.Contains(r.Confirmed.Secrets, secret):
+					got = "c"
+				case slices.Contains(r.Possible.Secrets, secret):
+					got = "p"
+				}
+				if got != want {
+					t.Errorf("%s reach = %q, want %q", p, got, want)
+				}
+			}
+			hasPin := false
+			for _, c := range ix.Candidates() {
+				hasPin = hasPin || c.ID() == "pin:action:x/deploy@v3"
+			}
+			if hasPin != tc.pin {
+				t.Errorf("pin candidate = %v, want %v", hasPin, tc.pin)
+			}
+		})
+	}
+
+	// Immutable with no bypass edge for v3: no pin candidate, and no reach.
+	g := tagGraph(map[string]string{AttrRefImmutable: "true", AttrBypass: "none"})
+	g.Edges = slices.DeleteFunc(g.Edges, func(e Edge) bool { return e.From == "team:x/release" })
+	ix := NewIndex(g)
+	for _, c := range ix.Candidates() {
+		if c.ID() == "pin:action:x/deploy@v3" {
+			t.Error("pin candidate for an immutable tag with no bypass")
+		}
+	}
+	if r := ix.Reach("members:x", Options{}); slices.Contains(r.Confirmed.Secrets, secret) || slices.Contains(r.Possible.Secrets, secret) {
+		t.Errorf("immutable tag still reached: %+v", r)
+	}
+	// The unknown hop is the RESOLVES_TO hop at not_visible.
+	u := NewIndex(tagGraph(map[string]string{AttrRefImmutable: "unknown"})).Reach("members:x", Options{})
+	if p := u.Paths[secret]; !p.Unverified || p.Hops[1].Kind != ResolvesTo || p.Hops[1].Evidence != NotVisible {
+		t.Errorf("unknown path = %+v", p)
+	}
+}

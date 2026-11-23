@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -666,4 +667,327 @@ func TestTeamsNotVisible(t *testing.T) {
 			t.Errorf("%s teams_partial = %q", org, n.Attrs["teams_partial"])
 		}
 	}
+}
+
+// refsWorkflow is a workflow in acme-app/notify that uses each of refs on
+// acme-actions/<ref>, with a secret so reach shows up as a terminal.
+func refsWorkflow(uses ...string) string {
+	var b strings.Builder
+	b.WriteString("on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n")
+	for _, u := range uses {
+		b.WriteString("      - uses: " + u + "\n        with:\n          token: ${{ secrets.NOTIFY_TOKEN }}\n")
+	}
+	return b.String()
+}
+
+const refsWF = "workflow:acme-app/notify/.github/workflows/refs.yml"
+
+func TestResolveRefs(t *testing.T) {
+	f := newFakeGitHub(t)
+	f.tags["acme-actions/deploy"]["both"] = true
+	f.branches["acme-actions/deploy"]["both"] = true
+	f.extraWorkflows["acme-app/notify/refs.yml"] = refsWorkflow(
+		"acme-actions/deploy@release-2026", "acme-actions/setup@v2-dev", "acme-actions/deploy@both",
+		"acme-actions/deploy@abc1234", "acme-actions/deploy@v9-missing")
+	ix := collectFake(t, f)
+
+	cases := []struct {
+		id, kind, source, ambiguous string
+	}{
+		{"action:acme-actions/deploy@release-2026", "tag", "api", ""}, // the name says branch
+		{"action:acme-actions/setup@v2-dev", "branch", "api", ""},     // the name says tag
+		{"action:acme-actions/deploy@both", "branch", "api", "true"},
+		{"action:acme-actions/deploy@abc1234", "branch", "name", ""}, // abbreviated SHA: not looked up
+		{"action:acme-actions/deploy@v9-missing", "tag", "name", ""}, // neither exists: the guess stays
+		{"action:acme-actions/deploy@main", "branch", "api", ""},     // shared fixture
+		{"action:acme-actions/deploy@v1", "tag", "api", ""},          // shared fixture
+		{"action:acme-legacy/hidden-tool@v2", "tag", "name", ""},     // repo not visible
+	}
+	for _, tc := range cases {
+		n := ix.node(t, tc.id)
+		if n.Attrs[graph.AttrRefKind] != tc.kind || n.Attrs[graph.AttrRefKindSource] != tc.source || n.Attrs[graph.AttrRefAmbiguous] != tc.ambiguous {
+			t.Errorf("%s: ref_kind=%q source=%q ambiguous=%q, want %q %q %q", tc.id, n.Attrs[graph.AttrRefKind],
+				n.Attrs[graph.AttrRefKindSource], n.Attrs[graph.AttrRefAmbiguous], tc.kind, tc.source, tc.ambiguous)
+		}
+		for _, e := range ix.g.Edges {
+			if e.Kind == graph.Uses && e.To == tc.id && e.Attrs[graph.AttrRefKind] != tc.kind {
+				t.Errorf("USES %s -> %s ref_kind = %q, want %q", e.From, tc.id, e.Attrs[graph.AttrRefKind], tc.kind)
+			}
+		}
+		_, covered := hasCoverage(ix.g, tc.id, graph.AttrRefKind)
+		if covered != (tc.source == "name") {
+			t.Errorf("%s: ref_kind coverage = %v, want %v", tc.id, covered, tc.source == "name")
+		}
+	}
+	// Only tags from the API get an immutability verdict.
+	if v := ix.node(t, "action:acme-actions/deploy@v9-missing").Attrs[graph.AttrRefImmutable]; v != "" {
+		t.Errorf("name-guessed tag has ref_immutable=%q", v)
+	}
+	if v := ix.node(t, "action:acme-actions/deploy@release-2026").Attrs[graph.AttrRefImmutable]; v != "false" {
+		t.Errorf("release-2026 ref_immutable = %q, want false (no release, no tag ruleset)", v)
+	}
+	// The ambiguous ref is mutable even with the tag reading immutable.
+	gix := graph.NewIndex(ix.g)
+	if !gix.MutableRef("action:acme-actions/deploy@both") {
+		t.Error("ambiguous ref is not mutable")
+	}
+	p, ok := gix.Reach("identity:bob", graph.Options{}).Paths["action:acme-actions/deploy@both"]
+	if !ok || p.Unverified || !usesHop(p, deployRepo, "action:acme-actions/deploy@both") {
+		t.Errorf("bob (maintain on deploy) does not control the ambiguous ref through its repo: %+v", p)
+	}
+}
+
+func TestResolveRefsBatches(t *testing.T) {
+	f := newFakeGitHub(t)
+	var uses []string
+	for i := 0; i < 120; i++ {
+		uses = append(uses, fmt.Sprintf("acme-actions/deploy@b%d", i))
+	}
+	f.extraWorkflows["acme-app/notify/refs.yml"] = refsWorkflow(uses...)
+	ix := collectFake(t, f)
+	distinct := map[string]bool{}
+	for _, n := range ix.g.Nodes {
+		if n.Kind == graph.KindActionRef && n.Attrs[attrInEnterprise] == "true" && n.Attrs[graph.AttrRefKind] != "sha" {
+			distinct[n.Attrs["owner"]+"/"+n.Attrs["repo"]+"@"+n.Attrs["ref"]] = true
+		}
+	}
+	want := (len(distinct) + refBatchSize - 1) / refBatchSize
+	if got := f.hitCount("graphql:refs"); len(distinct) < 120 || got != want {
+		t.Errorf("%d distinct refs took %d GraphQL queries, want %d", len(distinct), got, want)
+	}
+	if n := ix.node(t, "action:acme-actions/deploy@b77"); n.Attrs[graph.AttrRefKindSource] != "name" {
+		t.Errorf("b77 source = %q, want name", n.Attrs[graph.AttrRefKindSource])
+	}
+}
+
+// tagRuleset is a tag ruleset on refs/tags/v* with the given rules, bypassed
+// by team acme-actions/release (id 42).
+func tagRuleset(t *testing.T, id int, rules ...string) json.RawMessage {
+	var rs []map[string]any
+	for _, r := range rules {
+		rs = append(rs, map[string]any{"type": r})
+	}
+	return raw(t, map[string]any{
+		"id": id, "name": "release-tags", "target": "tag", "enforcement": "active",
+		"conditions":    map[string]any{"ref_name": map[string]any{"include": []string{"refs/tags/v*"}, "exclude": []string{}}},
+		"rules":         rs,
+		"bypass_actors": []map[string]any{{"actor_id": 42, "actor_type": "Team", "bypass_mode": "always"}},
+	})
+}
+
+// deployV3 is a sub-action of acme-actions/deploy at tag v3. Its action.yml
+// is not in the fixture, so it has no nested USES: the consumer is reachable
+// through the RESOLVES_TO hop only (deploy's root action.yml uses setup@main,
+// which would open a nested path whatever the tag does).
+const deployV3 = "action:acme-actions/deploy/tools@v3"
+
+func TestImmutableTags(t *testing.T) {
+	// reaches reports whether p reaches the @v3 consumer: "c" confirmed, "p" possible, "" not.
+	reaches := func(g *graph.Graph, p string) string {
+		r := graph.Reach(g, p, graph.Options{})
+		switch {
+		case slices.Contains(r.Confirmed.Workflows, refsWF):
+			return "c"
+		case slices.Contains(r.Possible.Workflows, refsWF):
+			return "p"
+		}
+		return ""
+	}
+	setup := func(t *testing.T, mod func(*fakeGitHub)) *index {
+		f := newFakeGitHub(t)
+		f.extraWorkflows["acme-app/notify/refs.yml"] = refsWorkflow("acme-actions/deploy/tools@v3")
+		if mod != nil {
+			mod(f)
+		}
+		return collectFake(t, f)
+	}
+	// withoutGate drops the immutability verdict: what reach was before.
+	withoutGate := func(g *graph.Graph) *graph.Graph {
+		cp := *g
+		cp.Nodes = slices.Clone(g.Nodes)
+		for i, n := range cp.Nodes {
+			if n.ID == deployV3 {
+				attrs := map[string]string{}
+				for k, v := range n.Attrs {
+					attrs[k] = v
+				}
+				delete(attrs, graph.AttrRefImmutable)
+				cp.Nodes[i].Attrs = attrs
+			}
+		}
+		return &cp
+	}
+	hasPin := func(g *graph.Graph) bool {
+		for _, c := range graph.NewIndex(g).Candidates() {
+			if c.ID() == "pin:"+deployV3 {
+				return true
+			}
+		}
+		return false
+	}
+	bypassEdge := func(g *graph.Graph) bool {
+		for _, e := range g.Edges {
+			if e.From == releaseT && e.To == deployRepo && e.Kind == graph.CanPush &&
+				e.Attrs[graph.AttrVia] == graph.ViaRefBypass && e.Attrs[graph.AttrRef] == "v3" {
+				return true
+			}
+		}
+		return false
+	}
+
+	t.Run("immutable release", func(t *testing.T) {
+		ix := setup(t, nil)
+		n := ix.node(t, deployV3)
+		if n.Attrs[graph.AttrRefImmutable] != "true" || n.Attrs[graph.AttrRefImmutableBy] != graph.RefImmutableRelease || n.AttrEvidence[graph.AttrRefImmutable] != "" {
+			t.Fatalf("v3 attrs = %v %v", n.Attrs, n.AttrEvidence)
+		}
+		if got := reaches(withoutGate(ix.g), "members:acme-actions"); got != "c" {
+			t.Fatalf("without the gate members:acme-actions reach = %q, want c (the test would prove nothing)", got)
+		}
+		if got := reaches(ix.g, "members:acme-actions"); got != "" {
+			t.Errorf("members:acme-actions still reaches the @v3 consumer: %q", got)
+		}
+		if hasPin(ix.g) {
+			t.Error("Candidates has pin:" + deployV3)
+		}
+		// The root action at @v3 too: no pin candidate, and no path through
+		// its RESOLVES_TO hop (its nested setup@main still opens one).
+		f := newFakeGitHub(t)
+		f.extraWorkflows["acme-app/notify/refs.yml"] = refsWorkflow("acme-actions/deploy@v3")
+		root := collectFake(t, f)
+		for _, c := range graph.NewIndex(root.g).Candidates() {
+			if c.ID() == "pin:action:acme-actions/deploy@v3" {
+				t.Error("Candidates has pin:action:acme-actions/deploy@v3")
+			}
+		}
+		for id, p := range graph.Reach(root.g, "members:acme-actions", graph.Options{}).Paths {
+			if usesHop(p, deployRepo, "action:acme-actions/deploy@v3") {
+				t.Errorf("path to %s goes through the immutable tag's repo hop", id)
+			}
+		}
+	})
+
+	noRelease := func(f *fakeGitHub) { delete(f.releases, "acme-actions/deploy@v3") }
+
+	t.Run("tag ruleset", func(t *testing.T) {
+		ix := setup(t, func(f *fakeGitHub) {
+			noRelease(f)
+			f.rulesets["acme-actions/deploy#20"] = tagRuleset(t, 20, "update", "deletion")
+		})
+		n := ix.node(t, deployV3)
+		if n.Attrs[graph.AttrRefImmutable] != "true" || n.Attrs[graph.AttrRefImmutableBy] != graph.RefImmutableRuleset || n.Attrs[graph.AttrBypass] != releaseT {
+			t.Fatalf("v3 attrs = %v", n.Attrs)
+		}
+		if !bypassEdge(ix.g) {
+			t.Error("missing team:acme-actions/release -CAN_PUSH-> repo:acme-actions/deploy (via=ref_bypass, ref=v3)")
+		}
+		if got := reaches(ix.g, "members:acme-actions"); got != "" {
+			t.Errorf("members:acme-actions reach = %q, want none", got)
+		}
+		if got := reaches(ix.g, releaseT); got != "c" {
+			t.Errorf("bypass team reach = %q, want c", got)
+		}
+		if !hasPin(ix.g) {
+			t.Error("pin of a tag with a bypass team is not a candidate")
+		}
+	})
+
+	t.Run("split rules across rulesets", func(t *testing.T) {
+		ix := setup(t, func(f *fakeGitHub) {
+			noRelease(f)
+			f.rulesets["acme-actions/deploy#20"] = tagRuleset(t, 20, "update")
+			f.rulesets["acme-actions/deploy#21"] = tagRuleset(t, 21, "deletion", "creation")
+		})
+		if v := ix.node(t, deployV3).Attrs[graph.AttrRefImmutable]; v != "true" {
+			t.Errorf("ref_immutable = %q, want true", v)
+		}
+	})
+
+	for _, tc := range []struct {
+		name string
+		mod  func(*testing.T, *fakeGitHub)
+	}{
+		{"deletion only", func(t *testing.T, f *fakeGitHub) {
+			f.rulesets["acme-actions/deploy#20"] = tagRuleset(t, 20, "deletion")
+		}},
+		{"evaluate mode", func(t *testing.T, f *fakeGitHub) {
+			var m map[string]any
+			_ = json.Unmarshal(tagRuleset(t, 20, "update", "deletion"), &m)
+			m["enforcement"] = "evaluate"
+			f.rulesets["acme-actions/deploy#20"] = raw(t, m)
+		}},
+		{"pattern does not match", func(t *testing.T, f *fakeGitHub) {
+			var m map[string]any
+			_ = json.Unmarshal(tagRuleset(t, 20, "update", "deletion"), &m)
+			m["conditions"] = map[string]any{"ref_name": map[string]any{"include": []string{"refs/tags/release-*"}}}
+			f.rulesets["acme-actions/deploy#20"] = raw(t, m)
+		}},
+		{"excluded", func(t *testing.T, f *fakeGitHub) {
+			var m map[string]any
+			_ = json.Unmarshal(tagRuleset(t, 20, "update", "deletion"), &m)
+			m["conditions"] = map[string]any{"ref_name": map[string]any{"include": []string{"~ALL"}, "exclude": []string{"refs/tags/v3"}}}
+			f.rulesets["acme-actions/deploy#20"] = raw(t, m)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ix := setup(t, func(f *fakeGitHub) {
+				noRelease(f)
+				tc.mod(t, f)
+			})
+			if v := ix.node(t, deployV3).Attrs[graph.AttrRefImmutable]; v != "false" {
+				t.Errorf("ref_immutable = %q, want false", v)
+			}
+			if got := reaches(ix.g, "members:acme-actions"); got != "c" {
+				t.Errorf("members:acme-actions reach = %q, want c", got)
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name string
+		mod  func(*testing.T, *fakeGitHub)
+	}{
+		{"rulesets list forbidden", func(t *testing.T, f *fakeGitHub) {
+			noRelease(f)
+			f.forbidRulesets["acme-actions/deploy"] = true
+		}},
+		{"release forbidden", func(t *testing.T, f *fakeGitHub) {
+			delete(f.releases, "acme-actions/deploy@v3")
+			f.forbidReleases["acme-actions/deploy"] = true
+		}},
+		{"tag ruleset unreadable", func(t *testing.T, f *fakeGitHub) {
+			noRelease(f)
+			f.rulesets["acme-actions/deploy#20"] = tagRuleset(t, 20, "update", "deletion")
+			f.failures["/repos/acme-actions/deploy/rulesets/20"] = 10
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ix := setup(t, func(f *fakeGitHub) { tc.mod(t, f) })
+			n := ix.node(t, deployV3)
+			if n.Attrs[graph.AttrRefImmutable] != "unknown" || n.AttrEvidence[graph.AttrRefImmutable] != graph.NotVisible {
+				t.Fatalf("v3 ref_immutable = %q (%q), want unknown/not_visible", n.Attrs[graph.AttrRefImmutable], n.AttrEvidence[graph.AttrRefImmutable])
+			}
+			if _, ok := hasCoverage(ix.g, deployV3, graph.AttrRefImmutable); !ok {
+				t.Error("missing ref_immutable coverage")
+			}
+			if got := reaches(ix.g, "members:acme-actions"); got != "p" {
+				t.Errorf("members:acme-actions reach = %q, want p (possible)", got)
+			}
+		})
+	}
+
+	t.Run("bypass actors hidden", func(t *testing.T) {
+		ix := setup(t, func(f *fakeGitHub) {
+			noRelease(f)
+			f.rulesets["acme-actions/deploy#20"] = tagRuleset(t, 20, "update", "deletion")
+			f.hideBypass = true
+		})
+		n := ix.node(t, deployV3)
+		if n.Attrs[graph.AttrRefImmutable] != "true" || n.Attrs[graph.AttrBypass] != "unknown" {
+			t.Fatalf("v3 attrs = %v", n.Attrs)
+		}
+		if got := reaches(ix.g, "members:acme-actions"); got != "p" {
+			t.Errorf("members:acme-actions reach = %q, want p", got)
+		}
+	})
 }

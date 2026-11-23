@@ -236,6 +236,12 @@ func (k *collector) run(ctx context.Context) error {
 	if err := k.collectActionsAccess(ctx); err != nil {
 		return err
 	}
+	if err := k.resolveRefs(ctx); err != nil {
+		return err
+	}
+	if err := k.collectTagImmutability(ctx); err != nil {
+		return err
+	}
 	return k.collectRefProtection(ctx)
 }
 
