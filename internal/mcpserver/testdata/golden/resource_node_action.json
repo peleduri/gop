@@ -1,0 +1,123 @@
+{
+  "id": "action:acme-actions/deploy@main",
+  "node": {
+    "id": "action:acme-actions/deploy@main",
+    "kind": "action_ref",
+    "name": "acme-actions/deploy@main",
+    "attrs": {
+      "ref_kind": "branch"
+    },
+    "evidence": "live"
+  },
+  "in": [
+    {
+      "from": "workflow:acme-app/admin/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/billing/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/gateway/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/mobile/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/search/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/worker/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    }
+  ],
+  "out": [
+    {
+      "from": "action:acme-actions/deploy@main",
+      "to": "repo:acme-actions/deploy",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "contents:.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    }
+  ]
+}

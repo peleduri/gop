@@ -17,6 +17,13 @@ flags may change in minor releases.
   hunks `fix-plan` shows), and warns about mutable refs nested in the action.
   It writes to stdout only, and its HTTP transport refuses any method but GET.
   `gop fix-plan` now points its resolve step at `gop pin`.
+- MCP resources `gop://graph/summary` (enterprise, snapshot age, counts by
+  node and edge kind, evidence mix, org settings, top 5 principals by
+  confirmed score), `gop://graph/coverage`, `gop://graph/schema`
+  (docs/schema.md) and the template `gop://node/{+id}` (a node with its in and
+  out edges), plus the prompts `triage_enterprise`, `review_action` and
+  `explain_path`. Prompt texts live in `internal/mcpserver/prompts/`. A
+  snapshot older than 7 days is flagged in the summary and every prompt.
 - MCP tool `fix_plan` and `gop fix-plan` turn a fix into concrete change
   steps: for `pin_ref`, one step per consuming workflow or nested action with
   file, line and a one-line diff (a placeholder SHA plus a step to resolve it),

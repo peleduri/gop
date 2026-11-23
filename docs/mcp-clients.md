@@ -86,7 +86,7 @@ command: gop
 args:    serve --graph /path/to/graph.json
 ```
 
-Most clients accept the `mcpServers` shape shown for Cursor. To check the server by hand, start it and send an `initialize` request followed by `tools/list`; it answers with its name, version and the read-only tools.
+Most clients accept the `mcpServers` shape shown for Cursor. To check the server by hand, start it and send an `initialize` request followed by `tools/list`; it answers with its name, version and the read-only tools. `resources/list` and `prompts/list` show the context resources (`gop://graph/summary`, `gop://graph/coverage`, `gop://graph/schema`, `gop://node/{+id}`) and the prompts (`triage_enterprise`, `review_action`, `explain_path`).
 
 ## Try it
 
