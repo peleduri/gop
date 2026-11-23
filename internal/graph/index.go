@@ -156,7 +156,9 @@ func OrgOf(id string) string {
 }
 
 // Principals returns every node that can start an attack: org_members and identity
-// nodes, plus undeclared sources of CAN_PUSH and MEMBER_OF edges. Sorted.
+// nodes, plus undeclared sources of CAN_PUSH and MEMBER_OF edges. Sorted. This is
+// the full set used by WhoCanReach and accepted by Reach and BlastRadius; totals
+// use ScoringPrincipals instead.
 func (ix *Index) Principals() []string {
 	set := map[string]bool{}
 	for id, n := range ix.nodes {
@@ -170,6 +172,29 @@ func (ix *Index) Principals() []string {
 		}
 	}
 	return sortedKeys(set)
+}
+
+// ScoringPrincipals is the subset of Principals that TopPaths, WhatIf and
+// SuggestFixes score and sum into (principal, repo) pair totals: every org_members
+// principal, plus each identity with at least one CAN_PUSH edge or a MEMBER_OF edge
+// to something other than an org (a team). An identity whose only edges are org
+// MEMBER_OF reaches exactly what members:X reaches, so counting it again would
+// multiply the totals by the number of licensed users without adding reach. Sorted.
+func (ix *Index) ScoringPrincipals() []string {
+	var out []string
+	for _, p := range ix.Principals() {
+		if ix.Kind(p) == KindOrgMembers {
+			out = append(out, p)
+			continue
+		}
+		for _, e := range ix.out[p] {
+			if e.Kind == CanPush || (e.Kind == MemberOf && ix.Kind(e.To) != KindOrg) {
+				out = append(out, p)
+				break
+			}
+		}
+	}
+	return out
 }
 
 func sortedKeys(m map[string]bool) []string {

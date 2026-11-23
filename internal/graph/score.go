@@ -60,7 +60,7 @@ const (
 //	score      = base * multiplier
 //
 // The org is org:X for members:X, and every MEMBER_OF org for an identity (the
-// weakest one wins). Attrs are read from the org node, falling back to the
+// weakest one wins; MEMBER_OF targets that are not orgs, such as teams, are ignored). Attrs are read from the org node, falling back to the
 // principal's CAN_PUSH edge attrs. A missing attr adds no multiplier: unknown is
 // not treated as weak or as strong.
 func rawScore(c Counts) float64 {
@@ -87,8 +87,12 @@ func (ix *Index) multiplier(principal string) float64 {
 		orgs = []string{OrgOf(principal)}
 	case KindIdentity:
 		for _, e := range ix.out[principal] {
-			if e.Kind == MemberOf {
-				orgs = append(orgs, e.To)
+			if e.Kind != MemberOf {
+				continue
+			}
+			// Only org memberships carry org controls; a MEMBER_OF a team is not an org.
+			if o := OrgOf(e.To); o != "" && ix.Kind(e.To) == KindOrg {
+				orgs = append(orgs, o)
 			}
 		}
 	}
@@ -125,7 +129,7 @@ func BlastRadius(g *Graph, principal string) Score {
 // BlastRadius on a prebuilt index.
 func (ix *Index) BlastRadius(principal string) Score { return ix.score(ix.base, principal) }
 
-// TopPaths ranks all principals by confirmed Score (desc), then PossibleScore
+// TopPaths ranks the scoring principals (see ScoringPrincipals) by confirmed Score (desc), then PossibleScore
 // (desc), then ID, and returns the first n (all when n <= 0).
 func TopPaths(g *Graph, n int) []Score { return NewIndex(g).TopPaths(n) }
 
@@ -147,8 +151,9 @@ func (ix *Index) TopPaths(n int) []Score {
 	return out
 }
 
+// allScores scores every principal in ScoringPrincipals.
 func (ix *Index) allScores(cg *controlGraph) []Score {
-	ps := ix.Principals()
+	ps := ix.ScoringPrincipals()
 	out := make([]Score, 0, len(ps))
 	for _, p := range ps {
 		out = append(out, ix.score(cg, p))

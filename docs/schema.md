@@ -68,6 +68,7 @@ Values are strings to keep the JSON flat.
 | `members` | org | integer as string |
 | `archived` | org, repo | `true`, `false` |
 | `visibility` | repo | `public`, `private`, `internal` |
+| `collaborators` | repo | `unknown` (`not_visible`) when the token could not list the repo's direct collaborators |
 | `ref_kind` | action_ref node, `USES` edge | `sha`, `tag`, `branch` |
 | `file` | `USES`, `EXECUTES_WITH` edge | Repo-relative path of the workflow or action file the edge was read from, e.g. `.github/workflows/release.yml`. |
 | `file_ref` | `USES`, `EXECUTES_WITH` edge | Commit or branch the file was read at, when known (the repo's default branch for top-level workflows, the parent `uses:` ref for nested files). |
@@ -95,7 +96,24 @@ Values are strings to keep the JSON flat.
 | `RESOLVES_TO` | action_ref → repo | The repo that hosts the Action. |
 | `DEFINED_IN` | workflow → repo | The repo the workflow lives in. Code pushed there changes the workflow. |
 | `EXECUTES_WITH` | workflow → secret, oidc, runner | Terminal impact: what the workflow runs with. |
-| `MEMBER_OF` | identity → org | Org membership. |
+| `MEMBER_OF` | identity → org | Org membership, from the enterprise consumed licenses. `attrs.role` is `owner` or `member`. Outside collaborators have none. |
+
+### CAN_PUSH provenance
+
+Every `CAN_PUSH` edge carries `attrs.via`, so fixes know which edges they remove, and `attrs.permission`:
+
+| `via` | From | Source | `permission` |
+|---|---|---|---|
+| `default_perm` | org_members | The org's default repository permission (`write` or `admin`). | the default permission |
+| `org_owner` | identity | An `Owner` role in the consumed licenses: owners are admin on every repo of the org. | `admin` |
+| `direct` | identity | A direct collaborator grant with push (`GET /repos/{owner}/{repo}/collaborators?affiliation=direct`, `permissions.push`, `maintain` or `admin`). | `role_name`, e.g. `write`, `maintain`, or a custom role such as `deployer` (then `attrs.base_role` holds its base role when the token can read the org's custom roles) |
+| `outside_collaborator` | identity | Same as `direct`, for a user listed by `GET /orgs/{org}/outside_collaborators` (not an org member). | as for `direct` |
+
+When an identity is both an owner and a direct collaborator on a repo, the `direct` edge is kept. When the collaborators list for a repo cannot be read (403/404), gop emits no live edge; instead each repository-scoped role in the consumed licenses for that repo (e.g. `acme-actions/deploy:Write`) becomes a `CAN_PUSH` edge with evidence `not_visible`, `permission=unknown` and `attrs.license_role`, which is possible reach, never confirmed. One coverage entry per org (`fact: can_push:collaborators`) counts the affected repos. `LowerDefaultPerm` removes only `via=default_perm` edges.
+
+### Principals and scoring
+
+`who_can_reach`, `reach` and `blast_radius` accept every principal: each `org_members` node and each `identity` node. Totals (`top_paths`, `what_if`, `suggest_fixes`) sum over the scoring principals only: every `org_members` node, plus identities with at least one `CAN_PUSH` edge or a `MEMBER_OF` edge to something that is not an org (a team). An identity whose only edges are org memberships reaches exactly what `members:X` reaches, so counting it again would multiply the `(principal, repo)` pair totals by the number of licensed users.
 
 A reach path reads, for example: `org_members:acme-actions -CAN_PUSH-> repo:acme-actions/deploy <-RESOLVES_TO- action:acme-actions/deploy@main <-USES- workflow:acme-app/web/.github/workflows/release.yml -EXECUTES_WITH-> oidc:...`.
 

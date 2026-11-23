@@ -46,6 +46,9 @@ const (
 	srcWorkflowDir = "rest:GET /repos/{owner}/{repo}/contents/.github/workflows"
 	srcWorkflow    = "rest:GET /repos/{owner}/{repo}/contents/{path}"
 	srcNested      = "rest:GET /repos/{owner}/{repo}/contents/{path}?ref={ref}"
+	srcLicenses    = "rest:GET /enterprises/{enterprise}/consumed-licenses"
+	srcCollabs     = "rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct"
+	srcOutside     = "rest:GET /orgs/{org}/outside_collaborators"
 )
 
 // Attribute keys this package adds beyond the graph contract.
@@ -53,6 +56,10 @@ const (
 	attrRepositories = "repositories"
 	attrOwners       = "owners"
 	attrNested       = "nested"
+	attrCollabs      = "collaborators"
+	attrPermission   = "permission"
+	attrBaseRole     = "base_role"
+	attrRole         = "role"
 )
 
 type orgState struct {
@@ -61,6 +68,17 @@ type orgState struct {
 	node         *graph.Node
 	ownerVisible bool
 	repos        []*graph.Node
+	owners       []string        // logins with the Owner role (consumed licenses), sorted
+	outside      map[string]bool // lower login -> true for outside collaborators
+	customRoles  map[string]string
+	rolesLoaded  bool
+}
+
+// repoGrant is a repository-scoped role from the consumed-licenses list, e.g.
+// "acme-actions/deploy:Write". It proves a grant exists, not that it allows push.
+type repoGrant struct {
+	login string
+	role  string
 }
 
 type queued struct {
@@ -84,6 +102,8 @@ type collector struct {
 	queue      []queued
 	expanded   map[string]bool
 	enterprise string
+	idByLower  map[string]string      // lower login -> identity node id
+	repoGrants map[string][]repoGrant // lower "owner/repo" -> license grants
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -107,6 +127,7 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		nodes: map[string]*graph.Node{}, edges: map[string]*graph.Edge{},
 		covSeen: map[string]bool{}, byLower: map[string]*orgState{},
 		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
+		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{},
 	}
 	if err := k.run(ctx); err != nil {
 		return nil, err
@@ -137,6 +158,12 @@ func (k *collector) run(ctx context.Context) error {
 			return err
 		}
 		k.canPush(o)
+		if err := k.collectPushGrants(ctx, o); err != nil {
+			return err
+		}
+		// Owner edges come after collaborator edges: k.edge keeps the first edge
+		// per (from, kind, to), so a direct grant to an owner keeps via=direct.
+		k.ownerPush(o)
 	}
 	for _, o := range k.orgs {
 		for _, r := range o.repos {
@@ -426,6 +453,20 @@ func (k *collector) collectSettings(ctx context.Context) error {
 
 // ---- members (enterprise consumed licenses) ----
 
+// identity returns the identity node for a login, matching logins case-insensitively.
+func (k *collector) identity(login string) *graph.Node {
+	if id, ok := k.idByLower[strings.ToLower(login)]; ok {
+		return k.nodes[id]
+	}
+	id := "identity:" + login
+	k.idByLower[strings.ToLower(login)] = id
+	return k.node(id, graph.KindIdentity, login)
+}
+
+// collectMembers reads the enterprise consumed licenses. Every licensed user
+// becomes an identity node with a MEMBER_OF edge per collected org membership.
+// Org owners are kept for ownerPush; repository-scoped roles are kept for
+// collectPushGrants and never become edges on their own.
 func (k *collector) collectMembers(ctx context.Context) error {
 	members := map[string]map[string]bool{}
 	owners := map[string]map[string]bool{}
@@ -444,6 +485,7 @@ func (k *collector) collectMembers(ctx context.Context) error {
 			if u.Login == "" {
 				continue
 			}
+			idn := k.identity(u.Login)
 			for _, role := range u.Roles {
 				i := strings.LastIndex(role, ":")
 				if i <= 0 {
@@ -451,7 +493,10 @@ func (k *collector) collectMembers(ctx context.Context) error {
 				}
 				scope, r := role[:i], role[i+1:]
 				if strings.Contains(scope, "/") {
-					continue // repository collaborator role, not org membership
+					// Repository role: too coarse to prove push access by itself.
+					key := strings.ToLower(scope)
+					k.repoGrants[key] = append(k.repoGrants[key], repoGrant{login: u.Login, role: r})
+					continue
 				}
 				org := strings.ToLower(scope)
 				if members[org] == nil {
@@ -463,6 +508,10 @@ func (k *collector) collectMembers(ctx context.Context) error {
 						owners[org] = map[string]bool{}
 					}
 					owners[org][u.Login] = true
+				}
+				if o, ok := k.byLower[org]; ok {
+					k.edge(idn.ID, o.node.ID, graph.MemberOf, graph.Live, srcLicenses,
+						map[string]string{attrRole: strings.ToLower(r)})
 				}
 			}
 		}
@@ -486,6 +535,10 @@ func (k *collector) collectMembers(ctx context.Context) error {
 		setAttr(o.node, graph.AttrMembers, m, graph.Live)
 		setAttr(o.node, attrOwners, strconv.Itoa(len(owners[strings.ToLower(o.login)])), graph.Live)
 		setAttr(mn, graph.AttrMembers, m, graph.Live)
+		for l := range owners[strings.ToLower(o.login)] {
+			o.owners = append(o.owners, l)
+		}
+		sort.Strings(o.owners)
 	}
 	return nil
 }
@@ -631,6 +684,190 @@ func (k *collector) canPush(o *orgState) {
 			graph.AttrSSO:       o.node.Attrs[graph.AttrSSO],
 		})
 	}
+}
+
+// ownerPush adds identity -> repo edges for every owner of the org: an org
+// owner is admin on every repository in it.
+func (k *collector) ownerPush(o *orgState) {
+	for _, login := range o.owners {
+		idn := k.identity(login)
+		for _, r := range o.repos {
+			k.edge(idn.ID, r.ID, graph.CanPush, graph.Live, srcLicenses, map[string]string{
+				graph.AttrVia: graph.ViaOrgOwner, attrPermission: "admin",
+			})
+		}
+	}
+}
+
+// collectPushGrants lists the org's outside collaborators, then the direct
+// collaborators of every non-archived repository, and records push grants.
+// Repositories whose collaborators the token cannot list get one org-level
+// coverage entry and not_visible edges for the license grants on them.
+func (k *collector) collectPushGrants(ctx context.Context, o *orgState) error {
+	if err := k.collectOutside(ctx, o); err != nil {
+		return err
+	}
+	failed := 0
+	for _, r := range o.repos {
+		if r.Attrs[graph.AttrArchived] == "true" {
+			continue
+		}
+		ok, err := k.collectCollaborators(ctx, o, r)
+		if err != nil {
+			return err
+		}
+		if ok {
+			continue
+		}
+		failed++
+		setAttr(r, attrCollabs, "unknown", graph.NotVisible)
+		full := strings.TrimPrefix(r.ID, "repo:")
+		for _, g := range k.repoGrants[strings.ToLower(full)] {
+			idn := k.identity(g.login)
+			k.edge(idn.ID, r.ID, graph.CanPush, graph.NotVisible, srcLicenses, map[string]string{
+				graph.AttrVia: k.via(o, g.login), attrPermission: "unknown", "license_role": g.role,
+			})
+		}
+	}
+	if failed > 0 {
+		k.cover(o.node.ID, "can_push:collaborators",
+			fmt.Sprintf("could not list collaborators on %d repos (needs push access)", failed),
+			k.ownerFix(o)+", or push access on each repository")
+	}
+	return nil
+}
+
+// via labels a direct grant: outside collaborators are users who are not org members.
+func (k *collector) via(o *orgState, login string) string {
+	if o.outside[strings.ToLower(login)] {
+		return graph.ViaOutsideCollaborator
+	}
+	return graph.ViaDirect
+}
+
+// collectOutside reads the org's outside collaborators once. They hold no org
+// membership (no MEMBER_OF edge) but still get identity nodes.
+func (k *collector) collectOutside(ctx context.Context, o *orgState) error {
+	o.outside = map[string]bool{}
+	var logins []string
+	err := k.c.GetPages(ctx, "/orgs/"+url.PathEscape(o.login)+"/outside_collaborators?per_page=100", func(page []byte) error {
+		var batch []struct {
+			Login string `json:"login"`
+		}
+		if err := json.Unmarshal(page, &batch); err != nil {
+			return fmt.Errorf("decoding outside collaborators: %w", err)
+		}
+		for _, u := range batch {
+			if u.Login != "" {
+				logins = append(logins, u.Login)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		k.cover(o.node.ID, "outside_collaborators",
+			"could not list outside collaborators: "+err.Error()+"; direct grants are labelled via=direct",
+			k.ownerFix(o))
+		return nil
+	}
+	for _, l := range logins {
+		o.outside[strings.ToLower(l)] = true
+		k.identity(l)
+	}
+	return nil
+}
+
+type apiCollaborator struct {
+	Login       string `json:"login"`
+	RoleName    string `json:"role_name"`
+	Permissions struct {
+		Push     bool `json:"push"`
+		Maintain bool `json:"maintain"`
+		Admin    bool `json:"admin"`
+	} `json:"permissions"`
+}
+
+// builtinRoles are the repository roles GitHub defines; any other role_name is
+// a custom repository role.
+var builtinRoles = map[string]bool{"read": true, "pull": true, "triage": true, "write": true, "push": true, "maintain": true, "admin": true}
+
+// collectCollaborators lists a repository's direct collaborators and adds a
+// CAN_PUSH edge for each one whose permissions include push. It reports false
+// when the list could not be read (403/404 or another API error).
+func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo *graph.Node) (bool, error) {
+	name := strings.TrimPrefix(repo.ID, "repo:"+o.login+"/")
+	var collabs []apiCollaborator
+	path := "/repos/" + url.PathEscape(o.login) + "/" + url.PathEscape(name) + "/collaborators?affiliation=direct&per_page=100"
+	err := k.c.GetPages(ctx, path, func(page []byte) error {
+		var batch []apiCollaborator
+		if err := json.Unmarshal(page, &batch); err != nil {
+			return fmt.Errorf("decoding collaborators: %w", err)
+		}
+		collabs = append(collabs, batch...)
+		return nil
+	})
+	if err != nil {
+		if ctx.Err() != nil {
+			return false, ctx.Err()
+		}
+		k.logf("collect: %s: collaborators not visible: %v", repo.ID, err)
+		return false, nil
+	}
+	for _, c := range collabs {
+		p := c.Permissions
+		if c.Login == "" || !(p.Push || p.Maintain || p.Admin) {
+			continue
+		}
+		role := c.RoleName
+		if role == "" {
+			switch {
+			case p.Admin:
+				role = "admin"
+			case p.Maintain:
+				role = "maintain"
+			default:
+				role = "write"
+			}
+		}
+		attrs := map[string]string{graph.AttrVia: k.via(o, c.Login), attrPermission: role}
+		if !builtinRoles[strings.ToLower(role)] {
+			if base := k.baseRole(ctx, o, role); base != "" {
+				attrs[attrBaseRole] = base
+			}
+		}
+		idn := k.identity(c.Login)
+		k.edge(idn.ID, repo.ID, graph.CanPush, graph.Live, srcCollabs, attrs)
+	}
+	return true, nil
+}
+
+// baseRole returns the base role of a custom repository role, reading the org's
+// custom roles once. Failure is coverage only: permissions.push already decides reach.
+func (k *collector) baseRole(ctx context.Context, o *orgState, role string) string {
+	if !o.rolesLoaded {
+		o.rolesLoaded = true
+		o.customRoles = map[string]string{}
+		var body struct {
+			CustomRoles []struct {
+				Name     string `json:"name"`
+				BaseRole string `json:"base_role"`
+			} `json:"custom_roles"`
+		}
+		if err := k.c.GetJSON(ctx, "/orgs/"+url.PathEscape(o.login)+"/custom-repository-roles", &body); err != nil {
+			if ctx.Err() == nil {
+				k.cover(o.node.ID, "custom_repository_roles", "could not read custom repository roles: "+err.Error(),
+					k.ownerFix(o))
+			}
+		} else {
+			for _, r := range body.CustomRoles {
+				o.customRoles[strings.ToLower(r.Name)] = r.BaseRole
+			}
+		}
+	}
+	return o.customRoles[strings.ToLower(role)]
 }
 
 // ---- workflows ----

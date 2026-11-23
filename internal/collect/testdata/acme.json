@@ -12,8 +12,13 @@
         "membersCanDeleteRepositoriesSettingOrganizations": "false",
         "allowPrivateRepositoryForkingSettingOrganizations": "true"
       },
+      "outside_collaborators": ["erin"],
       "repos": [
-        {"name": "deploy", "visibility": "internal", "default_branch": "main"},
+        {"name": "deploy", "visibility": "internal", "default_branch": "main", "collaborators": [
+          {"login": "bob", "role_name": "maintain", "permissions": {"pull": true, "triage": true, "push": true, "maintain": true, "admin": false}},
+          {"login": "erin", "role_name": "write", "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}},
+          {"login": "dave", "role_name": "triage", "permissions": {"pull": true, "triage": true, "push": false, "maintain": false, "admin": false}}
+        ]},
         {"name": "setup", "visibility": "internal", "default_branch": "main"}
       ]
     },
@@ -28,9 +33,16 @@
         "membersCanDeleteRepositoriesSettingOrganizations": "false",
         "allowPrivateRepositoryForkingSettingOrganizations": "false"
       },
+      "outside_collaborators": ["frank"],
+      "custom_roles": [{"id": 1, "name": "deployer", "base_role": "write"}],
       "repos": [
-        {"name": "web", "visibility": "private"},
-        {"name": "api", "visibility": "private"},
+        {"name": "web", "visibility": "private", "collaborators": [
+          {"login": "bob", "role_name": "write", "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}}
+        ]},
+        {"name": "api", "visibility": "private", "collaborators": [
+          {"login": "frank", "role_name": "deployer", "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}},
+          {"login": "alice", "role_name": "admin", "permissions": {"pull": true, "triage": true, "push": true, "maintain": true, "admin": true}}
+        ]},
         {"name": "worker", "visibility": "private"},
         {"name": "billing", "visibility": "private"},
         {"name": "mobile", "visibility": "private"},
@@ -53,7 +65,7 @@
         "allowPrivateRepositoryForkingSettingOrganizations": "true"
       },
       "repos": [
-        {"name": "old-site", "visibility": "internal"}
+        {"name": "old-site", "visibility": "internal", "collaborators_forbidden": true}
       ]
     },
     {
@@ -87,9 +99,9 @@
   ],
   "users": [
     {"github_com_login": "alice", "github_com_member_roles": ["acme-actions:Owner", "acme-app:Owner"]},
-    {"github_com_login": "bob", "github_com_member_roles": ["acme-app:Member", "acme-legacy:Member", "acme-app/web:Collaborator"]},
+    {"github_com_login": "bob", "github_com_member_roles": ["acme-app:Member", "acme-legacy:Member", "acme-app/web:Collaborator", "acme-legacy/old-site:Write"]},
     {"github_com_login": "carol", "github_com_member_roles": ["acme-secure:Owner"]},
     {"github_com_login": "dave", "github_com_member_roles": ["acme-app:Member"]},
-    {"github_com_login": "erin", "github_com_member_roles": ["acme-actions:Member", "acme-actions/deploy:Write"]}
+    {"github_com_login": "erin", "github_com_member_roles": ["acme-actions/deploy:Write"]}
   ]
 }
