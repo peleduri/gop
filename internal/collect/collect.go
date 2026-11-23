@@ -818,7 +818,7 @@ func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo 
 	}
 	for _, c := range collabs {
 		p := c.Permissions
-		if c.Login == "" || !(p.Push || p.Maintain || p.Admin) {
+		if c.Login == "" || (!p.Push && !p.Maintain && !p.Admin) {
 			continue
 		}
 		role := c.RoleName
