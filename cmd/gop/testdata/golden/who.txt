@@ -1,0 +1,13 @@
+2 principals can control repo:acme-app/web (confirmed); 0 more possible through a not visible hop
+
+Confirmed (every hop live or audit) (2):
+  identity:bob -> repo:acme-app/web  [confirmed]
+      identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/repos/{owner}/{repo}/collaborators
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/web/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/web  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/web  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/web/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/web  source: rest:/repos/{owner}/{repo}/actions/workflows

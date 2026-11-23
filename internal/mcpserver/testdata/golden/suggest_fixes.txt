@@ -1,0 +1,54 @@
+3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it
+
+{
+  "summary": "3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it",
+  "fixes": [
+    {
+      "fix_id": "pin:action:acme-actions/deploy@main",
+      "fix": {
+        "type": "pin_ref",
+        "action": "action:acme-actions/deploy@main"
+      },
+      "description": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it",
+      "edges": [
+        "action:acme-actions/deploy@main RESOLVES_TO repo:acme-actions/deploy"
+      ],
+      "removed": 18,
+      "cumulative_removed": 18,
+      "remaining": 7,
+      "cumulative_pct": 72
+    },
+    {
+      "fix_id": "default_perm:org:acme-actions-\u003eread",
+      "fix": {
+        "type": "lower_default_perm",
+        "org": "org:acme-actions",
+        "to": "read"
+      },
+      "description": "Lower the default repository permission of acme-actions to read",
+      "edges": [
+        "members:acme-actions CAN_PUSH repo:acme-actions/deploy",
+        "members:acme-actions CAN_PUSH repo:acme-actions/setup"
+      ],
+      "removed": 4,
+      "cumulative_removed": 22,
+      "remaining": 3,
+      "cumulative_pct": 88
+    },
+    {
+      "fix_id": "pin:action:acme-actions/deploy@v1",
+      "fix": {
+        "type": "pin_ref",
+        "action": "action:acme-actions/deploy@v1"
+      },
+      "description": "Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it",
+      "edges": [
+        "action:acme-actions/deploy@v1 RESOLVES_TO repo:acme-actions/deploy"
+      ],
+      "removed": 1,
+      "cumulative_removed": 23,
+      "remaining": 2,
+      "cumulative_pct": 92
+    }
+  ]
+}

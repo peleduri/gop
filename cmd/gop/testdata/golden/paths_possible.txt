@@ -1,0 +1,12 @@
+members:acme-legacy has confirmed paths to 0 nodes; 3 more possible
+
+Possible (at least one hop not visible) (3):
+  members:acme-legacy -> repo:acme-legacy/old-api  [possible: a hop is not visible]
+      members:acme-legacy =[CAN_PUSH, not visible]=> repo:acme-legacy/old-api  source: rest:/orgs/{org}
+  members:acme-legacy -> workflow:acme-legacy/old-api/.github/workflows/ci.yml  [possible: a hop is not visible]
+      members:acme-legacy =[CAN_PUSH, not visible]=> repo:acme-legacy/old-api  source: rest:/orgs/{org}
+      repo:acme-legacy/old-api =[DEFINED_IN (reversed), audit]=> workflow:acme-legacy/old-api/.github/workflows/ci.yml  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-legacy -> secret:acme-legacy/old-api  [possible: a hop is not visible]
+      members:acme-legacy =[CAN_PUSH, not visible]=> repo:acme-legacy/old-api  source: rest:/orgs/{org}
+      repo:acme-legacy/old-api =[DEFINED_IN (reversed), audit]=> workflow:acme-legacy/old-api/.github/workflows/ci.yml  source: rest:/repos/{owner}/{repo}/actions/workflows
+      workflow:acme-legacy/old-api/.github/workflows/ci.yml =[EXECUTES_WITH, audit]=> secret:acme-legacy/old-api  source: contents:.github/workflows

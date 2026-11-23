@@ -1,0 +1,8 @@
+members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)
+
+Confirmed (every hop live or audit) (1):
+  members:acme-actions -> oidc:acme-app/web  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/web/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> oidc:acme-app/web  source: contents:.github/workflows

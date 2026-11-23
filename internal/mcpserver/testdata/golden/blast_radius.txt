@@ -1,0 +1,83 @@
+members:acme-actions can control 12 repos across 2 orgs (confirmed), including 1 OIDC trust, 1 secret scope, 1 self-hosted runner pool; 0 more possible
+
+{
+  "summary": "members:acme-actions can control 12 repos across 2 orgs (confirmed), including 1 OIDC trust, 1 secret scope, 1 self-hosted runner pool; 0 more possible",
+  "score": {
+    "principal": "members:acme-actions",
+    "confirmed": {
+      "repos": 12,
+      "orgs": 2,
+      "workflows": 11,
+      "secrets": 1,
+      "oidc": 1,
+      "runners": 1
+    },
+    "possible": {
+      "repos": 0,
+      "orgs": 0,
+      "workflows": 0,
+      "secrets": 0,
+      "oidc": 0,
+      "runners": 0
+    },
+    "multiplier": 2.25,
+    "score": 84.375,
+    "possible_score": 0
+  },
+  "confirmed": {
+    "repos": [
+      "repo:acme-actions/deploy",
+      "repo:acme-actions/setup",
+      "repo:acme-app/admin",
+      "repo:acme-app/api",
+      "repo:acme-app/auth",
+      "repo:acme-app/billing",
+      "repo:acme-app/docs",
+      "repo:acme-app/gateway",
+      "repo:acme-app/mobile",
+      "repo:acme-app/search",
+      "repo:acme-app/web",
+      "repo:acme-app/worker"
+    ],
+    "workflows": [
+      "workflow:acme-actions/deploy/.github/workflows/release.yml",
+      "workflow:acme-app/admin/.github/workflows/ci.yml",
+      "workflow:acme-app/api/.github/workflows/ci.yml",
+      "workflow:acme-app/auth/.github/workflows/ci.yml",
+      "workflow:acme-app/billing/.github/workflows/ci.yml",
+      "workflow:acme-app/docs/.github/workflows/ci.yml",
+      "workflow:acme-app/gateway/.github/workflows/ci.yml",
+      "workflow:acme-app/mobile/.github/workflows/ci.yml",
+      "workflow:acme-app/search/.github/workflows/ci.yml",
+      "workflow:acme-app/web/.github/workflows/ci.yml",
+      "workflow:acme-app/worker/.github/workflows/ci.yml"
+    ],
+    "actions": [
+      "action:acme-actions/deploy@main",
+      "action:acme-actions/deploy@v1",
+      "action:acme-actions/setup@main"
+    ],
+    "secrets": [
+      "secret:acme-app/billing"
+    ],
+    "oidc": [
+      "oidc:acme-app/web"
+    ],
+    "runners": [
+      "runner:acme-app/worker"
+    ],
+    "orgs": [
+      "org:acme-actions",
+      "org:acme-app"
+    ]
+  },
+  "possible": {
+    "repos": null,
+    "workflows": null,
+    "actions": null,
+    "secrets": null,
+    "oidc": null,
+    "runners": null,
+    "orgs": null
+  }
+}
