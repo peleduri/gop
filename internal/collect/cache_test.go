@@ -257,11 +257,13 @@ func (f *fakeGitHub) resetCounts() {
 	f.requests = 0
 }
 
-// normalized returns g as JSON with collected_at and every observed_at zeroed.
+// normalized returns g as JSON with collected_at, org_collected_at and every
+// observed_at zeroed.
 func normalized(t *testing.T, g *graph.Graph) string {
 	t.Helper()
 	cp := *g
 	cp.CollectedAt = time.Time{}
+	cp.OrgCollectedAt = nil
 	cp.Edges = append([]graph.Edge(nil), g.Edges...)
 	for i := range cp.Edges {
 		cp.Edges[i].ObservedAt = time.Time{}

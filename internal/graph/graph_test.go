@@ -43,6 +43,37 @@ func TestLoadRejectsBadInput(t *testing.T) {
 	}
 }
 
+func TestLoadOrgCollectedAt(t *testing.T) {
+	in := `{"schema":"` + SchemaVersion + `","collected_at":"2026-11-20T10:00:00Z","enterprise":"acme",` +
+		`"nodes":[],"edges":[],"coverage":[],` +
+		`"org_collected_at":{"acme-actions":"2026-11-20T10:00:00Z","acme-app":"2026-11-13T10:00:00Z"}}`
+	g, err := Load(strings.NewReader(in))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]time.Time{
+		"acme-actions": time.Date(2026, 11, 20, 10, 0, 0, 0, time.UTC),
+		"acme-app":     time.Date(2026, 11, 13, 10, 0, 0, 0, time.UTC),
+	}
+	if len(g.OrgCollectedAt) != len(want) {
+		t.Fatalf("org_collected_at = %v, want %v", g.OrgCollectedAt, want)
+	}
+	for o, w := range want {
+		if !g.OrgCollectedAt[o].Equal(w) {
+			t.Errorf("org_collected_at[%s] = %v, want %v", o, g.OrgCollectedAt[o], w)
+		}
+	}
+	// Optional: a graph without it loads, and writes without it.
+	g.OrgCollectedAt = nil
+	out, err := json.Marshal(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "org_collected_at") {
+		t.Errorf("empty org_collected_at should be omitted: %s", out)
+	}
+}
+
 func appRepos(names ...string) []string {
 	out := make([]string, len(names))
 	for i, n := range names {

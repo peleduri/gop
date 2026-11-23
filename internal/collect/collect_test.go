@@ -353,6 +353,7 @@ func stableGraphJSON(t *testing.T, g *graph.Graph) []byte {
 	t.Helper()
 	cp := *g
 	cp.CollectedAt = time.Time{}
+	cp.OrgCollectedAt = nil
 	cp.Edges = slices.Clone(g.Edges)
 	for i := range cp.Edges {
 		cp.Edges[i].ObservedAt = time.Time{}

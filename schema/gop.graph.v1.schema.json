@@ -30,6 +30,11 @@
     "coverage": {
       "type": "array",
       "items": {"$ref": "#/$defs/Coverage"}
+    },
+    "org_collected_at": {
+      "description": "Optional. When each org's facts were last read, keyed by org login (RFC 3339). A merge of a re-collection of some orgs into an older graph keeps the older time for the other orgs.",
+      "type": "object",
+      "additionalProperties": {"type": "string", "format": "date-time"}
     }
   },
   "$defs": {

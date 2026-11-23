@@ -34,6 +34,11 @@
     "audit_retention_days": {
       "description": "Audit log retention (days) the audit facts were read under. When set, audit edges older than half of it are stale by default.",
       "type": "integer"
+    },
+    "org_collected_at": {
+      "description": "Optional. When each org's facts were last read, keyed by org login (RFC 3339). A merge of a re-collection of some orgs into an older graph keeps the older time for the other orgs.",
+      "type": "object",
+      "additionalProperties": {"type": "string", "format": "date-time"}
     }
   },
   "$defs": {

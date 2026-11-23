@@ -79,6 +79,16 @@ type Config struct {
 	// Resume, with CacheDir, reuses without a request every entry the
 	// interrupted previous run (same enterprise and orgs) fetched.
 	Resume bool
+	// MergeInto, with Orgs, re-collects only Orgs and merges the result into
+	// this earlier graph of the same enterprise (Merge): cross-org references
+	// from the re-collected orgs resolve to MergeInto's repo nodes instead of
+	// stubs, and actions of the re-collected orgs that other orgs use are
+	// read again. Collect then returns the merged graph. It is read, never
+	// modified.
+	MergeInto *graph.Graph
+	// MergeForce lets MergeInto merge graphs collected with different
+	// enterprise visibility (MergeOptions.Force).
+	MergeForce bool
 }
 
 // Source API labels recorded on edges and used in coverage.
@@ -184,6 +194,9 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 	if err := cfg.validateAuth(); err != nil {
 		return nil, err
 	}
+	if err := cfg.checkMergeInto(); err != nil {
+		return nil, err
+	}
 	c := cfg.Client
 	if c == nil {
 		var err error
@@ -243,6 +256,9 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 			k.logf("collect: cache: removing %s: %v", cacheRunFile, err)
 		}
 	}
+	if cfg.MergeInto != nil {
+		return MergeWith(cfg.MergeInto, g, cfg.Orgs, MergeOptions{Force: cfg.MergeForce})
+	}
 	return g, nil
 }
 
@@ -277,6 +293,7 @@ func (k *collector) run(ctx context.Context) error {
 	} else {
 		ent.Attrs["orgs"] = strconv.Itoa(len(k.entOrgs))
 	}
+	k.seedFromBase()
 	if err := k.collectSettings(ctx); err != nil {
 		return err
 	}
@@ -313,6 +330,7 @@ func (k *collector) run(ctx context.Context) error {
 	if err := k.collectAllWorkflows(ctx); err != nil {
 		return err
 	}
+	k.seedBaseActions()
 	if err := k.expandNested(ctx); err != nil {
 		return err
 	}
@@ -392,8 +410,21 @@ func (k *collector) graph() *graph.Graph {
 	for _, e := range k.edges {
 		g.Edges = append(g.Edges, *e)
 	}
-	sort.Slice(g.Edges, func(i, j int) bool {
-		a, b := g.Edges[i], g.Edges[j]
+	sortEdges(g.Edges)
+	if len(k.orgs) > 0 {
+		g.OrgCollectedAt = make(map[string]time.Time, len(k.orgs))
+		for _, o := range k.orgs {
+			g.OrgCollectedAt[o.login] = k.now
+		}
+	}
+	return g
+}
+
+// sortEdges orders edges by (from, kind, to), then parallel edges (a grant
+// next to a via=ref_bypass edge per branch) by via and ref.
+func sortEdges(edges []graph.Edge) {
+	sort.Slice(edges, func(i, j int) bool {
+		a, b := edges[i], edges[j]
 		if a.From != b.From {
 			return a.From < b.From
 		}
@@ -403,13 +434,11 @@ func (k *collector) graph() *graph.Graph {
 		if a.To != b.To {
 			return a.To < b.To
 		}
-		// Parallel edges (a grant next to a via=ref_bypass edge per branch).
 		if a.Attrs[graph.AttrVia] != b.Attrs[graph.AttrVia] {
 			return a.Attrs[graph.AttrVia] < b.Attrs[graph.AttrVia]
 		}
 		return a.Attrs[graph.AttrRef] < b.Attrs[graph.AttrRef]
 	})
-	return g
 }
 
 func (k *collector) logf(format string, args ...any) { k.c.logf(format, args...) }
@@ -1276,6 +1305,18 @@ func (k *collector) addUnknownRunner(wid, full string, f *WorkflowFacts) {
 // addUse records from -USES-> action and, for enterprise-internal targets,
 // action -RESOLVES_TO-> repo, and queues the action for nested expansion.
 func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
+	an := k.actionNode(u)
+	attrs := map[string]string{graph.AttrRefKind: u.RefKind, "level": u.Level}
+	if u.Job != "" {
+		attrs["job"] = u.Job
+	}
+	locate(attrs, u.File, u.FileRef, u.Line, u.Column)
+	k.edge(from, an.ID, graph.Uses, graph.Live, src, attrs)
+	k.resolveAction(an, u, depth)
+}
+
+// actionNode declares the action_ref node of a reference.
+func (k *collector) actionNode(u ActionUse) *graph.Node {
 	aid := "action:" + u.Raw
 	an := k.node(aid, graph.KindActionRef, u.Raw)
 	setAttr(an, "owner", u.Owner, graph.Live)
@@ -1288,13 +1329,14 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 	if u.IsReusableWorkflow() {
 		setAttr(an, "reusable_workflow", "true", graph.Live)
 	}
-	attrs := map[string]string{graph.AttrRefKind: u.RefKind, "level": u.Level}
-	if u.Job != "" {
-		attrs["job"] = u.Job
-	}
-	locate(attrs, u.File, u.FileRef, u.Line, u.Column)
-	k.edge(from, aid, graph.Uses, graph.Live, src, attrs)
+	return an
+}
 
+// resolveAction records whether the action's owner is an enterprise org and,
+// when it is, action -RESOLVES_TO-> host repo (a stub when the repo was not
+// collected), and queues the action for nested expansion at depth.
+func (k *collector) resolveAction(an *graph.Node, u ActionUse, depth int) {
+	aid := an.ID
 	org, inside := k.entOrgs[strings.ToLower(u.Owner)]
 	if !inside && k.entHidden {
 		// Unknown, not outside: the owner may be an enterprise org the token can't see.

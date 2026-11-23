@@ -106,6 +106,20 @@ flags may change in minor releases.
 - Engine benchmarks on a generated 10k-repo enterprise (`BenchmarkNewIndex`,
   `BenchmarkReach`, `BenchmarkWhoCanReach`, `BenchmarkTopPaths`,
   `BenchmarkSuggestFixes`), run once per CI build as a smoke test.
+- Re-collect selected orgs into an existing graph without losing cross-org
+  joins: `collect.Merge(base, fresh, orgs)` (and `MergeWith` with a `Force`
+  option) replaces everything `base` holds for the re-collected orgs with
+  `fresh`'s facts, keeps every other org's nodes and edges as they were
+  (including USES edges from their workflows into the re-collected orgs'
+  actions), replaces stub repos with real ones, rebuilds RESOLVES_TO, and
+  checks the result (declared or inferable endpoints, no duplicate edges).
+  `collect.Config.MergeInto` with `Orgs` runs the partial collection against
+  the base graph, so cross-org references resolve to its repos and actions
+  other orgs use are read again; the result equals a full collection. Merging
+  refuses graphs of different enterprises, schemas or hosts, and graphs from
+  different token modes unless forced. New optional top-level field
+  `org_collected_at` (per-org freshness); a collection fills it for every org
+  it collected. The schema version is unchanged. The CLI flag is planned.
 
 ### Changed
 

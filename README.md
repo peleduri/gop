@@ -242,6 +242,8 @@ Scoring: each cloud role a principal reaches adds 13 to its blast radius score. 
 - Workflow files: the Actions and reusable workflows they use, `id-token: write`, secrets and self-hosted runners. Composite Actions and reusable workflows are expanded recursively at the referenced ref.
 - The Actions access setting of each private or internal repo that hosts a referenced Action. A workflow in another org can only use the Action when the setting allows it; when the setting can't be read (it needs repo admin), cross-org paths through the Action are possible, not confirmed.
 
+Refreshing some orgs: the collector API can re-collect only some orgs into an existing graph (`collect.Config.MergeInto` with `Orgs`, or `collect.Merge`), so cross-org paths survive without a full run; a CLI flag is planned. The merged graph mixes observation times: `org_collected_at` records when each org was last read, and `explain` shows each edge's `observed_at`. Both graphs must come from the same enterprise, host and token mode. Run `gop enrich` again after a merge: cloud trust edges of re-collected workflows are kept, but their coverage is not.
+
 Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, audit log facts, branch protection and environment rules.
 
 GitHub Enterprise Server: `gop collect --github-url https://github.acme.example` (or `GOP_GITHUB_URL`) reads `/api/v3` and `/api/graphql` on that host and leaves the APIs its version lacks `not_visible`. See [docs/ghes.md](docs/ghes.md).
