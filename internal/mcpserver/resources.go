@@ -264,7 +264,7 @@ func nodeNotFound(uri string, err error) error {
 	if merr != nil {
 		return mcp.ResourceNotFoundError(uri)
 	}
-	return &jsonrpc.Error{Code: mcp.CodeResourceNotFound, Message: "Resource not found: " + err.Error(), Data: b}
+	return &jsonrpc.Error{Code: jsonrpc.CodeInvalidParams, Message: "Resource not found: " + err.Error(), Data: b}
 }
 
 func jsonContents(uri string, v any) (*mcp.ReadResourceResult, error) {

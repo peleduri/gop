@@ -199,7 +199,7 @@ func TestNodeResourceUnknown(t *testing.T) {
 	cs := connectAt(t, loadAcme(t), acmeNow)
 	_, err := cs.ReadResource(context.Background(), &mcp.ReadResourceParams{URI: "gop://node/repo:acme-app/webb"})
 	var je *jsonrpc.Error
-	if !errors.As(err, &je) || je.Code != mcp.CodeResourceNotFound {
+	if !errors.As(err, &je) || je.Code != jsonrpc.CodeInvalidParams {
 		t.Fatalf("err = %v, want resource not found", err)
 	}
 	if !strings.Contains(je.Message, "repo:acme-app/web") || !strings.Contains(string(je.Data), "repo:acme-app/web") {
