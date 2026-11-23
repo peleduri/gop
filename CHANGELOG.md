@@ -19,6 +19,13 @@ flags may change in minor releases.
   push, including custom repository roles. Repos whose collaborators can't be
   listed get one org-level coverage entry and `not_visible` edges for the
   repo grants listed in the consumed licenses.
+- Collector: team grants. `team:<org>/<slug>` identity nodes, child team
+  `MEMBER_OF` parent team, direct members `MEMBER_OF` their team, and
+  `CAN_PUSH` from team repository grants with push (`via=team`, `permission`
+  is the role name, custom roles included). A non-owner token gets a
+  `can_push:teams` coverage entry and `teams_partial=true` on the org; a team
+  whose member list is refused keeps its grants, gets `members=unknown` and a
+  `team_members:<slug>` coverage entry.
 - Engine: `Index.ScoringPrincipals()`. Totals in `top_paths`, `what_if` and
   `suggest_fixes` count org members plus identities with their own grants, so
   adding one identity per licensed user does not multiply pair totals.
@@ -38,6 +45,8 @@ flags may change in minor releases.
 - The blast-radius multiplier ignores `MEMBER_OF` targets that are not orgs.
 - `docs/schema.md`: the reach path example used `org_members:` IDs; the ID
   prefix is `members:`.
+- `OrgOf` returns the org of a `team:<org>/<slug>` ID, so team principals get
+  their org's blast-radius multiplier.
 
 ## [0.1.0] - 2026-11-23
 

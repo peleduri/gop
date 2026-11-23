@@ -137,6 +137,9 @@ func TestCollectAcme(t *testing.T) {
 			t.Error("no repositories coverage for acme-legacy")
 		}
 		for _, c := range g.Coverage {
+			if c.Scope == "org:acme-app" && c.Fact == "team_members:release" {
+				continue // the fixture's release team refuses its member list on purpose
+			}
 			if c.Scope == "org:acme-secure" || c.Scope == "org:acme-app" {
 				t.Errorf("unexpected coverage for owned org: %+v", c)
 			}
@@ -497,5 +500,147 @@ func TestCollaboratorPagination(t *testing.T) {
 	ix.mustEdge(t, "identity:erin", "repo:acme-actions/deploy", graph.CanPush)
 	if got := f.hitCount("/repos/acme-actions/deploy/collaborators?affiliation=direct&page=3&per_page=100"); got != 1 {
 		t.Errorf("deploy collaborators page 3 requested %d times, want 1", got)
+	}
+}
+
+func TestCanPushTeams(t *testing.T) {
+	f, ix := collectAcme(t)
+	const (
+		platform = "team:acme-actions/platform"
+		oncall   = "team:acme-actions/platform-oncall"
+		deploy   = "repo:acme-actions/deploy"
+	)
+
+	t.Run("team nodes", func(t *testing.T) {
+		n := ix.node(t, platform)
+		if n.Kind != graph.KindIdentity || n.Evidence != graph.Live || n.Attrs["org"] != "acme-actions" ||
+			n.Attrs["slug"] != "platform" || n.Attrs["privacy"] != "closed" {
+			t.Errorf("platform node = %+v", n)
+		}
+		// role=all returns the child team's members too: bob and alice.
+		if n.Attrs[graph.AttrMembers] != "2" {
+			t.Errorf("platform members = %q, want 2", n.Attrs[graph.AttrMembers])
+		}
+		if graph.OrgOf(platform) != "org:acme-actions" {
+			t.Errorf("OrgOf(%s) = %q", platform, graph.OrgOf(platform))
+		}
+	})
+
+	t.Run("team grant with push", func(t *testing.T) {
+		e := ix.mustEdge(t, platform, deploy, graph.CanPush)
+		if e.Attrs[graph.AttrVia] != graph.ViaTeam || e.Attrs["permission"] != "maintain" ||
+			e.Evidence != graph.Live || e.SourceAPI != srcTeamRepos {
+			t.Errorf("platform edge = %+v", e)
+		}
+	})
+
+	t.Run("read and triage grants yield no edge", func(t *testing.T) {
+		ix.noEdge(t, platform, "repo:acme-actions/setup", graph.CanPush)
+		ix.noEdge(t, "team:acme-actions/readers", deploy, graph.CanPush)
+		ix.node(t, "team:acme-actions/readers")
+	})
+
+	t.Run("nesting and direct members", func(t *testing.T) {
+		e := ix.mustEdge(t, oncall, platform, graph.MemberOf)
+		if e.Evidence != graph.Live || e.SourceAPI != srcTeams {
+			t.Errorf("nesting edge = %+v", e)
+		}
+		e = ix.mustEdge(t, "identity:bob", platform, graph.MemberOf)
+		if e.Evidence != graph.Live || e.SourceAPI != srcTeamMembers {
+			t.Errorf("bob membership = %+v", e)
+		}
+		ix.mustEdge(t, "identity:alice", oncall, graph.MemberOf)
+		// alice is listed on platform only through the child team: one fact per edge.
+		ix.noEdge(t, "identity:alice", platform, graph.MemberOf)
+		ix.noEdge(t, "identity:dave", "team:acme-actions/readers", graph.MemberOf)
+	})
+
+	t.Run("reach through the child team", func(t *testing.T) {
+		r := graph.Reach(ix.g, oncall, graph.Options{})
+		if !slices.Contains(r.Confirmed.Repos, deploy) {
+			t.Fatalf("child team repos = %v", r.Confirmed.Repos)
+		}
+		if n := len(r.Paths[deploy].Hops); n != 2 {
+			t.Errorf("child team path = %d hops, want 2", n)
+		}
+		var who []string
+		for _, p := range graph.WhoCanReach(ix.g, deploy) {
+			who = append(who, p.From)
+		}
+		for _, want := range []string{platform, oncall} {
+			if !slices.Contains(who, want) {
+				t.Errorf("WhoCanReach(%s) = %v, missing %s", deploy, who, want)
+			}
+		}
+	})
+
+	t.Run("members refused keeps the grant", func(t *testing.T) {
+		const release = "team:acme-app/release"
+		e := ix.mustEdge(t, release, "repo:acme-app/docs", graph.CanPush)
+		if e.Evidence != graph.Live || e.Attrs[graph.AttrVia] != graph.ViaTeam || e.Attrs["permission"] != "write" {
+			t.Errorf("release edge = %+v", e)
+		}
+		n := ix.node(t, release)
+		if n.Attrs[graph.AttrMembers] != "unknown" || n.AttrEvidence[graph.AttrMembers] != graph.NotVisible {
+			t.Errorf("release members = %q (%q)", n.Attrs[graph.AttrMembers], n.AttrEvidence[graph.AttrMembers])
+		}
+		var covs []graph.Coverage
+		for _, c := range ix.g.Coverage {
+			if strings.HasPrefix(c.Fact, "team_members:") {
+				covs = append(covs, c)
+			}
+		}
+		if len(covs) != 1 || covs[0].Scope != "org:acme-app" || covs[0].Fact != "team_members:release" {
+			t.Errorf("team_members coverage = %+v, want one entry for release", covs)
+		}
+		for _, e := range ix.g.Edges {
+			if e.To == release && e.Kind == graph.MemberOf {
+				t.Errorf("invented member edge %+v", e)
+			}
+		}
+	})
+
+	t.Run("requests", func(t *testing.T) {
+		if got := f.hitCount("/orgs/acme-actions/teams?per_page=100"); got != 1 {
+			t.Errorf("teams listed %d times, want 1", got)
+		}
+		if got := f.hitCount("/orgs/acme-actions/teams/readers/repos?per_page=100"); got != 1 {
+			t.Errorf("readers repos requested %d times, want 1", got)
+		}
+		// readers has no push grant and no parent with one: its members are not needed.
+		if got := f.hitCount("/orgs/acme-actions/teams/readers/members?role=all&per_page=100"); got != 0 {
+			t.Errorf("readers members requested %d times, want 0", got)
+		}
+		if got := f.hitCount("/orgs/acme-actions/teams/platform-oncall/members?role=all&per_page=100"); got != 1 {
+			t.Errorf("platform-oncall members requested %d times, want 1", got)
+		}
+	})
+}
+
+func TestTeamsNotVisible(t *testing.T) {
+	_, ix := collectAcme(t)
+	c, ok := hasCoverage(ix.g, "org:acme-legacy", "can_push:teams")
+	if !ok || c.Reason != "token is not an org owner: secret teams and their grants are not listed" ||
+		c.NeedsFix != "org owner on acme-legacy (SSO enforced: join through the identity provider first)" {
+		t.Errorf("coverage = %+v (found %v)", c, ok)
+	}
+	if n := ix.node(t, "org:acme-legacy"); n.Attrs["teams_partial"] != "true" {
+		t.Errorf("acme-legacy teams_partial = %q", n.Attrs["teams_partial"])
+	}
+	// The closed team is visible and its grant observed; the secret one is not listed.
+	e := ix.mustEdge(t, "team:acme-legacy/legacy-devs", "repo:acme-legacy/old-site", graph.CanPush)
+	if e.Evidence != graph.Live {
+		t.Errorf("legacy-devs edge = %+v", e)
+	}
+	if _, ok := ix.nodes["team:acme-legacy/legacy-admins"]; ok {
+		t.Error("secret team listed for a non-owner token")
+	}
+	for _, org := range []string{"org:acme-actions", "org:acme-app", "org:acme-secure"} {
+		if _, ok := hasCoverage(ix.g, org, "can_push:teams"); ok {
+			t.Errorf("unexpected can_push:teams coverage on owned %s", org)
+		}
+		if n := ix.node(t, org); n.Attrs["teams_partial"] != "" {
+			t.Errorf("%s teams_partial = %q", org, n.Attrs["teams_partial"])
+		}
 	}
 }

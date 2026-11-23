@@ -13,6 +13,16 @@
         "allowPrivateRepositoryForkingSettingOrganizations": "true"
       },
       "outside_collaborators": ["erin"],
+      "teams": [
+        {"slug": "platform", "privacy": "closed", "members": ["bob"], "repos": [
+          {"name": "deploy", "role_name": "maintain", "push": true},
+          {"name": "setup", "role_name": "read", "push": false}
+        ]},
+        {"slug": "platform-oncall", "parent": "platform", "privacy": "closed", "members": ["alice"], "repos": []},
+        {"slug": "readers", "privacy": "closed", "members": ["dave"], "repos": [
+          {"name": "deploy", "role_name": "triage", "push": false}
+        ]}
+      ],
       "repos": [
         {"name": "deploy", "visibility": "internal", "default_branch": "main", "collaborators": [
           {"login": "bob", "role_name": "maintain", "permissions": {"pull": true, "triage": true, "push": true, "maintain": true, "admin": false}},
@@ -35,6 +45,11 @@
       },
       "outside_collaborators": ["frank"],
       "custom_roles": [{"id": 1, "name": "deployer", "base_role": "write"}],
+      "teams": [
+        {"slug": "release", "privacy": "secret", "members": ["alice"], "members_forbidden": true, "repos": [
+          {"name": "docs", "role_name": "write", "push": true}
+        ]}
+      ],
       "repos": [
         {"name": "web", "visibility": "private", "collaborators": [
           {"login": "bob", "role_name": "write", "permissions": {"pull": true, "triage": true, "push": true, "maintain": false, "admin": false}}
@@ -64,6 +79,14 @@
         "membersCanDeleteRepositoriesSettingOrganizations": "true",
         "allowPrivateRepositoryForkingSettingOrganizations": "true"
       },
+      "teams": [
+        {"slug": "legacy-devs", "privacy": "closed", "members": ["bob"], "repos": [
+          {"name": "old-site", "role_name": "write", "push": true}
+        ]},
+        {"slug": "legacy-admins", "privacy": "secret", "members": ["bob"], "repos": [
+          {"name": "old-site", "role_name": "admin", "push": true}
+        ]}
+      ],
       "repos": [
         {"name": "old-site", "visibility": "internal", "collaborators_forbidden": true}
       ]

@@ -3,6 +3,8 @@ package graph
 import (
 	"encoding/json"
 	"reflect"
+	"slices"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -444,5 +446,100 @@ func TestScoringPrincipals(t *testing.T) {
 	}
 	if d := fx.WhatIf(nil); d.Before.ConfirmedPairs != 25 {
 		t.Errorf("fixture confirmed pairs = %d, want 25", d.Before.ConfirmedPairs)
+	}
+}
+
+func TestNestedTeamReach(t *testing.T) {
+	g := &Graph{Schema: SchemaVersion,
+		Nodes: []Node{
+			{ID: "org:acme-actions", Kind: KindOrg, Evidence: Live, Attrs: map[string]string{AttrTwoFactor: "not_required", AttrSSO: "enforced"}},
+			{ID: "team:acme-actions/platform", Kind: KindIdentity, Evidence: Live},
+			{ID: "team:acme-actions/platform-oncall", Kind: KindIdentity, Evidence: Live},
+			{ID: "identity:bob", Kind: KindIdentity, Evidence: Live},
+			{ID: "identity:erin", Kind: KindIdentity, Evidence: Live},
+		},
+		Edges: []Edge{
+			edge("team:acme-actions/platform", "CAN_PUSH", "repo:acme-actions/deploy", AttrVia, ViaTeam, "permission", "maintain"),
+			edge("identity:bob", "MEMBER_OF", "team:acme-actions/platform"),
+			edge("team:acme-actions/platform-oncall", "MEMBER_OF", "team:acme-actions/platform"),
+			edge("identity:erin", "MEMBER_OF", "team:acme-actions/platform-oncall"),
+		},
+	}
+	ix := NewIndex(g)
+	r := ix.Reach("identity:erin", Options{})
+	if !reflect.DeepEqual(r.Confirmed.Repos, []string{"repo:acme-actions/deploy"}) {
+		t.Fatalf("erin confirmed repos = %v", r.Confirmed.Repos)
+	}
+	if !reflect.DeepEqual(r.Confirmed.Orgs, []string{"org:acme-actions"}) {
+		t.Errorf("erin confirmed orgs = %v", r.Confirmed.Orgs)
+	}
+	var kinds []EdgeKind
+	for _, h := range r.Paths["repo:acme-actions/deploy"].Hops {
+		kinds = append(kinds, h.Kind)
+	}
+	if want := []EdgeKind{MemberOf, MemberOf, CanPush}; !reflect.DeepEqual(kinds, want) {
+		t.Errorf("erin path = %v, want %v", kinds, want)
+	}
+	if r := ix.Reach("identity:bob", Options{}); len(r.Paths["repo:acme-actions/deploy"].Hops) != 2 {
+		t.Errorf("bob path = %+v", r.Paths["repo:acme-actions/deploy"])
+	}
+	// The child team inherits the grant; the parent does not reach anything of the child's.
+	if r := ix.Reach("team:acme-actions/platform-oncall", Options{}); !reflect.DeepEqual(r.Confirmed.Repos, []string{"repo:acme-actions/deploy"}) {
+		t.Errorf("child team repos = %v", r.Confirmed.Repos)
+	}
+	var who []string
+	for _, p := range ix.WhoCanReach("repo:acme-actions/deploy") {
+		who = append(who, p.From)
+	}
+	sort.Strings(who)
+	if want := []string{"identity:bob", "identity:erin", "team:acme-actions/platform", "team:acme-actions/platform-oncall"}; !reflect.DeepEqual(who, want) {
+		t.Errorf("WhoCanReach = %v, want %v", who, want)
+	}
+	// Team principals are scored, and their org's weak controls apply to them.
+	sp := ix.ScoringPrincipals()
+	for _, team := range []string{"team:acme-actions/platform", "team:acme-actions/platform-oncall"} {
+		if !slices.Contains(sp, team) {
+			t.Errorf("ScoringPrincipals %v lacks %s", sp, team)
+		}
+	}
+	if m := ix.BlastRadius("team:acme-actions/platform").Multiplier; m != 1.5 {
+		t.Errorf("team multiplier = %v, want 1.5", m)
+	}
+}
+
+func TestTeamCycle(t *testing.T) {
+	g := &Graph{Schema: SchemaVersion, Edges: []Edge{
+		edge("team:o/a", "MEMBER_OF", "team:o/b"),
+		edge("team:o/b", "MEMBER_OF", "team:o/a"),
+		edge("team:o/b", "CAN_PUSH", "repo:o/r", AttrVia, ViaTeam),
+		edge("identity:alice", "MEMBER_OF", "team:o/a"),
+	}}
+	r := Reach(g, "identity:alice", Options{})
+	if !reflect.DeepEqual(r.Confirmed.Repos, []string{"repo:o/r"}) {
+		t.Fatalf("cycle reach = %v", r.Confirmed.Repos)
+	}
+	if n := len(r.Paths["repo:o/r"].Hops); n != 3 {
+		t.Errorf("cycle path hops = %d, want 3", n)
+	}
+	if r := Reach(g, "team:o/a", Options{}); !reflect.DeepEqual(r.Confirmed.Repos, []string{"repo:o/r"}) {
+		t.Errorf("team:o/a reach = %v", r.Confirmed.Repos)
+	}
+}
+
+func TestOrgOf(t *testing.T) {
+	for id, want := range map[string]string{
+		"team:acme-actions/platform":                     "org:acme-actions",
+		"team:acme-actions":                              "org:acme-actions",
+		"repo:acme-app/web":                              "org:acme-app",
+		"members:acme-app":                               "org:acme-app",
+		"org:acme-app":                                   "org:acme-app",
+		"workflow:acme-app/web/.github/workflows/ci.yml": "org:acme-app",
+		"identity:alice":                                 "",
+		"team:":                                          "",
+		"nonsense":                                       "",
+	} {
+		if got := OrgOf(id); got != want {
+			t.Errorf("OrgOf(%q) = %q, want %q", id, got, want)
+		}
 	}
 }

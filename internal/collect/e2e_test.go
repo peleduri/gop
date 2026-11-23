@@ -86,13 +86,16 @@ func TestEndToEndAcme(t *testing.T) {
 		t.Errorf("pinning deploy@main and setup@main should lower reach: before %d after %d", both.Before.ConfirmedPairs, both.After.ConfirmedPairs)
 	}
 
-	// The greedy fix list goes for the root cause: acme-actions' Write default.
+	// The greedy fix list covers both chokepoints: pinning deploy@main first,
+	// because besides acme-actions members two teams (platform and its child
+	// platform-oncall) and two collaborators can push to deploy, then the root
+	// cause for members, acme-actions' Write default.
 	sug := eng.SuggestFixes(3)
-	if len(sug) == 0 {
-		t.Fatalf("expected fix suggestions")
+	if len(sug) < 2 {
+		t.Fatalf("expected at least two fix suggestions, got %+v", sug)
 	}
-	if sug[0].FixID != "default_perm:org:acme-actions->read" {
-		t.Errorf("first fix = %s, want lowering acme-actions default permission", sug[0].FixID)
+	if sug[0].FixID != "pin:action:acme-actions/deploy@main" || sug[1].FixID != "default_perm:org:acme-actions->read" {
+		t.Errorf("first fixes = %s, %s; want pinning deploy@main, then lowering acme-actions default permission", sug[0].FixID, sug[1].FixID)
 	}
 	for _, s := range sug {
 		t.Logf("fix %s removes %d (cumulative %.0f%%)", s.FixID, s.Removed, s.CumulativePct)

@@ -86,6 +86,10 @@ func (ix *Index) multiplier(principal string) float64 {
 	case KindOrgMembers:
 		orgs = []string{OrgOf(principal)}
 	case KindIdentity:
+		// A team belongs to exactly one org, which its ID names.
+		if o := OrgOf(principal); o != "" {
+			orgs = append(orgs, o)
+		}
 		for _, e := range ix.out[principal] {
 			if e.Kind != MemberOf {
 				continue
