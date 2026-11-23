@@ -22,3 +22,17 @@ jobs:
         with:
           enterprise: acme
           token: ${{ secrets.GOP_TOKEN }}
+  reach-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: ./action
+        with:
+          enterprise: acme
+          app-id: ${{ vars.GOP_APP_ID }}
+          app-private-key: ${{ secrets.GOP_APP_PRIVATE_KEY }}
+          fail-on-reach-increase: "true"
+          baseline-artifact: gop-posture
+          retention-days: 7

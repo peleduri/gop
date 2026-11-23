@@ -297,6 +297,36 @@ Read this before you set it up:
 - **Artifacts are readable by anyone with read access to the repository.** graph.json and report.html are an attack map. Run the Action only in a **private** repository, and keep `retention-days` at 1 (the default).
 - For full coverage, run gop locally with an enterprise-owner token (mode a) instead.
 
+### Fail the job when confirmed reach grows
+
+A scheduled run nobody reads catches nothing. With `fail-on-reach-increase: "true"`, the Action compares this run's graph with the `gop-posture` artifact (or the name in `baseline-artifact`) of the newest previous successful run of the same workflow on the default branch, using `gop diff --fail-on confirmed-increase`. When confirmed (principal, repo) pairs grew, for example a new unpinned ref or a raised default permission, the job fails after the artifact upload, so the normal Actions failure notification reaches you and the artifact is kept.
+
+```yaml
+on:
+  schedule:
+    - cron: "17 3 * * *"
+permissions:
+  contents: read
+  actions: read # list previous runs and download their artifact
+jobs:
+  posture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peleduri/gop/action@<full-commit-sha> # vX.Y.Z
+        with:
+          enterprise: acme
+          app-id: ${{ vars.GOP_APP_ID }}
+          app-private-key: ${{ secrets.GOP_APP_PRIVATE_KEY }}
+          fail-on-reach-increase: "true"
+          retention-days: 2 # at least the schedule interval, or the baseline is gone
+```
+
+- The diff stays private: `diff.md` and `diff.json` (and `diff-stderr.txt`, when `gop diff` printed anything) go only into the artifact. The log and the step summary never name nodes; the summary gets one line, "confirmed reach increased; see artifact". No PR comments, issues or annotations.
+- With no previous artifact (first run, or it expired) the gate logs "no baseline, skipping" and passes. If `gop diff` cannot compare the graphs (a different enterprise, a major schema change), the job fails after the upload, with the error in `diff-stderr.txt`.
+- The gate needs `actions: read`. With the input off (the default) the Action makes no extra calls and needs no extra permissions.
+- **Retention trade-off.** The baseline is the previous run's artifact, so it must outlive the schedule interval: with the default `retention-days: 1` and a weekly schedule, every run finds no baseline and the gate never fires. Set `retention-days` to at least the interval (2 for a nightly run, to absorb delays). Longer retention keeps the attack map readable for longer by anyone with read access to the repository, so keep the interval short rather than the retention long.
+- A failed run is not successful, so the next run still compares against the last good baseline and stays red until the reach goes back down. To accept the new state, run the workflow once with the gate off (for example through a `workflow_dispatch` input).
+
 ## Security and privacy
 
 - **Read-only.** gop makes no write calls to GitHub. The API client refuses every non-GET REST request and every GraphQL mutation before sending it; the only allowlisted exception is GitHub App mode minting a read-only installation token, which changes no repository or org state.

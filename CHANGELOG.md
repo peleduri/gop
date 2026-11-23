@@ -7,6 +7,18 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+### Added
+
+- Action input `fail-on-reach-increase` (default `"false"`) with
+  `baseline-artifact` (default `gop-posture`): compares the run's graph with
+  the artifact of the previous successful run of the same workflow on the
+  default branch (`gop diff --fail-on confirmed-increase`) and fails the job
+  after the artifact upload when confirmed reach grew. `diff.md` and
+  `diff.json` go only into the artifact; the log and step summary never name
+  nodes. No baseline logs "no baseline, skipping" and passes. Needs
+  `actions: read`; off, the Action is unchanged. The gate is
+  `action/diff-gate.sh`, tested against a built gop.
+
 ## [0.3.0] - 2026-11-24
 
 ### Added
