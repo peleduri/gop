@@ -35,6 +35,16 @@ flags may change in minor releases.
   org setting (where `read` proves `read`); when neither is visible the edge is
   `not_visible` with a `default_workflow_permissions` coverage entry.
   Workflows are never principals.
+- `internal/oidc` parses user-supplied cloud OIDC trust files offline into one
+  model (provider, target identity, issuer, audiences, `sub` and other claim
+  patterns): AWS IAM role trust policies (`aws iam get-role` / `list-roles`
+  output or a bare policy document), GCP workload identity pool providers with
+  optional service account IAM policies, and Azure federated identity
+  credentials (including flexible `claimsMatchingExpression`). Directories are
+  walked for `*.json`. Risky trusts carry warnings: no `sub` condition, wildcard
+  owner, no audience check, and any condition that was not fully understood
+  (kept as a `cel` pattern and treated as possible). No cloud API calls; the
+  graph wiring follows separately.
 
 ## [0.2.0] - 2026-11-23
 

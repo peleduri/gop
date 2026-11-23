@@ -1,0 +1,11 @@
+[
+  {
+    "audiences": ["api://AzureADTokenExchange"],
+    "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/acme-prod/providers/Microsoft.ManagedIdentity/userAssignedIdentities/deployer/federatedIdentityCredentials/web-prod",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "name": "web-prod",
+    "resourceGroup": "acme-prod",
+    "subject": "repo:acme-app/web:environment:prod",
+    "type": "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "audiences": [
+      "api://AzureADTokenExchange"
+    ],
+    "description": "acme-app/web main branch",
+    "id": "33333333-3333-3333-3333-333333333333",
+    "issuer": "https://token.actions.githubusercontent.com",
+    "name": "web-main",
+    "subject": "repo:acme-app/web:ref:refs/heads/main"
+  }
+]
