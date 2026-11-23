@@ -204,3 +204,51 @@ func TestDiffRefusesDifferentHosts(t *testing.T) {
 		t.Errorf("same host: %+v", r)
 	}
 }
+
+// TestEnrichCartographyMatchesHostIssuer: Cartography trusts go through the
+// same issuer check as trust files: a github.com-issuer export opens paths
+// in a github.com graph and none in a GHES graph.
+func TestEnrichCartographyMatchesHostIssuer(t *testing.T) {
+	t.Chdir(filepath.Join("..", ".."))
+	dir := t.TempDir()
+	for host, want := range map[string]bool{"github.com": true, "ghes.example": false} {
+		g, err := graph.LoadFile("testdata/acme/graph.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := range g.Nodes {
+			if g.Nodes[i].Kind == graph.KindEnterprise {
+				if g.Nodes[i].Attrs == nil {
+					g.Nodes[i].Attrs = map[string]string{}
+				}
+				g.Nodes[i].Attrs[graph.AttrHost] = host
+			}
+		}
+		in := filepath.Join(dir, host+".json")
+		var b bytes.Buffer
+		if err := collect.WriteGraph(&b, g); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(in, b.Bytes(), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		out := filepath.Join(dir, host+"-out.json")
+		r := runApp(t, nil, nil, "enrich", "--graph", in, "--cartography", "testdata/cartography/deploy-only.json", "--out", out)
+		if r.code != exitOK {
+			t.Fatalf("%s: %+v", host, r)
+		}
+		got, err := graph.LoadFile(out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for _, e := range got.Edges {
+			if e.Kind == graph.CanAssume {
+				n++
+			}
+		}
+		if (n > 0) != want {
+			t.Errorf("%s: %d CAN_ASSUME edges, want any=%v", host, n, want)
+		}
+	}
+}
