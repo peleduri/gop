@@ -8,7 +8,7 @@ top risk: identity:bob can control 12 repos across 2 orgs (confirmed), including
       "confirmed": {
         "repos": 12,
         "orgs": 2,
-        "workflows": 11,
+        "workflows": 12,
         "secrets": 1,
         "oidc": 1,
         "runners": 1
@@ -22,7 +22,7 @@ top risk: identity:bob can control 12 repos across 2 orgs (confirmed), including
         "runners": 0
       },
       "multiplier": 2.25,
-      "score": 84.375,
+      "score": 85.5,
       "possible_score": 0
     },
     {
@@ -30,7 +30,7 @@ top risk: identity:bob can control 12 repos across 2 orgs (confirmed), including
       "confirmed": {
         "repos": 12,
         "orgs": 2,
-        "workflows": 11,
+        "workflows": 12,
         "secrets": 1,
         "oidc": 1,
         "runners": 1
@@ -44,7 +44,7 @@ top risk: identity:bob can control 12 repos across 2 orgs (confirmed), including
         "runners": 0
       },
       "multiplier": 2.25,
-      "score": 84.375,
+      "score": 85.5,
       "possible_score": 0
     },
     {

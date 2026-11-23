@@ -41,7 +41,9 @@ const (
 type EdgeKind string
 
 const (
-	// CanPush: principal (org_members, identity) can push to repo.
+	// CanPush: principal (org_members, identity) can push to repo. Also
+	// workflow -> repo with via=token_write: the workflow's GITHUB_TOKEN has
+	// contents: write on its own repo. A workflow is never a principal.
 	CanPush EdgeKind = "CAN_PUSH"
 	// Uses: workflow -> action_ref, or action_ref -> action_ref for nested composite
 	// actions and reusable workflows. Attrs["ref_kind"] is sha|tag|branch.
@@ -150,6 +152,7 @@ const (
 	ViaOutsideCollaborator = "outside_collaborator" // a direct grant to a user who is not an org member
 	ViaTeam                = "team"                 // a team repository grant; members and child teams reach it through MEMBER_OF
 	ViaRefBypass           = "ref_bypass"           // may land code alone on a protected branch (Attrs[AttrRef]): a ruleset bypass actor, a classic bypass allowance or push restriction, or a repo admin when admins are not enforced
+	ViaTokenWrite          = "token_write"          // workflow -> its own repo: the workflow's GITHUB_TOKEN has contents: write (Attrs["jobs"] lists the jobs)
 )
 
 // Branch protection of mutable action refs (on action_ref nodes with

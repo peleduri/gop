@@ -154,7 +154,7 @@ func checkCoverage(top map[string]any) []Problem {
 	}
 	covered := func(ids ...string) bool {
 		for _, id := range ids {
-			if id != "" && (scopes[id] || scopes[graph.OrgOf(id)]) {
+			if id != "" && (scopes[id] || scopes[graph.OrgOf(id)] || scopes[workflowRepo(id)]) {
 				return true
 			}
 		}
@@ -199,8 +199,25 @@ func checkCoverage(top map[string]any) []Problem {
 	return out
 }
 
+// workflowRepo returns "repo:O/R" for "workflow:O/R/<path>": coverage on a
+// repo also covers the workflows in it. "" for any other ID.
+func workflowRepo(id string) string {
+	rest, ok := strings.CutPrefix(id, "workflow:")
+	if !ok {
+		return ""
+	}
+	parts := strings.SplitN(rest, "/", 3)
+	if len(parts) < 3 || parts[0] == "" || parts[1] == "" {
+		return ""
+	}
+	return "repo:" + parts[0] + "/" + parts[1]
+}
+
 func scopeHint(id string) string {
 	if org := graph.OrgOf(id); org != "" && org != id {
+		if r := workflowRepo(id); r != "" {
+			return fmt.Sprintf("%q, %q or %q", id, r, org)
+		}
 		return fmt.Sprintf("%q or %q", id, org)
 	}
 	return fmt.Sprintf("%q", id)

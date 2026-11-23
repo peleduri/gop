@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// Property tests: P1 to P10 from the engine's documented guarantees, checked
+// Property tests: P1 to P11 from the engine's documented guarantees, checked
 // over random graphs from genGraph. The reach-set properties (P3, P4, and the
 // path lengths in P5) compare the engine against refReach, a small reference
 // BFS written from the rules comment at the top of reach.go. It shares no code
@@ -59,6 +59,7 @@ var properties = []property{
 	{"P8_evidence_monotonic", propEvidenceMonotonic},
 	{"P9_suggest_fixes_consistent", propSuggestFixesConsistent},
 	{"P10_deterministic", propDeterministic},
+	{"P11_principal_kinds", propPrincipalKinds},
 }
 
 func TestPropertyReach(t *testing.T) {
@@ -197,6 +198,8 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 		rev := refEdge{from: e.To, to: e.From, kind: e.Kind, ev: e.Evidence, sourceAPI: e.SourceAPI, reverse: true}
 		switch e.Kind {
 		case CanPush:
+			// Any source pushes, including workflow -> repo (via=token_write):
+			// a write GITHUB_TOKEN controls the repo, it is not CI reach only.
 			if org, ok := strings.CutPrefix(e.From, "members:"); ok && e.Attrs[AttrVia] == ViaDefaultPerm && lowered["org:"+org] {
 				continue
 			}
@@ -397,6 +400,32 @@ func sameKeys(a map[string]bool, b map[string]int) error {
 }
 
 // ---- properties ------------------------------------------------------------
+
+// propPrincipalKinds (P11): every principal is an org_members or identity node,
+// or an undeclared MEMBER_OF source. A workflow with a write token is the
+// source of a CAN_PUSH edge but never a principal.
+func propPrincipalKinds(g *Graph, _ *rand.Rand) error {
+	kinds := map[string]NodeKind{}
+	for _, n := range g.Nodes {
+		kinds[n.ID] = n.Kind
+	}
+	memberOf := map[string]bool{}
+	for _, e := range g.Edges {
+		if e.Kind == MemberOf {
+			memberOf[e.From] = true
+		}
+	}
+	for _, p := range NewIndex(g).Principals() {
+		k, declared := kinds[p]
+		if !declared || k == "" {
+			k = KindFromID(p)
+		}
+		if k != KindOrgMembers && k != KindIdentity && !memberOf[p] {
+			return fmt.Errorf("principal %s has kind %q", p, k)
+		}
+	}
+	return nil
+}
 
 func propDisjoint(g *Graph, _ *rand.Rand) error {
 	ix := NewIndex(g)

@@ -25,6 +25,16 @@ flags may change in minor releases.
   estimates requests and minutes for `collect`, and lists the predicted
   `not_visible` areas, each check with its fix. Exit 0 all pass, 1 any fail,
   3 warnings only. It never prints the token or a header value.
+- Collector and engine: a workflow whose `GITHUB_TOKEN` has `contents: write`
+  (explicitly, through `write-all`, or by the repo or org default workflow
+  permission) controls its repo: `workflow -CAN_PUSH-> repo` with
+  `via=token_write`. Whoever controls the workflow now reaches the repo's other
+  workflows and the actions it hosts, not only its CI. Workflow nodes get
+  `token_write` and `token_scopes`. The default is read from
+  `GET /repos/{owner}/{repo}/actions/permissions/workflow`, falling back to the
+  org setting (where `read` proves `read`); when neither is visible the edge is
+  `not_visible` with a `default_workflow_permissions` coverage entry.
+  Workflows are never principals.
 
 ## [0.2.0] - 2026-11-23
 

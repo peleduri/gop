@@ -36,6 +36,8 @@ type fixture struct {
 		Teams                []fixtureTeam     `json:"teams"`
 		// OrgREST is the GET /orgs/{org} body (login is added by the server).
 		OrgREST map[string]any `json:"org_rest"`
+		// WorkflowPerms is the org's default GITHUB_TOKEN permission (read|write).
+		WorkflowPerms string `json:"actions_workflow_permissions"`
 	} `json:"orgs"`
 	Users []json.RawMessage `json:"users"`
 }
@@ -91,7 +93,10 @@ type fakeGitHub struct {
 	rulesets   map[string]json.RawMessage   // "o/r#id" -> ruleset (with bypass_actors)
 	forbidRule map[string]bool              // "o/r" -> /rules/branches returns 403
 	hideBypass bool                         // rulesets omit bypass_actors, as for non-admins
-	userIDs    map[int64]string             // /user/{id} -> login
+	// forbidWorkflowPerms makes both default workflow permissions endpoints
+	// return 403 for every repo and org.
+	forbidWorkflowPerms bool
+	userIDs             map[int64]string // /user/{id} -> login
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -166,6 +171,8 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		f.paged(w, r, f.fx.Users, func(page []json.RawMessage) any {
 			return map[string]any{"total_seats_consumed": len(f.fx.Users), "users": page}
 		})
+	case strings.HasSuffix(p, "/actions/permissions/workflow"):
+		f.workflowPerms(w, p)
 	case strings.HasPrefix(p, "/orgs/") && strings.Contains(p, "/teams"):
 		f.teams(w, r, strings.TrimPrefix(p, "/orgs/"))
 	case p == "/user/orgs":

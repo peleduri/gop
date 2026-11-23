@@ -156,7 +156,9 @@ func OrgOf(id string) string {
 }
 
 // Principals returns every node that can start an attack: org_members and identity
-// nodes, plus undeclared sources of CAN_PUSH and MEMBER_OF edges. Sorted. This is
+// nodes, plus undeclared sources of MEMBER_OF edges and org_members or identity
+// sources of CAN_PUSH edges. A workflow with a write token (workflow -CAN_PUSH->
+// repo, via=token_write) is controlled, never a principal. Sorted. This is
 // the full set used by WhoCanReach and accepted by Reach and BlastRadius; totals
 // use ScoringPrincipals instead.
 func (ix *Index) Principals() []string {
@@ -167,8 +169,13 @@ func (ix *Index) Principals() []string {
 		}
 	}
 	for _, e := range ix.g.Edges {
-		if e.Kind == CanPush || e.Kind == MemberOf {
+		switch e.Kind {
+		case MemberOf:
 			set[e.From] = true
+		case CanPush:
+			if k := ix.Kind(e.From); k == KindOrgMembers || k == KindIdentity {
+				set[e.From] = true
+			}
 		}
 	}
 	return sortedKeys(set)

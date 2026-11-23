@@ -69,7 +69,7 @@ func TestValidFixtures(t *testing.T) {
 }
 
 func TestWarnings(t *testing.T) {
-	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "testdata/valid/ref-protection.json", "../../testdata/acme/graph.json"} {
+	for _, f := range []string{"testdata/valid/minimal.json", "testdata/valid/reach.json", "testdata/valid/ref-protection.json", "testdata/valid/token-write.json", "../../testdata/acme/graph.json"} {
 		if r := validateFile(t, f); len(r.Warnings) > 0 {
 			t.Errorf("%s: unexpected warnings %v", f, r.Warnings)
 		}
@@ -95,6 +95,7 @@ func TestInvalidFixtures(t *testing.T) {
 		"bad-line.json":                {"/edges/0/attrs/line", `"L7" does not match`},
 		"bad-observed-at.json":         {"/edges/0/observed_at", "RFC 3339"},
 		"bad-ref-protected.json":       {"/nodes/0/attrs/ref_protected", `"yes" is not one of "true", "false", "unknown"`},
+		"bad-token-write.json":         {"/nodes/0/attrs/token_write", `"default" is not one of "true", "false", "unknown"`},
 		"bad-repo-id.json":             {"/nodes/0/id", `does not match ^repo:[^/]+/[^/]+$`},
 		"bad-team-id.json":             {"/nodes/0/id", `does not match ^(identity:.+|team:[^/]+/[^/]+)$`},
 		"coverage-missing-fields.json": {"/coverage/0", `missing required field "needs_fix"`},

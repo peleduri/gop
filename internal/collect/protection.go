@@ -456,7 +456,8 @@ func (k *collector) roleHolders(repoID, role string, rp *refProtection) []string
 	set := map[string]bool{}
 	for _, e := range k.edges {
 		if e.Kind != graph.CanPush || e.To != repoID || e.Evidence != graph.Live ||
-			e.Attrs[graph.AttrVia] == graph.ViaRefBypass || e.Attrs[graph.AttrVia] == graph.ViaDefaultPerm {
+			e.Attrs[graph.AttrVia] == graph.ViaRefBypass || e.Attrs[graph.AttrVia] == graph.ViaDefaultPerm ||
+			e.Attrs[graph.AttrVia] == graph.ViaTokenWrite {
 			continue
 		}
 		if strings.EqualFold(e.Attrs[attrPermission], role) {

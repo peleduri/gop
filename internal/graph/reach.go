@@ -15,6 +15,13 @@ import (
 //	workflow  -DEFINED_IN->   repo       a controlled workflow runs in that repo's CI. The repo
 //	                                     is counted as reached ("CI reach") but NOT expanded:
 //	                                     running CI is not the same as being able to push.
+//	workflow  -CAN_PUSH->     repo       ...unless the workflow's GITHUB_TOKEN has contents: write
+//	                                     (via=token_write): then the workflow can push to its repo,
+//	                                     so this is a full control hop like any CAN_PUSH and the
+//	                                     repo is expanded. A not_visible edge (default workflow
+//	                                     permissions not readable) makes that control possible.
+//	                                     The token can't edit .github/workflows/, but workflows run
+//	                                     repo code, so DEFINED_IN (reversed) still expands.
 //	repo      -RESOLVES_TO->  action     (reversed) pushing to the host repo changes the action,
 //	                                     only when the ref is mutable (branch or tag). A sha ref
 //	                                     (or a PinRef fix) blocks this hop. Branch protection

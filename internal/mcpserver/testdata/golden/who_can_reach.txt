@@ -32,11 +32,11 @@
           "reverse": true
         },
         {
-          "kind": "DEFINED_IN",
+          "kind": "CAN_PUSH",
           "from": "workflow:acme-app/web/.github/workflows/ci.yml",
           "to": "repo:acme-app/web",
           "evidence": "live",
-          "source_api": "rest:/repos/{owner}/{repo}/actions/workflows"
+          "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow"
         }
       ],
       "evidence": "live",
@@ -70,11 +70,11 @@
           "reverse": true
         },
         {
-          "kind": "DEFINED_IN",
+          "kind": "CAN_PUSH",
           "from": "workflow:acme-app/web/.github/workflows/ci.yml",
           "to": "repo:acme-app/web",
           "evidence": "live",
-          "source_api": "rest:/repos/{owner}/{repo}/actions/workflows"
+          "source_api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow"
         }
       ],
       "evidence": "live",

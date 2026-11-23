@@ -50,8 +50,15 @@ type WorkflowFacts struct {
 	RunnerLabels    []string
 	IDTokenLines    map[string]int // scope -> 1-based line of the id-token: write (or write-all) key
 	RunsOnLine      int            // first runs-on: line of a self-hosted job (0 if none)
-	File            string         // repo-relative path, set by the caller
-	FileRef         string         // commit or branch the file was read at, set by the caller
+	// TokenContentsWrite is whether the GITHUB_TOKEN can push: TokenWrite when
+	// any job resolves to contents: write, TokenDefault when some job declares
+	// no permissions at either level (and none resolves to write), else TokenRead.
+	TokenContentsWrite string
+	TokenWriteJobs     []string // job ids whose token has contents: write, sorted
+	TokenDefaultJobs   []string // job ids that take the repo or org default, sorted
+	TokenScopes        []string // other write scopes (e.g. id-token, packages), sorted; "write-all" for write-all
+	File               string   // repo-relative path, set by the caller
+	FileRef            string   // commit or branch the file was read at, set by the caller
 }
 
 // SetFile records where the workflow was read from on the facts and every use.
@@ -339,6 +346,96 @@ func (w *yamlWalk) stepUses(steps *yaml.Node) ([]*yaml.Node, error) {
 	return out, nil
 }
 
+// GITHUB_TOKEN contents values (WorkflowFacts.TokenContentsWrite).
+const (
+	TokenWrite   = "true"
+	TokenRead    = "false"
+	TokenDefault = "default"
+)
+
+// permAll is the scope key for permissions: write-all and read-all.
+const permAll = "*"
+
+// permEntry is one scope of a permissions value and the line that sets it.
+type permEntry struct {
+	scope, level string
+	line         int
+}
+
+// permissionsOf reads a permissions value. declared is false when the key is
+// absent. write-all and read-all give one entry with scope "*"; a mapping
+// gives its scopes; {} or null gives no entries (every scope is none). Any
+// other scalar is read as none: GitHub rejects such a file. Malformed entries
+// are skipped rather than failing the whole workflow.
+func (w *yamlWalk) permissionsOf(n *yaml.Node) (entries []permEntry, declared bool, err error) {
+	if n == nil || n.Kind == 0 {
+		return nil, false, nil
+	}
+	n, err = w.resolve(n)
+	if err != nil {
+		return nil, true, err
+	}
+	switch n.Kind {
+	case yaml.ScalarNode:
+		switch v := strings.TrimSpace(n.Value); v {
+		case "write-all", "read-all":
+			return []permEntry{{scope: permAll, level: strings.TrimSuffix(v, "-all"), line: n.Line}}, true, nil
+		}
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			k, err := w.resolve(n.Content[i])
+			if err != nil {
+				return nil, true, err
+			}
+			v, err := w.resolve(n.Content[i+1])
+			if err != nil {
+				return nil, true, err
+			}
+			if k.Kind != yaml.ScalarNode || v.Kind != yaml.ScalarNode {
+				continue
+			}
+			entries = append(entries, permEntry{scope: k.Value, level: strings.TrimSpace(v.Value), line: k.Line})
+		}
+	}
+	return entries, true, nil
+}
+
+// permMap turns permissions entries into scope -> level. nil entries that
+// were declared give an empty map: every scope is none.
+func permMap(entries []permEntry, declared bool) map[string]string {
+	if !declared {
+		return nil
+	}
+	m := make(map[string]string, len(entries))
+	for _, e := range entries {
+		m[e.scope] = e.level
+	}
+	return m
+}
+
+// resolvePermissions returns a job's effective GITHUB_TOKEN permissions as
+// scope -> level, given the workflow-level map (permMap). A job-level
+// permissions key replaces the workflow-level one. nil means neither level
+// declares permissions, so the repo or org default applies. Scopes a declared
+// mapping omits are none. fromJob reports whether the job's own key decided.
+func resolvePermissions(wf map[string]string, job []permEntry, jobDeclared bool) (perms map[string]string, fromJob bool) {
+	if jobDeclared {
+		return permMap(job, true), true
+	}
+	return wf, false
+}
+
+// scopeLevel is the level of one scope in resolved permissions.
+func scopeLevel(perms map[string]string, scope string) string {
+	if l, ok := perms[scope]; ok {
+		return l
+	}
+	if l, ok := perms[permAll]; ok {
+		return l
+	}
+	return "none"
+}
+
 // ParseWorkflow extracts uses references, OIDC, secrets and runner facts.
 func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 	var doc yaml.Node
@@ -359,7 +456,13 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		return nil, err
 	}
 	f := &WorkflowFacts{IDTokenLines: map[string]int{}}
-	if l := idTokenLine(field(root, "permissions")); l > 0 {
+	wfPerms, wfDeclared, err := w.permissionsOf(field(root, "permissions"))
+	if err != nil {
+		return nil, err
+	}
+	wfMap := permMap(wfPerms, wfDeclared)
+	scopes, wfUsed := map[string]bool{}, false
+	if l := idTokenLine(wfPerms); l > 0 {
 		f.IDTokenWrite = true
 		f.IDTokenScopes = append(f.IDTokenScopes, "workflow")
 		f.IDTokenLines["workflow"] = l
@@ -392,7 +495,18 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 				f.Uses = append(f.Uses, u)
 			}
 		}
-		if l := idTokenLine(field(job, "permissions")); l > 0 {
+		jobPerms, jobDeclared, err := w.permissionsOf(field(job, "permissions"))
+		if err != nil {
+			return nil, err
+		}
+		perms, fromJob := resolvePermissions(wfMap, jobPerms, jobDeclared)
+		f.addToken(id, perms)
+		if fromJob {
+			addWriteScopes(perms, scopes)
+		} else {
+			wfUsed = true
+		}
+		if l := idTokenLine(jobPerms); l > 0 {
 			f.IDTokenWrite = true
 			f.IDTokenScopes = append(f.IDTokenScopes, id)
 			f.IDTokenLines[id] = l
@@ -417,7 +531,53 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		sort.Strings(f.RunnerLabels)
 	}
 	f.Secrets = secretNames(doc)
+	if wfUsed {
+		addWriteScopes(wfMap, scopes) // once, not per job: the file may have thousands of jobs
+	}
+	f.TokenContentsWrite = TokenRead
+	switch {
+	case len(f.TokenWriteJobs) > 0:
+		f.TokenContentsWrite = TokenWrite
+	case len(f.TokenDefaultJobs) > 0:
+		f.TokenContentsWrite = TokenDefault
+	}
+	f.TokenScopes = sortedSet(scopes)
 	return f, nil
+}
+
+// addToken records one job's resolved token permissions (jobs come in sorted order).
+func (f *WorkflowFacts) addToken(job string, perms map[string]string) {
+	switch {
+	case perms == nil:
+		f.TokenDefaultJobs = append(f.TokenDefaultJobs, job)
+	case scopeLevel(perms, "contents") == "write":
+		f.TokenWriteJobs = append(f.TokenWriteJobs, job)
+	}
+}
+
+// addWriteScopes adds the write scopes other than contents to scopes ("write-all" for write-all).
+func addWriteScopes(perms map[string]string, scopes map[string]bool) {
+	for scope, level := range perms {
+		switch {
+		case level != "write" || scope == "contents":
+		case scope == permAll:
+			scopes["write-all"] = true
+		default:
+			scopes[scope] = true
+		}
+	}
+}
+
+func sortedSet(m map[string]bool) []string {
+	if len(m) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // ParseCompositeAction returns the step-level uses of a composite action.yml.
@@ -477,17 +637,10 @@ func compositeUses(doc *yaml.Node) ([]ActionUse, string, error) {
 
 // idTokenLine returns the line that grants id-token: write in a permissions
 // value (the write-all scalar or the id-token key), or 0 if none does.
-func idTokenLine(n *yaml.Node) int {
-	switch n.Kind {
-	case yaml.ScalarNode:
-		if strings.TrimSpace(n.Value) == "write-all" {
-			return n.Line
-		}
-	case yaml.MappingNode:
-		for i := 0; i+1 < len(n.Content); i += 2 {
-			if n.Content[i].Value == "id-token" && strings.TrimSpace(n.Content[i+1].Value) == "write" {
-				return n.Content[i].Line
-			}
+func idTokenLine(entries []permEntry) int {
+	for _, e := range entries {
+		if (e.scope == "id-token" || e.scope == permAll) && e.level == "write" {
+			return e.line
 		}
 	}
 	return 0
