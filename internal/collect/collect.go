@@ -75,6 +75,7 @@ type orgState struct {
 	outside      map[string]bool // lower login -> true for outside collaborators
 	customRoles  map[string]string
 	rolesLoaded  bool
+	rest         *apiOrg // GET /orgs/{org}, read only when the enterprise is not visible
 }
 
 // repoGrant is a repository-scoped role from the consumed-licenses list, e.g.
@@ -107,6 +108,11 @@ type collector struct {
 	enterprise string
 	idByLower  map[string]string      // lower login -> identity node id
 	repoGrants map[string][]repoGrant // lower "owner/repo" -> license grants
+	// entHidden is set when the token cannot read the enterprise; orgs then
+	// come from cfg.Orgs or discovery (orgscope.go).
+	entHidden     bool
+	orgsSrc       string            // source API of the org list
+	unknownOwners map[string]string // lower login -> login of action owners with in_enterprise=unknown
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -130,7 +136,7 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		nodes: map[string]*graph.Node{}, edges: map[string]*graph.Edge{},
 		covSeen: map[string]bool{}, byLower: map[string]*orgState{},
 		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
-		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{},
+		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs,
 	}
 	if err := k.run(ctx); err != nil {
 		return nil, err
@@ -143,7 +149,11 @@ func (k *collector) run(ctx context.Context) error {
 	if err := k.collectOrgs(ctx); err != nil {
 		return err
 	}
-	ent.Attrs["orgs"] = strconv.Itoa(len(k.entOrgs))
+	if k.entHidden {
+		setAttr(ent, "orgs", "unknown", graph.NotVisible)
+	} else {
+		ent.Attrs["orgs"] = strconv.Itoa(len(k.entOrgs))
+	}
 	if err := k.collectSettings(ctx); err != nil {
 		return err
 	}
@@ -181,7 +191,11 @@ func (k *collector) run(ctx context.Context) error {
 			}
 		}
 	}
-	return k.expandNested(ctx)
+	if err := k.expandNested(ctx); err != nil {
+		return err
+	}
+	k.coverUnknownOwners()
+	return nil
 }
 
 // ---- graph helpers ----
@@ -302,10 +316,12 @@ func (k *collector) collectOrgs(ctx context.Context) error {
 			return fmt.Errorf("collect: listing enterprise organizations: %w", err)
 		}
 		if data.Enterprise == nil {
-			if len(gqlErrs) > 0 {
-				return fmt.Errorf("collect: enterprise %q: %w", k.enterprise, gqlErrs)
+			if after != nil {
+				return fmt.Errorf("collect: enterprise %q: organizations page not returned: %v", k.enterprise, gqlErrs)
 			}
-			return fmt.Errorf("collect: enterprise %q not found or not visible to the token", k.enterprise)
+			// Org-scoped App tokens, non-owner PATs and tokens without
+			// read:enterprise land here: collect per org instead of failing.
+			return k.collectOrgsWithoutEnterprise(ctx, gqlErrs)
 		}
 		for _, n := range data.Enterprise.Organizations.Nodes {
 			all = append(all, entry{n.Login, n.ArchivedAt != nil && *n.ArchivedAt != ""})
@@ -417,6 +433,10 @@ func (k *collector) settingOrgs(ctx context.Context, field, value string) ([]str
 }
 
 func (k *collector) collectSettings(ctx context.Context) error {
+	if k.entHidden {
+		k.collectSettingsPerOrg()
+		return nil
+	}
 	for _, spec := range settingSpecs {
 		assigned := map[string]string{}
 		var failure error
@@ -533,6 +553,12 @@ func (k *collector) collectMembers(ctx context.Context) error {
 	for _, o := range k.orgs {
 		mn := k.node("members:"+o.login, graph.KindOrgMembers, o.login+" members")
 		if err != nil {
+			if k.entHidden {
+				if ferr := k.collectOrgMembers(ctx, o, mn); ferr != nil {
+					return ferr
+				}
+				continue
+			}
 			setAttr(o.node, graph.AttrMembers, "unknown", graph.NotVisible)
 			setAttr(mn, graph.AttrMembers, "unknown", graph.NotVisible)
 			continue
@@ -682,8 +708,12 @@ func (k *collector) canPush(o *orgState) {
 		return
 	}
 	mid := "members:" + o.login
+	src := srcDefaultPerm
+	if k.entHidden {
+		src = srcOrgREST
+	}
 	for _, r := range o.repos {
-		k.edge(mid, r.ID, graph.CanPush, graph.Live, srcDefaultPerm, map[string]string{
+		k.edge(mid, r.ID, graph.CanPush, graph.Live, src, map[string]string{
 			graph.AttrVia:       graph.ViaDefaultPerm,
 			"permission":        perm,
 			graph.AttrTwoFactor: o.node.Attrs[graph.AttrTwoFactor],
@@ -1035,7 +1065,12 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 	k.edge(from, aid, graph.Uses, graph.Live, src, attrs)
 
 	org, inside := k.entOrgs[strings.ToLower(u.Owner)]
-	setAttr(an, "in_enterprise", strconv.FormatBool(inside), graph.Live)
+	if !inside && k.entHidden {
+		// Unknown, not outside: the owner may be an enterprise org the token can't see.
+		k.markUnknownOwner(an, u.Owner)
+		return
+	}
+	setAttr(an, attrInEnterprise, strconv.FormatBool(inside), graph.Live)
 	if !inside {
 		return
 	}
@@ -1048,7 +1083,7 @@ func (k *collector) addUse(from string, u ActionUse, src string, depth int) {
 		setAttr(rn, "collected", "false", graph.Live)
 		k.repoIDs[strings.ToLower(full)] = rid
 	}
-	k.edge(aid, rid, graph.ResolvesTo, graph.Live, "derived:workflow.uses+graphql:enterprise.organizations", nil)
+	k.edge(aid, rid, graph.ResolvesTo, graph.Live, "derived:workflow.uses+"+k.orgsSrc, nil)
 	if !k.expanded[aid] {
 		k.expanded[aid] = true
 		cu := u

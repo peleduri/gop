@@ -7,8 +7,10 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/testutil"
 )
 
 const testSHA = "0123456789abcdef0123456789abcdef01234567"
@@ -291,6 +293,10 @@ func TestCollectAcme(t *testing.T) {
 		}
 	})
 
+	t.Run("golden graph", func(t *testing.T) {
+		testutil.Golden(t, "collect_acme.json", stableGraphJSON(t, g))
+	})
+
 	t.Run("WriteGraph round trip", func(t *testing.T) {
 		var buf bytes.Buffer
 		if err := WriteGraph(&buf, g); err != nil {
@@ -310,6 +316,23 @@ func TestCollectAcme(t *testing.T) {
 			t.Errorf("round trip mismatch: %s %d/%d %d/%d", back.Schema, len(back.Nodes), len(g.Nodes), len(back.Edges), len(g.Edges))
 		}
 	})
+}
+
+// stableGraphJSON writes g with every timestamp zeroed, so the output of two
+// runs on the same fixture is byte-identical.
+func stableGraphJSON(t *testing.T, g *graph.Graph) []byte {
+	t.Helper()
+	cp := *g
+	cp.CollectedAt = time.Time{}
+	cp.Edges = slices.Clone(g.Edges)
+	for i := range cp.Edges {
+		cp.Edges[i].ObservedAt = time.Time{}
+	}
+	var buf bytes.Buffer
+	if err := WriteGraph(&buf, &cp); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
 }
 
 func TestCollectAllowlist(t *testing.T) {
