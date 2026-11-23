@@ -4,4 +4,5 @@
 /coverage.*
 /graph.json
 /report.html
+/gop-cache/
 .DS_Store

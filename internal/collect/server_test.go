@@ -2,6 +2,7 @@ package collect
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -120,6 +121,21 @@ type fakeGitHub struct {
 	limitAbove   int
 	batchSizes   []int
 	gqlBodies    []string
+
+	// etags makes every 200 GET carry an ETag (a hash of the body) and
+	// answers a matching If-None-Match with 304 (cache_test.go).
+	// conditional and notModified count, per path?query, GETs that carried
+	// If-None-Match and GETs answered 304; ok200 records GETs answered 200.
+	etags       bool
+	conditional map[string]int
+	notModified map[string]int
+	ok200       map[string]bool
+	// cancelAfter, when > 0, calls cancel and fails every request after the
+	// first cancelAfter (a simulated interruption). requests counts every
+	// request served.
+	cancelAfter int
+	cancel      func()
+	requests    int
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -129,12 +145,13 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		t.Fatal(err)
 	}
 	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{},
-		extraWorkflows: map[string]string{}, objectErrors: map[string]string{}, truncated: map[string]bool{}}
+		extraWorkflows: map[string]string{}, objectErrors: map[string]string{}, truncated: map[string]bool{},
+		conditional: map[string]int{}, notModified: map[string]int{}, ok200: map[string]bool{}}
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
 		t.Fatal(err)
 	}
 	f.loadProtection(t)
-	f.srv = httptest.NewServer(http.HandlerFunc(f.serve))
+	f.srv = httptest.NewServer(http.HandlerFunc(f.handle))
 	t.Cleanup(f.srv.Close)
 	return f
 }
@@ -159,6 +176,57 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// handle wraps serve with interruption injection and ETag handling.
+func (f *fakeGitHub) handle(w http.ResponseWriter, r *http.Request) {
+	f.mu.Lock()
+	f.requests++
+	interrupted := f.cancelAfter > 0 && f.requests > f.cancelAfter
+	etags := f.etags
+	f.mu.Unlock()
+	if interrupted {
+		if f.cancel != nil {
+			f.cancel()
+		}
+		writeJSON(w, 502, map[string]string{"message": "Server Error"})
+		return
+	}
+	if r.Method != http.MethodGet {
+		f.serve(w, r)
+		return
+	}
+	rec := httptest.NewRecorder()
+	f.serve(rec, r)
+	key := r.URL.Path
+	if r.URL.RawQuery != "" {
+		key += "?" + r.URL.RawQuery
+	}
+	inm := r.Header.Get("If-None-Match")
+	f.mu.Lock()
+	if inm != "" {
+		f.conditional[key]++
+	}
+	if rec.Code == http.StatusOK {
+		f.ok200[key] = true
+	}
+	f.mu.Unlock()
+	for k, v := range rec.Header() {
+		w.Header()[k] = v
+	}
+	if etags && rec.Code == http.StatusOK {
+		etag := fmt.Sprintf(`"%x"`, sha256.Sum256(rec.Body.Bytes()))
+		w.Header().Set("ETag", etag)
+		if inm == etag {
+			f.mu.Lock()
+			f.notModified[key]++
+			f.mu.Unlock()
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+	w.WriteHeader(rec.Code)
+	_, _ = w.Write(rec.Body.Bytes())
 }
 
 func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {

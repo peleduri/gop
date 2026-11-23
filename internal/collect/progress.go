@@ -31,6 +31,8 @@ type Progress struct {
 	GraphQLRemaining int
 	// ResetAt is when the REST budget resets (zero when unknown).
 	ResetAt time.Time
+	// Cache holds the response cache counts; nil when the cache is off.
+	Cache *CacheStats
 }
 
 // phaseUnits names what a phase counts, for the default progress line.
@@ -58,6 +60,12 @@ func (p Progress) String() string {
 		b.WriteString(" | rest " + strconv.Itoa(p.RESTRemaining) + " left")
 		if !p.ResetAt.IsZero() {
 			b.WriteString(", resets " + p.ResetAt.UTC().Format("15:04") + "Z")
+		}
+	}
+	if p.Cache != nil {
+		b.WriteString(" | cache " + strconv.Itoa(p.Cache.Hits) + " hits, " + strconv.Itoa(p.Cache.Fetched) + " fetched")
+		if p.Cache.Resumed > 0 {
+			b.WriteString(", " + strconv.Itoa(p.Cache.Resumed) + " resumed")
 		}
 	}
 	return b.String()
@@ -99,8 +107,13 @@ func (k *collector) progress(phase string, done, total int) {
 		return
 	}
 	rs := k.c.RateState()
-	k.progressFn(Progress{
+	p := Progress{
 		Phase: phase, Done: done, Total: total,
 		RESTRemaining: rs.RESTRemaining, GraphQLRemaining: rs.GraphQLRemaining, ResetAt: rs.RESTReset,
-	})
+	}
+	if k.c.cache != nil {
+		st := k.c.cache.Stats()
+		p.Cache = &st
+	}
+	k.progressFn(p)
 }

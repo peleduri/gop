@@ -178,7 +178,7 @@ func (k *collector) bypassEdge(g bypassGrant, repoID, branch string) {
 		attrs[a] = v
 	}
 	k.edges[key] = &graph.Edge{From: g.principal, To: repoID, Kind: graph.CanPush, Evidence: graph.Live,
-		SourceAPI: g.src, ObservedAt: k.now, Attrs: attrs}
+		SourceAPI: g.src, ObservedAt: k.observedAt(), Attrs: attrs}
 }
 
 func (k *collector) applyProtection(an *graph.Node, repoID, branch string, rp *refProtection) {
