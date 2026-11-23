@@ -3,15 +3,17 @@ package graph
 import (
 	"fmt"
 	"math/rand/v2"
+	"strings"
 	"time"
 )
 
 // genGraph builds a random but valid evidence graph of roughly size nodes over
 // synthetic names (org:acme-o3, repo:acme-o3/r17, identity:u5, ...). It uses
 // every EdgeKind, every Evidence value, random ref_kind and via attributes
-// (including workflow -CAN_PUSH-> repo with via=token_write, and workflow
-// -CAN_ASSUME-> cloud_target with a "supplied:<file>" source), CAN_TRIGGER
-// edges from org members, identities and external:anyone into workflows, ref
+// (including workflow -CAN_PUSH-> repo with via=token_write, sometimes twice,
+// for RestrictToken, and workflow -CAN_ASSUME-> cloud_target with a
+// "supplied:<file>" source), CAN_TRIGGER edges from org members, identities
+// and external:anyone into workflows (for HardenTrigger), ref
 // gates (ref_protected, ref_immutable, ref_ambiguous, bypass) with
 // via=ref_bypass CAN_PUSH edges into action host repos,
 // parallel edges and cycles through nested USES, and actions_access levels on
@@ -154,8 +156,14 @@ func genGraph(r *rand.Rand, size int) *Graph {
 		workflows = append(workflows, id)
 		edge(id, repo, DefinedIn, nil)
 		if r.IntN(4) == 0 {
-			// A write GITHUB_TOKEN: the workflow controls its own repo.
-			edge(id, repo, CanPush, map[string]string{AttrVia: ViaTokenWrite})
+			// A write GITHUB_TOKEN: the workflow controls its own repo
+			// (RestrictToken removes it). Jobs as the collector lists them.
+			edge(id, repo, CanPush, map[string]string{AttrVia: ViaTokenWrite, AttrJobs: "build"})
+			if r.IntN(4) == 0 {
+				// A second pass may record it again with other evidence: a
+				// RestrictToken must drop both.
+				edge(id, repo, CanPush, map[string]string{AttrVia: ViaTokenWrite, AttrJobs: "build,release"})
+			}
 		}
 		if r.IntN(10) == 0 {
 			edge(id, pick(repos), DefinedIn, nil) // odd, but valid input
@@ -236,8 +244,11 @@ func genGraph(r *rand.Rand, size int) *Graph {
 	execs := []string{"checkout", "injection"}
 	for _, w := range workflows {
 		for k := r.IntN(4) - 1; k > 0; k-- {
+			// file/line as the collector writes them; HardenTrigger removes
+			// every one of these edges into w.
 			edge(pick(triggerers), w, CanTrigger, map[string]string{
-				"trigger": "pull_request_target", "exec": execs[r.IntN(len(execs))], "job": "build"})
+				"trigger": "pull_request_target", "exec": execs[r.IntN(len(execs))], "job": "build",
+				AttrFile: w[strings.Index(w, ".github/"):], AttrLine: fmt.Sprint(5 + r.IntN(40))})
 		}
 	}
 	// Nested USES, cycles allowed (a -> b -> a, self loops).

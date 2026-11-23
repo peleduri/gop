@@ -1,0 +1,221 @@
+{
+  "summary": "Set permissions: contents: read on the GITHUB_TOKEN of acme-app/docs/.github/workflows/preview.yml: 1 line to edit across 1 repo; removes 0 of 2 confirmed (principal, repo) pairs (0%); confirmed workflows 4 -> 2, score 34.0 -> 17.0",
+  "plan": {
+    "fix_id": "restrict_token:workflow:acme-app/docs/.github/workflows/preview.yml",
+    "fix": {
+      "type": "restrict_token",
+      "workflow": "workflow:acme-app/docs/.github/workflows/preview.yml"
+    },
+    "description": "Set permissions: contents: read on the GITHUB_TOKEN of acme-app/docs/.github/workflows/preview.yml",
+    "removes": {
+      "fixes": [
+        "restrict_token:workflow:acme-app/docs/.github/workflows/preview.yml"
+      ],
+      "before": {
+        "principals": 3,
+        "confirmed": {
+          "repos": 2,
+          "orgs": 2,
+          "workflows": 4,
+          "secrets": 2,
+          "oidc": 2,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 2,
+          "secrets": 1,
+          "oidc": 1,
+          "runners": 0
+        },
+        "confirmed_pairs": 2,
+        "possible_pairs": 1,
+        "score": 34,
+        "possible_score": 17
+      },
+      "after": {
+        "principals": 3,
+        "confirmed": {
+          "repos": 2,
+          "orgs": 2,
+          "workflows": 2,
+          "secrets": 2,
+          "oidc": 0,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 1,
+          "orgs": 1,
+          "workflows": 1,
+          "secrets": 1,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 2,
+        "possible_pairs": 1,
+        "score": 17,
+        "possible_score": 8.5
+      },
+      "per_principal": [
+        {
+          "principal": "external:anyone",
+          "before": {
+            "principal": "external:anyone",
+            "confirmed": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 2,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 17,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "external:anyone",
+            "confirmed": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 1,
+              "secrets": 1,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 8.5,
+            "possible_score": 0
+          }
+        },
+        {
+          "principal": "identity:bob",
+          "before": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 2,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 17,
+            "possible_score": 0
+          },
+          "after": {
+            "principal": "identity:bob",
+            "confirmed": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 1,
+              "secrets": 1,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 8.5,
+            "possible_score": 0
+          }
+        },
+        {
+          "principal": "members:acme-app",
+          "before": {
+            "principal": "members:acme-app",
+            "confirmed": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 2,
+              "secrets": 1,
+              "oidc": 1,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 0,
+            "possible_score": 17
+          },
+          "after": {
+            "principal": "members:acme-app",
+            "confirmed": {
+              "repos": 0,
+              "orgs": 0,
+              "workflows": 0,
+              "secrets": 0,
+              "oidc": 0,
+              "runners": 0
+            },
+            "possible": {
+              "repos": 1,
+              "orgs": 1,
+              "workflows": 1,
+              "secrets": 1,
+              "oidc": 0,
+              "runners": 0
+            },
+            "multiplier": 1,
+            "score": 0,
+            "possible_score": 8.5
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/docs",
+        "file": ".github/workflows/preview.yml",
+        "change": "set `contents: read` in the `permissions:` of jobs label, preview; if `contents: write` (or `write-all`) is set in the top-level block they inherit, change it there",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/docs/.github/workflows/preview.yml CAN_PUSH repo:acme-app/docs",
+        "evidence": "live",
+        "note": "the file grants contents: write to jobs label, preview; job-level permissions replace the top-level block, so change only the jobs that do not need to push; this graph records no line for the permissions: key"
+      }
+    ],
+    "caveats": [
+      "jobs that push with the GITHUB_TOKEN (tags, release commits, bot updates) stop working: move them to a workflow only trusted events start, or give them a GitHub App token scoped to that repo",
+      "whoever controls acme-app/docs/.github/workflows/preview.yml still runs code in acme-app/docs's CI with its secrets, OIDC and runners; this fix removes only the push with the token"
+    ]
+  }
+}

@@ -39,7 +39,9 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 	addTool(s, "what_if",
 		"Apply hypothetical fixes and compare reach before and after. Fix types: "+
 			`{type:"pin_ref",action:"action:O/R@ref"} pins an action to a commit SHA; `+
-			`{type:"lower_default_perm",org:"org:X",to:"read"|"none"} lowers an org's default repository permission. `+
+			`{type:"lower_default_perm",org:"org:X",to:"read"|"none"} lowers an org's default repository permission; `+
+			`{type:"restrict_token",workflow:"workflow:O/R/.github/workflows/x.yml"} sets the workflow's GITHUB_TOKEN to contents: read; `+
+			`{type:"harden_trigger",workflow:"workflow:O/R/.github/workflows/x.yml"} stops a risky trigger from running attacker code in the workflow. `+
 			"Reports confirmed and possible (principal, repo) pairs separately.",
 		e.WhatIf, func(o WhatIfOutput) string { return o.Summary })
 	addTool(s, "suggest_fixes",

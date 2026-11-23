@@ -758,3 +758,138 @@ func TestRefImmutableGatesResolvesTo(t *testing.T) {
 		t.Errorf("unknown path = %+v", p)
 	}
 }
+
+// TestRestrictToken: setting contents: read on web/ci.yml removes its
+// token_write edge, so whoever controls ci.yml keeps web's CI reach but no
+// longer reaches nightly.yml through a push, and the confirmed pairs drop
+// where that edge was the only path. Suggest_fixes can pick it.
+func TestRestrictToken(t *testing.T) {
+	g := loadAcme(t)
+	const (
+		web     = "repo:acme-app/web"
+		webCI   = "workflow:acme-app/web/.github/workflows/ci.yml"
+		nightly = "workflow:acme-app/web/.github/workflows/nightly.yml"
+	)
+	fix := RestrictToken{Workflow: webCI}
+	if fix.ID() != "restrict_token:"+webCI {
+		t.Errorf("ID = %q", fix.ID())
+	}
+	ix := NewIndex(g)
+	es := FixEdges(ix, fix)
+	if len(es) != 1 || es[0].From != webCI || es[0].To != web || es[0].Attrs[AttrVia] != ViaTokenWrite {
+		t.Fatalf("edges = %+v", es)
+	}
+	r := ix.Reach("members:acme-actions", Options{Fixes: []Fix{fix}})
+	if slices.Contains(r.Confirmed.Workflows, nightly) || slices.Contains(r.Possible.Workflows, nightly) {
+		t.Errorf("%s still reached after %s", nightly, fix.ID())
+	}
+	if h := r.Paths[web].Hops; len(h) == 0 || h[len(h)-1].Kind != DefinedIn {
+		t.Errorf("path to %s = %+v, want CI reach only", web, h)
+	}
+	d := ix.WhatIf([]Fix{fix})
+	if d.After.Confirmed.Workflows >= d.Before.Confirmed.Workflows || d.After.Score >= d.Before.Score {
+		t.Errorf("WhatIf(%s): before %+v after %+v, want fewer workflows and a lower score", fix.ID(), d.Before, d.After)
+	}
+	if !slices.ContainsFunc(ix.Candidates(), func(f Fix) bool { return f.ID() == fix.ID() }) {
+		t.Errorf("Candidates misses %s", fix.ID())
+	}
+	// nightly.yml has token_write=false and no edge: restricting it is a no-op
+	// and never a candidate.
+	if d := ix.WhatIf([]Fix{RestrictToken{Workflow: nightly}}); d.After != d.Before {
+		t.Error("RestrictToken on a workflow without token_write must be a no-op")
+	}
+	// A not_visible token edge (default unreadable) is never a candidate.
+	hidden := cloneGraph(g)
+	for i, e := range hidden.Edges {
+		if e.Attrs[AttrVia] == ViaTokenWrite {
+			hidden.Edges[i].Evidence = NotVisible
+		}
+	}
+	if slices.ContainsFunc(NewIndex(hidden).Candidates(), func(f Fix) bool { return f.ID() == fix.ID() }) {
+		t.Errorf("%s proposed for a not_visible edge", fix.ID())
+	}
+}
+
+// TestHardenTrigger: hardening the public docs repo's preview.yml removes
+// every CAN_TRIGGER edge into it, so anyone on the internet loses the docs
+// secret, and the fix is a candidate that suggest_fixes picks first.
+func TestHardenTrigger(t *testing.T) {
+	const (
+		anyone  = "external:anyone"
+		preview = "workflow:acme-app/docs/.github/workflows/preview.yml"
+		docs    = "repo:acme-app/docs"
+		secret  = "secret:acme-app/docs"
+	)
+	g := &Graph{Schema: SchemaVersion,
+		Nodes: []Node{{ID: anyone, Kind: KindExternal, Name: "anyone on the internet", Evidence: Live}},
+		Edges: []Edge{
+			edge(anyone, "CAN_TRIGGER", preview, "trigger", "pull_request_target", "exec", "checkout", "job", "preview"),
+			edge("members:acme-app", "CAN_TRIGGER", preview, "trigger", "issue_comment", "exec", "injection", "job", "preview"),
+			edge(preview, "DEFINED_IN", docs),
+			edge(preview, "EXECUTES_WITH", secret),
+			edge(preview, "CAN_PUSH", docs, AttrVia, ViaTokenWrite),
+		}}
+	fix := HardenTrigger{Workflow: preview}
+	ix := NewIndex(g)
+	if es := FixEdges(ix, fix); len(es) != 2 {
+		t.Fatalf("edges = %+v, want both CAN_TRIGGER edges", es)
+	}
+	before := ix.Reach(anyone, Options{})
+	if !slices.Contains(before.Confirmed.Secrets, secret) {
+		t.Fatalf("baseline: %+v", before.Confirmed)
+	}
+	after := ix.Reach(anyone, Options{Fixes: []Fix{fix}})
+	if len(after.Confirmed.Secrets)+len(after.Possible.Secrets)+len(after.Confirmed.Repos)+len(after.Possible.Repos) != 0 {
+		t.Errorf("after %s: confirmed %+v possible %+v", fix.ID(), after.Confirmed, after.Possible)
+	}
+	if d := ix.WhatIf([]Fix{fix}); d.After.ConfirmedPairs != 0 || d.Before.ConfirmedPairs != 2 {
+		t.Errorf("WhatIf pairs %d -> %d, want 2 -> 0", d.Before.ConfirmedPairs, d.After.ConfirmedPairs)
+	}
+	sug := ix.SuggestFixes(3)
+	if len(sug) != 1 || sug[0].FixID != "harden_trigger:"+preview || sug[0].Remaining != 0 {
+		t.Errorf("SuggestFixes = %+v", sug)
+	}
+	// RestrictToken alone keeps the secret reachable (the trigger still runs
+	// attacker code) but drops the push: the docs repo becomes CI reach only.
+	rt := ix.Reach(anyone, Options{Fixes: []Fix{RestrictToken{Workflow: preview}}})
+	if !slices.Contains(rt.Confirmed.Secrets, secret) || rt.Paths[docs].Hops[len(rt.Paths[docs].Hops)-1].Kind != DefinedIn {
+		t.Errorf("RestrictToken: %+v %+v", rt.Confirmed, rt.Paths[docs])
+	}
+	// Only not_visible trigger edges: not a candidate.
+	hidden := cloneGraph(g)
+	hidden.Edges[0].Evidence = NotVisible
+	hidden.Edges[1].Evidence = NotVisible
+	if slices.ContainsFunc(NewIndex(hidden).Candidates(), func(f Fix) bool { return f.ID() == fix.ID() }) {
+		t.Errorf("%s proposed for not_visible edges", fix.ID())
+	}
+}
+
+// TestSuggestFixesPicksRestrictToken: alice pushes to docs, whose ci.yml has
+// a write token that can push to web (as odd input, so the token edge is the
+// only way into web), and web hosts an action api's workflow uses at a
+// branch. Restricting the token removes web and api from alice's reach, and
+// suggest_fixes picks it.
+func TestSuggestFixesPicksRestrictToken(t *testing.T) {
+	const (
+		docsCI = "workflow:acme-app/docs/.github/workflows/ci.yml"
+		apiCI  = "workflow:acme-app/api/.github/workflows/ci.yml"
+		action = "action:acme-app/web@main"
+	)
+	g := &Graph{Schema: SchemaVersion, Edges: []Edge{
+		edge("identity:alice", "CAN_PUSH", "repo:acme-app/docs", AttrVia, ViaDirect),
+		edge(docsCI, "DEFINED_IN", "repo:acme-app/docs"),
+		edge(docsCI, "CAN_PUSH", "repo:acme-app/web", AttrVia, ViaTokenWrite, AttrJobs, "build"),
+		edge(action, "RESOLVES_TO", "repo:acme-app/web"),
+		edge(apiCI, "USES", action, AttrRefKind, "branch"),
+		edge(apiCI, "DEFINED_IN", "repo:acme-app/api"),
+	}}
+	ix := NewIndex(g)
+	sug := ix.SuggestFixes(3)
+	if len(sug) == 0 || sug[0].FixID != "restrict_token:"+docsCI || sug[0].Removed != 2 {
+		t.Fatalf("SuggestFixes = %+v, want restrict_token:%s first, removing 2 pairs", sug, docsCI)
+	}
+	r := ix.Reach("identity:alice", Options{Fixes: []Fix{sug[0].Fix}})
+	if !slices.Equal(r.Confirmed.Repos, []string{"repo:acme-app/docs"}) {
+		t.Errorf("after %s alice reaches %v", sug[0].FixID, r.Confirmed.Repos)
+	}
+}

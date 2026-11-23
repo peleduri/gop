@@ -21,6 +21,10 @@ func TestGoldenFixPlan(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	triggers, err := graph.LoadFile("../fixplan/testdata/triggers.json")
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct {
 		golden string
 		g      *graph.Graph
@@ -29,6 +33,8 @@ func TestGoldenFixPlan(t *testing.T) {
 		{"fix_plan_pin.md", lines, map[string]any{"fix": map[string]any{"type": "pin_ref", "action": "action:acme-actions/deploy@main"}}},
 		{"fix_plan_rank1.md", loadAcme(t), map[string]any{"suggestion_rank": 1}},
 		{"fix_plan_lower.md", lines, map[string]any{"fix": map[string]any{"type": "lower_default_perm", "org": "org:acme-actions", "to": "read"}}},
+		{"fix_plan_restrict.md", loadAcme(t), map[string]any{"fix": map[string]any{"type": "restrict_token", "workflow": "workflow:acme-app/web/.github/workflows/ci.yml"}}},
+		{"fix_plan_harden.md", triggers, map[string]any{"fix": map[string]any{"type": "harden_trigger", "workflow": "workflow:acme-app/docs/.github/workflows/preview.yml"}}},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
 			res, err := connectGraph(t, tc.g).CallTool(context.Background(), &mcp.CallToolParams{Name: "fix_plan", Arguments: tc.args})
@@ -77,6 +83,8 @@ func TestFixPlanErrors(t *testing.T) {
 		{map[string]any{"suggestion_rank": -1}, "must be positive"},
 		{map[string]any{"fix": map[string]any{"type": "pin_ref", "action": "action:acme-actions/deploy@mian"}}, "unknown fix.action"},
 		{map[string]any{"fix": map[string]any{"type": "lower_default_perm", "org": "org:acme-actions", "to": "write"}}, "fix.to"},
+		{map[string]any{"fix": map[string]any{"type": "restrict_token", "workflow": "action:acme-actions/deploy@main"}}, "fix.workflow: action:acme-actions/deploy@main is not a workflow"},
+		{map[string]any{"fix": map[string]any{"type": "harden_trigger"}}, "fix.workflow is required"},
 	} {
 		res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "fix_plan", Arguments: tc.args})
 		if err != nil {

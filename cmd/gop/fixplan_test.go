@@ -18,6 +18,8 @@ func TestGoldenFixPlanCLI(t *testing.T) {
 		{"fixplan_pin.txt", []string{"fix-plan", "--graph", linesFixture, "--pin", "action:acme-actions/deploy@main"}},
 		{"fixplan_pin.md", []string{"fix-plan", "--graph", linesFixture, "--pin", "action:acme-actions/deploy@main", "--format", "markdown"}},
 		{"fixplan_lower.txt", []string{"fix-plan", "--graph", fixture, "--lower-default-perm", "org:acme-actions", "--to", "read"}},
+		{"fixplan_restrict.txt", []string{"fix-plan", "--graph", fixture, "--restrict-token", "workflow:acme-app/web/.github/workflows/ci.yml"}},
+		{"fixplan_harden.md", []string{"fix-plan", "--graph", "../../internal/fixplan/testdata/triggers.json", "--harden-trigger", "workflow:acme-app/docs/.github/workflows/preview.yml", "--format", "markdown"}},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
 			r := runApp(t, nil, nil, tc.args...)
@@ -57,8 +59,11 @@ func TestFixPlanCLIErrors(t *testing.T) {
 		code int
 		want string
 	}{
-		{[]string{"fix-plan", "--graph", fixture}, exitUsage, "--pin or --lower-default-perm is required"},
-		{[]string{"fix-plan", "--graph", fixture, "--pin", "action:acme-actions/deploy@main", "--lower-default-perm", "org:acme-actions"}, exitUsage, "not both"},
+		{[]string{"fix-plan", "--graph", fixture}, exitUsage, "one of --pin, --lower-default-perm, --restrict-token or --harden-trigger is required"},
+		{[]string{"fix-plan", "--graph", fixture, "--pin", "action:acme-actions/deploy@main", "--lower-default-perm", "org:acme-actions"}, exitUsage, "use only one of"},
+		{[]string{"fix-plan", "--graph", fixture, "--restrict-token", "workflow:acme-app/web/.github/workflows/ci.yml", "--harden-trigger", "workflow:acme-app/web/.github/workflows/ci.yml"}, exitUsage, "use only one of"},
+		{[]string{"fix-plan", "--graph", fixture, "--restrict-token", "repo:acme-app/web"}, exitRuntime, "not a workflow"},
+		{[]string{"fix-plan", "--graph", fixture, "--harden-trigger", "workflow:acme-app/web/.github/workflows/nope.yml"}, exitRuntime, "unknown fix.workflow"},
 		{[]string{"fix-plan", "--graph", fixture, "--pin", "action:acme-actions/deploy@main", "--format", "html"}, exitUsage, "--format"},
 		{[]string{"fix-plan", "--pin", "action:acme-actions/deploy@main"}, exitUsage, "--graph is required"},
 		{[]string{"fix-plan", "--graph", fixture, "--pin", "repo:acme-app/web"}, exitRuntime, "not an action ref"},

@@ -54,7 +54,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: npm test
 `,
-			want:  []UntrustedExec{{Job: "test", Trigger: "pull_request_target", Kind: ExecCheckout, Detail: "ref: ${{ github.event.pull_request.head.sha }}"}},
+			want:  []UntrustedExec{{Job: "test", Trigger: "pull_request_target", Kind: ExecCheckout, Detail: "ref: ${{ github.event.pull_request.head.sha }}", Line: 7}},
 			risky: []string{"pull_request_target"},
 		},
 		{
@@ -65,7 +65,7 @@ jobs:
     steps:
       - run: echo "${{ github.event.comment.body }}"
 `,
-			want:  []UntrustedExec{{Job: "echo", Trigger: "issue_comment", Kind: ExecInjection, Detail: "github.event.comment.body"}},
+			want:  []UntrustedExec{{Job: "echo", Trigger: "issue_comment", Kind: ExecInjection, Detail: "github.event.comment.body", Line: 5}},
 			risky: []string{"issue_comment"},
 		},
 		{
@@ -103,8 +103,8 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
 `,
 			want: []UntrustedExec{
-				{Job: "report", Trigger: "workflow_run", Kind: ExecCheckout, Detail: "ref: ${{ github.event.workflow_run.head_sha }}"},
-				{Job: "report", Trigger: "workflow_run", Kind: ExecCheckout, Detail: "repository: ${{ github.event.workflow_run.head_repository.full_name }}"},
+				{Job: "report", Trigger: "workflow_run", Kind: ExecCheckout, Detail: "ref: ${{ github.event.workflow_run.head_sha }}", Line: 10},
+				{Job: "report", Trigger: "workflow_run", Kind: ExecCheckout, Detail: "repository: ${{ github.event.workflow_run.head_repository.full_name }}", Line: 9},
 			},
 			risky: []string{"workflow_run"},
 		},
@@ -123,10 +123,10 @@ jobs:
       - run: gh pr checkout ${{ github.event.issue.number }} && make
 `,
 			want: []UntrustedExec{
-				{Job: "a", Trigger: "issue_comment", Kind: ExecCheckout, Detail: "gh pr checkout"},
-				{Job: "a", Trigger: "pull_request_review_comment", Kind: ExecCheckout, Detail: "gh pr checkout"},
-				{Job: "b", Trigger: "issue_comment", Kind: ExecInjection, Detail: "github.event.issue.title"},
-				{Job: "b", Trigger: "pull_request_review_comment", Kind: ExecInjection, Detail: "github.event.issue.title"},
+				{Job: "a", Trigger: "issue_comment", Kind: ExecCheckout, Detail: "gh pr checkout", Line: 11},
+				{Job: "a", Trigger: "pull_request_review_comment", Kind: ExecCheckout, Detail: "gh pr checkout", Line: 11},
+				{Job: "b", Trigger: "issue_comment", Kind: ExecInjection, Detail: "github.event.issue.title", Line: 7},
+				{Job: "b", Trigger: "pull_request_review_comment", Kind: ExecInjection, Detail: "github.event.issue.title", Line: 7},
 			},
 			risky: []string{"issue_comment", "pull_request_review_comment"},
 		},
@@ -144,11 +144,11 @@ jobs:
           echo ${{ github.event.pull_request.title_suffix }} ${{ github.event.issue.bodyx }}
 `,
 			want: []UntrustedExec{
-				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.head_ref"},
-				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.pull_request.head.label"},
-				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.commits.*.message"},
-				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.commits[0].message"},
-				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.workflow_run.head_branch"},
+				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.head_ref", Line: 5},
+				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.pull_request.head.label", Line: 5},
+				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.commits.*.message", Line: 5},
+				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.commits[0].message", Line: 5},
+				{Job: "x", Trigger: "pull_request_target", Kind: ExecInjection, Detail: "github.event.workflow_run.head_branch", Line: 5},
 			},
 			risky: []string{"pull_request_target"},
 		},
@@ -163,7 +163,7 @@ jobs:
         env:
           TITLE: ${{ github.event.issue.title }}
 `,
-			want:  []UntrustedExec{{Job: "x", Trigger: "issues", Kind: ExecCheckout, Detail: "git fetch origin pull/"}},
+			want:  []UntrustedExec{{Job: "x", Trigger: "issues", Kind: ExecCheckout, Detail: "git fetch origin pull/", Line: 5}},
 			risky: []string{"issues"},
 		},
 	}
@@ -268,11 +268,24 @@ func TestUntrustedTriggers(t *testing.T) {
 		if n := ix.node(t, externalAnyone); n.Kind != graph.KindExternal {
 			t.Errorf("kind = %q", n.Kind)
 		}
+		if e.Attrs[graph.AttrFile] != ".github/workflows/preview.yml" || e.Attrs[graph.AttrLine] != "14" {
+			t.Errorf("position = %s:%s, want .github/workflows/preview.yml:14 (the with.ref of the checkout)", e.Attrs[graph.AttrFile], e.Attrs[graph.AttrLine])
+		}
 		r := graph.Reach(ix.g, externalAnyone, graph.Options{})
 		if !contains(r.Confirmed.Secrets, "secret:acme-app/docs") {
 			t.Errorf("confirmed secrets = %v", r.Confirmed.Secrets)
 		}
 		ix.noEdge(t, "members:acme-app", previewWF, graph.CanTrigger)
+
+		// Hardening preview.yml removes the docs secret from anyone's reach.
+		harden := []graph.Fix{graph.HardenTrigger{Workflow: previewWF}}
+		h := graph.Reach(ix.g, externalAnyone, graph.Options{Fixes: harden})
+		if contains(h.Confirmed.Secrets, "secret:acme-app/docs") || contains(h.Possible.Secrets, "secret:acme-app/docs") {
+			t.Errorf("after harden_trigger: confirmed %v possible %v", h.Confirmed.Secrets, h.Possible.Secrets)
+		}
+		if d := graph.WhatIf(ix.g, harden); d.After.ConfirmedPairs >= d.Before.ConfirmedPairs {
+			t.Errorf("WhatIf(harden_trigger) pairs %d -> %d", d.Before.ConfirmedPairs, d.After.ConfirmedPairs)
+		}
 	})
 
 	t.Run("internal repo, forks unknown: every org's members, not_visible", func(t *testing.T) {

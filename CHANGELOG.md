@@ -32,6 +32,18 @@ flags may change in minor releases.
   without one, checks that granted permissions are read-only and complete,
   and predicts what App mode leaves `not_visible`. CI runs actionlint on the
   workflows and the Action.
+- Fix types `restrict_token` and `harden_trigger` in `what_if`, `suggest_fixes`
+  and `fix_plan` (and `gop fix-plan --restrict-token` / `--harden-trigger`).
+  `restrict_token` removes a workflow's `via=token_write` `CAN_PUSH` edges
+  (`permissions: contents: read`); its plan says where to set it: a top-level
+  block when the jobs take the repo's default, the listed jobs when the file
+  grants write. `harden_trigger` removes every `CAN_TRIGGER` edge into a
+  workflow; its plan has one step per untrusted execution with the job, line
+  and change (drop the head checkout, or move attacker text into `env:`).
+  `suggest_fixes` proposes each for workflows with a verified edge. Plan steps
+  get an optional `change` field.
+- Collector: `CAN_TRIGGER` edges carry `file`, `file_ref` and `line` (the
+  checkout's `with.ref`/`with.repository`, or the `run:`/`script:` key).
 - HTML report filters and per-org views. The report embeds the paths, fixes,
   org settings and coverage as one JSON block and a small inline script adds a
   filter bar (evidence, terminal kind, org, principal, action ref kind) whose

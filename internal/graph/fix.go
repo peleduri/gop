@@ -6,7 +6,8 @@ import (
 )
 
 // Fix is a hypothetical remediation. Each Fix is one grouped change (a set of
-// edges) with cost 1. Implementations: PinRef, LowerDefaultPerm.
+// edges) with cost 1. Implementations: PinRef, LowerDefaultPerm, RestrictToken,
+// HardenTrigger.
 type Fix interface {
 	// ID is stable and unique, e.g. "pin:action:acme-actions/deploy@main".
 	ID() string
@@ -16,15 +17,29 @@ type Fix interface {
 }
 
 type fixSet struct {
-	pinned  map[string]bool // action IDs treated as sha-pinned
-	lowered map[string]bool // org IDs whose default-perm CAN_PUSH edges are removed
+	pinned     map[string]bool // action IDs treated as sha-pinned
+	lowered    map[string]bool // org IDs whose default-perm CAN_PUSH edges are removed
+	restricted map[string]bool // workflow IDs whose via=token_write CAN_PUSH edges are removed
+	hardened   map[string]bool // workflow IDs whose incoming CAN_TRIGGER edges are removed
 }
 
 func (fs *fixSet) removesPush(e Edge) bool {
-	if len(fs.lowered) == 0 || e.Attrs[AttrVia] != ViaDefaultPerm {
-		return false
+	switch e.Attrs[AttrVia] {
+	case ViaDefaultPerm:
+		return fs.lowered[OrgOf(e.From)] && KindFromID(e.From) == KindOrgMembers
+	case ViaTokenWrite:
+		return fs.restricted[e.From]
 	}
-	return fs.lowered[OrgOf(e.From)] && KindFromID(e.From) == KindOrgMembers
+	return false
+}
+
+func (fs *fixSet) removesTrigger(e Edge) bool { return fs.hardened[e.To] }
+
+func setFlag(m *map[string]bool, id string) {
+	if *m == nil {
+		*m = map[string]bool{}
+	}
+	(*m)[id] = true
 }
 
 // PinRef pins an action ref to a commit SHA: pushing to the action's host repo
@@ -35,12 +50,7 @@ type PinRef struct {
 
 func (f PinRef) ID() string { return "pin:" + f.Action }
 
-func (f PinRef) apply(fs *fixSet) {
-	if fs.pinned == nil {
-		fs.pinned = map[string]bool{}
-	}
-	fs.pinned[f.Action] = true
-}
+func (f PinRef) apply(fs *fixSet) { setFlag(&fs.pinned, f.Action) }
 
 func (f PinRef) edges(ix *Index) []Edge {
 	var out []Edge
@@ -70,10 +80,7 @@ func (f LowerDefaultPerm) apply(fs *fixSet) {
 	if !f.lowers() {
 		return
 	}
-	if fs.lowered == nil {
-		fs.lowered = map[string]bool{}
-	}
-	fs.lowered[f.Org] = true
+	setFlag(&fs.lowered, f.Org)
 }
 
 func (f LowerDefaultPerm) edges(ix *Index) []Edge {
@@ -84,6 +91,50 @@ func (f LowerDefaultPerm) edges(ix *Index) []Edge {
 	members := ix.membersOf(f.Org)
 	for _, e := range ix.out[members] {
 		if e.Kind == CanPush && e.Attrs[AttrVia] == ViaDefaultPerm {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// RestrictToken sets permissions: contents: read on a workflow's GITHUB_TOKEN:
+// it removes the workflow's via=token_write CAN_PUSH edges. Whoever controls
+// the workflow keeps its secrets, OIDC and runners and its repo's CI, but can
+// no longer push to the repo with the token.
+type RestrictToken struct {
+	Workflow string `json:"workflow"` // "workflow:O/R/.github/workflows/x.yml"
+}
+
+func (f RestrictToken) ID() string { return "restrict_token:" + f.Workflow }
+
+func (f RestrictToken) apply(fs *fixSet) { setFlag(&fs.restricted, f.Workflow) }
+
+func (f RestrictToken) edges(ix *Index) []Edge {
+	var out []Edge
+	for _, e := range ix.out[f.Workflow] {
+		if e.Kind == CanPush && e.Attrs[AttrVia] == ViaTokenWrite {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// HardenTrigger stops a workflow from running attacker-controlled code on a
+// risky trigger (drop the checkout of the pull request's head, or move
+// attacker text out of the script into env:): it removes every CAN_TRIGGER
+// edge into the workflow.
+type HardenTrigger struct {
+	Workflow string `json:"workflow"` // "workflow:O/R/.github/workflows/x.yml"
+}
+
+func (f HardenTrigger) ID() string { return "harden_trigger:" + f.Workflow }
+
+func (f HardenTrigger) apply(fs *fixSet) { setFlag(&fs.hardened, f.Workflow) }
+
+func (f HardenTrigger) edges(ix *Index) []Edge {
+	var out []Edge
+	for _, e := range ix.in[f.Workflow] {
+		if e.Kind == CanTrigger {
 			out = append(out, e)
 		}
 	}
@@ -165,8 +216,10 @@ type FixSuggestion struct {
 // each mutable (branch/tag/unknown) action ref (for a ref_protected=true or
 // ref_immutable=true ref it only removes the remaining via=ref_bypass paths,
 // which the greedy's marginal gain accounts for; with no such edge and known
-// bypass actors there is no candidate), and LowerDefaultPerm{To:"read"}
-// for each org with default_perm write/admin or default-perm CAN_PUSH edges. A
+// bypass actors there is no candidate), LowerDefaultPerm{To:"read"} for each
+// org with default_perm write/admin or default-perm CAN_PUSH edges, a
+// RestrictToken for each workflow with a via=token_write CAN_PUSH edge, and a
+// HardenTrigger for each workflow with a CAN_TRIGGER edge into it. A
 // candidate whose changed edges are all not_visible (or that changes nothing) is
 // dropped: gop does not recommend a fix for an edge it cannot confirm exists.
 func (ix *Index) Candidates() []Fix {
@@ -196,9 +249,16 @@ func (ix *Index) Candidates() []Fix {
 				push(PinRef{Action: e.From})
 			}
 		case CanPush:
-			if e.Attrs[AttrVia] == ViaDefaultPerm && KindFromID(e.From) == KindOrgMembers {
-				push(LowerDefaultPerm{Org: OrgOf(e.From), To: "read"})
+			switch e.Attrs[AttrVia] {
+			case ViaDefaultPerm:
+				if KindFromID(e.From) == KindOrgMembers {
+					push(LowerDefaultPerm{Org: OrgOf(e.From), To: "read"})
+				}
+			case ViaTokenWrite:
+				push(RestrictToken{Workflow: e.From})
 			}
+		case CanTrigger:
+			push(HardenTrigger{Workflow: e.To})
 		}
 	}
 	for _, n := range ix.g.Nodes {
@@ -276,7 +336,9 @@ func TotalsOf(scores []Score) Totals { return totalsOf(scores) }
 func (ix *Index) Scores() []Score { return ix.allScores(ix.base) }
 
 // FixEdges returns the evidence edges a fix changes: the RESOLVES_TO edge of a
-// PinRef's action, or the via=default_perm CAN_PUSH edges a LowerDefaultPerm removes.
+// PinRef's action, the via=default_perm CAN_PUSH edges a LowerDefaultPerm
+// removes, the via=token_write CAN_PUSH edges a RestrictToken removes, or the
+// CAN_TRIGGER edges a HardenTrigger removes.
 func FixEdges(ix *Index, f Fix) []Edge { return f.edges(ix) }
 
 // MutableRef reports whether an action ref can change without a new pin: its
