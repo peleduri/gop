@@ -154,21 +154,189 @@ func ParseUses(s string) (ActionUse, bool) {
 	}, true
 }
 
-type rawStep struct {
-	Uses yaml.Node `yaml:"uses"`
+// The workflow and action parsers walk the yaml.Node tree by hand instead of
+// decoding into structs. yaml.v3 checks mapping keys for duplicates with a
+// quadratic loop on every decoded mapping, so a 1 MiB file of flat keys took
+// about 20 s to decode; files are attacker-controlled (anyone who can push to
+// any repo writes one). The walk below checks duplicates with a map, follows
+// aliases only along the few paths it reads, and charges every node it visits
+// to a budget so alias fan-out cannot blow up. Its results match what the
+// struct decode returned: the same fields, the same type errors, merge keys.
+
+// maxYAMLVisits bounds the nodes the walk visits, alias expansion included.
+const maxYAMLVisits = 1 << 20
+
+// maxMergeDepth bounds nested and self-referencing merge keys (<<: *a).
+const maxMergeDepth = 32
+
+type yamlWalk struct{ visits int }
+
+// resolve follows aliases and charges the visit. A nil node stays nil.
+func (w *yamlWalk) resolve(n *yaml.Node) (*yaml.Node, error) {
+	for i := 0; n != nil && n.Kind == yaml.AliasNode; i++ {
+		if i > maxMergeDepth {
+			return nil, fmt.Errorf("alias chain too deep")
+		}
+		n = n.Alias
+	}
+	w.visits++
+	if w.visits > maxYAMLVisits {
+		return nil, fmt.Errorf("document contains excessive aliasing")
+	}
+	return n, nil
 }
 
-type rawJob struct {
-	Uses        yaml.Node `yaml:"uses"`
-	Permissions yaml.Node `yaml:"permissions"`
-	RunsOn      yaml.Node `yaml:"runs-on"`
-	Secrets     yaml.Node `yaml:"secrets"`
-	Steps       []rawStep `yaml:"steps"`
+func isNullNode(n *yaml.Node) bool {
+	return n == nil || n.Kind == 0 || (n.Kind == yaml.ScalarNode && n.ShortTag() == "!!null")
 }
 
-type rawWorkflow struct {
-	Permissions yaml.Node         `yaml:"permissions"`
-	Jobs        map[string]rawJob `yaml:"jobs"`
+func kindName(n *yaml.Node) string {
+	switch n.Kind {
+	case yaml.MappingNode:
+		return "!!map"
+	case yaml.SequenceNode:
+		return "!!seq"
+	case yaml.ScalarNode:
+		return n.ShortTag()
+	}
+	return "node"
+}
+
+// yamlMap is a decoded mapping: values by key, with key nodes for positions.
+// Direct keys win over merged (<<) keys, as in yaml.v3.
+type yamlMap struct {
+	keys []string // direct keys in document order, then merged keys
+	key  map[string]*yaml.Node
+	val  map[string]*yaml.Node
+}
+
+func (m *yamlMap) get(key string) (k, v *yaml.Node) {
+	if m == nil {
+		return nil, nil
+	}
+	return m.key[key], m.val[key]
+}
+
+// mapping decodes n (alias-resolved) as a mapping. A null node gives an empty
+// map. what names the target in errors, like the struct decode did.
+func (w *yamlWalk) mapping(n *yaml.Node, what string) (*yamlMap, error) {
+	return w.mappingDepth(n, what, 0)
+}
+
+func (w *yamlWalk) mappingDepth(n *yaml.Node, what string, depth int) (*yamlMap, error) {
+	n, err := w.resolve(n)
+	if err != nil {
+		return nil, err
+	}
+	m := &yamlMap{key: map[string]*yaml.Node{}, val: map[string]*yaml.Node{}}
+	if isNullNode(n) {
+		return m, nil
+	}
+	if n.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("line %d: cannot unmarshal %s into %s", n.Line, kindName(n), what)
+	}
+	var merges []*yaml.Node
+	seen := map[string]*yaml.Node{}
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		kn, vn := n.Content[i], n.Content[i+1]
+		if isMergeKey(kn) {
+			merges = append(merges, vn)
+			continue
+		}
+		rk, err := w.resolve(kn)
+		if err != nil {
+			return nil, err
+		}
+		if rk.Kind != yaml.ScalarNode {
+			return nil, fmt.Errorf("line %d: cannot unmarshal %s key in %s", kn.Line, kindName(rk), what)
+		}
+		if prev, ok := seen[rk.Value]; ok {
+			return nil, fmt.Errorf("line %d: mapping key %q already defined at line %d", kn.Line, rk.Value, prev.Line)
+		}
+		seen[rk.Value] = kn
+		if isNullNode(rk) {
+			continue // yaml.v3 drops entries whose key is null
+		}
+		m.keys = append(m.keys, rk.Value)
+		m.key[rk.Value], m.val[rk.Value] = kn, vn
+	}
+	for _, mn := range merges {
+		if depth >= maxMergeDepth {
+			return nil, fmt.Errorf("line %d: merge keys nested too deep", mn.Line)
+		}
+		src, err := w.resolve(mn)
+		if err != nil {
+			return nil, err
+		}
+		var srcs []*yaml.Node
+		switch src.Kind {
+		case yaml.MappingNode:
+			srcs = []*yaml.Node{src}
+		case yaml.SequenceNode:
+			srcs = src.Content
+		default:
+			return nil, fmt.Errorf("line %d: map merge requires map or sequence of maps as the value", mn.Line)
+		}
+		for _, s := range srcs {
+			sm, err := w.mappingDepth(s, what, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			for _, k := range sm.keys {
+				if _, ok := m.key[k]; !ok {
+					m.keys = append(m.keys, k)
+					m.key[k], m.val[k] = sm.key[k], sm.val[k]
+				}
+			}
+		}
+	}
+	return m, nil
+}
+
+func isMergeKey(n *yaml.Node) bool {
+	return n.Kind == yaml.ScalarNode && n.Value == "<<" && (n.Tag == "" || n.Tag == "!" || n.ShortTag() == "!!merge")
+}
+
+// sequence decodes n (alias-resolved) as a sequence; null gives nil.
+func (w *yamlWalk) sequence(n *yaml.Node, what string) ([]*yaml.Node, error) {
+	n, err := w.resolve(n)
+	if err != nil {
+		return nil, err
+	}
+	if isNullNode(n) {
+		return nil, nil
+	}
+	if n.Kind != yaml.SequenceNode {
+		return nil, fmt.Errorf("line %d: cannot unmarshal %s into %s", n.Line, kindName(n), what)
+	}
+	return n.Content, nil
+}
+
+// field returns the raw value node for key (nil if absent). Like a yaml.Node
+// struct field, an alias value is returned unresolved.
+func field(m *yamlMap, key string) *yaml.Node {
+	_, v := m.get(key)
+	if v == nil {
+		return &yaml.Node{}
+	}
+	return v
+}
+
+// stepUses returns the uses: node of every step in a steps: sequence.
+func (w *yamlWalk) stepUses(steps *yaml.Node) ([]*yaml.Node, error) {
+	items, err := w.sequence(steps, "[]step")
+	if err != nil {
+		return nil, err
+	}
+	var out []*yaml.Node
+	for _, it := range items {
+		sm, err := w.mapping(it, "step")
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, field(sm, "uses"))
+	}
+	return out, nil
 }
 
 // ParseWorkflow extracts uses references, OIDC, secrets and runner facts.
@@ -177,48 +345,65 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("parse workflow: %w", err)
 	}
-	var wf rawWorkflow
-	if err := doc.Decode(&wf); err != nil {
+	f, err := workflowFacts(&doc)
+	if err != nil {
 		return nil, fmt.Errorf("parse workflow: %w", err)
 	}
+	return f, nil
+}
+
+func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
+	w := &yamlWalk{}
+	root, err := w.mapping(rootMap(doc), "workflow")
+	if err != nil {
+		return nil, err
+	}
 	f := &WorkflowFacts{IDTokenLines: map[string]int{}}
-	if l := idTokenLine(&wf.Permissions); l > 0 {
+	if l := idTokenLine(field(root, "permissions")); l > 0 {
 		f.IDTokenWrite = true
 		f.IDTokenScopes = append(f.IDTokenScopes, "workflow")
 		f.IDTokenLines["workflow"] = l
 	}
-	_, jobsNode := mapValue(rootMap(&doc), "jobs")
-	jobIDs := make([]string, 0, len(wf.Jobs))
-	for id := range wf.Jobs {
-		jobIDs = append(jobIDs, id)
+	_, jobsNode := root.get("jobs")
+	jobs, err := w.mapping(jobsNode, "map[string]job")
+	if err != nil {
+		return nil, err
 	}
+	jobIDs := append([]string(nil), jobs.keys...)
 	sort.Strings(jobIDs)
 	labels := map[string]bool{}
 	for _, id := range jobIDs {
-		job := wf.Jobs[id]
-		if u, ok := useAt(&job.Uses); ok {
+		_, jv := jobs.get(id)
+		job, err := w.mapping(jv, "job")
+		if err != nil {
+			return nil, err
+		}
+		steps, err := w.stepUses(field(job, "steps"))
+		if err != nil {
+			return nil, err
+		}
+		if u, ok := useAt(field(job, "uses")); ok {
 			u.Level, u.Job = LevelJob, id
 			f.Uses = append(f.Uses, u)
 		}
-		for _, st := range job.Steps {
-			if u, ok := useAt(&st.Uses); ok {
+		for _, sn := range steps {
+			if u, ok := useAt(sn); ok {
 				u.Level, u.Job = LevelStep, id
 				f.Uses = append(f.Uses, u)
 			}
 		}
-		if l := idTokenLine(&job.Permissions); l > 0 {
+		if l := idTokenLine(field(job, "permissions")); l > 0 {
 			f.IDTokenWrite = true
 			f.IDTokenScopes = append(f.IDTokenScopes, id)
 			f.IDTokenLines[id] = l
 		}
-		if job.Secrets.Kind == yaml.ScalarNode && strings.TrimSpace(job.Secrets.Value) == "inherit" {
+		if sec := field(job, "secrets"); sec.Kind == yaml.ScalarNode && strings.TrimSpace(sec.Value) == "inherit" {
 			f.InheritsSecrets = true
 		}
-		for _, l := range scalars(&job.RunsOn) {
+		for _, l := range scalars(field(job, "runs-on")) {
 			if strings.Contains(strings.ToLower(l), "self-hosted") {
 				f.SelfHosted = true
-				_, jn := mapValue(jobsNode, id)
-				if k, _ := mapValue(jn, "runs-on"); k != nil && (f.RunsOnLine == 0 || k.Line < f.RunsOnLine) {
+				if k, _ := job.get("runs-on"); k != nil && (f.RunsOnLine == 0 || k.Line < f.RunsOnLine) {
 					f.RunsOnLine = k.Line
 				}
 			}
@@ -231,28 +416,58 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 		}
 		sort.Strings(f.RunnerLabels)
 	}
-	f.Secrets = secretNames(&doc)
+	f.Secrets = secretNames(doc)
 	return f, nil
 }
 
 // ParseCompositeAction returns the step-level uses of a composite action.yml.
 // using is the runs.using value (composite, node20, docker, ...).
 func ParseCompositeAction(data []byte) (uses []ActionUse, using string, err error) {
-	var a struct {
-		Runs struct {
-			Using string    `yaml:"using"`
-			Steps []rawStep `yaml:"steps"`
-		} `yaml:"runs"`
-	}
-	if err := yaml.Unmarshal(data, &a); err != nil {
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err != nil {
 		return nil, "", fmt.Errorf("parse action: %w", err)
 	}
-	using = strings.TrimSpace(a.Runs.Using)
+	uses, using, err = compositeUses(&doc)
+	if err != nil {
+		return nil, "", fmt.Errorf("parse action: %w", err)
+	}
+	return uses, using, nil
+}
+
+func compositeUses(doc *yaml.Node) ([]ActionUse, string, error) {
+	w := &yamlWalk{}
+	root, err := w.mapping(rootMap(doc), "action")
+	if err != nil {
+		return nil, "", err
+	}
+	_, rv := root.get("runs")
+	runs, err := w.mapping(rv, "runs")
+	if err != nil {
+		return nil, "", err
+	}
+	_, un := runs.get("using")
+	un, err = w.resolve(un)
+	if err != nil {
+		return nil, "", err
+	}
+	var using string
+	if !isNullNode(un) {
+		if un.Kind != yaml.ScalarNode {
+			return nil, "", fmt.Errorf("line %d: cannot unmarshal %s into string", un.Line, kindName(un))
+		}
+		using = un.Value
+	}
+	steps, err := w.stepUses(field(runs, "steps"))
+	if err != nil {
+		return nil, "", err
+	}
+	using = strings.TrimSpace(using)
 	if using != "composite" {
 		return nil, using, nil
 	}
-	for _, st := range a.Runs.Steps {
-		if u, ok := useAt(&st.Uses); ok {
+	var uses []ActionUse
+	for _, sn := range steps {
+		if u, ok := useAt(sn); ok {
 			u.Level = LevelStep
 			uses = append(uses, u)
 		}
@@ -284,19 +499,6 @@ func rootMap(doc *yaml.Node) *yaml.Node {
 		return doc.Content[0]
 	}
 	return nil
-}
-
-// mapValue returns the key and value nodes for key in mapping m (nil, nil if absent).
-func mapValue(m *yaml.Node, key string) (k, v *yaml.Node) {
-	if m == nil || m.Kind != yaml.MappingNode {
-		return nil, nil
-	}
-	for i := 0; i+1 < len(m.Content); i += 2 {
-		if m.Content[i].Value == key {
-			return m.Content[i], m.Content[i+1]
-		}
-	}
-	return nil, nil
 }
 
 // scalars returns every scalar value under n (recursively).
