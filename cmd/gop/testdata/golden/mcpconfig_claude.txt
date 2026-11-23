@@ -1,0 +1,1 @@
+claude mcp add gop -- gop serve --graph /abs/graph.json

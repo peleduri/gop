@@ -70,19 +70,32 @@ release:
     name: gop
   prerelease: auto
 
-# Homebrew tap (disabled).
-# To enable it: create a public repository peleduri/homebrew-tap, create a
-# fine-grained token with contents:write on that repository only, store it as
-# the HOMEBREW_TAP_TOKEN secret, pass it to the goreleaser step in
-# .github/workflows/release.yml as an env var, and uncomment the block below.
-# Users then install with `brew install peleduri/tap/gop`.
-#
-# homebrew_casks:
-#   - name: gop
-#     repository:
-#       owner: peleduri
-#       name: homebrew-tap
-#       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-#     homepage: https://github.com/peleduri/gop
-#     description: Read-only evidence graph of who can make code run where in a GitHub Enterprise.
-#     license: Apache-2.0
+# Homebrew tap: `brew install peleduri/tap/gop`.
+# goreleaser pushes the cask to peleduri/homebrew-tap with the
+# HOMEBREW_TAP_TOKEN secret, which only the goreleaser step of
+# .github/workflows/release.yml receives. Without that variable (snapshot
+# builds, forks, or before the one-time setup in docs/maintainers.md) the cask
+# is still generated in dist/ but never uploaded.
+homebrew_casks:
+  - name: gop
+    binaries: [gop]
+    repository:
+      owner: peleduri
+      name: homebrew-tap
+      token: '{{ envOrDefault "HOMEBREW_TAP_TOKEN" "" }}'
+    commit_author:
+      name: gop-release
+      email: gop-release@users.noreply.github.com
+    commit_msg_template: "gop {{ .Tag }}"
+    homepage: https://github.com/peleduri/gop
+    description: Read-only evidence graph of who can make code run where in a GitHub Enterprise.
+    license: Apache-2.0
+    skip_upload: '{{ if envOrDefault "HOMEBREW_TAP_TOKEN" "" }}false{{ else }}true{{ end }}'
+    hooks:
+      post:
+        # The binaries are signed with cosign, not with an Apple developer ID,
+        # so clear the quarantine flag that would make macOS refuse to run gop.
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/gop"]
+          end

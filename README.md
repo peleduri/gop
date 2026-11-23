@@ -94,7 +94,7 @@ claude mcp add gop -- gop serve --demo                # then ask: who can make c
 ## Quick start
 
 ```sh
-go install github.com/peleduri/gop/cmd/gop@latest                  # or a signed release, see Install
+go install github.com/peleduri/gop/cmd/gop@latest                  # or Homebrew / a signed release, see Install
 GITHUB_TOKEN=... gop collect --enterprise acme --out graph.json     # read-only, see "Token and permissions"
 gop report --graph graph.json --out report.html                     # or ask your agent, below
 ```
@@ -109,32 +109,7 @@ Claude Code:
 claude mcp add gop -- gop serve --graph /path/to/graph.json
 ```
 
-Cursor (`.cursor/mcp.json`), or any client that uses the `mcpServers` shape:
-
-```json
-{
-  "mcpServers": {
-    "gop": {
-      "command": "gop",
-      "args": ["serve", "--graph", "/path/to/graph.json"]
-    }
-  }
-}
-```
-
-VS Code (`.vscode/mcp.json`):
-
-```json
-{
-  "servers": {
-    "gop": {
-      "type": "stdio",
-      "command": "gop",
-      "args": ["serve", "--graph", "/path/to/graph.json"]
-    }
-  }
-}
-```
+Cursor, VS Code and other clients: [docs/mcp-clients.md](docs/mcp-clients.md). `gop mcp-config --client claude|cursor|vscode --graph graph.json` prints the config with the absolute path filled in. Use an absolute path, and keep the graph out of shared or synced folders.
 
 Then ask: "Who can make code run in acme-app/web?", "What happens if we pin acme-actions/deploy@main to a SHA?", or "What couldn't the token see?"
 
@@ -164,6 +139,7 @@ gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>
 gop validate --graph graph.json [--format text|json]
 gop diff    OLD.json NEW.json [--format text|json|markdown] [--fail-on confirmed-increase|any-new-path]
+gop mcp-config --client claude|cursor|vscode --graph graph.json
 gop version
 ```
 
@@ -198,24 +174,13 @@ Not collected yet (planned): GitHub App grants, org-level custom roles, enterpri
 
 ## Install
 
-From [Releases](https://github.com/peleduri/gop/releases): download the archive for your platform, then verify it.
-
 ```sh
-sha256sum -c --ignore-missing checksums.txt
-cosign verify-blob checksums.txt \
-  --bundle checksums.txt.sigstore.json \
-  --certificate-identity "https://github.com/peleduri/gop/.github/workflows/release.yml@refs/tags/vX.Y.Z" \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com
-gh attestation verify gop_X.Y.Z_linux_amd64.tar.gz --repo peleduri/gop   # SLSA build provenance
+brew install peleduri/tap/gop                         # Homebrew (tap coming soon, see docs/install.md)
+go install github.com/peleduri/gop/cmd/gop@latest     # from source
+# or a signed archive from Releases: https://github.com/peleduri/gop/releases
 ```
 
-Releases are built with goreleaser in GitHub Actions, signed keyless with cosign, and ship with SPDX SBOMs and SLSA build provenance.
-
-With Go:
-
-```sh
-go install github.com/peleduri/gop/cmd/gop@latest
-```
+Release archives are signed keyless with cosign and ship with SPDX SBOMs and SLSA build provenance. Checksum, signature and provenance steps, plus a "verify what you run" checklist, are in [docs/install.md](docs/install.md).
 
 ## Token and permissions
 
