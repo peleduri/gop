@@ -1,0 +1,19 @@
+2 facts not visible across 1 scope; each entry names the access that fixes it
+
+{
+  "summary": "2 facts not visible across 1 scope; each entry names the access that fixes it",
+  "entries": [
+    {
+      "scope": "org:acme-legacy",
+      "fact": "repositories",
+      "reason": "token is not an org owner",
+      "needs_fix": "org owner on acme-legacy (SAML enforced: join through the IdP first)"
+    },
+    {
+      "scope": "org:acme-legacy",
+      "fact": "ip_allow_list",
+      "reason": "token is not an org owner",
+      "needs_fix": "org owner on acme-legacy"
+    }
+  ]
+}

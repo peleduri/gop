@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>gop report: acme</title>
+<style>
+:root{--bg:#fff;--fg:#1b1f24;--muted:#57606a;--line:#d0d7de;--card:#f6f8fa;--accent:#0969da;
+--live:#1a7f37;--live-bg:#dafbe1;--audit:#9a6700;--audit-bg:#fff8c5;--nv:#57606a;--nv-bg:#eaeef2;--warn:#cf222e}
+@media (prefers-color-scheme: dark){:root{--bg:#0d1117;--fg:#e6edf3;--muted:#8d96a0;--line:#30363d;--card:#161b22;
+--accent:#4493f8;--live:#3fb950;--live-bg:#12261e;--audit:#d29922;--audit-bg:#2b2111;--nv:#8d96a0;--nv-bg:#21262d;--warn:#f85149}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1080px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1.1rem;margin:32px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.meta,.note{color:var(--muted);font-size:.9rem}
+.headline{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:6px;padding:12px 16px;margin:16px 0}
+.headline p{margin:4px 0}.headline .big{font-size:1.15rem;font-weight:600}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}td.n{text-align:right;font-variant-numeric:tabular-nums}
+code{font:.85em ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+.badge{display:inline-block;padding:0 6px;border-radius:10px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.live{color:var(--live);background:var(--live-bg)}.audit{color:var(--audit);background:var(--audit-bg)}
+.nv{color:var(--nv);background:var(--nv-bg);border:1px dashed var(--nv)}
+.path{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0}
+.path ol{margin:6px 0 0;padding-left:20px}.path li{margin:2px 0}
+.src{color:var(--muted);font-size:.8rem}
+footer{margin-top:40px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<h1>gop: who can make code run where</h1>
+<p class="meta">Enterprise <strong>acme</strong> · collected 2026-11-20T10:00:00Z</p>
+
+<section class="headline">
+<p class="big">Members of acme-actions can push code that runs in 12 repos across 2 orgs (confirmed), including 1 cloud OIDC trust, 1 secret scope, 1 self-hosted runner pool.</p>
+<p>Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 72% of confirmed reach.</p>
+<p class="note">Confirmed means every hop was read live or from the audit log. Possible means at least one hop is <span class="badge nv">not visible</span> to the token: unknown, not absent.</p>
+</section>
+
+<h2>Top risks</h2>
+<div class="scroll"><table>
+<thead><tr><th>Principal</th><th>Confirmed repos</th><th>Orgs</th><th>OIDC</th><th>Secrets</th><th>Runners</th><th>Possible</th><th>Score</th></tr></thead>
+<tbody><tr><td><code>identity:bob</code></td><td class="n">12</td><td class="n">2</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td class="n">0 repos</td><td class="n">84.4</td></tr>
+<tr><td><code>members:acme-actions</code></td><td class="n">12</td><td class="n">2</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td class="n">0 repos</td><td class="n">84.4</td></tr>
+<tr><td><code>identity:alice</code></td><td class="n">1</td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0 repos</td><td class="n">3.5</td></tr>
+<tr><td><code>members:acme-legacy</code></td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">1 repo + 1 impact</td><td class="n">0.0</td></tr>
+<tr><td><code>members:acme-app</code></td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0 repos</td><td class="n">0.0</td></tr>
+<tr><td><code>members:acme-secure</code></td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0 repos</td><td class="n">0.0</td></tr>
+</tbody></table></div>
+<p class="note">Score counts confirmed reach only. Possible reach depends on at least one fact gop could not see.</p>
+
+
+<h2>Suggested fixes</h2>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Fix</th><th>Confirmed pairs removed</th><th>Cumulative removed</th></tr></thead>
+<tbody><tr><td class="n">1</td><td>Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it<br><span class="src"><code>pin:action:acme-actions/deploy@main</code></span></td><td class="n">18</td><td class="n">72%</td></tr>
+<tr><td class="n">2</td><td>Lower the default repository permission of acme-actions to read<br><span class="src"><code>default_perm:org:acme-actions-&gt;read</code></span></td><td class="n">4</td><td class="n">88%</td></tr>
+<tr><td class="n">3</td><td>Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it<br><span class="src"><code>pin:action:acme-actions/deploy@v1</code></span></td><td class="n">1</td><td class="n">92%</td></tr>
+</tbody></table></div>
+<p class="note">Greedy pick by confirmed (principal, repo) pairs removed. Fixes that only touch not visible edges are never suggested.</p>
+
+
+<h2>Top paths</h2>
+<h3><code>identity:bob</code></h3>
+<div class="path">
+<div><span class="badge live">confirmed</span> to <code>oidc:acme-app/web</code></div>
+<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/web/.github/workflows/ci.yml</code> → <code>oidc:acme-app/web</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+</ol></div>
+<div class="path">
+<div><span class="badge live">confirmed</span> to <code>secret:acme-app/billing</code></div>
+<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/billing/.github/workflows/ci.yml</code> → <code>secret:acme-app/billing</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+</ol></div>
+<div class="path">
+<div><span class="badge live">confirmed</span> to <code>runner:acme-app/worker</code></div>
+<ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/worker/.github/workflows/ci.yml</code> → <code>runner:acme-app/worker</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+</ol></div>
+<h3><code>members:acme-actions</code></h3>
+<div class="path">
+<div><span class="badge live">confirmed</span> to <code>oidc:acme-app/web</code></div>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/web/.github/workflows/ci.yml</code> → <code>oidc:acme-app/web</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+</ol></div>
+<div class="path">
+<div><span class="badge live">confirmed</span> to <code>secret:acme-app/billing</code></div>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/billing/.github/workflows/ci.yml</code> → <code>secret:acme-app/billing</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+</ol></div>
+<div class="path">
+<div><span class="badge live">confirmed</span> to <code>runner:acme-app/worker</code></div>
+<ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+<li><code>workflow:acme-app/worker/.github/workflows/ci.yml</code> → <code>runner:acme-app/worker</code> <span class="src">EXECUTES_WITH</span> <span class="badge live">live</span> <span class="src">contents:.github/workflows</span></li>
+</ol></div>
+<h3><code>identity:alice</code></h3>
+<div class="path">
+<div><span class="badge live">confirmed</span> to <code>repo:acme-app/infra</code></div>
+<ol><li><code>identity:alice</code> → <code>repo:acme-app/infra</code> <span class="src">CAN_PUSH</span> <span class="badge live">live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
+</ol></div>
+<h3><code>members:acme-legacy</code></h3>
+<div class="path">
+<div><span class="badge nv">possible: a hop is not visible</span> to <code>secret:acme-legacy/old-api</code></div>
+<ol><li><code>members:acme-legacy</code> → <code>repo:acme-legacy/old-api</code> <span class="src">CAN_PUSH</span> <span class="badge nv">not visible</span> <span class="src">rest:/orgs/{org}</span></li>
+<li><code>repo:acme-legacy/old-api</code> → <code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> <span class="src">DEFINED_IN (reversed)</span> <span class="badge audit">audit</span> <span class="src">rest:/repos/{owner}/{repo}/actions/workflows</span></li>
+<li><code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> → <code>secret:acme-legacy/old-api</code> <span class="src">EXECUTES_WITH</span> <span class="badge audit">audit</span> <span class="src">contents:.github/workflows</span></li>
+</ol></div>
+
+
+<h2>Org settings</h2>
+<div class="scroll"><table>
+<thead><tr><th>Org</th><th>Default permission</th><th>2FA</th><th>SSO</th><th>IP allow list</th><th>Members</th></tr></thead>
+<tbody><tr><td><code>acme-actions</code></td><td>write</td><td>not_required</td><td>configured</td><td><span class="badge nv">unknown</span></td><td>40</td></tr>
+<tr><td><code>acme-app</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv">unknown</span></td><td>120</td></tr>
+<tr><td><code>acme-legacy</code></td><td>write</td><td>not_required</td><td>none</td><td><span class="badge nv">not visible</span></td><td><span class="badge nv">unknown</span></td></tr>
+<tr><td><code>acme-secure</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv">unknown</span></td><td>8</td></tr>
+</tbody></table></div>
+
+<h2>Coverage</h2>
+<div class="scroll"><table>
+<thead><tr><th>Scope</th><th>Not visible</th><th>Why</th><th>Access that fixes it</th></tr></thead>
+<tbody><tr><td><code>org:acme-legacy</code></td><td><span class="badge nv">repositories</span></td><td>token is not an org owner</td><td>org owner on acme-legacy (SAML enforced: join through the IdP first)</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv">ip_allow_list</span></td><td>token is not an org owner</td><td>org owner on acme-legacy</td></tr>
+</tbody></table></div>
+
+
+<footer>Generated by gop vTEST. This file maps attack paths in your organization. Treat it as sensitive.</footer>
+</main>
+</body>
+</html>

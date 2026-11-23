@@ -1,0 +1,124 @@
+members:acme-actions has confirmed paths to 29 nodes; 0 more possible
+
+Confirmed (every hop live or audit) (29):
+  members:acme-actions -> repo:acme-actions/deploy  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+  members:acme-actions -> repo:acme-actions/setup  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/setup  source: rest:/orgs/{org}
+  members:acme-actions -> action:acme-actions/deploy@main  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+  members:acme-actions -> action:acme-actions/deploy@v1  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1  source: contents:.github/workflows
+  members:acme-actions -> action:acme-actions/setup@main  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/setup  source: rest:/orgs/{org}
+      repo:acme-actions/setup =[RESOLVES_TO (reversed), live]=> action:acme-actions/setup@main  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-actions/deploy/.github/workflows/release.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[DEFINED_IN (reversed), live]=> workflow:acme-actions/deploy/.github/workflows/release.yml  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> workflow:acme-app/admin/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/admin/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/api/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/auth/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1  source: contents:.github/workflows
+      action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/auth/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/billing/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/billing/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/docs/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/docs/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/gateway/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/gateway/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/mobile/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/mobile/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/search/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/search/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/web/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> workflow:acme-app/worker/.github/workflows/ci.yml  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/worker/.github/workflows/ci.yml  source: contents:.github/workflows
+  members:acme-actions -> oidc:acme-app/web  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/web/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> oidc:acme-app/web  source: contents:.github/workflows
+  members:acme-actions -> repo:acme-app/admin  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/admin/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/admin/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/admin  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/api  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/api/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/api  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/auth  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1  source: contents:.github/workflows
+      action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/auth/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/auth/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/auth  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/billing  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/billing/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/billing/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/billing  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/docs  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/docs/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/docs/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/docs  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/gateway  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/gateway/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/gateway/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/gateway  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/mobile  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/mobile/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/mobile/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/mobile  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/search  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/search/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/search/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/search  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/web  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/web/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/web  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> repo:acme-app/worker  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/worker/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/worker/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/worker  source: rest:/repos/{owner}/{repo}/actions/workflows
+  members:acme-actions -> runner:acme-app/worker  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/worker/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/worker/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> runner:acme-app/worker  source: contents:.github/workflows
+  members:acme-actions -> secret:acme-app/billing  [confirmed]
+      members:acme-actions =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/billing/.github/workflows/ci.yml  source: contents:.github/workflows
+      workflow:acme-app/billing/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> secret:acme-app/billing  source: contents:.github/workflows

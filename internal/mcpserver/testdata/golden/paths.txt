@@ -1,0 +1,48 @@
+members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)
+
+{
+  "summary": "members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)",
+  "from": "members:acme-actions",
+  "to": "oidc:acme-app/web",
+  "confirmed": [
+    {
+      "from": "members:acme-actions",
+      "to": "oidc:acme-app/web",
+      "hops": [
+        {
+          "kind": "CAN_PUSH",
+          "from": "members:acme-actions",
+          "to": "repo:acme-actions/deploy",
+          "evidence": "live",
+          "source_api": "rest:/orgs/{org}"
+        },
+        {
+          "kind": "RESOLVES_TO",
+          "from": "repo:acme-actions/deploy",
+          "to": "action:acme-actions/deploy@main",
+          "evidence": "live",
+          "source_api": "contents:.github/workflows",
+          "reverse": true
+        },
+        {
+          "kind": "USES",
+          "from": "action:acme-actions/deploy@main",
+          "to": "workflow:acme-app/web/.github/workflows/ci.yml",
+          "evidence": "live",
+          "source_api": "contents:.github/workflows",
+          "reverse": true
+        },
+        {
+          "kind": "EXECUTES_WITH",
+          "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+          "to": "oidc:acme-app/web",
+          "evidence": "live",
+          "source_api": "contents:.github/workflows"
+        }
+      ],
+      "evidence": "live",
+      "unverified": false
+    }
+  ],
+  "possible": []
+}

@@ -22,6 +22,8 @@ govulncheck ./...
 ./scripts/leak-check.sh
 ```
 
+Golden files under `testdata/golden/` pin the exact text of MCP tool output, `gop who` / `gop paths` and the report. If output changes on purpose, run `go test ./... -update` and commit the golden diff.
+
 CI runs the same checks. The leak check uses a private denylist that CI holds as a secret; it is skipped on PRs from forks, and the maintainer runs it before merge.
 
 ## Synthetic data only
