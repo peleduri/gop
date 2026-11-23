@@ -244,20 +244,37 @@ func literal(v any) string {
 	panic("sqlexport: unsupported value type") // rows are built in this file only
 }
 
-// Quote returns s as a standard SQL string literal: single quotes doubled,
-// nothing else escaped, which is how SQLite and DuckDB read a '...' literal
-// (a backslash is an ordinary character in both). The sqlite3 and duckdb
-// shells drop a carriage return at the end of an input line, so each CR LF
-// is split across two literals joined with || ('a<CR>' || '<LF>b'), which
-// keeps the CR off the line end. Invalid UTF-8 and NUL, which neither shell
-// can load inside a literal, become U+FFFD.
+// Quote returns s as a SQL string value that SQLite and DuckDB read the
+// same way, with no control character in the script text:
+//
+//   - A string with no control character (below U+0020, or DEL) is a
+//     standard literal: single quotes doubled, nothing else escaped (a
+//     backslash is an ordinary character in both).
+//   - Any other string is written JSON-encoded and decoded by the database:
+//     ('"a\r\nb"' ->> '$'). Shells differ in how they read a CR, LF or ESC
+//     inside a literal (some drop a CR at a line end), and the two
+//     databases share no char()/chr() function, but both read a JSON string
+//     with ->> '$'. The JSON text is printable ASCII apart from non-ASCII
+//     letters, so no shell can change it.
+//
+// Invalid UTF-8 and NUL, which neither database keeps in TEXT reliably,
+// become U+FFFD.
 func Quote(s string) string {
 	s = strings.ToValidUTF8(s, "\uFFFD")
 	s = strings.ReplaceAll(s, "\x00", "\uFFFD")
-	s = strings.ReplaceAll(s, "'", "''")
-	s = strings.ReplaceAll(s, "\r\n", "\r' || '\n")
-	return "'" + s + "'"
+	if strings.IndexFunc(s, isControl) < 0 {
+		return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+	}
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(s) // a valid UTF-8 string always encodes
+	js := strings.TrimSuffix(b.String(), "\n")
+	js = strings.ReplaceAll(js, "\x7f", `\u007f`) // encoding/json leaves DEL as is
+	return "('" + strings.ReplaceAll(js, "'", "''") + "' ->> '$')"
 }
+
+func isControl(r rune) bool { return r < 0x20 || r == 0x7f }
 
 // commentSafe keeps only printable ASCII, so a -- comment cannot end early.
 func commentSafe(s string) string {

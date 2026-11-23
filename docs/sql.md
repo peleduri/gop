@@ -21,7 +21,7 @@ Loading into an existing database adds runs: the script uses `CREATE TABLE IF NO
 
 gop writes SQL text and links no database driver, which keeps the binary small and CGO-free. Load the script with the `sqlite3` or `duckdb` shell, or any client that runs a multi-statement script; a naive splitter that cuts on `;` at line ends can break on names that contain one. `--demo` exports the synthetic demo graph. `--github-url` applies to `--format cypher` only.
 
-Values are standard SQL string literals (single quotes doubled, nothing else escaped), so any name round-trips except NUL and invalid UTF-8, which become U+FFFD. Booleans are `INTEGER` 0 or 1. Times are RFC 3339 UTC text. Evidence is plain text (`live`, `audit`, `supplied`, `not_visible`, and any level a later schema adds), so check `confirmed` rather than listing evidence values.
+Values are standard SQL string literals (single quotes doubled, nothing else escaped). A value that contains a control character (a newline, carriage return, tab, escape, ...) is written JSON-encoded and decoded on load, as `('"a\r\nb"' ->> '$')`, so the script itself holds no control character and no shell's line handling can change a value; this needs JSON support (SQLite 3.38 or later, DuckDB's built-in `json` extension). Any name round-trips except NUL and invalid UTF-8, which become U+FFFD. Booleans are `INTEGER` 0 or 1. Times are RFC 3339 UTC text. Evidence is plain text (`live`, `audit`, `supplied`, `not_visible`, and any level a later schema adds), so check `confirmed` rather than listing evidence values.
 
 ## Schema
 

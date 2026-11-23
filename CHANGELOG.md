@@ -34,7 +34,9 @@ flags may change in minor releases.
   per scoring principal, confirmed or possible, with the shortest path), all
   keyed by `run_id`. Several graphs load as several runs, so trends work; the
   script deletes a run's rows before inserting them, so loading it again
-  changes nothing and older runs stay. Evidence is plain text. gop writes text
+  changes nothing and older runs stay. Evidence is plain text. Values with
+  control characters are written JSON-encoded (`'...' ->> '$'`, SQLite 3.38+),
+  so the script holds no raw control characters. gop writes text
   and links no SQLite driver: the binary grows by about 50 KB, where a pure-Go
   driver would add about 5 MB. `--out` writes mode 0600; the file lists attack
   paths. Schema and example queries: `docs/sql.md`.

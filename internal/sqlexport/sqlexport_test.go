@@ -2,6 +2,7 @@ package sqlexport
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/rand/v2"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -30,8 +32,14 @@ func sqlite3(t *testing.T) string {
 		}
 		t.Skip("sqlite3 not on PATH")
 	}
+	versionOnce.Do(func() {
+		out, err := exec.Command(p, "-version").Output()
+		t.Logf("sqlite3 -version: %s %v", bytes.TrimSpace(out), err)
+	})
 	return p
 }
+
+var versionOnce sync.Once
 
 // load writes graphs as a script and runs it with sqlite3 into db.
 func load(t *testing.T, db string, graphs ...*graph.Graph) {
@@ -154,18 +162,20 @@ func TestDeterministic(t *testing.T) {
 
 func TestQuote(t *testing.T) {
 	for in, want := range map[string]string{
-		"":         "''",
-		"acme":     "'acme'",
-		"o'brien":  "'o''brien'",
-		"''":       "''''''",
-		`a\b`:      `'a\b'`,
-		"a\x00b":   "'a\uFFFDb'",
-		"bad\xffz": "'bad\uFFFDz'",
-		"l1\nl2":   "'l1\nl2'",
-		"x'); --":  "'x''); --'",
-		"a\r\nb":   "'a\r' || '\nb'",
-		"\r\n\r\n": "'\r' || '\n\r' || '\n'",
-		"lone\rcr": "'lone\rcr'",
+		"":           "''",
+		"acme":       "'acme'",
+		"o'brien":    "'o''brien'",
+		"''":         "''''''",
+		`a\b`:        `'a\b'`,
+		"a\x00b":     "'a\uFFFDb'",
+		"bad\xffz":   "'bad\uFFFDz'",
+		"x'); --":    "'x''); --'",
+		"é \u2028;":  "'é \u2028;'",
+		"l1\nl2":     `('"l1\nl2"' ->> '$')`,
+		"a\r\nb":     `('"a\r\nb"' ->> '$')`,
+		"esc\x1b[0m": `('"esc\u001b[0m"' ->> '$')`,
+		"o'b\t\"<>":  `('"o''b\t\"<>"' ->> '$')`,
+		"del\x7f":    `('"del\u007f"' ->> '$')`,
 	} {
 		if got := Quote(in); got != want {
 			t.Errorf("Quote(%q) = %q, want %q", in, got, want)
@@ -195,26 +205,39 @@ func TestHostileNamesRoundTrip(t *testing.T) {
 		g.Edges = append(g.Edges, graph.Edge{From: "members:acme-app", To: h, Kind: graph.CanPush, Evidence: graph.Live, SourceAPI: h,
 			Attrs: map[string]string{graph.AttrVia: graph.ViaDefaultPerm, "note": h}})
 	}
+	// The script itself holds no control character but LF between
+	// statements, so no shell's line handling can change a value.
+	var script bytes.Buffer
+	if err := Write(&script, []*graph.Graph{g}); err != nil {
+		t.Fatal(err)
+	}
+	for i, c := range script.Bytes() {
+		if (c < 0x20 && c != '\n') || c == 0x7f {
+			t.Fatalf("script byte %d is control character %#x", i, c)
+		}
+	}
 	db := filepath.Join(t.TempDir(), "gop.db")
 	load(t, db, g)
 
 	clean := func(s string) string { return strings.ReplaceAll(s, "\x00", "\uFFFD") }
-	if got := query(t, db, "SELECT enterprise FROM runs"); len(got) != 1 || got[0]["enterprise"] != g.Enterprise {
+	if got := query(t, db, "SELECT hex(enterprise) AS e FROM runs"); len(got) != 1 || got[0]["e"] != strings.ToUpper(hex.EncodeToString([]byte(g.Enterprise))) {
 		t.Errorf("runs: %v", got)
 	}
+	// Compare hex(value) so the shell's output formatting of control
+	// characters cannot hide or fake a difference.
 	want := map[string]bool{}
 	for _, h := range hostile {
-		want[clean(h)] = true
+		want[strings.ToUpper(hex.EncodeToString([]byte(clean(h))))] = true
 	}
 	for _, c := range []struct{ q, col string }{
-		{"SELECT id AS v FROM nodes WHERE kind = 'repo'", "v"},
-		{"SELECT name AS v FROM nodes WHERE kind = 'repo'", "v"},
-		{"SELECT key AS v FROM node_attrs WHERE key <> 'k'", "v"},
-		{"SELECT value AS v FROM node_attrs WHERE key <> 'k'", "v"},
-		{"SELECT dst AS v FROM edges", "v"},
-		{"SELECT source_api AS v FROM edges", "v"},
-		{"SELECT value AS v FROM edge_attrs WHERE key = 'note'", "v"},
-		{"SELECT target AS v FROM reach WHERE target_kind = 'repo'", "v"},
+		{"SELECT hex(id) AS v FROM nodes WHERE kind = 'repo'", "v"},
+		{"SELECT hex(name) AS v FROM nodes WHERE kind = 'repo'", "v"},
+		{"SELECT hex(key) AS v FROM node_attrs WHERE key <> 'k'", "v"},
+		{"SELECT hex(value) AS v FROM node_attrs WHERE key <> 'k'", "v"},
+		{"SELECT hex(dst) AS v FROM edges", "v"},
+		{"SELECT hex(source_api) AS v FROM edges", "v"},
+		{"SELECT hex(value) AS v FROM edge_attrs WHERE key = 'note'", "v"},
+		{"SELECT hex(target) AS v FROM reach WHERE target_kind = 'repo'", "v"},
 	} {
 		got := map[string]bool{}
 		for _, r := range query(t, db, c.q) {
@@ -225,9 +248,12 @@ func TestHostileNamesRoundTrip(t *testing.T) {
 		}
 		for v := range want {
 			if !got[v] {
-				t.Errorf("%s: missing %q", c.q, v)
+				t.Errorf("%s: missing %q (hex of %q)", c.q, v, unhex(v))
 			}
 		}
+	}
+	if bad := query(t, db, "SELECT id FROM nodes WHERE typeof(id) <> 'text' OR typeof(name) <> 'text'"); len(bad) > 0 {
+		t.Errorf("non-text values: %v", bad)
 	}
 	// Each node attr row joins back to its node: keys and values went to
 	// the right columns.
@@ -390,6 +416,11 @@ func sortedReach(m map[reachKey]bool) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func unhex(s string) string {
+	b, _ := hex.DecodeString(s)
+	return string(b)
 }
 
 func TestRepoOf(t *testing.T) {
