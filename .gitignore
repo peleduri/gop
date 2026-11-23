@@ -1,7 +1,7 @@
 /dist/
 /gop
 *.out
-coverage.*
+/coverage.*
 /graph.json
 /report.html
 .DS_Store
