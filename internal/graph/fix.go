@@ -264,3 +264,10 @@ func (ix *Index) SuggestFixes(budget int) []FixSuggestion {
 	}
 	return out
 }
+
+// TotalsOf sums a set of scores (see Totals).
+func TotalsOf(scores []Score) Totals { return totalsOf(scores) }
+
+// Scores returns the blast radius of every scoring principal (ScoringPrincipals),
+// sorted by principal ID: the set TopPaths, WhatIf and Totals use.
+func (ix *Index) Scores() []Score { return ix.allScores(ix.base) }

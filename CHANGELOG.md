@@ -28,6 +28,10 @@ flags may change in minor releases.
   that every edge endpoint is a node, and warns about `not_visible` facts with
   no coverage entry. Exit 0 valid, 1 invalid, 2 usage error.
 - `docs/schema.md`: Versioning and Changelog sections.
+- `gop diff OLD NEW`: posture drift between two snapshots (paths added,
+  removed, upgraded, downgraded or lost to visibility; setting, edge, score and
+  coverage changes) as text, Markdown or JSON, with `--only` and `--fail-on
+  confirmed-increase|any-new-path` for CI. See `docs/drift.md`.
 
 ### Fixed
 

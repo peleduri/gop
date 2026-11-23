@@ -148,8 +148,11 @@ gop report  --graph graph.json --out report.html [--format html|md] [--top N]
 gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>
 gop validate --graph graph.json [--format text|json]
+gop diff    OLD.json NEW.json [--format text|json|markdown] [--fail-on confirmed-increase|any-new-path]
 gop version
 ```
+
+`gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md).
 
 Node IDs look like `members:acme-actions`, `identity:bob`, `repo:acme-app/web`, `action:acme-actions/deploy@main`, `oidc:acme-app/web`. An unknown ID returns suggestions.
 

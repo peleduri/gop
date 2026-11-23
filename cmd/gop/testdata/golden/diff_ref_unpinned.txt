@@ -1,0 +1,26 @@
+Since 2026-11-13: 2 new confirmed paths (1 to OIDC).
+acme (gop.graph/v1): 2026-11-13T10:00:00Z → 2026-11-20T10:00:00Z
+Confirmed (principal, repo) pairs: 3 → 4 (+1). Possible pairs: 0 → 0 (+0).
+
+Paths (2):
+  identity:bob -> oidc:acme-app/web  [added: none → confirmed]
+      identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml
+      workflow:acme-app/web/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> oidc:acme-app/web
+  identity:bob -> repo:acme-app/web  [added: none → confirmed]
+      identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy
+      repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main
+      action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml
+      workflow:acme-app/web/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/web
+
+Settings (1):
+  acme-actions/deploy@main ref_kind branch (new)  [evidence absent → live]
+
+Edges (3):
+  + action:acme-actions/deploy@main RESOLVES_TO repo:acme-actions/deploy  [live]
+  + workflow:acme-app/web/.github/workflows/ci.yml USES action:acme-actions/deploy@main  [live, ref_kind=branch]
+  - workflow:acme-app/web/.github/workflows/ci.yml USES action:acme-actions/deploy@3f2c9a8e1b7d4c6f0a5e9d8c7b6a5f4e3d2c1b0a  [was live, ref_kind=sha]
+
+Scores (1):
+  identity:bob  confirmed 11.5 → 21 (+9.5)  possible 0 → 0 (+0)
