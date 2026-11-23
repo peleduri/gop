@@ -32,6 +32,10 @@ type ActionUse struct {
 	Column  int    // 1-based column where the uses: value starts (0 if unknown)
 	File    string // repo-relative path of the file the reference was read from
 	FileRef string // commit or branch that file was read at ("" if unknown)
+	// Dynamic is set (with ok=false from ParseUses) when the reference is an
+	// expression such as ${{ matrix.action }}: the action cannot be resolved
+	// statically. Only Raw, Line and Column are filled then.
+	Dynamic bool
 }
 
 // IsReusableWorkflow reports whether the reference points at a workflow file.
@@ -54,6 +58,15 @@ type WorkflowFacts struct {
 	RunnerLabels    []string
 	IDTokenLines    map[string]int // scope -> 1-based line of the id-token: write (or write-all) key
 	RunsOnLine      int            // first runs-on: line of a self-hosted job (0 if none)
+	// DynamicUses lists, once per reference, the job id of every uses: that
+	// is an expression (ActionUse.Dynamic), in job order.
+	DynamicUses []string
+	// UnknownRunners is whether some job's runs-on is neither a GitHub-hosted
+	// label nor self-hosted (RunnerUnknown); UnknownRunnerLabels are those
+	// jobs' runs-on values, sorted, and UnknownRunsOnLine the first such line.
+	UnknownRunners      bool
+	UnknownRunnerLabels []string
+	UnknownRunsOnLine   int
 	// TokenContentsWrite is whether the GITHUB_TOKEN can push: TokenWrite when
 	// any job resolves to contents: write, TokenDefault when some job declares
 	// no permissions at either level (and none resolves to write), else TokenRead.
@@ -155,6 +168,70 @@ func useAt(n *yaml.Node) (ActionUse, bool) {
 	return u, ok
 }
 
+// Runner classifications of one job's runs-on (classifyRunsOn).
+const (
+	RunnerHosted     = "hosted"      // every label is a GitHub-hosted runner label
+	RunnerSelfHosted = "self_hosted" // some label contains self-hosted
+	RunnerUnknown    = "unknown"     // a custom label, a group: key or an expression
+)
+
+// hostedLabelRe matches the GitHub-hosted runner labels, including the
+// documented arm64 and larger macOS runners. Larger Linux and Windows runners
+// carry names an admin chooses, so they cannot be told apart from self-hosted
+// labels here and stay unknown. This list drifts as GitHub adds images; a
+// label it misses is classified unknown (not_visible), never hosted. See
+// https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+// and https://docs.github.com/en/actions/using-github-hosted-runners/using-larger-runners/about-larger-runners
+var hostedLabelRe = regexp.MustCompile(`^(` +
+	`ubuntu-(latest|\d{2}\.\d{2})(-arm)?|` +
+	`windows-(latest|\d{4})|windows-11-arm|` +
+	`macos-(latest|\d{2})(-(large|xlarge))?` +
+	`)$`)
+
+// classifyRunsOn classifies a job's runs-on value and returns the labels it
+// names. A group: mapping is unknown (labels "group:<name>" plus its labels).
+// An absent runs-on (a job that calls a reusable workflow) gives "".
+func (w *yamlWalk) classifyRunsOn(n *yaml.Node) (class string, labels []string, err error) {
+	n, err = w.resolve(n)
+	if err != nil || isNullNode(n) {
+		return "", nil, err
+	}
+	custom := false
+	switch n.Kind {
+	case yaml.MappingNode:
+		custom = true
+		m, err := w.mapping(n, "runs-on")
+		if err != nil {
+			return "", nil, err
+		}
+		for _, k := range m.keys {
+			for _, v := range scalars(m.val[k]) {
+				if k == "group" {
+					v = "group:" + v
+				}
+				labels = append(labels, v)
+			}
+		}
+	default:
+		labels = scalars(n)
+	}
+	if len(labels) == 0 {
+		return RunnerUnknown, nil, nil
+	}
+	for _, l := range labels {
+		if strings.Contains(strings.ToLower(l), "self-hosted") {
+			return RunnerSelfHosted, labels, nil
+		}
+		if strings.Contains(l, "${{") || !hostedLabelRe.MatchString(strings.TrimSpace(l)) {
+			custom = true
+		}
+	}
+	if custom {
+		return RunnerUnknown, labels, nil
+	}
+	return RunnerHosted, labels, nil
+}
+
 // HasSecrets reports whether the workflow can read stored secrets.
 func (f *WorkflowFacts) HasSecrets() bool { return f.InheritsSecrets || len(f.Secrets) > 0 }
 
@@ -184,11 +261,15 @@ func RefKind(ref string) string {
 }
 
 // ParseUses parses a remote uses string. ok is false for local ("./"),
-// docker ("docker://") and malformed references.
+// docker ("docker://"), expression and malformed references; an expression
+// (${{ ... }}) is told apart by Dynamic=true on the returned use.
 func ParseUses(s string) (ActionUse, bool) {
 	s = strings.TrimSpace(s)
+	if strings.Contains(s, "${{") {
+		return ActionUse{Raw: s, Dynamic: true}, false
+	}
 	if s == "" || strings.HasPrefix(s, "./") || strings.HasPrefix(s, "../") ||
-		strings.HasPrefix(s, "docker://") || strings.Contains(s, "${{") {
+		strings.HasPrefix(s, "docker://") {
 		return ActionUse{}, false
 	}
 	at := strings.LastIndex(s, "@")
@@ -524,7 +605,7 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 	if len(jobIDs) > 0 {
 		f.Jobs = jobIDs
 	}
-	labels := map[string]bool{}
+	labels, unknownLabels := map[string]bool{}, map[string]bool{}
 	for _, id := range jobIDs {
 		_, jv := jobs.get(id)
 		job, err := w.mapping(jv, "job")
@@ -538,11 +619,15 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		if u, ok := useAt(field(job, "uses")); ok {
 			u.Level, u.Job = LevelJob, id
 			f.Uses = append(f.Uses, u)
+		} else if u.Dynamic {
+			f.DynamicUses = append(f.DynamicUses, id)
 		}
 		for _, sn := range steps {
 			if u, ok := useAt(sn); ok {
 				u.Level, u.Job = LevelStep, id
 				f.Uses = append(f.Uses, u)
+			} else if u.Dynamic {
+				f.DynamicUses = append(f.DynamicUses, id)
 			}
 		}
 		jobPerms, jobDeclared, err := w.permissionsOf(field(job, "permissions"))
@@ -583,6 +668,19 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 			}
 			labels[l] = true
 		}
+		class, rl, err := w.classifyRunsOn(field(job, "runs-on"))
+		if err != nil {
+			return nil, err
+		}
+		if class == RunnerUnknown {
+			f.UnknownRunners = true
+			for _, l := range rl {
+				unknownLabels[l] = true
+			}
+			if k, _ := job.get("runs-on"); k != nil && (f.UnknownRunsOnLine == 0 || k.Line < f.UnknownRunsOnLine) {
+				f.UnknownRunsOnLine = k.Line
+			}
+		}
 	}
 	if wfIDUsed {
 		f.IDTokenScopes = append(f.IDTokenScopes, "workflow")
@@ -596,6 +694,7 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		}
 		sort.Strings(f.RunnerLabels)
 	}
+	f.UnknownRunnerLabels = sortedSet(unknownLabels)
 	f.Secrets = secretNames(doc)
 	if wfUsed {
 		addWriteScopes(wfMap, scopes) // once, not per job: the file may have thousands of jobs

@@ -260,6 +260,15 @@ func TestPathsExplainCoverageTopRisks(t *testing.T) {
 	if len(cov.Entries) != 2 {
 		t.Errorf("coverage entries = %d", len(cov.Entries))
 	}
+	var legacy *graph.OrgCoverage
+	for i := range cov.Orgs {
+		if cov.Orgs[i].Org == "org:acme-legacy" {
+			legacy = &cov.Orgs[i]
+		}
+	}
+	if legacy == nil || legacy.NotVisibleEdges != 1 || legacy.Entries != 2 {
+		t.Errorf("coverage orgs = %+v", cov.Orgs)
+	}
 	var tr TopRisksOutput
 	call(t, cs, "top_risks", map[string]any{"n": 3}, &tr)
 	if len(tr.Risks) != 3 || tr.Risks[0].Principal == "" {

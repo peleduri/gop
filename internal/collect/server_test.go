@@ -272,6 +272,7 @@ func (f *fakeGitHub) repos(w http.ResponseWriter, r *http.Request, org string) {
 			delete(m, "actions_access_forbidden")
 			delete(m, "refs")
 			delete(m, "releases")
+			delete(m, "workflows_dir_object")
 			if _, ok := m["archived"]; !ok {
 				m["archived"] = false
 			}
@@ -458,21 +459,32 @@ func (f *fakeGitHub) customRoles(w http.ResponseWriter, org string) {
 }
 
 func (f *fakeGitHub) knownRepo(owner, repo string) bool {
+	_, ok := f.fixtureRepo(owner, repo)
+	return ok
+}
+
+// fixtureRepoFlags are the per-repo fixture flags the contents endpoint reads.
+type fixtureRepoFlags struct {
+	Name string `json:"name"`
+	// WorkflowsDirObject makes .github/workflows answer with a JSON object
+	// (as for a file or a submodule) instead of a directory listing.
+	WorkflowsDirObject bool `json:"workflows_dir_object"`
+}
+
+func (f *fakeGitHub) fixtureRepo(owner, repo string) (fixtureRepoFlags, bool) {
 	for _, o := range f.fx.Orgs {
 		if o.Login != owner {
 			continue
 		}
 		for _, raw := range o.Repos {
-			var m struct {
-				Name string `json:"name"`
-			}
+			var m fixtureRepoFlags
 			_ = json.Unmarshal(raw, &m)
 			if m.Name == repo {
-				return true
+				return m, true
 			}
 		}
 	}
-	return false
+	return fixtureRepoFlags{}, false
 }
 
 func fileEntry(path string, data []byte) map[string]any {
@@ -508,7 +520,11 @@ func (f *fakeGitHub) contents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	f.mu.Unlock()
+	flags, _ := f.fixtureRepo(owner, repo)
 	switch {
+	case path == ".github/workflows" && flags.WorkflowsDirObject:
+		writeJSON(w, 200, map[string]any{"type": "submodule", "name": "workflows", "path": path,
+			"submodule_git_url": "https://example.invalid/acme/workflows.git"})
 	case path == ".github/workflows":
 		ents, err := os.ReadDir(wfDir)
 		if err != nil && len(extra) == 0 {

@@ -119,7 +119,7 @@
       "description": "Edge attributes. Known keys are typed below; unknown keys are allowed.",
       "allOf": [{"$ref": "#/$defs/Attrs"}],
       "properties": {
-        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator, team, ref_bypass, token_write. New values may be added within v1.", "type": "string", "minLength": 1},
+        "via": {"description": "CAN_PUSH provenance, e.g. default_perm, org_owner, direct, outside_collaborator, team, ref_bypass, token_write, unknown (not_visible edges to repos gop did not collect). New values may be added within v1.", "type": "string", "minLength": 1},
         "jobs": {"description": "Comma list of job ids: those a via=token_write CAN_PUSH edge comes from, or those that can mint the token on an EXECUTES_WITH edge to oidc.", "type": "string", "minLength": 1},
         "environments": {"description": "EXECUTES_WITH to oidc: comma list of the id-token jobs' environment names; *dynamic* for an expression.", "type": "string", "minLength": 1},
         "job_workflow_ref": {"description": "EXECUTES_WITH to oidc: comma list of called reusable workflows that mint the token, as owner/repo/path@ref.", "type": "string", "minLength": 1},

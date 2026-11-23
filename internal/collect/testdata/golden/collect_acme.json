@@ -339,7 +339,7 @@
         "members_create": "false",
         "owners": "1",
         "private_forks": "false",
-        "repositories": "1",
+        "repositories": "2",
         "sso": "enforced",
         "two_factor": "required"
       },
@@ -513,9 +513,10 @@
         "collected": "false",
         "org": "acme-legacy"
       },
-      "evidence": "live",
+      "evidence": "not_visible",
       "attr_evidence": {
-        "actions_access": "not_visible"
+        "collected": "live",
+        "org": "live"
       }
     },
     {
@@ -549,9 +550,31 @@
       "evidence": "live"
     },
     {
+      "id": "repo:acme-secure/vendor-mirror",
+      "kind": "repo",
+      "name": "acme-secure/vendor-mirror",
+      "attrs": {
+        "archived": "false",
+        "fork": "false",
+        "org": "acme-secure",
+        "visibility": "private",
+        "workflows": "unknown"
+      },
+      "evidence": "live",
+      "attr_evidence": {
+        "workflows": "not_visible"
+      }
+    },
+    {
       "id": "runner:acme-app/infra",
       "kind": "runner",
       "name": "acme-app/infra self-hosted runners",
+      "evidence": "live"
+    },
+    {
+      "id": "runner:acme-app/search",
+      "kind": "runner",
+      "name": "acme-app/search runners",
       "evidence": "live"
     },
     {
@@ -769,6 +792,7 @@
       "kind": "workflow",
       "name": "acme-app/search/.github/workflows/index.yaml",
       "attrs": {
+        "dynamic_uses": "1",
         "path": ".github/workflows/index.yaml",
         "repo": "acme-app/search",
         "token_scopes": "id-token",
@@ -1238,6 +1262,18 @@
     },
     {
       "from": "identity:carol",
+      "to": "repo:acme-secure/vendor-mirror",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /enterprises/{enterprise}/consumed-licenses",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
       "to": "org:acme-secure",
       "kind": "MEMBER_OF",
       "evidence": "live",
@@ -1307,6 +1343,20 @@
       "attrs": {
         "permission": "write",
         "sso": "configured",
+        "two_factor": "not_required",
+        "via": "default_perm"
+      }
+    },
+    {
+      "from": "members:acme-legacy",
+      "to": "repo:acme-legacy/hidden-tool",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "write",
+        "sso": "enforced",
         "two_factor": "not_required",
         "via": "default_perm"
       }
@@ -1765,6 +1815,20 @@
     },
     {
       "from": "workflow:acme-app/search/.github/workflows/index.yaml",
+      "to": "runner:acme-app/search",
+      "kind": "EXECUTES_WITH",
+      "evidence": "not_visible",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "classification": "unknown",
+        "file": ".github/workflows/index.yaml",
+        "labels": "gpu,linux",
+        "line": "14"
+      }
+    },
+    {
+      "from": "workflow:acme-app/search/.github/workflows/index.yaml",
       "to": "action:acme-actions/setup@main",
       "kind": "USES",
       "evidence": "live",
@@ -1991,16 +2055,46 @@
       "needs_fix": "org owner on acme-legacy (SSO enforced: join through the identity provider first)"
     },
     {
+      "scope": "org:acme-archive",
+      "fact": "repositories",
+      "reason": "organization is archived; not collected",
+      "needs_fix": "none: archived organizations cannot run workflows"
+    },
+    {
+      "scope": "workflow:acme-app/search/.github/workflows/index.yaml",
+      "fact": "runner_labels",
+      "reason": "runs-on gpu,linux is not a GitHub-hosted label: the runner may be self-hosted",
+      "needs_fix": "org owner (runner groups and self-hosted runners are not read yet)"
+    },
+    {
+      "scope": "workflow:acme-app/search/.github/workflows/index.yaml",
+      "fact": "dynamic_uses",
+      "reason": "uses: is an expression; the action cannot be resolved statically",
+      "needs_fix": "none: replace the expression with literal owner/repo@sha references to make them visible"
+    },
+    {
       "scope": "repo:acme-legacy/old-site",
       "fact": "default_workflow_permissions",
       "reason": "could not read the default workflow permissions: repo: github api GET /repos/acme-legacy/old-site/actions/permissions/workflow: HTTP 403: Must have admin rights to Repository.; org: github api GET /orgs/acme-legacy/actions/permissions/workflow: HTTP 403: Must have admin rights to Repository.",
       "needs_fix": "admin on acme-legacy/old-site (or org owner)"
     },
     {
+      "scope": "repo:acme-secure/vendor-mirror",
+      "fact": "workflows",
+      "reason": "unexpected contents response for .github/workflows",
+      "needs_fix": "check .github/workflows in acme-secure/vendor-mirror is a directory"
+    },
+    {
       "scope": "action:acme-legacy/hidden-tool@v2",
       "fact": "nested_uses",
       "reason": "action.yaml not found at v2 (missing, or repository not visible to the token)",
       "needs_fix": "read access to contents on acme-legacy/hidden-tool"
+    },
+    {
+      "scope": "repo:acme-legacy/hidden-tool",
+      "fact": "can_push",
+      "reason": "host repository not listed for the token",
+      "needs_fix": "read access to acme-legacy/hidden-tool"
     },
     {
       "scope": "repo:acme-legacy/hidden-tool",
