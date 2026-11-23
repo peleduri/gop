@@ -83,6 +83,24 @@ flags may change in minor releases.
   digest with cosign (same identity as `checksums.txt`), attaches a signed
   SPDX SBOM and pushes SLSA build provenance to the registry. CI checks the
   snapshot images on every PR. See docs/install.md#container.
+- `docs/architecture.md`, a contributor guide: package map, a Mermaid data
+  flow from the GitHub API to `graph.json` to the MCP tools and report, the
+  control-graph rules (a verbatim copy of the comment in
+  `internal/graph/reach.go`, kept identical by a test), the invariants every
+  change must keep, and checklists for adding a collector, an MCP tool or a
+  fix type. CONTRIBUTING links it and explains the labels and the golden
+  update flow.
+- `.github/labels.yml` describes the label set (type, area, priority, size,
+  `good first issue`, `help wanted`, `agent-ready`), and
+  `scripts/sync-labels.sh` prints or applies the matching `gh label`
+  commands for the maintainer. No workflow writes labels.
+- Release notes grouped by change type: `.github/release.yml` categories by label
+  (Security, Features, Fixes, Docs, Dependencies), and goreleaser
+  `changelog.use: github` groups by conventional commit prefix (`sec`,
+  `feat`, `fix`, `docs`). `docs` commits now appear in the notes.
+- CI checks PR titles against Conventional Commits (`pr-title` workflow, on
+  `pull_request` with only `pull-requests: read`) and every repo-relative
+  Markdown link and anchor (lychee, offline).
 
 ## [0.3.0] - 2026-11-24
 

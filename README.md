@@ -349,6 +349,8 @@ See [docs/threat-model.md](docs/threat-model.md) and [docs/schema.md](docs/schem
 
 `gop collect` writes one JSON document (`gop.graph/v1`, [schema](docs/schema.md), [JSON Schema](schema/gop.graph.v1.schema.json); check a file with `gop validate`). Everything else reads that file: the engine indexes it once and answers reach, scoring, what-if and fix-planning queries for the MCP server, the CLI and the report. The fix planner is a budgeted greedy over grouped fixes, not an exact min-cut, and it never suggests a fix whose edges are all `not_visible`.
 
+Contributors: [docs/architecture.md](docs/architecture.md) has the package map, the data flow, the control-graph rules and the invariants to keep.
+
 ## Roadmap
 
 Planned, roughly in order. Each item will get a [GitHub issue](https://github.com/peleduri/gop/issues); comment there if you need it.

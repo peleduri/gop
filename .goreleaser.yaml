@@ -93,13 +93,34 @@ dockers_v2:
       # an index annotation is not allowed.
       "index:org.opencontainers.image.description": '{{ if not .IsSnapshot }}Read-only evidence graph of who can make code run where in a GitHub Enterprise.{{ end }}'
 
+# Release notes for tag releases. `use: github` reads the commits between the
+# two tags through the GitHub API (with the release job's GITHUB_TOKEN) and
+# links each one to its author. Commits are grouped by conventional commit
+# prefix, which the PR title lint (.github/workflows/pr-title.yml) enforces on
+# squash-merged PR titles. .github/release.yml groups GitHub's own generated
+# notes by label.
 changelog:
+  use: github
   sort: asc
+  groups:
+    - title: Security
+      regexp: '^.*?sec(\([[:word:]-]+\))??!?:.+$'
+      order: 0
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]-]+\))??!?:.+$'
+      order: 1
+    - title: Fixes
+      regexp: '^.*?fix(\([[:word:]-]+\))??!?:.+$'
+      order: 2
+    - title: Docs
+      regexp: '^.*?docs(\([[:word:]-]+\))??!?:.+$'
+      order: 3
+    - title: Other changes
+      order: 999
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
+      - "^test(\\(.*\\))?:"
+      - "^chore(\\(.*\\))?:"
 
 release:
   github:

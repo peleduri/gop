@@ -96,6 +96,24 @@ jobs:
           go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 action/testdata/uses-action.yml
 
+  links:
+    # Checks every repo-relative link and Markdown heading anchor in the *.md
+    # files. --offline makes no network requests: external URLs are skipped,
+    # so the job never flakes on a third-party site.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          lycheeVersion: v0.24.2
+          args: --offline --include-fragments --no-progress './**/*.md'
+          jobSummary: false
+
   govulncheck:
     runs-on: ubuntu-latest
     steps:
