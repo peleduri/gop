@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420">
+  <title>gop architecture: collect, graph.json, engine, then MCP, CLI and report</title>
+  <style>
+    .box { fill: #121a24; stroke: #4b5d73; stroke-width: 2; }
+    .hot { fill: #121a24; stroke: #f2a33a; stroke-width: 2.5; }
+    .t { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 600; fill: #e6edf3; }
+    .s { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; fill: #9fb0c3; }
+    .l { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #7d8da1; }
+    .a { stroke: #7d8da1; stroke-width: 2; fill: none; }
+  </style>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7d8da1"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="420" fill="#0b0f14"/>
+
+  <!-- GitHub API -->
+  <rect class="box" x="24" y="150" width="180" height="120" rx="10"/>
+  <text class="t" x="114" y="190" text-anchor="middle">GitHub API</text>
+  <text class="s" x="114" y="216" text-anchor="middle">REST + GraphQL</text>
+  <text class="s" x="114" y="236" text-anchor="middle">read-only token</text>
+
+  <!-- collect -->
+  <rect class="box" x="254" y="150" width="190" height="120" rx="10"/>
+  <text class="t" x="349" y="190" text-anchor="middle">gop collect</text>
+  <text class="s" x="349" y="216" text-anchor="middle">org settings, repos</text>
+  <text class="s" x="349" y="236" text-anchor="middle">workflows, nested</text>
+  <text class="s" x="349" y="254" text-anchor="middle">actions</text>
+
+  <!-- graph.json -->
+  <rect class="hot" x="494" y="150" width="190" height="120" rx="10"/>
+  <text class="t" x="589" y="190" text-anchor="middle">graph.json</text>
+  <text class="s" x="589" y="216" text-anchor="middle">gop.graph/v1</text>
+  <text class="s" x="589" y="236" text-anchor="middle">evidence on every</text>
+  <text class="s" x="589" y="254" text-anchor="middle">node and edge</text>
+
+  <!-- engine -->
+  <rect class="box" x="734" y="150" width="190" height="120" rx="10"/>
+  <text class="t" x="829" y="190" text-anchor="middle">engine</text>
+  <text class="s" x="829" y="216" text-anchor="middle">reach (confirmed /</text>
+  <text class="s" x="829" y="236" text-anchor="middle">possible), score,</text>
+  <text class="s" x="829" y="254" text-anchor="middle">what-if, fix planner</text>
+
+  <!-- outputs -->
+  <rect class="box" x="984" y="40" width="192" height="90" rx="10"/>
+  <text class="t" x="1080" y="78" text-anchor="middle">MCP server</text>
+  <text class="s" x="1080" y="102" text-anchor="middle">gop serve (stdio)</text>
+
+  <rect class="box" x="984" y="165" width="192" height="90" rx="10"/>
+  <text class="t" x="1080" y="203" text-anchor="middle">CLI</text>
+  <text class="s" x="1080" y="227" text-anchor="middle">paths, who, ...</text>
+
+  <rect class="box" x="984" y="290" width="192" height="90" rx="10"/>
+  <text class="t" x="1080" y="328" text-anchor="middle">HTML report</text>
+  <text class="s" x="1080" y="352" text-anchor="middle">gop report / Action</text>
+
+  <!-- arrows -->
+  <path class="a" d="M204 210 L250 210" marker-end="url(#ar)"/>
+  <path class="a" d="M444 210 L490 210" marker-end="url(#ar)"/>
+  <path class="a" d="M684 210 L730 210" marker-end="url(#ar)"/>
+  <path class="a" d="M924 200 C950 200 950 85 980 85" marker-end="url(#ar)"/>
+  <path class="a" d="M924 210 L980 210" marker-end="url(#ar)"/>
+  <path class="a" d="M924 220 C950 220 950 335 980 335" marker-end="url(#ar)"/>
+
+  <text class="l" x="589" y="300" text-anchor="middle">stays on your disk</text>
+  <text class="l" x="589" y="318" text-anchor="middle">treat as sensitive</text>
+  <text class="l" x="349" y="300" text-anchor="middle">gaps: not_visible</text>
+  <text class="l" x="349" y="318" text-anchor="middle">+ coverage, never "off"</text>
+  <text class="l" x="1080" y="20" text-anchor="middle">Claude Code, Cursor, VS Code</text>
+</svg>
