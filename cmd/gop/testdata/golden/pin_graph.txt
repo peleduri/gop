@@ -1,0 +1,14 @@
+action: acme-actions/deploy@main
+sha: 1111111111111111111111111111111111111111
+ref kind: branch
+replace: uses: acme-actions/deploy@main
+with:    uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+files (4):
+  acme-actions/tools .github/workflows/build.yml line 9
+  acme-app/api .github/workflows/deploy.yml line 10
+  acme-app/web .github/workflows/ci.yml line 8
+  acme-app/web .github/workflows/release.yml line 12
+skipped: acme-legacy/old-site .github/workflows/ci.yml: line not recorded in this graph: edit by hand
+warning: acme-actions/tools .github/workflows/build.yml is inside acme-actions/tools/.github/workflows/build.yml@main: its callers pick up the pin only when that ref points at the new commit (a SHA or tag pin needs a new pin)
+warning: the diffs span 3 repos: apply each repo's part in its own checkout, or use --repo
+warning: pinning acme-actions/deploy@main alone does not close paths through the mutable refs it uses itself: acme-actions/setup@main (acme-actions/deploy@main action.yml:6). Pin those too (for example gop pin --action acme-actions/setup@main)

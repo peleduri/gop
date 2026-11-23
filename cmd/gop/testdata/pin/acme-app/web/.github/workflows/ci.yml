@@ -1,0 +1,9 @@
+name: ci
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: acme-actions/setup@0123456789abcdef0123456789abcdef01234567
+      - uses: acme-actions/deploy@main
+      - run: make test

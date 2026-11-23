@@ -46,7 +46,7 @@ Confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
   - note: line not recorded in this graph: replace `uses: acme-actions/deploy@main` with `uses: acme-actions/deploy@<sha-of-main> # main`
 - [ ] Verify acme-actions/deploy
   - owner: acme-actions
-  - note: gop works offline and does not know the commit main points at: replace <sha-of-main> with the full commit SHA of main, resolved with `gop pin --action acme-actions/deploy@main` or read from the repository. Use the same SHA in every step.
+  - note: fix-plan works offline and does not know the commit main points at: run `gop pin --action acme-actions/deploy@main --graph graph.json` to resolve it with one read-only API call and print these edits as a git apply diff, or replace <sha-of-main> with the full commit SHA of main yourself. Use the same SHA in every step.
 
 ### Caveats
 

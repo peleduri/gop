@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -52,6 +53,8 @@ Usage:
               [--fail-on confirmed-increase|any-new-path] [--force]
   gop fix-plan --graph graph.json | --demo  --pin <action> | --lower-default-perm <org> [--to read|none]
               [--format text|markdown|json]
+  gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
+              [--github-url URL] [--format diff|text|json]
   gop mcp-config --client claude|cursor|vscode --graph graph.json
   gop version
 
@@ -71,6 +74,9 @@ diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or 
 --graph - reads the graph from stdin (report, paths, who): gop demo | gop report --graph - --out -
 fix-plan prints the change steps for one fix (workflow lines with diffs, settings
 with their REST call as text). gop never runs them or calls write APIs.
+pin resolves an action ref to a commit SHA with read-only GET requests (token
+from GITHUB_TOKEN or GH_TOKEN) and, with --graph, prints a git apply diff for
+every consuming workflow. It writes to stdout only.
 mcp-config prints the MCP client config for serve; it never writes files.
 Confirmed reach: every hop live or audit. Possible reach: at least one hop not visible.
 `
@@ -85,6 +91,12 @@ type app struct {
 	collect        collector
 	serve          func(ctx context.Context, g *graph.Graph, version string, opts mcpserver.ServerOptions) error
 	now            func() time.Time // nil means time.Now
+	// apiURL (the default of gop pin --github-url) and transport are the
+	// GitHub REST root and HTTP transport gop pin uses (defaults:
+	// api.github.com, http.DefaultTransport); tests point them at an httptest
+	// server.
+	apiURL    string
+	transport http.RoundTripper
 }
 
 func main() {
@@ -137,6 +149,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdMCPConfig(rest)
 	case "fix-plan":
 		err = a.cmdFixPlan(rest)
+	case "pin":
+		err = a.cmdPin(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":

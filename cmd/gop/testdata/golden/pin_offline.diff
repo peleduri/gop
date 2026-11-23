@@ -1,0 +1,38 @@
+# action: acme-actions/deploy@main
+# sha: 1111111111111111111111111111111111111111
+# ref kind: branch
+# replace: uses: acme-actions/deploy@main
+# with:    uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+# files (4):
+#   acme-actions/tools .github/workflows/build.yml line 9
+#   acme-app/api .github/workflows/deploy.yml line 10
+#   acme-app/web .github/workflows/ci.yml line 8
+#   acme-app/web .github/workflows/release.yml line 12
+# skipped: acme-legacy/old-site .github/workflows/ci.yml: line not recorded in this graph: edit by hand
+# warning: acme-actions/tools .github/workflows/build.yml is inside acme-actions/tools/.github/workflows/build.yml@main: its callers pick up the pin only when that ref points at the new commit (a SHA or tag pin needs a new pin)
+# warning: --offline hunks show the uses: entry without its indentation or list marker and carry no context: they do not apply with git apply; drop --offline for exact diffs
+# warning: the diffs span 3 repos: apply each repo's part in its own checkout, or use --repo
+# warning: pinning acme-actions/deploy@main alone does not close paths through the mutable refs it uses itself: acme-actions/setup@main (acme-actions/deploy@main action.yml:6). Pin those too (for example gop pin --action acme-actions/setup@main)
+# repo: acme-actions/tools (apply in a checkout of acme-actions/tools)
+--- a/.github/workflows/build.yml
++++ b/.github/workflows/build.yml
+@@ -9 +9 @@
+-uses: acme-actions/deploy@main
++uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+# repo: acme-app/api (apply in a checkout of acme-app/api)
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -10 +10 @@
+-uses: acme-actions/deploy@main
++uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+# repo: acme-app/web (apply in a checkout of acme-app/web)
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -8 +8 @@
+-uses: acme-actions/deploy@main
++uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -12 +12 @@
+-uses: acme-actions/deploy@main
++uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main

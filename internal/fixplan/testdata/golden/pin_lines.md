@@ -57,7 +57,7 @@ Confirmed (principal, repo) pairs: 14 -> 11 (21% removed); possible pairs: 5 -> 
 
 - [ ] Verify acme-actions/deploy
   - owner: acme-actions
-  - note: gop works offline and does not know the commit main points at: replace <sha-of-main> with the full commit SHA of main, resolved with `gop pin --action acme-actions/deploy@main` or read from the repository. Use the same SHA in every step.
+  - note: fix-plan works offline and does not know the commit main points at: run `gop pin --action acme-actions/deploy@main --graph graph.json` to resolve it with one read-only API call and print these edits as a git apply diff, or replace <sha-of-main> with the full commit SHA of main yourself. Use the same SHA in every step.
 - [ ] Edit acme-legacy/old-site `.github/workflows/ci.yml`
   - owner: acme-legacy
   - evidence: `workflow:acme-legacy/old-site/.github/workflows/ci.yml USES action:acme-actions/deploy@main` (not visible)

@@ -180,6 +180,14 @@ type response struct {
 
 // do sends one logical request with retries for 5xx, network errors and rate limits.
 func (c *Client) do(ctx context.Context, method string, u *url.URL, body []byte) (*response, error) {
+	return c.doAccept(ctx, method, u, body, jsonAccept)
+}
+
+// jsonAccept is the default media type of every request.
+const jsonAccept = "application/vnd.github+json"
+
+// doAccept is do with a custom Accept media type.
+func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body []byte, accept string) (*response, error) {
 	var lastErr error
 	backoff := time.Second
 	for attempt := 1; attempt <= c.maxAttempts; attempt++ {
@@ -195,7 +203,7 @@ func (c *Client) do(ctx context.Context, method string, u *url.URL, body []byte)
 			return nil, fmt.Errorf("github api %s %s: %w", method, redactedPath(u), err)
 		}
 		req.Header.Set("Authorization", "Bearer "+c.token)
-		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("Accept", accept)
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 		req.Header.Set("User-Agent", "gop-collector")
 		if body != nil {
@@ -358,6 +366,24 @@ func (c *Client) GetJSONHeader(ctx context.Context, path string, out any) (http.
 		}
 	}
 	return r.header, nil
+}
+
+// GetRaw fetches one REST resource with the given Accept media type (for
+// example application/vnd.github.sha or application/vnd.github.raw) and
+// returns the body as is. An empty accept means application/vnd.github+json.
+func (c *Client) GetRaw(ctx context.Context, path, accept string) ([]byte, error) {
+	u, err := c.resolve(path)
+	if err != nil {
+		return nil, err
+	}
+	if accept == "" {
+		accept = jsonAccept
+	}
+	r, err := c.doAccept(ctx, http.MethodGet, u, nil, accept)
+	if err != nil {
+		return nil, err
+	}
+	return r.body, nil
 }
 
 // GetPages fetches a REST collection, following Link rel="next" headers, and
