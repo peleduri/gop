@@ -339,7 +339,7 @@ func TestCollectCachedRerun(t *testing.T) {
 		}
 	}
 
-	// Change one workflow: only that file is downloaded again.
+	// Change one workflow: only that file and its listing are downloaded again.
 	f.resetCounts()
 	f.mu.Lock()
 	f.extraWorkflows["acme-app/web/cache.yml"] = cacheWorkflow("acme-other/tool2@main")
@@ -353,7 +353,8 @@ func TestCollectCachedRerun(t *testing.T) {
 			continue
 		}
 		changed := f.notModified[k] == 0
-		if changed != (k == cacheWorkflowKey) {
+		// The directory listing carries each file's blob SHA, so it changes too.
+		if changed != (k == cacheWorkflowKey || k == "/repos/acme-app/web/contents/.github/workflows") {
 			t.Errorf("%s: %d requests, %d answered 304", k, f.hits[k], f.notModified[k])
 		}
 	}

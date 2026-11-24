@@ -314,6 +314,10 @@ func (a *app) cmdCollect(args []string) error {
 		"wait for the reset instead of dipping below it, and stop with a partial graph when the reset cannot be waited for")
 	priority := fs.String("priority", "", "comma-separated org logins to collect first, in this order "+
 		"(the rest follow by member count, largest first), so a stopped or budgeted run covers them")
+	incremental := fs.Bool("incremental", false, "with --cache-dir, re-read only what changed since the previous incremental run "+
+		"with the same directory: repositories whose pushed_at and updated_at did not move are answered from that run's "+
+		"records; org-level reads are always repeated")
+	fullEvery := fs.Int("full-every", 7, "with --incremental, do a full run when the last one is at least this many days old")
 	verbose := fs.Bool("verbose", false, "log every per-repository not-visible error (for example collaborators the token "+
 		"cannot list) instead of one summary line per org (or set GOP_VERBOSE=1)")
 	var trusts trustFlag
@@ -336,6 +340,12 @@ func (a *app) cmdCollect(args []string) error {
 	}
 	if *reserve < 0 {
 		return usagef("collect: --reserve must not be negative, got %d", *reserve)
+	}
+	if *incremental && *cacheDir == "" {
+		return usagef("collect: --incremental needs --cache-dir")
+	}
+	if *fullEvery < 1 {
+		return usagef("collect: --full-every must be at least 1 (days)")
 	}
 	ep, err := uf.resolve(a.getenv)
 	if err != nil {
@@ -365,6 +375,8 @@ func (a *app) cmdCollect(args []string) error {
 		MaxRequests:      *maxReq,
 		Reserve:          *reserve,
 		Priority:         splitList(*priority),
+		Incremental:      *incremental,
+		FullEvery:        time.Duration(*fullEvery) * 24 * time.Hour,
 		Verbose:          *verbose || envTrue(a.getenv("GOP_VERBOSE")),
 		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}

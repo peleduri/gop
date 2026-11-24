@@ -102,7 +102,7 @@ func (k *collector) fetchCollaborators(ctx context.Context, c *Client, o *orgSta
 	q, vars := buildCollabQuery(o, repos)
 	var data map[string]json.RawMessage
 	k.batch.queries++
-	gqlErrs, err := c.GraphQL(ctx, q, vars, &data)
+	gqlErrs, err := c.GraphQL(withAliasPlan(ctx, collabPlan(o, repos)), q, vars, &data)
 	split := func() error {
 		if len(repos) <= 1 {
 			return nil

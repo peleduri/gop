@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -57,7 +58,9 @@ func TestUsageErrors(t *testing.T) {
 		{"who", "--graph", fixture, "extra", "--target"}, // positional arg
 		{"serve"},
 		{"collect", "--enterprise", "acme"}, // missing --out
-		{"collect", "--enterprise", "acme", "--out", "g.json", "--resume"}, // --resume without --cache-dir
+		{"collect", "--enterprise", "acme", "--out", "g.json", "--resume"},                                               // --resume without --cache-dir
+		{"collect", "--enterprise", "acme", "--out", "g.json", "--incremental"},                                          // --incremental without --cache-dir
+		{"collect", "--enterprise", "acme", "--out", "g.json", "--cache-dir", "d", "--incremental", "--full-every", "0"}, // below one day
 		{"validate"}, // missing --graph
 		{"validate", "--graph", fixture, "--format", "yaml"},
 		{"validate", "--graph", fixture, "extra"},
@@ -192,6 +195,17 @@ func TestCollectCacheFlags(t *testing.T) {
 	}
 	if got.CacheDir != dir || !got.Resume {
 		t.Errorf("config = CacheDir %q Resume %v", got.CacheDir, got.Resume)
+	}
+	if got.Incremental || got.FullEvery != 7*24*time.Hour {
+		t.Errorf("default config = Incremental %v FullEvery %s", got.Incremental, got.FullEvery)
+	}
+	r = runApp(t, map[string]string{"GITHUB_TOKEN": "test-token-value-123"}, fake, "collect", "--enterprise", "acme",
+		"--out", filepath.Join(t.TempDir(), "g.json"), "--cache-dir", dir, "--incremental", "--full-every", "3")
+	if r.code != 0 {
+		t.Fatalf("collect --incremental: %+v", r)
+	}
+	if !got.Incremental || got.FullEvery != 3*24*time.Hour || got.CacheDir != dir {
+		t.Errorf("config = Incremental %v FullEvery %s CacheDir %q", got.Incremental, got.FullEvery, got.CacheDir)
 	}
 }
 

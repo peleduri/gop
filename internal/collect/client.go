@@ -78,6 +78,9 @@ type Client struct {
 	// budget, when set, enforces Config.MaxRequests and Config.Reserve and
 	// stops the run when the rate limit runs out (budget.go). Copies share it.
 	budget *requestBudget
+	// replay, when set, answers per-repository requests of an incremental
+	// run from the previous run's records (incremental.go); copies share it.
+	replay *replayStore
 }
 
 // RateState is the last rate-limit budget the client saw. A remaining count
@@ -417,6 +420,9 @@ const jsonAccept = "application/vnd.github+json"
 func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body []byte, accept string) (*response, error) {
 	if err := c.checkRequest(method, u); err != nil {
 		return nil, err
+	}
+	if c.replay != nil && method == http.MethodGet && !replayBypassed(ctx) {
+		return c.replay.get(ctx, c, u, accept)
 	}
 	var lastErr error
 	lastLimited := false // lastErr is a rate limit
@@ -785,6 +791,9 @@ func (e GraphQLErrors) HasType(t string) bool {
 func (c *Client) GraphQL(ctx context.Context, query string, vars map[string]any, out any) (GraphQLErrors, error) {
 	if isMutation(query) {
 		return nil, errors.New("collect: refusing a GraphQL mutation: gop is read-only")
+	}
+	if p := aliasPlanFrom(ctx); p != nil && c.replay != nil {
+		return c.replay.graphql(ctx, c, p, query, vars, out)
 	}
 	u, err := url.Parse(c.graphqlURL)
 	if err != nil {

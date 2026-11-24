@@ -107,6 +107,15 @@ type Config struct {
 	// Priority lists orgs to collect first, in this order. The rest follow
 	// by member count, largest first, then in listed order.
 	Priority []string
+	// Incremental, with CacheDir, re-reads only what changed since the
+	// previous incremental run with the same directory (incremental.go):
+	// per-repository answers of repositories whose pushed_at, updated_at and
+	// listing fields did not move are reused without a request; org-level
+	// reads are always repeated.
+	Incremental bool
+	// FullEvery is how long an incremental collection may go without a full
+	// run (default DefaultFullEvery, 7 days).
+	FullEvery time.Duration
 }
 
 // Source API labels recorded on edges and used in coverage.
@@ -256,6 +265,12 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 	if err := cfg.checkMergeInto(); err != nil {
 		return nil, err
 	}
+	if cfg.Incremental && cfg.CacheDir == "" {
+		return nil, errors.New("collect: Incremental needs CacheDir")
+	}
+	if cfg.FullEvery < 0 {
+		return nil, errors.New("collect: FullEvery must not be negative")
+	}
 	c := cfg.Client
 	if c == nil {
 		var err error
@@ -283,6 +298,10 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 			return nil, err
 		}
 		c = c.withCache(cache)
+	}
+	inc, c, err := startIncremental(cfg, c)
+	if err != nil {
+		return nil, err
 	}
 	var app *appAuth
 	if cfg.appMode() {
@@ -326,6 +345,9 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		return k.stopped(cache, reason, runErr, budget.Sent())
 	}
 	g := k.graph()
+	if inc != nil {
+		inc.finish(k, g)
+	}
 	k.logCoverage(g)
 	if cache != nil {
 		st := cache.Stats()
