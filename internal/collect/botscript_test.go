@@ -51,7 +51,7 @@ func TestScanScript(t *testing.T) {
 		want scriptFacts
 	}{
 		{"PyGithub merge counting dismissed approvals", readBotFixture(t, "script/merge.py"),
-			scriptFacts{merge: true, app: true, stale: true}},
+			scriptFacts{merge: true, app: true, stale: true, dismissed: true}},
 		{"PyGithub merge of head-commit approvals only", readBotFixture(t, "script/merge-head.py"),
 			scriptFacts{merge: true, app: true}},
 		{"Octokit merge, stale commit compared and still counted", `
@@ -142,6 +142,7 @@ func TestBotScriptMergeFixture(t *testing.T) {
 		t.Run(mode.name, func(t *testing.T) {
 			f := newFakeGitHub(t)
 			botScriptPlant(t, f, "merge.py", false)
+			botDismissStale(t, f)
 			ix := collectMode(t, f, mode.rest)
 
 			if n := f.hitCount(botScriptKey); n != 1 {
@@ -165,8 +166,10 @@ func TestBotScriptMergeFixture(t *testing.T) {
 				graph.AttrBotMergeStale:  graph.StaleSuspected, graph.AttrBotMergeStaleConf: graph.StaleHeuristic,
 				graph.AttrReviewBypassStale:  graph.StaleSuspected,
 				graph.AttrAgentHoldsMergeKey: "true", graph.AttrAgentMergeKeyWorkflows: ".github/workflows/ai-review.yml",
+				graph.AttrBranchDismissStale: "true", graph.AttrReviewBypassRecount: graph.StaleSuspected,
+				graph.AttrBotMergeApps: "77", graph.AttrReviewBypassAppMatch: graph.AppMatched,
 			})
-			for _, a := range []string{graph.AttrBotMergeStale, graph.AttrReviewBypassStale} {
+			for _, a := range []string{graph.AttrBotMergeStale, graph.AttrReviewBypassStale, graph.AttrReviewBypassRecount} {
 				if repo.AttrEvidence[a] != graph.NotVisible {
 					t.Errorf("repo %s evidence = %q, want not_visible", a, repo.AttrEvidence[a])
 				}
@@ -193,12 +196,12 @@ func TestBotScriptMergeFixture(t *testing.T) {
 			if p.Unverified {
 				t.Fatalf("path = %+v, want confirmed", p)
 			}
-			want := "a PR author can get code onto `main` without human review: `ai-review.yml` + `ai-merge.yml` (merges in `tools/merge.py`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)"
+			want := "a PR author can get code onto `main` without human review: `ai-review.yml` + `ai-merge.yml` (merges in `tools/merge.py`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)"
 			if notes := gx.PathNotes(p); len(notes) != 1 || notes[0] != want {
 				t.Errorf("notes = %q\nwant %q", notes, want)
 			}
 			fx := graph.BotMergeFixes(repo)
-			if len(fx) != 7 || !strings.Contains(fx[4], "head commit") || !strings.Contains(fx[5], "synchronize") ||
+			if len(fx) != 7 || !strings.Contains(fx[4], "the script re-counts approvals GitHub dismissed") || !strings.Contains(fx[5], "synchronize") ||
 				!strings.Contains(fx[6], "Keep the merge key out of the AI step") {
 				t.Errorf("fixes = %q", fx)
 			}
@@ -269,6 +272,22 @@ func TestBotScriptStaleWithRereview(t *testing.T) {
 	if v, ok := repo.Attrs[graph.AttrReviewBypassStale]; ok {
 		t.Errorf("review_bypass_stale_approval = %q, want none", v)
 	}
+	// The rules do not dismiss stale reviews: no re-count of dismissed
+	// approvals, and the fix asks for head-commit approvals only.
+	if v, ok := repo.Attrs[graph.AttrReviewBypassRecount]; ok {
+		t.Errorf("review_bypass_recounts_dismissed = %q, want none", v)
+	}
+	if fx := graph.BotMergeFixes(repo); !strings.Contains(fx[4], "Count only approvals of the head commit") {
+		t.Errorf("fixes = %q", fx)
+	}
+}
+
+// botDismissStale makes the ruleset of botPlant dismiss stale reviews on push.
+func botDismissStale(t *testing.T, f *fakeGitHub) {
+	t.Helper()
+	f.rules["acme-app/web@main"] = raws(t, map[string]any{"type": "pull_request", "ruleset_id": 46, "ruleset_source_type": "Repository",
+		"parameters": map[string]any{"required_approving_review_count": 1, "require_code_owner_review": false, "dismiss_stale_reviews_on_push": true}},
+		typedRule("non_fast_forward", 46, "Repository"))
 }
 
 // A missing script: no merge found, a coverage entry, and no review bypass.

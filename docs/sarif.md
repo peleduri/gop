@@ -37,6 +37,7 @@ gop sarif --graph graph.json --split-by-repo DIR [same filters]
 | `GOP002` | `default-permission-grants-push` | org whose default repository permission gives members push (a `lower_default_perm` candidate) | logical location `org:<login>`, no file |
 | `GOP003` | `action-with-known-advisory-reachable` | `uses:` line (USES edge) of an action ref with a known compromise or vulnerability advisory (`advisories` attr, see [advisories.md](advisories.md)) | the consuming repo's workflow file and line, as for GOP001 |
 | `GOP004` | `agent-workflow-exposed` | AI coding agent workflow that people without push access can start (`agent_exposure=outsiders` with a known agent action or CLI, see [agents-in-ci.md](agents-in-ci.md)) | the workflow file and the agent step's line from its `CAN_TRIGGER` edge |
+| `GOP005` | `review-bypass-bot-self-merge` | merge workflow line of a repo where a pull request's author can get code onto the default branch through a bot approval and a bot merge with no human review (`review_bypass=bot_self_merge` with `CAN_MERGE_VIA_BOT` edges, see [agents-in-ci.md](agents-in-ci.md#ai-approve--self-merge)) | the merging workflow file and the merging step's line from its `CAN_MERGE_VIA_BOT` edge |
 
 GOP003 results sort before every other result, whatever their severity, and
 `--top` keeps them first. Their fix is the `pin_ref` plan for the action, which
@@ -51,6 +52,16 @@ workflow's `CAN_TRIGGER` edges; a result whose edges are all `not_visible`
 (the agent's actor check is unknown) is possible. Severity is at least high
 when the agent job holds a write scope or a secret. Their fix is the
 `harden_trigger` plan; `agent_fixes` lists the agent-specific changes.
+
+GOP005 results have the sources of the repo's `CAN_MERGE_VIA_BOT` edges as
+principals; a result whose edges are all `not_visible` (a deciding fact such
+as the bypass list, which App the merge mints for, or whether `GITHUB_TOKEN`
+may approve is unknown) is possible. A review bypass only people with push
+access can use has no result. Severity is what landing code on the repo's
+default branch reaches (at least medium: the repo's CI). Their fix is the
+`block_bot_merge` plan; `bot_merge_fixes` lists the changes, most effective
+first, including the suspected (heuristic) stale-approval fix for a merge
+script.
 
 Results come from the same candidate fixes as `suggest_fixes` and `gop fix-plan`.
 A fix whose edges are all `not_visible` is never a result. Each rule's
@@ -71,7 +82,8 @@ the affected principals lose when the base permission is read; for GOP003, what
 the consuming workflow reaches, raised to the advisory's own severity
 (`advisory_severity`, high when the advisory gives none) when that is higher;
 for GOP004, what the agent workflow reaches, at least high when the agent job
-holds a write scope or a secret.
+holds a write scope or a secret; for GOP005, what controlling the repo
+reaches.
 
 | Severity | Terminal impact | SARIF level |
 |----------|-----------------|-------------|

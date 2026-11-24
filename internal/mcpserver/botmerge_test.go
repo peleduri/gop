@@ -42,7 +42,7 @@ func TestBotMergeTools(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, w := range []string{"a PR author can get code onto `main` without human review: `ai-review.yml` + `ai-merge.yml`",
-		"fix 2: Remove the GitHub App from the bypass actors"} {
+		"fix 2: Remove the GitHub App `77` from the bypass actors"} {
 		if !strings.Contains(ex.Summary, w) {
 			t.Errorf("explain lacks %q: %q", w, ex.Summary)
 		}
@@ -72,7 +72,7 @@ func TestBotMergeScriptExplain(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, w := range []string{"(merges in `tools/merge.py`)", "the approval may not cover the merged code (suspected, heuristic",
-		"fix 5: Count only approvals of the head commit", "fix 7: Keep the merge key out of the AI step"} {
+		"fix 5: Stop counting DISMISSED reviews in `tools/merge.py`", "the script re-counts approvals GitHub dismissed", "fix 7: Keep the merge key out of the AI step"} {
 		if !strings.Contains(ex.Summary, w) {
 			t.Errorf("explain lacks %q: %q", w, ex.Summary)
 		}

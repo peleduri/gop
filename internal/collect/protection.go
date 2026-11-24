@@ -60,6 +60,7 @@ type apiActors struct {
 		Slug string `json:"slug"`
 	} `json:"teams"`
 	Apps []struct {
+		ID   int64  `json:"id"`
 		Slug string `json:"slug"`
 	} `json:"apps"`
 }

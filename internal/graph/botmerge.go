@@ -60,6 +60,16 @@ func StaleApprovalsSuspected(n Node) bool {
 // merged code.
 const staleNote = "; the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)"
 
+// recountNote is the path note suffix when the rules dismiss stale reviews
+// and the merge script counts DISMISSED reviews.
+const recountNote = "; the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)"
+
+// RecountsDismissed reports whether a repo's bot merge is suspected
+// (heuristic) to re-count approvals GitHub dismissed.
+func RecountsDismissed(n Node) bool {
+	return n.Attrs[AttrReviewBypassRecount] == StaleSuspected
+}
+
 // BotMergeNote is the path note of a repo with a review bypass: "a PR author
 // can get code onto `main` without human review: `ai-review.yml` +
 // `ai-merge.yml`", with "may" and the unknown fact when it is possible
@@ -70,7 +80,10 @@ func BotMergeNote(n Node) string {
 	}
 	h, _ := RepoHardening(n)
 	stale := ""
-	if n.Attrs[AttrReviewBypassStale] == StaleSuspected {
+	switch {
+	case RecountsDismissed(n):
+		stale = recountNote
+	case n.Attrs[AttrReviewBypassStale] == StaleSuspected:
 		stale = staleNote
 	}
 	if !ReviewBypassConfirmed(n) {
@@ -84,6 +97,10 @@ func botUnknown(n Node) string {
 	switch {
 	case n.Attrs[AttrReviewBypassReason] == ReviewBypassApp && n.Attrs[AttrBranchAppBypass] == "unknown":
 		return "the bypass list is not visible"
+	case n.Attrs[AttrReviewBypassReason] == ReviewBypassApp && n.Attrs[AttrReviewBypassAppMatch] == AppUnmatched:
+		return "the merging App is not one of the bypass Apps gop read"
+	case n.Attrs[AttrReviewBypassReason] == ReviewBypassApp && n.Attrs[AttrReviewBypassAppMatch] == AppUnknown:
+		return "whether the merging App is the bypass App is not visible"
 	case n.Attrs[AttrReviewBypassReason] == ReviewBypassAdmin:
 		return "whether the merging token belongs to an admin is not visible"
 	case n.Attrs[AttrBranchReviews] == "unknown" || n.Attrs[AttrBranchCodeOwnerReview] == "unknown":
@@ -104,7 +121,11 @@ func BotMergeFixes(n Node) []string {
 	}
 	switch n.Attrs[AttrReviewBypassReason] {
 	case ReviewBypassApp:
-		out = append(out, "Remove the GitHub App from the bypass actors of the rules on "+h.branch()+": the merging workflow uses its token, so the merge skips every rule.")
+		if app := BotMergeApp(n); app != "" && n.Attrs[AttrReviewBypassAppMatch] == AppMatched {
+			out = append(out, "Remove the GitHub App "+app+" from the bypass actors of the rules on "+h.branch()+": the merging workflow uses its token, so the merge skips every rule.")
+		} else {
+			out = append(out, "Check which GitHub App the merging workflow mints its token for, and remove it from the bypass actors of the rules on "+h.branch()+" if it is listed: a bypass App's merge skips every rule.")
+		}
 	case ReviewBypassAdmin:
 		out = append(out, "Drop --admin from the merge step and do not give it an admin's token: admins bypass the rules on "+h.branch()+".")
 	default:
@@ -119,6 +140,18 @@ func BotMergeFixes(n Node) []string {
 	return out
 }
 
+// BotMergeApp names the Apps a repo's bot merge mints its token for, from
+// bot_merge_apps without unknown: "`77`". "" when none is named.
+func BotMergeApp(n Node) string {
+	var out []string
+	for _, r := range splitAttr(n.Attrs[AttrBotMergeApps]) {
+		if r != AppUnknown {
+			out = append(out, "`"+r+"`")
+		}
+	}
+	return strings.Join(out, ", ")
+}
+
 // BotMergeExtra is a fix for a script or key finding of a review bypass,
 // with the file it changes ("" when it is not one file).
 type BotMergeExtra struct {
@@ -127,7 +160,8 @@ type BotMergeExtra struct {
 
 // BotMergeExtras are the fixes after the four of BotMergeFixes, in order:
 // the stale-approval logic of the merge script (suspected), the review that
-// does not re-run on push, and the merge key held by an AI step.
+// does not re-run on push, the setting that lets GITHUB_TOKEN approve, and
+// the merge key held by an AI step.
 func BotMergeExtras(n Node) []BotMergeExtra {
 	if !ReviewBypassed(n) {
 		return nil
@@ -138,12 +172,19 @@ func BotMergeExtras(n Node) []BotMergeExtra {
 		if file != "" {
 			where = "`" + file + "`"
 		}
-		out = append(out, BotMergeExtra{File: file, Change: "Count only approvals of the head commit in " + where + " (suspected, heuristic: confirm by hand): skip reviews whose commit_id is not the head SHA and never count DISMISSED reviews."})
+		change := "Count only approvals of the head commit in " + where + " (suspected, heuristic: confirm by hand): skip reviews whose commit_id is not the head SHA and never count DISMISSED reviews."
+		if RecountsDismissed(n) {
+			change = "Stop counting DISMISSED reviews in " + where + " (suspected, heuristic: confirm by hand): the rules already dismiss stale reviews on push, but the script re-counts approvals GitHub dismissed. Count only APPROVED reviews whose commit_id is the head SHA."
+		}
+		out = append(out, BotMergeExtra{File: file, Change: change})
 	}
 	if n.Attrs[AttrReviewBypassStale] == StaleSuspected {
 		for _, f := range splitAttr(n.Attrs[AttrReviewBypassApprove]) {
 			out = append(out, BotMergeExtra{File: f, Change: "Re-run the AI review on every push: add synchronize to the pull_request types of `" + path.Base(f) + "`, so an approval always covers the code that is merged."})
 		}
+	}
+	if n.Attrs[AttrReviewBypassReason] == ReviewBypassApprovals && n.Attrs[AttrActionsCanApprove] == "true" {
+		out = append(out, BotMergeExtra{Change: "Turn off \"Allow GitHub Actions to create and approve pull requests\" (Settings > Actions > General > Workflow permissions): then a GITHUB_TOKEN approval is refused and never counts toward the required reviews."})
 	}
 	if n.Attrs[AttrAgentHoldsMergeKey] == "true" {
 		files := splitAttr(n.Attrs[AttrAgentMergeKeyWorkflows])

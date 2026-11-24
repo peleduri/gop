@@ -206,6 +206,10 @@ type collector struct {
 	// the workflows whose steps run repo scripts to follow (botscript.go).
 	botFacts     map[string]*botFacts
 	botScriptWFs []botScriptWF
+
+	// actionsApproveOrg caches each org's "allow GitHub Actions to approve
+	// pull requests" setting (botapprove.go).
+	actionsApproveOrg map[string]*orgCanApprove
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -374,6 +378,9 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	if err := k.followBotScripts(ctx); err != nil {
+		return err
+	}
+	if err := k.collectActionsApprove(ctx); err != nil {
 		return err
 	}
 	k.addBotMergePaths()

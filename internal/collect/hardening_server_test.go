@@ -120,8 +120,8 @@ func (f *fakeGitHub) protRepo(owner, repo string, withRules, forbid bool) (map[s
 				for range a.Teams {
 					allowances = append(allowances, map[string]any{"actor": map[string]any{"__typename": "Team"}})
 				}
-				for range a.Apps {
-					allowances = append(allowances, map[string]any{"actor": map[string]any{"__typename": "App"}})
+				for _, ap := range a.Apps {
+					allowances = append(allowances, map[string]any{"actor": map[string]any{"__typename": "App", "databaseId": ap.ID, "slug": ap.Slug}})
 				}
 				total = len(allowances)
 			}
@@ -219,7 +219,7 @@ func (f *fakeGitHub) gqlBypassActors(full string, id int64, owned bool) any {
 		case "RepositoryRole":
 			n["repositoryRoleName"] = builtinRoleIDs[a.ActorID]
 		case "Integration":
-			n["actor"] = map[string]any{"__typename": "App"}
+			n["actor"] = map[string]any{"__typename": "App", "databaseId": a.ActorID, "slug": ""}
 		default:
 			n["actor"] = map[string]any{"__typename": a.ActorType}
 		}

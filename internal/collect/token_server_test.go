@@ -10,7 +10,8 @@ import (
 // GET /repos/{o}/{r}/actions/permissions/workflow. The repo value is the
 // repo's actions_workflow_permissions, else its org's. Orgs the token does not
 // own, repos with actions_workflow_permissions_forbidden and
-// forbidWorkflowPerms answer 403.
+// forbidWorkflowPerms answer 403. can_approve_pull_request_reviews is the
+// repo's actions_can_approve_pull_request_reviews (false for an org).
 func (f *fakeGitHub) workflowPerms(w http.ResponseWriter, p string) {
 	forbidden := func() { writeJSON(w, 403, map[string]string{"message": "Must have admin rights to Repository."}) }
 	if f.forbidWorkflowPerms {
@@ -31,6 +32,7 @@ func (f *fakeGitHub) workflowPerms(w http.ResponseWriter, p string) {
 			return
 		}
 		perm := o.WorkflowPerms
+		canApprove := false
 		if repo != "" {
 			found := false
 			for _, raw := range o.Repos {
@@ -38,6 +40,7 @@ func (f *fakeGitHub) workflowPerms(w http.ResponseWriter, p string) {
 					Name      string `json:"name"`
 					Perms     string `json:"actions_workflow_permissions"`
 					Forbidden bool   `json:"actions_workflow_permissions_forbidden"`
+					Approve   bool   `json:"actions_can_approve_pull_request_reviews"`
 				}
 				_ = json.Unmarshal(raw, &m)
 				if m.Name != repo {
@@ -48,6 +51,7 @@ func (f *fakeGitHub) workflowPerms(w http.ResponseWriter, p string) {
 					return
 				}
 				found = true
+				canApprove = m.Approve
 				if m.Perms != "" {
 					perm = m.Perms
 				}
@@ -59,7 +63,7 @@ func (f *fakeGitHub) workflowPerms(w http.ResponseWriter, p string) {
 		if perm == "" {
 			break
 		}
-		writeJSON(w, 200, map[string]any{"default_workflow_permissions": perm, "can_approve_pull_request_reviews": false})
+		writeJSON(w, 200, map[string]any{"default_workflow_permissions": perm, "can_approve_pull_request_reviews": canApprove})
 		return
 	}
 	writeJSON(w, 404, map[string]string{"message": "Not Found"})

@@ -86,6 +86,10 @@ type data struct {
 	// empty when no workflow runs an agent.
 	Agents    []agentRow
 	AgentLine string
+	// BotMerge is the "AI approve + self-merge" section, BotMergeLine its
+	// lede; empty when no repo has a review bypass.
+	BotMerge     []botMergeRow
+	BotMergeLine string
 	// LockLine counts workflow uses: lines pinned in the workflow file, by
 	// an actions.lock, stale in one, and unpinned; set only when the graph
 	// has an actions.lock fact.
@@ -197,6 +201,9 @@ type riskRow struct {
 	// Agent counts the AI agent workflows the principal can start without
 	// push access while they hold write, secrets or OIDC (Score.AgentExposed).
 	Agent int
+	// BotMerge counts the repos the principal confirmed-lands code on with
+	// no human review through a bot approve + merge (Score.BotSelfMerge).
+	BotMerge int
 }
 
 // ownership is the org ownership concentration block: how many accounts own
@@ -411,6 +418,9 @@ func build(g *graph.Graph, opts Options) data {
 		d.LockLine = lockLine(st)
 	}
 	d.Agents, d.AgentLine = agentRows(ix)
+	if d.BotMerge = botMergeRows(ix); len(d.BotMerge) > 0 {
+		d.BotMergeLine = botMergeLine(d.BotMerge)
+	}
 	if o, ok := ix.Ownership(); ok {
 		d.Ownership = ownershipView(o)
 	}

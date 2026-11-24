@@ -37,6 +37,7 @@ type scriptFacts struct {
 	approve, merge bool
 	app            bool // it mints a GitHub App token itself (from a private key)
 	stale          bool // stale-approval heuristic matched
+	dismissed      bool // the heuristic matched a DISMISSED review counted next to APPROVED
 }
 
 var (
@@ -61,7 +62,9 @@ func scanScript(data []byte) scriptFacts {
 	sf.approve = ghApproveRe.MatchString(text) ||
 		((apiReviewRe.MatchString(text) || createRevRe.MatchString(text) || pyReviewRe.MatchString(text)) && approveRe.MatchString(text))
 	sf.app = scriptAppRe.MatchString(text)
-	sf.stale = sf.merge && staleApprovals(text)
+	if sf.merge {
+		sf.stale, sf.dismissed = staleApprovals(text)
+	}
 	return sf
 }
 
@@ -69,15 +72,18 @@ func scanScript(data []byte) scriptFacts {
 // and either counts a DISMISSED review next to APPROVED (on the same line:
 // `state in ("APPROVED", "DISMISSED")`) or compares a review's commit with
 // the head and goes on without skipping it. A text match, never proof.
-func staleApprovals(text string) bool {
+// dismissed is set when the DISMISSED form matched.
+func staleApprovals(text string) (stale, dismissed bool) {
 	if !reviewsRe.MatchString(text) {
-		return false
+		return false, false
 	}
 	lines := strings.Split(text, "\n")
-	for i, line := range lines {
+	for _, line := range lines {
 		if approvedRe.MatchString(line) && dismissedRe.MatchString(line) && !strings.Contains(line, "!=") {
-			return true
+			return true, true
 		}
+	}
+	for i, line := range lines {
 		if !staleCmpRe.MatchString(line) || skipRe.MatchString(line) {
 			continue
 		}
@@ -95,10 +101,10 @@ func staleApprovals(text string) bool {
 			}
 		}
 		if !skipped {
-			return true
+			return true, false
 		}
 	}
-	return false
+	return false, false
 }
 
 // stripScriptComments drops whole-line #, // and -- comments.
