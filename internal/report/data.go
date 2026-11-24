@@ -315,7 +315,7 @@ func buildEmbedded(ix *graph.Index, g *graph.Graph, scores []graph.Score, fixes 
 	})
 
 	for i, f := range fixes {
-		_, desc := mcpserver.DescribeFix(f.Fix)
+		_, desc := mcpserver.DescribeFix(ix, f.Fix)
 		e.Fixes = append(e.Fixes, embFix{N: i + 1, ID: f.FixID, Desc: desc, Removed: f.Removed,
 			Pct: fmt.Sprintf("%.0f%%", f.CumulativePct), Orgs: fixOrgs(ix, f.Fix)})
 	}

@@ -104,6 +104,66 @@ func Spec(f graph.Fix) (FixSpec, string) {
 	return FixSpec{}, f.ID()
 }
 
+// Describe is Spec with the graph read: a harden_trigger sentence says what
+// the workflow lets outsiders do (untrusted code runs, or untrusted text
+// reaches an AI step) and on which triggers. ix may be nil.
+func Describe(ix *graph.Index, f graph.Fix) (FixSpec, string) {
+	spec, desc := Spec(f)
+	if v, ok := f.(graph.HardenTrigger); ok && ix != nil {
+		if d := HardenDescription(ix, v.Workflow, func(s string) string { return s }); d != "" {
+			desc = d
+		}
+	}
+	return spec, desc
+}
+
+// HardenDescription is the harden_trigger sentence for a workflow, per kind
+// of untrusted execution: "untrusted code runs on ..." (a checkout of the
+// pull request's code that a later step runs, or an injection) or
+// "untrusted text reaches an AI step on ..." (an agent). name formats the
+// workflow's name. "" when the graph records neither.
+func HardenDescription(ix *graph.Index, workflow string, name func(string) string) string {
+	if ix == nil {
+		return ""
+	}
+	code, ai := false, false
+	var triggers []string
+	for _, e := range graph.FixEdges(ix, graph.HardenTrigger{Workflow: workflow}) {
+		if e.Attrs[attrExec] == execAgent {
+			ai = true
+		} else {
+			code = true
+		}
+		if t := e.Attrs[attrTrigger]; t != "" {
+			triggers = append(triggers, t)
+		}
+	}
+	if n, ok := ix.Node(workflow); ok {
+		// One CAN_TRIGGER edge per principal keeps only the first execution:
+		// the workflow's own attrs name the other kind.
+		code = code || n.Attrs[graph.AttrUntrustedCheckout] == "exec"
+		ai = ai || n.Attrs[graph.AttrAgentExposure] == graph.ExposureOutsiders
+		if len(triggers) == 0 {
+			triggers = splitList(n.Attrs["risky_triggers"])
+		}
+	}
+	on := "its risky triggers"
+	if len(triggers) > 0 {
+		sort.Strings(triggers)
+		on = strings.Join(dedup(triggers), ", ")
+	}
+	wf := name(strings.TrimPrefix(workflow, "workflow:"))
+	switch {
+	case code && ai:
+		return "Harden " + wf + " (untrusted code runs, and untrusted text reaches an AI step, on " + on + ")"
+	case ai:
+		return "Harden " + wf + " (untrusted text reaches an AI step on " + on + ")"
+	case code:
+		return "Harden " + wf + " (untrusted code runs on " + on + ")"
+	}
+	return ""
+}
+
 // ReduceOwnersDescription is the sentence for a reduce_owners fix that
 // removes ownership from n accounts at threshold.
 func ReduceOwnersDescription(n, threshold int) string {
@@ -113,7 +173,7 @@ func ReduceOwnersDescription(n, threshold int) string {
 
 // Build turns a fix into change steps. It only reads ix.
 func Build(ix *graph.Index, f graph.Fix) Plan {
-	spec, desc := Spec(f)
+	spec, desc := Describe(ix, f)
 	p := Plan{FixID: f.ID(), Fix: spec, Description: desc, Removes: removes(ix, f), Steps: []Step{}, Caveats: []string{}}
 	switch v := f.(type) {
 	case graph.PinRef:

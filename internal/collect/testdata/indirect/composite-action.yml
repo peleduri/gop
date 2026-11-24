@@ -1,0 +1,14 @@
+# Synthetic fixture: a composite action that runs claude-code-base-action.
+name: AI review
+inputs:
+  dir:
+    required: true
+  title:
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: anthropics/claude-code-base-action@v1
+      with:
+        prompt: Review the change in ${{ inputs.dir }} titled ${{ inputs.title }}
+        anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}

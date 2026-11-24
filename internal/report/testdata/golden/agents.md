@@ -96,7 +96,7 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 |---:|---|---:|---:|
 | 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 19 | 31% |
 | 2 | Lower the default repository permission of acme-actions to read | 8 | 44% |
-| 3 | Stop acme-actions/setup/.github/workflows/codex-review.yml from running attacker-controlled code on its risky triggers | 4 | 50% |
+| 3 | Harden acme-actions/setup/.github/workflows/codex-review.yml (untrusted code runs, and untrusted text reaches an AI step, on pull\_request\_target) | 4 | 50% |
 | 4 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 56% |
 | 5 | Lower the default repository permission of acme-legacy to read | 2 | 60% |
 

@@ -1,0 +1,11 @@
+# Synthetic fixture: gh pr checkout, then a later step runs the tests.
+name: Test on comment
+on: issue_comment
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh pr checkout ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm ci && npm test

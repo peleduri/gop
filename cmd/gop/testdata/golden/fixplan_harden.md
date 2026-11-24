@@ -1,4 +1,4 @@
-## Fix plan: Stop acme-app/docs/.github/workflows/preview.yml from running attacker-controlled code on its risky triggers
+## Fix plan: Harden acme-app/docs/.github/workflows/preview.yml (untrusted code runs on pull_request_target)
 
 Confirmed (principal, repo) pairs: 2 -> 0 (100% removed); possible pairs: 1 -> 0.
 

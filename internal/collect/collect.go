@@ -210,6 +210,13 @@ type collector struct {
 	// actionsApproveOrg caches each org's "allow GitHub Actions to approve
 	// pull requests" setting (botapprove.go).
 	actionsApproveOrg map[string]*orgCanApprove
+	// followWFs are the workflows whose trigger and agent facts wait for
+	// the files one level down, and calledWFs the reusable workflows the
+	// nested expansion read, by action node ID (indirect.go).
+	followWFs []followWF
+	calledWFs map[string][]byte
+	// scanned holds the files read for scanning, by repo, path and ref (readScanned).
+	scanned map[string]scannedFile
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -375,6 +382,9 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	if err := k.collectBranchProtection(ctx); err != nil {
+		return err
+	}
+	if err := k.followIndirect(ctx); err != nil {
 		return err
 	}
 	if err := k.followBotScripts(ctx); err != nil {
@@ -1399,8 +1409,10 @@ func (k *collector) processWorkflowFile(o *orgState, repo *graph.Node, path stri
 	facts.SetFile(path, repo.Attrs["default_branch"])
 	k.addWorkflowFacts(wid, full, facts)
 	pending = k.addTokenFacts(wid, wn, repo, facts, pending)
-	k.addTriggerFacts(o, repo, wid, wn, facts)
-	addAgentFacts(wn, facts)
+	if !k.trackFollow(o, repo, wid, wn, path, data, facts) {
+		k.addTriggerFacts(o, repo, wid, wn, facts)
+		addAgentFacts(wn, facts)
+	}
 	bf := parseBotFacts(data, facts.Triggers, nil)
 	k.addBotFacts(wn, bf)
 	k.trackBotScripts(o, repo, wn, data, facts.Triggers, bf)
@@ -1665,6 +1677,12 @@ func (k *collector) expandOne(ctx context.Context, q queued, pre *nestedFile) er
 		}
 		facts.SetFile(path, u.Ref)
 		k.noteCalledOIDC(q.id, u, facts)
+		if len(data) <= followMaxBytes {
+			if k.calledWFs == nil {
+				k.calledWFs = map[string][]byte{}
+			}
+			k.calledWFs[q.id] = data
+		}
 		nested = facts.Uses
 	} else {
 		uses, using, perr := ParseCompositeAction(data)

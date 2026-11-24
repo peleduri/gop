@@ -1,0 +1,17 @@
+# Synthetic fixture: a reusable workflow that runs codex exec.
+name: AI triage
+on:
+  workflow_call:
+    inputs:
+      comment:
+        type: string
+        required: true
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          codex exec --full-auto "Triage this comment: $COMMENT"
+        env:
+          COMMENT: ${{ inputs.comment }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

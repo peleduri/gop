@@ -64,7 +64,13 @@ const (
 	// estBotScriptPct is the share (percent) of repositories with a run:
 	// step that invokes a repo script with a token, whose script gop reads
 	// once (one contents GET, botscript.go).
-	estBotScriptPct   = 5
+	estBotScriptPct = 5
+	// estFollowPct is the read-only contents GETs, per 100 repositories,
+	// that following one level of indirection costs (indirect.go): the
+	// local composite actions, same-repo reusable workflows and keyed repo
+	// scripts of workflows with a trigger outsiders can cause, each read
+	// once per repo.
+	estFollowPct      = 20
 	estReposPerPage   = 100
 	headerScopes      = "X-OAuth-Scopes"
 	headerSSO         = "X-GitHub-SSO"
@@ -818,6 +824,9 @@ func (d *doctor) estimate() {
 	e.Requests += int(math.Ceil(float64(e.Repos) / DefaultBatchSize))
 	// Bot merge scripts: one read-only contents GET per followed script.
 	e.Requests += int(math.Ceil(float64(e.Repos) * estBotScriptPct / 100))
+	// One level of indirection for agents and exec: one read-only contents
+	// GET per followed file.
+	e.Requests += int(math.Ceil(float64(e.Repos) * estFollowPct / 100))
 	minutes := float64(e.Requests) * estLatencyMillis / 1000 / 60
 	if b := r.REST; b != nil && e.Requests > b.Remaining && b.Limit > 0 {
 		short := e.Requests - b.Remaining

@@ -230,20 +230,29 @@ func buildHarden(ix *graph.Index, f graph.HardenTrigger, p *Plan) {
 // secrets.
 func hardenChange(g *trigStep) string {
 	job := orDefault(g.job, "(unknown)")
+	// A match in a reusable workflow of another repo that the job calls
+	// carries " (in owner/repo/path@ref)" (collect/indirect.go).
+	detail, where := g.detail, ""
+	if i := strings.LastIndex(detail, " (in "); i > 0 && strings.HasSuffix(detail, ")") {
+		detail, where = detail[:i], detail[i+5:len(detail)-1]
+	}
+	if where != "" && g.exec != execAgent {
+		job += " (in the reusable workflow " + where + " it calls)"
+	}
 	if g.exec == execInject {
-		return fmt.Sprintf("untrusted code runs: in job %s, move `${{ %s }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ %s }}`) and read it as \"$UNTRUSTED\", so the text is data, not code", job, g.detail, g.detail)
+		return fmt.Sprintf("untrusted code runs: in job %s, move `${{ %s }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ %s }}`) and read it as \"$UNTRUSTED\", so the text is data, not code", job, detail, detail)
 	}
 	if g.exec == execAgent {
-		if g.detail == llmScript {
+		if detail == llmScript {
 			return fmt.Sprintf("untrusted text reaches an AI step holding secrets: in job %s, a step that holds a model API key reads the pull request's files, diff or text (found by heuristic, confirm it calls a model); keep secrets it does not need out of its env, give the job a read-only token, treat the model's output as untrusted, or move the job off this trigger", job)
 		}
-		return fmt.Sprintf("untrusted text reaches an AI step: in job %s, stop people without push access from starting the AI agent (%s): keep the action's write-access check (remove allowed_non_write_users / allow-users), move the job off this trigger, or require approval for outside contributors; give it a read-only token and scope its tools (see docs/agents-in-ci.md)", job, g.detail)
+		return fmt.Sprintf("untrusted text reaches an AI step: in job %s, stop people without push access from starting the AI agent (%s): keep the action's write-access check (remove allowed_non_write_users / allow-users), move the job off this trigger, or require approval for outside contributors; give it a read-only token and scope its tools (see docs/agents-in-ci.md)", job, detail)
 	}
 	switch {
-	case strings.HasPrefix(g.detail, "ref:"), strings.HasPrefix(g.detail, "repository:"):
-		return fmt.Sprintf("untrusted code runs: in job %s, a later step runs code from the pull request's checkout; remove `%s` from the actions/checkout step so it checks out the base commit, or check it out into a subdirectory that no step runs code from", job, g.detail)
-	case g.detail != "":
-		return fmt.Sprintf("untrusted code runs: in job %s, remove the `%s` command that fetches the pull request's code", job, g.detail)
+	case strings.HasPrefix(detail, "ref:"), strings.HasPrefix(detail, "repository:"):
+		return fmt.Sprintf("untrusted code runs: in job %s, a later step runs code from the pull request's checkout; remove `%s` from the actions/checkout step so it checks out the base commit, or check it out into a subdirectory that no step runs code from", job, detail)
+	case detail != "":
+		return fmt.Sprintf("untrusted code runs: in job %s, remove the `%s` command that fetches the pull request's code", job, detail)
 	}
 	return "untrusted code runs: in job " + job + ", stop checking out or running the pull request's code"
 }

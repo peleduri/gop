@@ -1,0 +1,12 @@
+# Synthetic fixture: gh pr checkout and nothing that runs the code after it.
+name: Diffstat
+on: issue_comment
+jobs:
+  stat:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          gh pr checkout ${{ github.event.issue.number }}
+          git diff --stat origin/main
+        env:
+          GH_TOKEN: ${{ github.token }}

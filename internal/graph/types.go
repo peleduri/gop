@@ -449,7 +449,7 @@ const (
 // together: the weakest gate, the widest exposure, the union of the rest.
 const (
 	AttrAgent           = "agent"            // sorted comma list of agent kinds, e.g. claude-code-action,codex-cli
-	AttrAgentSource     = "agent_source"     // sorted comma list of how each was found: uses | run | setup | heuristic | name
+	AttrAgentSource     = "agent_source"     // sorted comma list of how each was found: uses | run | setup | heuristic | name, plus composite | reusable | script one level down
 	AttrAgentConfidence = "agent_confidence" // action | cli | heuristic | name_only (strongest signal); name_only never makes a path agentic
 	AttrAgentJobs       = "agent_jobs"       // sorted comma list of the agent job ids
 	AttrAgentGate       = "agent_gate"       // write_access | listed_users | anyone | none | unknown: who the agent itself lets start it

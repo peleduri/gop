@@ -55,13 +55,13 @@ func (e *Engine) FixPlan(in FixPlanInput) (res FixPlanOutput, _ error) {
 	}
 	p := fixplan.Build(e.ix, fx)
 	q := p
-	q.Description = quotedDescription(p.Fix)
+	q.Description = quotedDescription(e.ix, p.Fix)
 	return FixPlanOutput{Summary: fixplan.Summary(q), Plan: p}, nil
 }
 
 // quotedDescription is fixplan.Spec's sentence for a fix with the name in
 // backticks (sanitize.Value), for text summaries.
-func quotedDescription(f FixSpec) string {
+func quotedDescription(ix *graph.Index, f FixSpec) string {
 	switch f.Type {
 	case "pin_ref":
 		return "Pin " + sanitize.Value(strings.TrimPrefix(f.Action, "action:")) + " to a commit SHA in every workflow that uses it"
@@ -70,6 +70,9 @@ func quotedDescription(f FixSpec) string {
 	case "restrict_token":
 		return "Set permissions: contents: read on the GITHUB_TOKEN of " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:"))
 	case "harden_trigger":
+		if d := fixplan.HardenDescription(ix, f.Workflow, sanitize.Value); d != "" {
+			return d
+		}
 		return "Stop " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:")) + " from running attacker-controlled code on its risky triggers"
 	case "reduce_owners":
 		t := f.Threshold
