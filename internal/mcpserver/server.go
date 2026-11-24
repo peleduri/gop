@@ -39,19 +39,19 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 	addTool(s, "who_can_reach",
 		"List the principals (org members, users, teams, apps) that can make code run in a target "+
 			"repo, workflow, action, secret scope, OIDC trust, runner pool or cloud role (cloud:...), with one shortest path each. "+
-			"Every hop shows its evidence (live, inferred, audit, supplied, not_visible) and API source.",
-		e.WhoCanReach, func(o WhoCanReachOutput) string { return o.Summary })
+			"Every hop shows its evidence (live, inferred, audit, supplied, not_visible) and API source."+detailNote,
+		withDetail(e.WhoCanReach, briefWho), func(o WhoCanReachOutput) string { return o.Summary })
 	addTool(s, "blast_radius",
 		"Score everything one principal can make code run in: repos, orgs, workflows, secrets, OIDC trusts, "+
-			"self-hosted runners and cloud roles from supplied trust files, with confirmed and possible counts kept separate.",
-		e.BlastRadius, func(o BlastRadiusOutput) string { return o.Summary })
+			"self-hosted runners and cloud roles from supplied trust files, with confirmed and possible counts kept separate."+detailNote,
+		withDetail(e.BlastRadius, briefBlast), func(o BlastRadiusOutput) string { return o.Summary })
 	addTool(s, "paths",
 		"Show the concrete control paths from a principal, optionally only to one target. "+
-			"Each hop carries its edge kind, evidence level and API source.",
-		e.Paths, func(o PathsOutput) string { return o.Summary })
+			"Each hop carries its edge kind, evidence level and API source."+detailNote,
+		withDetail(e.Paths, briefPaths), func(o PathsOutput) string { return o.Summary })
 	addTool(s, "top_risks",
-		"Rank principals by confirmed blast radius score (ties broken by possible score) and return the top n.",
-		e.TopRisks, func(o TopRisksOutput) string { return o.Summary })
+		"Rank principals by confirmed blast radius score (ties broken by possible score) and return the top n."+detailNote,
+		withDetail(e.TopRisks, e.briefTop), func(o TopRisksOutput) string { return o.Summary })
 	addTool(s, "what_if",
 		"Apply hypothetical fixes and compare reach before and after. Fix types: "+
 			`{type:"pin_ref",action:"action:O/R@ref"} pins an action to a commit SHA; `+
@@ -63,8 +63,8 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 	addTool(s, "suggest_fixes",
 		"Suggest up to budget fixes by a greedy pick of the fix that removes the most confirmed "+
 			"(principal, repo) pairs, with the cumulative percentage removed. Fixes that touch only "+
-			"not_visible edges are never suggested.",
-		e.SuggestFixes, func(o SuggestFixesOutput) string { return o.Summary })
+			"not_visible edges are never suggested."+detailNote,
+		withDetail(e.SuggestFixes, briefSuggest), func(o SuggestFixesOutput) string { return o.Summary })
 	addTool(s, "explain",
 		"Explain why an edge exists: its evidence level, source_api, observed_at and attributes, the rule of an "+
 			"inferred edge, and the age_days and stale flag of an audit edge. "+

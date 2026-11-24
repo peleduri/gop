@@ -88,6 +88,17 @@ args:    serve --graph /path/to/graph.json
 
 Most clients accept the `mcpServers` shape shown for Cursor. To check the server by hand, start it and send an `initialize` request followed by `tools/list`; it answers with its name, version and the read-only tools. `resources/list` and `prompts/list` show the context resources (`gop://graph/summary`, `gop://graph/coverage`, `gop://graph/schema`, `gop://node/{+id}`) and the prompts (`triage_enterprise`, `review_action`, `explain_path`).
 
+## Brief and full answers
+
+On a large enterprise a full answer from a list-returning tool can run to tens of thousands of tokens. So `who_can_reach`, `blast_radius`, `paths`, `top_risks`, `suggest_fixes`, `diff` and `fix_plan` take an optional `detail` input, and **`brief` is the default**:
+
+- **`brief`** caps lists at `limit` (default 10) and leaves out bulky per-item fields: the hops of listed paths, the attrs of listed edges, and a fix plan's per-principal scores. Every listed item keeps its IDs and its evidence level (confirmed and possible stay apart). The answer adds a `brief` object: `truncated` (anything was cut), `limit`, `total` (each list's length before the cut) and `omitted` (the fields left out). For `diff`, `limit` is the number of entries in the whole report, shared so every section with changes shows at least one. For `top_risks`, `total.risks` counts every ranked principal.
+- **`full`** returns every item and field, exactly as before this option existed. `diff` keeps its per-list `limit` (default 50).
+
+Ask for the short answer first, then details for one item: `paths` with `from` and `to` returns that one path with its hops (even in brief), and `explain` returns one edge with its attrs.
+
+Brief is the default because the agent clients gop serves read answers as context, and a brief answer only removes data and adds the optional `brief` object, so the structured output still matches the tool's output schema. A client that relied on complete lists by default must now pass `"detail": "full"`. The `gop paths` and `gop who` commands are not affected: they always print full answers.
+
 ## Check before you answer
 
 gop's server instructions and the `explain_path` prompt ask the agent to call `check_answerable` before it gives a security conclusion to a human. Pass `question_kind` (the query tool whose answer you want to give) and `subject` (the node ID or org the question is about). It is deterministic and uses no language model: it reads the coverage entries and the `not_visible` facts (and audit facts too old to trust) in the part of the graph the answer depends on, and returns `answerable`:

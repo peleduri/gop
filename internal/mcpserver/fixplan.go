@@ -17,12 +17,14 @@ import (
 type FixPlanInput struct {
 	Fix            *FixSpec `json:"fix,omitempty" jsonschema:"the fix to plan, as in what_if: {type:pin_ref,action}, {type:lower_default_perm,org,to}, {type:restrict_token,workflow} or {type:harden_trigger,workflow}"`
 	SuggestionRank int      `json:"suggestion_rank,omitempty" jsonschema:"1-based rank of a fix in the suggest_fixes output with the default budget; use instead of fix"`
+	DetailInput
 }
 
 // FixPlanOutput is a plan of concrete change steps and its headline.
 type FixPlanOutput struct {
 	Summary string       `json:"summary"`
 	Plan    fixplan.Plan `json:"plan"`
+	Brief   *Brief       `json:"brief,omitempty"`
 }
 
 // FixPlan turns one fix into change steps. It never runs them.
@@ -65,17 +67,21 @@ func addFixPlanTool(s *mcp.Server, e *Engine) {
 			"for restrict_token, where to set permissions: contents: read in the workflow (top level or per job); for " +
 			"harden_trigger, the job and line of each checkout of the pull request head or script injection, with the change. " +
 			"Pass fix (same shape as what_if) or suggestion_rank (1-based, from suggest_fixes). gop never runs the " +
-			"steps or calls write APIs: the REST call is text for whoever makes the change." + evidenceNote,
+			"steps or calls write APIs: the REST call is text for whoever makes the change." + detailNote + evidenceNote,
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: new(bool)},
 	}
 	mcp.AddTool(s, t, func(_ context.Context, _ *mcp.CallToolRequest, in FixPlanInput) (*mcp.CallToolResult, FixPlanOutput, error) {
-		out, err := e.FixPlan(in)
+		out, err := withDetail(e.FixPlan, briefPlan)(in)
 		if err != nil {
 			return nil, FixPlanOutput{}, err
 		}
 		var md bytes.Buffer
 		fixplan.WriteMarkdown(&md, out.Plan)
 		text := firstLine(out.Summary) + "\n\n" + md.String()
+		if b := out.Brief; b != nil && b.Total["steps"] > len(out.Plan.Steps) {
+			text += fmt.Sprintf("\n(brief: %d of %s shown; pass detail full for the rest)\n",
+				len(out.Plan.Steps), plural(b.Total["steps"], "step", "steps"))
+		}
 		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: text}}}, out, nil
 	})
 }

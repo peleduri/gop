@@ -12,7 +12,7 @@ import (
 	"github.com/peleduri/gop/internal/testutil"
 )
 
-func init() { demoCalls["fix_plan"] = map[string]any{"suggestion_rank": 1} }
+func init() { demoCalls["fix_plan"] = map[string]any{"suggestion_rank": 1, "detail": "full"} }
 
 // TestGoldenFixPlan goldens the fix_plan text content (summary plus the
 // markdown checklist) through the in-memory MCP transport.
@@ -31,7 +31,7 @@ func TestGoldenFixPlan(t *testing.T) {
 		args   map[string]any
 	}{
 		{"fix_plan_pin.md", lines, map[string]any{"fix": map[string]any{"type": "pin_ref", "action": "action:acme-actions/deploy@main"}}},
-		{"fix_plan_rank1.md", loadAcme(t), map[string]any{"suggestion_rank": 1}},
+		{"fix_plan_rank1.md", loadAcme(t), map[string]any{"suggestion_rank": 1, "detail": "full"}},
 		{"fix_plan_lower.md", lines, map[string]any{"fix": map[string]any{"type": "lower_default_perm", "org": "org:acme-actions", "to": "read"}}},
 		{"fix_plan_restrict.md", loadAcme(t), map[string]any{"fix": map[string]any{"type": "restrict_token", "workflow": "workflow:acme-app/web/.github/workflows/ci.yml"}}},
 		{"fix_plan_harden.md", triggers, map[string]any{"fix": map[string]any{"type": "harden_trigger", "workflow": "workflow:acme-app/docs/.github/workflows/preview.yml"}}},

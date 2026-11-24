@@ -45,15 +45,24 @@ const diffDescription = "Compare the served graph with the baseline snapshot pas
 	"snapshot cannot see is reported as lost_visibility, never as removed or turned off. " +
 	"Optional filters: only (sections: paths, settings, edges, scores, coverage), principal (paths, " +
 	"scores and edges touching it), target_kind (cloud_target, oidc, secret, runner or repo; paths only). " +
-	"limit caps every list (default 50) and sets truncated when anything was cut. " +
-	"summary is the full report's lead line (as gop diff prints it), before filters."
+	"With detail full, limit caps every list (default 50); with detail brief (the default), limit (default 10) is the " +
+	"number of entries in the whole report, shared so every section with changes shows one first. truncated is set when anything was cut. " +
+	"summary is the full report's lead line (as gop diff prints it), before filters." + detailNote
 
 // DiffInput filters the diff tool answer.
 type DiffInput struct {
 	Only       []string `json:"only,omitempty" jsonschema:"sections to keep: paths, settings, edges, scores, coverage (default all)"`
 	Principal  string   `json:"principal,omitempty" jsonschema:"keep only path changes and score deltas of this principal and edges touching it, e.g. members:acme-actions"`
 	TargetKind string   `json:"target_kind,omitempty" jsonschema:"keep only path changes to this target kind: cloud_target, oidc, secret, runner or repo"`
-	Limit      int      `json:"limit,omitempty" jsonschema:"maximum entries per list (default 50)"`
+	Limit      int      `json:"limit,omitempty" jsonschema:"detail full: maximum entries per list (default 50); detail brief: maximum entries in the whole report (default 10)"`
+	Detail     string   `json:"detail,omitempty" jsonschema:"brief (default): limit entries in all, without path hops or edge attrs, with brief.truncated and brief.total; full: every field"`
+}
+
+func (in DiffInput) detailOpts() (bool, int, error) {
+	if in.Detail == DetailFull {
+		return parseDetail(in.Detail, in.Limit, DefaultDiffLimit)
+	}
+	return parseDetail(in.Detail, in.Limit, DefaultBriefLimit)
 }
 
 // DiffOutput is the posture drift between the baseline and the served graph.
@@ -63,6 +72,7 @@ type DiffOutput struct {
 	CurrentCollectedAt  time.Time   `json:"current_collected_at"`
 	Truncated           bool        `json:"truncated"`
 	Report              diff.Report `json:"report"`
+	Brief               *Brief      `json:"brief,omitempty"`
 }
 
 // differ computes the baseline report once, on first use, and filters it per call.
@@ -91,19 +101,25 @@ func (d *differ) Diff(in DiffInput) (DiffOutput, error) {
 	if kind != "" && !slices.Contains(diffTargetKinds, kind) {
 		return DiffOutput{}, fmt.Errorf("diff: target_kind must be cloud_target, oidc, secret, runner or repo, got %q", in.TargetKind)
 	}
-	if in.Limit < 0 {
-		return DiffOutput{}, fmt.Errorf("diff: limit must be positive, got %d", in.Limit)
-	}
-	limit := in.Limit
-	if limit == 0 {
-		limit = DefaultDiffLimit
+	brief, limit, err := in.detailOpts()
+	if err != nil {
+		return DiffOutput{}, fmt.Errorf("diff: %w", err)
 	}
 	d.once.Do(func() { d.rep, d.err = diff.Compare(d.old, d.cur) })
 	if d.err != nil {
 		return DiffOutput{}, d.err
 	}
 	rep := filterReport(d.rep.Only(in.Only), in.Principal, kind)
-	rep, truncated := truncateReport(rep, limit)
+	var b *Brief
+	truncated := false
+	if brief {
+		t := newTrimmer(limit)
+		rep = briefReport(rep, t)
+		b = t.brief()
+		truncated = b.Truncated
+	} else {
+		rep, truncated = truncateReport(rep, limit)
+	}
 	summary := rep.Summary
 	if graph.IsDemo(d.cur) || graph.IsDemo(d.old) {
 		summary = DemoMarker + " " + summary
@@ -114,6 +130,7 @@ func (d *differ) Diff(in DiffInput) (DiffOutput, error) {
 		CurrentCollectedAt:  rep.New.CollectedAt,
 		Truncated:           truncated,
 		Report:              rep,
+		Brief:               b,
 	}, nil
 }
 
