@@ -185,15 +185,16 @@ func refMutable(g *Graph, action string) bool {
 
 // refFixSet is the reference reading of a fix list (see refFixes).
 type refFixSet struct {
-	pinned, lowered, restricted, hardened map[string]bool
+	pinned, lowered, restricted, hardened, botBlocked map[string]bool
 }
 
 // refFixes reads the hypothetical changes out of fixes: pinned action IDs,
 // orgs whose default-permission CAN_PUSH edges from members:X are removed,
 // workflows whose via=token_write CAN_PUSH edges are removed (RestrictToken),
-// and workflows whose incoming CAN_TRIGGER edges are removed (HardenTrigger).
+// workflows whose incoming CAN_TRIGGER edges are removed (HardenTrigger),
+// and repos whose incoming CAN_MERGE_VIA_BOT edges are removed (BlockBotMerge).
 func refFixes(fixes []Fix) refFixSet {
-	fs := refFixSet{pinned: map[string]bool{}, lowered: map[string]bool{}, restricted: map[string]bool{}, hardened: map[string]bool{}}
+	fs := refFixSet{pinned: map[string]bool{}, lowered: map[string]bool{}, restricted: map[string]bool{}, hardened: map[string]bool{}, botBlocked: map[string]bool{}}
 	for _, f := range fixes {
 		switch f := f.(type) {
 		case PinRef:
@@ -206,6 +207,8 @@ func refFixes(fixes []Fix) refFixSet {
 			fs.restricted[f.Workflow] = true
 		case HardenTrigger:
 			fs.hardened[f.Workflow] = true
+		case BlockBotMerge:
+			fs.botBlocked[f.Repo] = true
 		}
 	}
 	return fs
@@ -266,6 +269,13 @@ func refControl(g *Graph, fixes []Fix) []refEdge {
 			// attacker code controls the workflow, like a push would, unless
 			// HardenTrigger removed the untrusted execution.
 			if fx.hardened[e.To] {
+				continue
+			}
+			out = append(out, fwd)
+		case CanMergeViaBot:
+			// Anyone in the principal lands code on the repo through a bot
+			// approve and merge, like a push, unless BlockBotMerge closed it.
+			if fx.botBlocked[e.To] {
 				continue
 			}
 			out = append(out, fwd)
@@ -626,8 +636,8 @@ func propPrincipalKinds(g *Graph, _ *rand.Rand) error {
 		ps[p] = true
 	}
 	for _, e := range g.Edges {
-		if k := kindOf(e.From); e.Kind == CanTrigger && (k == KindOrgMembers || k == KindIdentity || k == KindExternal) && !ps[e.From] {
-			return fmt.Errorf("CAN_TRIGGER source %s (%s) is not a principal", e.From, k)
+		if k := kindOf(e.From); (e.Kind == CanTrigger || e.Kind == CanMergeViaBot) && (k == KindOrgMembers || k == KindIdentity || k == KindExternal) && !ps[e.From] {
+			return fmt.Errorf("%s source %s (%s) is not a principal", e.Kind, e.From, k)
 		}
 	}
 	for _, n := range g.Nodes {

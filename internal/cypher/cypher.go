@@ -62,14 +62,15 @@ var nodeLabels = map[graph.NodeKind]string{
 // edgeTypes is the allowlist of relationship types for gop edges. An edge of
 // any other kind is written as otherEdge with its kind in the kind property.
 var edgeTypes = map[graph.EdgeKind]string{
-	graph.CanPush:      "CAN_PUSH",
-	graph.Uses:         "USES",
-	graph.ResolvesTo:   "RESOLVES_TO",
-	graph.DefinedIn:    "DEFINED_IN",
-	graph.ExecutesWith: "EXECUTES_WITH",
-	graph.MemberOf:     "MEMBER_OF",
-	graph.CanTrigger:   "CAN_TRIGGER",
-	graph.CanAssume:    "CAN_ASSUME",
+	graph.CanPush:        "CAN_PUSH",
+	graph.Uses:           "USES",
+	graph.ResolvesTo:     "RESOLVES_TO",
+	graph.DefinedIn:      "DEFINED_IN",
+	graph.ExecutesWith:   "EXECUTES_WITH",
+	graph.MemberOf:       "MEMBER_OF",
+	graph.CanTrigger:     "CAN_TRIGGER",
+	graph.CanAssume:      "CAN_ASSUME",
+	graph.CanMergeViaBot: "CAN_MERGE_VIA_BOT",
 }
 
 // Fixed relationship types gop adds itself.

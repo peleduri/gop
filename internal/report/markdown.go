@@ -121,7 +121,18 @@ func writeMarkdown(w io.Writer, d data) error {
 				p("\n- %s can start %s without push access (see AI agents in CI).", md(r.Principal), plural(n, "exposed AI agent workflow", "exposed AI agent workflows"))
 			}
 		}
-		if len(agent) > 0 {
+		bot := map[string]int{}
+		for _, s := range d.ix.Scores() {
+			if s.BotSelfMerge > 0 {
+				bot[s.Principal] = s.BotSelfMerge
+			}
+		}
+		for _, r := range d.Risks {
+			if n := bot[r.Principal]; n > 0 {
+				p("\n- %s can get code onto the default branch of %s without human review [bot_self_merge] (see AI approve + self-merge).", md(r.Principal), plural(n, "repo", "repos"))
+			}
+		}
+		if len(agent) > 0 || len(bot) > 0 {
 			p("\n")
 		}
 		p("\nScore counts confirmed reach only.")
@@ -131,6 +142,7 @@ func writeMarkdown(w io.Writer, d data) error {
 		p("\n\n")
 	}
 	writeMDAgents(p, d)
+	writeMDBotMerge(p, d)
 	if o := d.Ownership; o != nil {
 		p("## Org ownership\n\n%s\n\n| Orgs owned | Accounts |\n|---|---:|\n", md(o.Line))
 		for _, b := range o.Buckets {

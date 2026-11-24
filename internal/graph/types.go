@@ -96,6 +96,16 @@ const (
 	// Evidence is supplied for a match, not_visible (with attrs.reason) when
 	// gop cannot decide the match.
 	CanAssume EdgeKind = "CAN_ASSUME"
+	// CanMergeViaBot: principal (org_members, external) -> repo. Anyone in
+	// the principal can open a pull request that workflows of the repo then
+	// approve and merge with a bot token that satisfies the default branch's
+	// rules, so the principal lands code on the default branch with no human
+	// review (attrs approve_workflows, merge_workflow, reason, trigger; see
+	// docs/agents-in-ci.md "AI approve + self-merge"). A forward control hop
+	// like CAN_PUSH. Evidence is live when both workflows and the bypass list
+	// were read, not_visible when a deciding fact (the bypass list, required
+	// reviews) is unknown.
+	CanMergeViaBot EdgeKind = "CAN_MERGE_VIA_BOT"
 )
 
 // Node is a vertex. ID is stable and human-readable, e.g. "org:acme-actions",
@@ -500,3 +510,65 @@ var AgentToolFlags = []string{
 	"yes_always",
 	"yolo",
 }
+
+// Bot approve and bot merge steps in GitHub Actions (workflow nodes), and the
+// review bypass they make together (repo nodes and CAN_MERGE_VIA_BOT edges),
+// see docs/agents-in-ci.md "AI approve + self-merge".
+const (
+	AttrBotApproves      = "bot_approves"        // workflow: true when a job submits an approving review (gh pr review --approve, a reviews API call with event APPROVE, an approve action, or an agent allowed to run gh pr review)
+	AttrBotApproveToken  = "bot_approve_token"   // workflow: sorted comma list of the approving steps' token sources (BotToken*)
+	AttrBotApproveJobs   = "bot_approve_jobs"    // workflow: sorted comma list of the approving job ids
+	AttrBotApproveStart  = "bot_approve_starter" // workflow: the widest population that can make an approving job run (Starter*)
+	AttrBotMerges        = "bot_merges"          // workflow: true when a job merges a pull request (gh pr merge, the merge API, an automerge action)
+	AttrBotMergeToken    = "bot_merge_token"     // workflow: sorted comma list of the merging steps' token sources (BotToken*)
+	AttrBotMergeJobs     = "bot_merge_jobs"      // workflow: sorted comma list of the merging job ids
+	AttrBotMergeStart    = "bot_merge_starter"   // workflow: the widest population that can make a merging job run (Starter*)
+	AttrBotMergeGate     = "bot_merge_gate"      // workflow: the merging job's actor check (BotGate*)
+	AttrBotMergeAdmin    = "bot_merge_admin"     // workflow: true when a merge step passes --admin
+	AttrBotMergeTriggers = "bot_merge_triggers"  // workflow: sorted comma list of the triggers that start a merging job
+
+	AttrReviewBypass        = "review_bypass"         // repo: bot_self_merge (live, or not_visible when possible only)
+	AttrReviewBypassReason  = "review_bypass_reason"  // repo, CAN_MERGE_VIA_BOT: app_bypass | admin_bypass | bot_approvals | unprotected
+	AttrReviewBypassApprove = "review_bypass_approve" // repo: sorted comma list of the approving workflow files; absent when no approval is needed
+	AttrReviewBypassMerge   = "review_bypass_merge"   // repo: the merging workflow file
+	AttrApproveWorkflows    = "approve_workflows"     // CAN_MERGE_VIA_BOT: sorted comma list of the approving workflow node IDs; absent when no approval is needed
+	AttrMergeWorkflow       = "merge_workflow"        // CAN_MERGE_VIA_BOT: the merging workflow node ID
+
+	// FactReviewBypass is the coverage fact of a review bypass gop could not decide.
+	FactReviewBypass = "review_bypass"
+)
+
+// Values of review_bypass.
+const ReviewBypassBotSelfMerge = "bot_self_merge"
+
+// Values of review_bypass_reason: why the bot merge needs no human review.
+const (
+	ReviewBypassApp         = "app_bypass"    // the merging token is a GitHub App token and an app bypasses every rule of the default branch
+	ReviewBypassAdmin       = "admin_bypass"  // the merge passes --admin with a personal token and admins bypass the rules
+	ReviewBypassApprovals   = "bot_approvals" // the required approvals are no more than the bot approvals available, with no CODEOWNERS review
+	ReviewBypassUnprotected = "unprotected"   // the default branch is not protected
+)
+
+// Token sources of bot approve and merge steps.
+const (
+	BotTokenGitHub  = "github_token" // the workflow's GITHUB_TOKEN (github-actions[bot])
+	BotTokenApp     = "app"          // a GitHub App installation token (actions/create-github-app-token and similar, or an agent action's own app)
+	BotTokenPAT     = "pat"          // a secret other than GITHUB_TOKEN: a personal or machine-user token
+	BotTokenUnknown = "unknown"      // gop could not tell
+)
+
+// Who can make a bot approve or merge job run, widest first.
+const (
+	StarterPROpeners   = "pr_openers"  // anyone who can open a pull request: the job runs in the base repo's context on its trigger (issue_comment, pull_request_target, workflow_run)
+	StarterMembers     = "org_members" // org members: an author_association check admits MEMBER
+	StarterPushers     = "pushers"     // only same-repo pull requests (pull_request, pull_request_review): a fork's run gets no secrets and a read-only token
+	StarterMaintainers = "maintainers" // only people with write access (push, schedule, workflow_dispatch, or a named-actor check)
+)
+
+// Values of bot_merge_gate.
+const (
+	BotGateAuthor      = "pr_author"          // the commenter or actor must be the pull request's author
+	BotGateAssociation = "author_association" // an author_association check
+	BotGateListed      = "listed_users"       // named actors only
+	BotGateNone        = "none"               // no actor check
+)

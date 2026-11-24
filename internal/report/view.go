@@ -187,6 +187,8 @@ func fixWhy(ix *graph.Index, f graph.Fix) string {
 		return "The workflow's GITHUB_TOKEN can write, so code it runs can push to the repo."
 	case graph.HardenTrigger:
 		return "The workflow runs code an outsider controls on a trigger that holds the repo's credentials."
+	case graph.BlockBotMerge:
+		return "A bot approves and merges a pull request its author can steer, so anyone who can open a pull request gets code onto the default branch with no human review."
 	case graph.ReduceOwners:
 		return "An org owner is admin on every repo of the org, so an account that owns many orgs can push code that runs across all of them; standing ownership of many orgs makes one account an enterprise-wide push key."
 	}

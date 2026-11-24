@@ -54,6 +54,12 @@ type Score struct {
 	// separate rank factor like PoutineInjectable: it never changes Score,
 	// the counts or any evidence. 0 when the graph has no such workflow.
 	AgentExposed int `json:"agent_exposed,omitempty"`
+	// BotSelfMerge counts the confirmed-reached repos the principal lands
+	// code on through its own CAN_MERGE_VIA_BOT edge: a bot approves and
+	// merges its pull request with no human review. Context for the
+	// [bot_self_merge] marker: the repos are already in the counts and the
+	// score, and it is not a rank factor.
+	BotSelfMerge int `json:"bot_self_merge,omitempty"`
 }
 
 // Blast radius weights. Terminal impact (cloud roles, OIDC to cloud, secrets,
@@ -157,6 +163,7 @@ func (ix *Index) scoreOf(principal string, r Result) Score {
 	}
 	s.Advisories = ix.advisoriesOn(r)
 	s.AgentExposed = ix.agentExposedOn(r)
+	s.BotSelfMerge = ix.botMergeOn(r)
 	return s
 }
 

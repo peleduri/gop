@@ -1,0 +1,26 @@
+# Synthetic: an AI reviewer that approves pull requests with a GitHub App token.
+name: AI review
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.REVIEW_APP_ID }}
+          private-key: ${{ secrets.REVIEW_APP_KEY }}
+      - name: Ask the model for a verdict
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: ./scripts/ai-review.sh "$PR_NUMBER" > verdict.md
+      - name: Approve
+        if: hashFiles('verdict.md') != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr review "$PR_NUMBER" --approve --body-file verdict.md

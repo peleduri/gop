@@ -74,6 +74,8 @@ type Index struct {
 	advAny    bool // some action carries an advisory (advisory.go)
 	agentOnce sync.Once
 	agentAny  bool // some workflow is AgentExposed (agent.go)
+	botOnce   sync.Once
+	botAny    bool // some edge is CAN_MERGE_VIA_BOT (botmerge.go)
 }
 
 // NewIndex builds adjacency lookups. Edge lists are sorted (kind, to/from, source_api)
@@ -200,7 +202,7 @@ func (ix *Index) Principals() []string {
 		switch e.Kind {
 		case MemberOf:
 			set[e.From] = true
-		case CanPush, CanTrigger:
+		case CanPush, CanTrigger, CanMergeViaBot:
 			if isPrincipalKind(ix.Kind(e.From)) {
 				set[e.From] = true
 			}
@@ -216,8 +218,8 @@ func isPrincipalKind(k NodeKind) bool {
 // ScoringPrincipals is the subset of Principals that TopPaths, WhatIf and
 // SuggestFixes score and sum into (principal, repo) pair totals: every
 // org_members and external principal (each a population), plus each identity
-// with at least one CAN_PUSH or CAN_TRIGGER edge or a MEMBER_OF edge to
-// something other than an org (a team). Team principals ("team:O/slug")
+// with at least one CAN_PUSH, CAN_TRIGGER or CAN_MERGE_VIA_BOT edge or a
+// MEMBER_OF edge to something other than an org (a team). Team principals ("team:O/slug")
 // qualify through their CAN_PUSH grants or their MEMBER_OF edge to a parent
 // team; a team with neither reaches nothing. An identity whose only edges are
 // org MEMBER_OF reaches exactly what members:X reaches, so counting it again
@@ -234,7 +236,7 @@ func (ix *Index) ScoringPrincipals() []string {
 			continue
 		}
 		for _, e := range ix.out[p] {
-			if e.Kind == CanPush || e.Kind == CanTrigger || (e.Kind == MemberOf && ix.Kind(e.To) != KindOrg) {
+			if e.Kind == CanPush || e.Kind == CanTrigger || e.Kind == CanMergeViaBot || (e.Kind == MemberOf && ix.Kind(e.To) != KindOrg) {
 				out = append(out, p)
 				break
 			}

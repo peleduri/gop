@@ -156,6 +156,11 @@ principal -CAN_TRIGGER->  workflow   the principal can cause a risky trigger (pu
                                      reached, its repo counts as CI reach, and a via=token_write
                                      CAN_PUSH expands to the repo. A HardenTrigger fix drops
                                      every CAN_TRIGGER edge into its workflow.
+principal -CAN_MERGE_VIA_BOT-> repo  the principal can open a pull request that the repo's
+                                     workflows approve and merge with a bot token the default
+                                     branch's rules let through: a forward control hop like
+                                     CAN_PUSH (the repo is controlled). A BlockBotMerge fix
+                                     drops every CAN_MERGE_VIA_BOT edge into its repo.
 workflow  -EXECUTES_WITH-> secret|oidc|runner   terminal impact
 workflow  -CAN_ASSUME->   cloud_target  terminal impact: a token the workflow mints matches a
                                      supplied cloud trust policy (gop enrich --oidc-trust). The

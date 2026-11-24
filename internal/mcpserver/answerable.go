@@ -226,6 +226,8 @@ func factOfEdge(e graph.Edge) string {
 		return factRunners
 	case graph.CanTrigger:
 		return factTriggers
+	case graph.CanMergeViaBot:
+		return factBranchProtection
 	case graph.CanAssume:
 		return factOIDC
 	}
@@ -351,7 +353,7 @@ func membersID(id string) string {
 // controlEnds lists the control hops (tail controls head) an edge can give.
 func controlEnds(e graph.Edge) [][2]string {
 	switch e.Kind {
-	case graph.CanPush, graph.CanTrigger, graph.ExecutesWith, graph.CanAssume:
+	case graph.CanPush, graph.CanTrigger, graph.CanMergeViaBot, graph.ExecutesWith, graph.CanAssume:
 		return [][2]string{{e.From, e.To}}
 	case graph.MemberOf:
 		return [][2]string{{e.From, membersID(e.To)}}
