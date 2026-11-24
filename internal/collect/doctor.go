@@ -126,6 +126,11 @@ const (
 const (
 	ReposGraphQL = "graphql" // enterprise organizations { repositories { totalCount } }
 	ReposREST    = "rest"    // GET /orgs/{org} public_repos + total_private_repos
+	// ReposVisible is the count of repositories the token can see in an org
+	// it does not own: the larger of the enterprise GraphQL totalCount and
+	// GET /orgs/{org} public_repos. Both count only what the token can see
+	// there, so it is a lower bound, never a total.
+	ReposVisible = "visible_to_token"
 )
 
 // DoctorOrg is the probe result for one org.
@@ -133,17 +138,19 @@ type DoctorOrg struct {
 	Login  string `json:"login"`
 	Status string `json:"status"` // ok, sso_unauthorized, forbidden, not_found, error
 	Repos  *int   `json:"repos,omitempty"`
-	// ReposSource says where Repos came from (graphql or rest).
+	// ReposSource says where Repos came from (graphql, rest or
+	// visible_to_token).
 	ReposSource string `json:"repos_source,omitempty"`
-	// ReposLowerBound is set when Repos is a GET /orgs/{org} count read by
-	// a token that is not an org owner: private repositories it cannot see
-	// are missing from it.
+	// ReposLowerBound is set when the token is not an org owner: Repos then
+	// counts only the repositories the token can see, and private ones it
+	// cannot see are missing from it.
 	ReposLowerBound bool `json:"repos_lower_bound,omitempty"`
 	// Role is the token user's role in the org (owner, member or none);
 	// empty when doctor could not tell.
 	Role string `json:"role,omitempty"`
 
 	defaultPermVisible bool // GET /orgs/{org} returned default_repository_permission
+	gqlEmpty           bool // the enterprise query counted no repositories the token can see
 }
 
 // PredictedCoverage is one coverage entry doctor expects gop collect to
@@ -173,6 +180,7 @@ type DoctorEstimate struct {
 	// from each source.
 	ReposGraphQL     int `json:"repos_graphql_orgs,omitempty"`
 	ReposREST        int `json:"repos_rest_orgs,omitempty"`
+	ReposVisible     int `json:"repos_visible_orgs,omitempty"`
 	AssumedWorkflows int `json:"assumed_workflows_per_repo"`
 	Requests         int `json:"requests"`
 	Minutes          int `json:"minutes"`
@@ -784,6 +792,8 @@ func (d *doctor) estimate() {
 			e.ReposGraphQL++
 		case ReposREST:
 			e.ReposREST++
+		case ReposVisible:
+			e.ReposVisible++
 		}
 		if o.ReposLowerBound {
 			e.ReposLowerBound++
@@ -981,7 +991,7 @@ func WriteDoctor(w io.Writer, r *DoctorReport) error {
 		fmt.Fprintf(&b, "  %d orgs, %d repos (%s), %d workflows per repo assumed\n",
 			e.Orgs, e.Repos, repoCountLabel(e), e.AssumedWorkflows)
 		if e.ReposLowerBound > 0 {
-			fmt.Fprintf(&b, "  the repo count is a lower bound: %s not owned by the token count only the repositories it can see\n",
+			fmt.Fprintf(&b, "  the repo count and the request estimate are lower bounds: %s not owned by the token count only the repositories it can see\n",
 				plural(e.ReposLowerBound, "org"))
 		}
 		if e.OrgsUncounted > 0 {
@@ -1017,13 +1027,17 @@ func WriteDoctor(w io.Writer, r *DoctorReport) error {
 
 // repoCountLabel names where the estimate's repository counts came from.
 func repoCountLabel(e *DoctorEstimate) string {
-	switch {
-	case e.ReposGraphQL > 0 && e.ReposREST > 0:
-		return "enterprise GraphQL and GET /orgs/{org} counts"
-	case e.ReposGraphQL > 0:
-		return "enterprise GraphQL counts"
+	var parts []string
+	if e.ReposGraphQL > 0 {
+		parts = append(parts, "enterprise GraphQL")
 	}
-	return "GET /orgs/{org} counts"
+	if e.ReposREST > 0 || (e.ReposGraphQL == 0 && e.ReposVisible == 0) {
+		parts = append(parts, "GET /orgs/{org}")
+	}
+	if e.ReposVisible > 0 {
+		parts = append(parts, "visible-to-token")
+	}
+	return strings.Join(parts, " and ") + " counts"
 }
 
 func plural(n int, word string) string {
