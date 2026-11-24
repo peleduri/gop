@@ -1,0 +1,937 @@
+# Apache Ossie semantic model for gop's SQL export.
+#
+# Targets the Ossie core spec 0.3.0.dev0 (core-spec/ossie-schema.json in
+# apache/ossie). Datasets read the tables of `gop export --format sql`
+# (docs/sql.md) and the views in contrib/ossie/views.sql, in a SQLite file
+# named gop.db: Auto Ontology names a SQLite database after the file stem and
+# its schema `main`, so sources are written gop.main.<table>. See README.md.
+#
+# Conventions the test (contrib/ossie/ossie_test.go) enforces:
+# - every field's expression is a column of its dataset's source, with the
+#   same name, so a field reference is a column reference;
+# - every metric reads one dataset and is an aggregate, so it runs as
+#   SELECT <expression> FROM <source> AS <dataset>.
+version: "0.3.0.dev0"
+name: gop_posture
+description: >-
+  GitHub Enterprise code-execution posture from gop (github.com/peleduri/gop):
+  who can make code run where. Organizations, repositories, workflows, the
+  actions they use, the identities and principals that can push to or trigger
+  them, the secrets, OIDC tokens, self-hosted runners and cloud roles those
+  workflows reach, plus gop's computed reach and ranked findings, one run per
+  exported graph.
+ai_context:
+  instructions: >-
+    Every dataset has run_id; a run is one gop collection (one exported graph),
+    not a GitHub Actions workflow run. Always filter to one run or group by
+    run_id, or a count repeats once per run. The latest run is the one with the
+    greatest runs.collected_at. IDs are gop node IDs such as org:acme-app,
+    repo:acme-app/web, identity:alice, team:acme-app/platform,
+    members:acme-app, action:acme-actions/deploy@main; join on run_id and the
+    ID. Confirmed and possible reach are separate: confirmed means every hop
+    was observed (live, inferred, or a fresh audit fact; supplied trust files
+    count as confirmed), possible means the path needs a fact gop could not
+    see. Never add possible to confirmed. Evidence values are text: live,
+    inferred, audit, supplied, not_visible; test confirmed = 1 rather than
+    listing evidence values. Boolean columns are integers 0 or 1.
+  synonyms:
+    - GitHub posture
+    - code execution graph
+    - supply chain attack paths
+  examples:
+    - Which principals reach the most repositories in the latest run?
+    - How many orgs give members write access by default?
+    - Which unpinned actions can someone change today?
+    - Did confirmed reach go up or down since the last run?
+
+datasets:
+  - name: run
+    source: gop.main.runs
+    description: >-
+      One gop collection of a GitHub Enterprise: one exported graph. Several
+      runs in one database give trends.
+    primary_key: [run_id]
+    ai_context:
+      instructions: A gop run is a posture snapshot, not a GitHub Actions workflow run.
+      synonyms: [collection, snapshot, scan, gop run]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+        description: Collection time plus a content hash; the same graph always has the same run_id.
+      - name: enterprise
+        expression: {sql: enterprise}
+        datatype: String
+        description: Enterprise slug.
+      - name: collected_at
+        expression: {sql: collected_at}
+        datatype: String
+        dimension: {is_time: true}
+        description: When the graph was collected, RFC 3339 UTC text. Order runs by it.
+      - name: schema_version
+        expression: {sql: schema_version}
+        datatype: String
+        description: The graph schema, for example gop.graph/v2.
+
+  - name: organization
+    source: gop.main.organizations
+    description: A GitHub organization in the enterprise, with its security settings.
+    primary_key: [run_id, org_id]
+    ai_context:
+      synonyms: [org, GitHub organization, organisation]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+        description: gop ID, org:<login>.
+      - name: name
+        expression: {sql: name}
+        datatype: String
+        description: Org login.
+      - name: default_perm
+        expression: {sql: default_perm}
+        datatype: String
+        description: >-
+          Base repository permission of every member: none, read, write or
+          admin. write or admin lets every member push to every repo of the
+          org. NULL when gop could not read it.
+        ai_context:
+          synonyms: [default repository permission, base permission, member privileges]
+      - name: sso
+        expression: {sql: sso}
+        datatype: String
+        description: SAML SSO, enforced, configured or none.
+      - name: two_factor
+        expression: {sql: two_factor}
+        datatype: String
+        description: Two-factor requirement, required or not_required.
+        ai_context:
+          synonyms: [2FA, MFA requirement]
+      - name: ip_allow_list
+        expression: {sql: ip_allow_list}
+        datatype: String
+        description: IP allow list, on, off or unknown.
+      - name: members
+        expression: {sql: members}
+        datatype: String
+        description: Member count as text, as gop recorded it; NULL when unknown.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+        description: How the org's settings were observed.
+
+  - name: repository
+    source: gop.main.repositories
+    description: A repository. Pushing to it changes the code its workflows and the actions it hosts run.
+    primary_key: [run_id, repo_id]
+    ai_context:
+      synonyms: [repo, GitHub repository, codebase]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: repo_id
+        expression: {sql: repo_id}
+        datatype: String
+        description: gop ID, repo:<org>/<name>.
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+        description: The org the repo belongs to.
+      - name: visibility
+        expression: {sql: visibility}
+        datatype: String
+        description: public, private or internal.
+      - name: archived
+        expression: {sql: archived}
+        datatype: String
+        description: true or false as text, when recorded.
+      - name: actions_access
+        expression: {sql: actions_access}
+        datatype: String
+        description: >-
+          For a repo that hosts actions: who may use them (none, user,
+          organization, enterprise, public, unknown).
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+        description: not_visible for a stub repo gop did not collect.
+
+  - name: workflow
+    source: gop.main.workflows
+    description: A GitHub Actions workflow file. Whoever controls it runs code with its secrets, tokens and runners.
+    primary_key: [run_id, workflow_id]
+    ai_context:
+      synonyms: [GitHub Actions workflow, pipeline, CI job, CI/CD workflow]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: workflow_id
+        expression: {sql: workflow_id}
+        datatype: String
+        description: gop ID, workflow:<org>/<repo>/<path>.
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+      - name: repo_id
+        expression: {sql: repo_id}
+        datatype: String
+        description: The repo the workflow lives in.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+
+  - name: action
+    source: gop.main.actions
+    description: >-
+      An action reference (owner/repo[/path]@ref) as workflows consume it: a
+      third-party or internal action or reusable workflow at one ref.
+    primary_key: [run_id, action_id]
+    ai_context:
+      synonyms: [GitHub Action, action ref, reusable workflow, third-party action, uses reference]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: action_id
+        expression: {sql: action_id}
+        datatype: String
+        description: gop ID, action:<owner>/<repo>[/<path>]@<ref>.
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+        description: The owner org of the action, as an org ID (it may be outside the enterprise).
+      - name: host_repo_id
+        expression: {sql: host_repo_id}
+        datatype: String
+        description: The repo that hosts the action.
+      - name: ref
+        expression: {sql: ref}
+        datatype: String
+      - name: ref_kind
+        expression: {sql: ref_kind}
+        datatype: String
+        description: sha, tag or branch. A tag or branch can move; a full SHA cannot.
+      - name: pinned
+        expression: {sql: pinned}
+        datatype: Integer
+        description: 1 for a full commit SHA, 0 for a tag or branch (mutable), NULL when the ref kind is unknown.
+        ai_context:
+          synonyms: [SHA pinned, immutable ref]
+      - name: ref_protected
+        expression: {sql: ref_protected}
+        datatype: String
+        description: For a branch ref, true when pushing to the host repo alone cannot change it; false or unknown otherwise.
+      - name: ref_immutable
+        expression: {sql: ref_immutable}
+        datatype: String
+        description: For a tag ref, true when pushing alone cannot move it.
+      - name: in_enterprise
+        expression: {sql: in_enterprise}
+        datatype: String
+        description: true when the owner is an enterprise org, false when it is not, unknown when gop could not tell.
+      - name: confirmed_reachable
+        expression: {sql: confirmed_reachable}
+        datatype: Integer
+        description: 1 when some principal has confirmed reach to the action, that is can change the code it runs.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+
+  - name: identity
+    source: gop.main.identities
+    description: A user or a team.
+    primary_key: [run_id, identity_id]
+    ai_context:
+      instructions: >-
+        An outside collaborator is an identity with is_outside_collaborator = 1
+        (a direct push grant as a non-member). A member is is_org_member = 1.
+      synonyms: [user, account, team, person, outside collaborator, collaborator, member]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: identity_id
+        expression: {sql: identity_id}
+        datatype: String
+        description: gop ID, identity:<login> for a user, team:<org>/<slug> for a team.
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: identity_type
+        expression: {sql: identity_type}
+        datatype: String
+        description: user or team. gop does not record GitHub App identities as nodes yet.
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+        description: The team's org; NULL for a user.
+      - name: is_org_member
+        expression: {sql: is_org_member}
+        datatype: Integer
+        description: 1 when the user is a member of an org, 0 when not; NULL for a team.
+      - name: is_outside_collaborator
+        expression: {sql: is_outside_collaborator}
+        datatype: Integer
+        description: 1 when the user has a direct push grant as an outside collaborator (not an org member).
+        ai_context:
+          synonyms: [outside collaborator, external collaborator, non-member]
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+
+  - name: principal
+    source: gop.main.principals
+    description: >-
+      Anything that can start an attack: the members of an org as one
+      principal (members:<org>), a user or team identity, or external:anyone
+      (anyone on the internet).
+    primary_key: [run_id, principal_id]
+    ai_context:
+      instructions: >-
+        gop's totals and the reach table count only scoring principals
+        (is_scoring = 1); an identity whose only edge is org membership reaches
+        what its org's members principal reaches.
+      synonyms: [attacker, actor, who, subject, org members]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: principal_id
+        expression: {sql: principal_id}
+        datatype: String
+      - name: principal_kind
+        expression: {sql: principal_kind}
+        datatype: String
+        description: org_members, identity or external.
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+        description: The org of an org_members principal or a team; NULL otherwise.
+      - name: is_scoring
+        expression: {sql: is_scoring}
+        datatype: Integer
+        description: 1 when the principal is counted in reach and findings.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+
+  - name: cloud_role
+    source: gop.main.cloud_roles
+    description: >-
+      A cloud identity (AWS role, GCP service account or workload identity
+      provider, Azure app or managed identity) a workflow's OIDC token can
+      assume, from trust policies supplied to gop enrich.
+    primary_key: [run_id, cloud_role_id]
+    ai_context:
+      synonyms: [cloud target, IAM role, AWS role, service account, cloud identity]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: cloud_role_id
+        expression: {sql: cloud_role_id}
+        datatype: String
+        description: gop ID, cloud:<provider>:<id>.
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: provider
+        expression: {sql: provider}
+        datatype: String
+        description: aws, gcp or azure.
+      - name: account
+        expression: {sql: account}
+        datatype: String
+        description: AWS account, GCP project or Azure subscription, when known.
+      - name: role_name
+        expression: {sql: role_name}
+        datatype: String
+      - name: warnings
+        expression: {sql: warnings}
+        datatype: String
+        description: Comma list of trust weaknesses, for example no_sub_condition.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+
+  - name: secret
+    source: gop.main.secrets
+    description: A secrets scope a workflow can read (the secrets available to a repo's workflows).
+    primary_key: [run_id, secret_id]
+    ai_context:
+      synonyms: [credentials, Actions secrets, secret scope]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: secret_id
+        expression: {sql: secret_id}
+        datatype: String
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+      - name: repo_id
+        expression: {sql: repo_id}
+        datatype: String
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+
+  - name: runner
+    source: gop.main.runners
+    description: A self-hosted runner pool that workflows run on.
+    primary_key: [run_id, runner_id]
+    ai_context:
+      synonyms: [self-hosted runner, build agent, runner group]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: runner_id
+        expression: {sql: runner_id}
+        datatype: String
+      - name: name
+        expression: {sql: name}
+        datatype: String
+      - name: org_id
+        expression: {sql: org_id}
+        datatype: String
+      - name: repo_id
+        expression: {sql: repo_id}
+        datatype: String
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+
+  - name: reach
+    source: gop.main.reach
+    description: >-
+      gop's computed reach: one row per scoring principal and node it can
+      control or use (repos, workflows, action refs, secrets, OIDC tokens,
+      runners, cloud roles), with the shortest path.
+    primary_key: [run_id, principal, target]
+    ai_context:
+      instructions: >-
+        confirmed = 1 when every hop is confirmed; confirmed = 0 is possible
+        reach. A (principal, repo) pair is a row with target_kind = 'repo'.
+        Never reimplement the traversal from edges.
+      synonyms: [blast radius, access path, attack path, who can reach what]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: principal
+        expression: {sql: principal}
+        datatype: String
+      - name: target
+        expression: {sql: target}
+        datatype: String
+      - name: target_kind
+        expression: {sql: target_kind}
+        datatype: String
+        description: repo, workflow, action_ref, secret, oidc, runner, cloud_target, ...
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+        description: 1 for confirmed reach, 0 for possible reach.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+        description: The weakest evidence on the path.
+      - name: hops
+        expression: {sql: hops}
+        datatype: Integer
+      - name: path
+        expression: {sql: path}
+        datatype: String
+        description: JSON array of node IDs from the principal to the target.
+
+  - name: finding
+    source: gop.main.findings
+    description: >-
+      gop's ranked findings: top_risk rows rank principals by blast radius;
+      fix_* rows are fix candidates and the reach each removes on its own.
+    primary_key: [run_id, rule, subject]
+    ai_context:
+      instructions: >-
+        severity is a number, not a label. For top_risk it is the principal's
+        confirmed blast-radius score; for fix_* the confirmed (principal, repo)
+        pairs the fix removes. possible is the matching possible figure; never
+        add it to severity.
+      synonyms: [risk, issue, top risk, fix candidate, recommendation]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: rule
+        expression: {sql: rule}
+        datatype: String
+        description: top_risk, fix_pin, fix_default_perm, fix_restrict_token or fix_harden_trigger.
+      - name: subject
+        expression: {sql: subject}
+        datatype: String
+        description: The principal ID for top_risk, the fix ID for fix_*.
+      - name: severity
+        expression: {sql: severity}
+        datatype: Float
+      - name: possible
+        expression: {sql: possible}
+        datatype: Float
+
+  - name: reach_trend
+    source: gop.main.reach_trend
+    description: Confirmed and possible (principal, repo) pairs per run, and the change from the previous run of the same enterprise.
+    primary_key: [run_id]
+    ai_context:
+      synonyms: [trend, run over run, reach change, regression]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: enterprise
+        expression: {sql: enterprise}
+        datatype: String
+      - name: collected_at
+        expression: {sql: collected_at}
+        datatype: String
+        dimension: {is_time: true}
+      - name: confirmed_pairs
+        expression: {sql: confirmed_pairs}
+        datatype: Integer
+      - name: possible_pairs
+        expression: {sql: possible_pairs}
+        datatype: Integer
+      - name: previous_run_id
+        expression: {sql: previous_run_id}
+        datatype: String
+      - name: confirmed_delta
+        expression: {sql: confirmed_delta}
+        datatype: Integer
+        description: confirmed_pairs minus the previous run's; NULL for the first run.
+      - name: possible_delta
+        expression: {sql: possible_delta}
+        datatype: Integer
+        description: possible_pairs minus the previous run's; NULL for the first run.
+
+  # Edge datasets: one per gop edge label (docs/schema.md), each a join
+  # between two terms.
+  - name: push_grant
+    source: gop.main.push_grants
+    description: CAN_PUSH edges. The grantee can push to the repo; a workflow grantee (via token_write) has a GITHUB_TOKEN that can push to its own repo.
+    primary_key: [run_id, edge_id]
+    ai_context:
+      synonyms: [write access, push access, CAN_PUSH]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: grantee_id
+        expression: {sql: grantee_id}
+        datatype: String
+      - name: repo_id
+        expression: {sql: repo_id}
+        datatype: String
+      - name: via
+        expression: {sql: via}
+        datatype: String
+        description: default_perm, org_owner, direct, outside_collaborator, team, ref_bypass, token_write or unknown.
+      - name: permission
+        expression: {sql: permission}
+        datatype: String
+      - name: ref
+        expression: {sql: ref}
+        datatype: String
+        description: The protected branch or tag a ref_bypass grant lands code on.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+        description: 1 for live, inferred, audit or supplied evidence. Audit facts are not aged here; use reach for confirmed reach.
+
+  - name: action_use
+    source: gop.main.action_uses
+    description: USES edges. A workflow (or a composite action) uses an action ref.
+    primary_key: [run_id, edge_id]
+    ai_context:
+      synonyms: [USES, uses statement, dependency]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: consumer_id
+        expression: {sql: consumer_id}
+        datatype: String
+        description: The workflow, or the action ref for a nested action.
+      - name: action_id
+        expression: {sql: action_id}
+        datatype: String
+      - name: ref_kind
+        expression: {sql: ref_kind}
+        datatype: String
+      - name: file
+        expression: {sql: file}
+        datatype: String
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+
+  - name: action_host
+    source: gop.main.action_hosts
+    description: RESOLVES_TO edges. An enterprise action ref resolves to the repo that hosts it.
+    primary_key: [run_id, edge_id]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: action_id
+        expression: {sql: action_id}
+        datatype: String
+      - name: repo_id
+        expression: {sql: repo_id}
+        datatype: String
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+
+  - name: workflow_definition
+    source: gop.main.workflow_definitions
+    description: DEFINED_IN edges. A workflow lives in a repo, so code pushed to the repo changes it.
+    primary_key: [run_id, edge_id]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: workflow_id
+        expression: {sql: workflow_id}
+        datatype: String
+      - name: repo_id
+        expression: {sql: repo_id}
+        datatype: String
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+
+  - name: workflow_capability
+    source: gop.main.workflow_capabilities
+    description: EXECUTES_WITH edges. A workflow runs with a secret scope, an OIDC token or a self-hosted runner pool.
+    primary_key: [run_id, edge_id]
+    ai_context:
+      synonyms: [EXECUTES_WITH, workflow permissions, what a workflow can use]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: workflow_id
+        expression: {sql: workflow_id}
+        datatype: String
+      - name: capability_id
+        expression: {sql: capability_id}
+        datatype: String
+      - name: capability_kind
+        expression: {sql: capability_kind}
+        datatype: String
+        description: secret, oidc or runner.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+
+  - name: membership
+    source: gop.main.memberships
+    description: MEMBER_OF edges. A user is a member of an org or a team, or a child team is nested under a parent team.
+    primary_key: [run_id, edge_id]
+    ai_context:
+      synonyms: [MEMBER_OF, team membership, org membership]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: member_id
+        expression: {sql: member_id}
+        datatype: String
+      - name: group_id
+        expression: {sql: group_id}
+        datatype: String
+      - name: group_kind
+        expression: {sql: group_kind}
+        datatype: String
+        description: org or team.
+      - name: role_name
+        expression: {sql: role_name}
+        datatype: String
+        description: owner or member, for org membership.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+
+  - name: trigger_grant
+    source: gop.main.trigger_grants
+    description: >-
+      CAN_TRIGGER edges. The principal can cause a risky trigger
+      (pull_request_target, workflow_run, issue_comment, ...) of a workflow that
+      then runs attacker-controlled code.
+    primary_key: [run_id, edge_id]
+    ai_context:
+      synonyms: [CAN_TRIGGER, pwn request, untrusted trigger]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: principal_id
+        expression: {sql: principal_id}
+        datatype: String
+      - name: workflow_id
+        expression: {sql: workflow_id}
+        datatype: String
+      - name: trigger_event
+        expression: {sql: trigger_event}
+        datatype: String
+      - name: exec_kind
+        expression: {sql: exec_kind}
+        datatype: String
+        description: checkout or injection.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+
+  - name: role_assumption
+    source: gop.main.role_assumptions
+    description: CAN_ASSUME edges. A workflow's OIDC token matches a cloud role's trust policy.
+    primary_key: [run_id, edge_id]
+    ai_context:
+      synonyms: [CAN_ASSUME, OIDC trust, assume role]
+    fields:
+      - name: run_id
+        expression: {sql: run_id}
+        datatype: String
+      - name: edge_id
+        expression: {sql: edge_id}
+        datatype: Integer
+      - name: workflow_id
+        expression: {sql: workflow_id}
+        datatype: String
+      - name: cloud_role_id
+        expression: {sql: cloud_role_id}
+        datatype: String
+      - name: observed_use
+        expression: {sql: observed_use}
+        datatype: String
+        description: true when CloudTrail saw a workflow of the repo assume the role.
+      - name: evidence
+        expression: {sql: evidence}
+        datatype: String
+      - name: confirmed
+        expression: {sql: confirmed}
+        datatype: Integer
+
+relationships:
+  # Ownership.
+  - {name: organization_run, from: organization, to: run, from_columns: [run_id], to_columns: [run_id]}
+  - {name: repository_organization, from: repository, to: organization, from_columns: [run_id, org_id], to_columns: [run_id, org_id]}
+  - {name: workflow_repository, from: workflow, to: repository, from_columns: [run_id, repo_id], to_columns: [run_id, repo_id]}
+  - {name: action_host_repository, from: action, to: repository, from_columns: [run_id, host_repo_id], to_columns: [run_id, repo_id]}
+  - {name: secret_repository, from: secret, to: repository, from_columns: [run_id, repo_id], to_columns: [run_id, repo_id]}
+  - {name: runner_repository, from: runner, to: repository, from_columns: [run_id, repo_id], to_columns: [run_id, repo_id]}
+  - {name: principal_organization, from: principal, to: organization, from_columns: [run_id, org_id], to_columns: [run_id, org_id]}
+  - {name: identity_principal, from: identity, to: principal, from_columns: [run_id, identity_id], to_columns: [run_id, principal_id]}
+  # Reach and findings.
+  - {name: reach_run, from: reach, to: run, from_columns: [run_id], to_columns: [run_id]}
+  - {name: reach_principal, from: reach, to: principal, from_columns: [run_id, principal], to_columns: [run_id, principal_id]}
+  - name: reach_repository
+    from: reach
+    to: repository
+    from_columns: [run_id, target]
+    to_columns: [run_id, repo_id]
+    ai_context: Only rows with target_kind = 'repo' join.
+  - {name: finding_run, from: finding, to: run, from_columns: [run_id], to_columns: [run_id]}
+  - name: finding_principal
+    from: finding
+    to: principal
+    from_columns: [run_id, subject]
+    to_columns: [run_id, principal_id]
+    ai_context: Only rule = 'top_risk' rows join; a fix_* subject is a fix ID.
+  - {name: reach_trend_run, from: reach_trend, to: run, from_columns: [run_id], to_columns: [run_id]}
+  # Edge labels as joins.
+  - name: push_grant_principal
+    from: push_grant
+    to: principal
+    from_columns: [run_id, grantee_id]
+    to_columns: [run_id, principal_id]
+    ai_context: CAN_PUSH from a principal. via = token_write rows have a workflow grantee and do not join.
+  - {name: push_grant_repository, from: push_grant, to: repository, from_columns: [run_id, repo_id], to_columns: [run_id, repo_id]}
+  - name: action_use_workflow
+    from: action_use
+    to: workflow
+    from_columns: [run_id, consumer_id]
+    to_columns: [run_id, workflow_id]
+    ai_context: USES from a workflow. Nested uses (an action using an action) do not join.
+  - {name: action_use_action, from: action_use, to: action, from_columns: [run_id, action_id], to_columns: [run_id, action_id]}
+  - {name: action_host_action, from: action_host, to: action, from_columns: [run_id, action_id], to_columns: [run_id, action_id]}
+  - {name: action_host_hosting_repository, from: action_host, to: repository, from_columns: [run_id, repo_id], to_columns: [run_id, repo_id]}
+  - {name: workflow_definition_workflow, from: workflow_definition, to: workflow, from_columns: [run_id, workflow_id], to_columns: [run_id, workflow_id]}
+  - {name: workflow_definition_repository, from: workflow_definition, to: repository, from_columns: [run_id, repo_id], to_columns: [run_id, repo_id]}
+  - {name: workflow_capability_workflow, from: workflow_capability, to: workflow, from_columns: [run_id, workflow_id], to_columns: [run_id, workflow_id]}
+  - name: workflow_capability_secret
+    from: workflow_capability
+    to: secret
+    from_columns: [run_id, capability_id]
+    to_columns: [run_id, secret_id]
+    ai_context: Only capability_kind = 'secret' rows join.
+  - name: workflow_capability_runner
+    from: workflow_capability
+    to: runner
+    from_columns: [run_id, capability_id]
+    to_columns: [run_id, runner_id]
+    ai_context: Only capability_kind = 'runner' rows join.
+  - {name: membership_member, from: membership, to: identity, from_columns: [run_id, member_id], to_columns: [run_id, identity_id]}
+  - name: membership_organization
+    from: membership
+    to: organization
+    from_columns: [run_id, group_id]
+    to_columns: [run_id, org_id]
+    ai_context: Only group_kind = 'org' rows join.
+  - name: membership_team
+    from: membership
+    to: identity
+    from_columns: [run_id, group_id]
+    to_columns: [run_id, identity_id]
+    ai_context: Only group_kind = 'team' rows join.
+  - {name: trigger_grant_principal, from: trigger_grant, to: principal, from_columns: [run_id, principal_id], to_columns: [run_id, principal_id]}
+  - {name: trigger_grant_workflow, from: trigger_grant, to: workflow, from_columns: [run_id, workflow_id], to_columns: [run_id, workflow_id]}
+  - {name: role_assumption_workflow, from: role_assumption, to: workflow, from_columns: [run_id, workflow_id], to_columns: [run_id, workflow_id]}
+  - {name: role_assumption_cloud_role, from: role_assumption, to: cloud_role, from_columns: [run_id, cloud_role_id], to_columns: [run_id, cloud_role_id]}
+
+# Every metric aggregates one dataset. Filter to one run (or group by
+# run_id): each run counts the same facts again.
+metrics:
+  - name: confirmed_reach_count
+    expression:
+      sql: SUM(CASE WHEN reach.confirmed = 1 AND reach.target_kind = 'repo' THEN 1 ELSE 0 END)
+    description: >-
+      Confirmed (principal, repo) pairs: a scoring principal can push code
+      that runs in the repo, or change the repo, on a path whose every hop gop
+      confirmed. The same total as gop's what_if and top_paths. Never add
+      possible_reach_count to it.
+    datatype: Integer
+    ai_context:
+      synonyms: [confirmed reach, confirmed blast radius, confirmed pairs, exposure]
+  - name: possible_reach_count
+    expression:
+      sql: SUM(CASE WHEN reach.confirmed = 0 AND reach.target_kind = 'repo' THEN 1 ELSE 0 END)
+    description: >-
+      Possible (principal, repo) pairs: reach that needs at least one fact gop
+      could not see (not_visible or a stale audit fact). It is a separate
+      count of what might be true, never summed with confirmed_reach_count:
+      the two describe different certainty, and adding them would present
+      unverified paths as fact.
+    datatype: Integer
+    ai_context:
+      synonyms: [possible reach, unverified reach, possible pairs]
+  - name: unpinned_reachable_actions
+    expression:
+      sql: SUM(CASE WHEN action.pinned = 0 AND action.confirmed_reachable = 1 THEN 1 ELSE 0 END)
+    description: >-
+      Action refs on a tag or branch (not a full SHA) that some principal has
+      confirmed reach to, that is can change the code every workflow using
+      the ref runs.
+    datatype: Integer
+    ai_context:
+      synonyms: [unpinned actions, mutable action refs, actions not pinned to a SHA]
+  - name: orgs_default_write
+    expression:
+      sql: SUM(CASE WHEN organization.default_perm IN ('write', 'admin') THEN 1 ELSE 0 END)
+    description: >-
+      Orgs whose default repository permission is write or admin, so every
+      member can push to every repo of the org.
+    datatype: Integer
+    ai_context:
+      synonyms: [orgs with write as default permission, orgs with default write]
+  - name: finding_count
+    expression:
+      sql: COUNT(finding.subject)
+    description: >-
+      Findings. Group by finding.rule (top_risk, fix_*) and order or bucket by
+      finding.severity, a number (blast-radius score or pairs removed), to see
+      findings by severity.
+    datatype: Integer
+    ai_context:
+      synonyms: [findings by severity, number of findings, risks]
+  - name: max_finding_severity
+    expression:
+      sql: MAX(finding.severity)
+    description: The highest severity among the findings in scope (compare within one rule).
+    datatype: Float
+  - name: confirmed_reach_delta
+    expression:
+      sql: SUM(reach_trend.confirmed_delta)
+    description: >-
+      Change in confirmed (principal, repo) pairs from the previous run of the
+      same enterprise. Positive means reach grew. NULL for the first run.
+    datatype: Integer
+    ai_context:
+      synonyms: [run-over-run reach delta, reach change, confirmed reach trend]
+  - name: possible_reach_delta
+    expression:
+      sql: SUM(reach_trend.possible_delta)
+    description: Change in possible (principal, repo) pairs from the previous run; NULL for the first run.
+    datatype: Integer
