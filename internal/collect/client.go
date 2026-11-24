@@ -75,6 +75,9 @@ type Client struct {
 	// response served from it; copies share both.
 	cache    *responseCache
 	observed *observedTracker
+	// budget, when set, enforces Config.MaxRequests and Config.Reserve and
+	// stops the run when the rate limit runs out (budget.go). Copies share it.
+	budget *requestBudget
 }
 
 // RateState is the last rate-limit budget the client saw. A remaining count
@@ -409,6 +412,7 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 		return nil, err
 	}
 	var lastErr error
+	lastLimited := false // lastErr is a rate limit
 	backoff := time.Second
 	var (
 		key string      // cache key of the current token
@@ -432,6 +436,9 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 					return ent.response(), nil
 				}
 			}
+		}
+		if err := c.beforeSend(ctx, method == http.MethodPost && strings.HasSuffix(u.Path, "/graphql")); err != nil {
+			return nil, err
 		}
 		var rd io.Reader
 		if body != nil {
@@ -461,6 +468,7 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 				return nil, ctx.Err()
 			}
 			// Transport errors (timeouts, resets) are retried. The URL carries no secret.
+			lastLimited = false
 			lastErr = fmt.Errorf("github api %s %s: transport error: %w", method, redactedPath(u), unwrapURLError(err))
 			if attempt < c.maxAttempts {
 				if err := c.sleep(ctx, backoff); err != nil {
@@ -473,6 +481,7 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 		data, rerr := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes))
 		_ = resp.Body.Close()
 		if rerr != nil {
+			lastLimited = false
 			lastErr = fmt.Errorf("github api %s %s: reading body: %w", method, redactedPath(u), rerr)
 			continue
 		}
@@ -490,9 +499,13 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 		}
 		apiErr := &APIError{Method: method, Path: redactedPath(u), StatusCode: r.status, Message: errorMessage(data), header: r.header}
 		if wait, limited := c.rateLimitWait(r); limited {
-			lastErr = apiErr
+			lastErr, lastLimited = apiErr, true
 			if wait > c.maxWait {
-				return nil, fmt.Errorf("%w (rate limited; wait %s exceeds max wait %s)", apiErr, wait.Round(time.Second), c.maxWait)
+				err := fmt.Errorf("%w (rate limited; wait %s exceeds max wait %s)", apiErr, wait.Round(time.Second), c.maxWait)
+				if c.budget != nil {
+					return nil, fmt.Errorf("%w: %w", c.budget.halt(ErrRateLimited), err)
+				}
+				return nil, err
 			}
 			if attempt < c.maxAttempts {
 				c.logf("collect: rate limited on %s, waiting %s", redactedPath(u), wait.Round(time.Second))
@@ -503,7 +516,7 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 			continue
 		}
 		if r.status >= 500 {
-			lastErr = apiErr
+			lastErr, lastLimited = apiErr, false
 			if attempt < c.maxAttempts {
 				c.logf("collect: HTTP %d on %s, retrying", r.status, redactedPath(u))
 				if err := c.sleep(ctx, backoff); err != nil {
@@ -514,6 +527,9 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 			continue
 		}
 		return nil, apiErr
+	}
+	if lastLimited && c.budget != nil {
+		return nil, fmt.Errorf("%w: gave up after %d attempts: %w", c.budget.halt(ErrRateLimited), c.maxAttempts, lastErr)
 	}
 	return nil, fmt.Errorf("gave up after %d attempts: %w", c.maxAttempts, lastErr)
 }
@@ -789,7 +805,11 @@ func (c *Client) GraphQL(ctx context.Context, query string, vars map[string]any,
 				wait = time.Minute
 			}
 			if wait > c.maxWait {
-				return nil, fmt.Errorf("graphql: rate limited; wait %s exceeds max wait", wait.Round(time.Second))
+				err := fmt.Errorf("graphql: rate limited; wait %s exceeds max wait", wait.Round(time.Second))
+				if c.budget != nil {
+					return nil, fmt.Errorf("%w: %w", c.budget.halt(ErrRateLimited), err)
+				}
+				return nil, err
 			}
 			if err := c.sleep(ctx, wait); err != nil {
 				return nil, err

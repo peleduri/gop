@@ -34,21 +34,35 @@ type Engine struct {
 	ids  []string // every node ID seen in nodes or edges, sorted
 	set  map[string]bool
 	demo bool // synthetic graph from gop demo: summaries say so
+	// partial is graph.PartialNote: set when the collection stopped early,
+	// so summaries say the graph is partial.
+	partial string
 }
 
 // DemoMarker prefixes every summary computed over a demo graph.
 const DemoMarker = "[demo data]"
 
-// mark prefixes a non-empty summary with DemoMarker on a demo graph.
+// PartialMarker prefixes every summary computed over a partial graph (a
+// collection that stopped early).
+const PartialMarker = "[partial graph]"
+
+// mark prefixes a non-empty summary with DemoMarker on a demo graph and
+// PartialMarker on a partial one.
 func (e *Engine) mark(s *string) {
-	if e.demo && *s != "" {
+	if *s == "" {
+		return
+	}
+	if e.partial != "" {
+		*s = PartialMarker + " " + *s
+	}
+	if e.demo {
 		*s = DemoMarker + " " + *s
 	}
 }
 
 // NewEngine indexes g. g must not be modified afterwards.
 func NewEngine(g *graph.Graph) *Engine {
-	e := &Engine{g: g, ix: graph.NewIndex(g), set: map[string]bool{}, demo: graph.IsDemo(g)}
+	e := &Engine{g: g, ix: graph.NewIndex(g), set: map[string]bool{}, demo: graph.IsDemo(g), partial: graph.PartialNote(g)}
 	add := func(id string) {
 		if id != "" && !e.set[id] {
 			e.set[id] = true

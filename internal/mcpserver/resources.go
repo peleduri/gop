@@ -105,6 +105,8 @@ type Summary struct {
 	Staleness     string                 `json:"staleness,omitempty" jsonschema:"set when the snapshot is more than 7 days old"`
 	Schema        string                 `json:"schema"`
 	Demo          bool                   `json:"demo,omitempty"`
+	Partial       bool                   `json:"partial,omitempty" jsonschema:"set when the collection stopped early: what it did not read is not_visible and listed in coverage"`
+	PartialReason string                 `json:"partial_reason,omitempty" jsonschema:"why a partial collection stopped: interrupted, max_requests, reserve or rate_limit"`
 	Nodes         int                    `json:"nodes"`
 	Edges         int                    `json:"edges"`
 	NodesByKind   map[string]int         `json:"nodes_by_kind"`
@@ -127,18 +129,23 @@ const summaryNote = "Confirmed reach means every hop was read live, inferred by 
 func (e *Engine) Summary(now time.Time) Summary {
 	g := e.ix.Graph()
 	s := Summary{
-		Enterprise:   g.Enterprise,
-		CollectedAt:  g.CollectedAt,
-		Staleness:    Staleness(g.CollectedAt, now),
-		Schema:       g.Schema,
-		Demo:         e.demo,
-		Nodes:        len(g.Nodes),
-		Edges:        len(g.Edges),
-		NodesByKind:  map[string]int{},
-		EdgesByKind:  map[string]int{},
-		CoverageGaps: len(g.Coverage),
-		Orgs:         []OrgSummary{},
-		Note:         summaryNote,
+		Enterprise:    g.Enterprise,
+		CollectedAt:   g.CollectedAt,
+		Staleness:     Staleness(g.CollectedAt, now),
+		Schema:        g.Schema,
+		Demo:          e.demo,
+		Partial:       g.Partial,
+		PartialReason: partialReason(g),
+		Nodes:         len(g.Nodes),
+		Edges:         len(g.Edges),
+		NodesByKind:   map[string]int{},
+		EdgesByKind:   map[string]int{},
+		CoverageGaps:  len(g.Coverage),
+		Orgs:          []OrgSummary{},
+		Note:          summaryNote,
+	}
+	if e.partial != "" {
+		s.Note = e.partial + " " + summaryNote
 	}
 	s.NonHuman = e.ix.NonHuman()
 	s.Headline = s.NonHuman.Headline()
@@ -311,4 +318,14 @@ func jsonContents(uri string, v any) (*mcp.ReadResourceResult, error) {
 	return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{
 		{URI: uri, MIMEType: "application/json", Text: string(sanitize.JSON(b))},
 	}}, nil
+}
+
+// partialReason is the graph's partial_reason when gop wrote it, else "":
+// the field is free text in a file and the summary reaches the model.
+func partialReason(g *graph.Graph) string {
+	switch g.PartialReason {
+	case graph.PartialInterrupted, graph.PartialMaxRequests, graph.PartialReserve, graph.PartialRateLimit:
+		return g.PartialReason
+	}
+	return ""
 }

@@ -41,7 +41,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <h1>{{if .Demo}}[demo data] {{end}}gop: who can make code run where</h1>
 <p class="meta">{{if .Enterprise}}Enterprise <strong>{{.Enterprise}}</strong>{{end}}{{if .CollectedAt}}<span class="sep" aria-hidden="true">·</span>collected <time>{{.CollectedAt}}</time>{{end}}</p>
 </div></div>
-{{if .Demo}}<p class="demo">Synthetic demo graph</p>{{end}}
+{{if .Demo}}<p class="demo">Synthetic demo graph</p>{{end}}{{if .Partial}}<p class="partial" role="note"><span aria-hidden="true">⚠</span> {{.Partial}}</p>{{end}}
 </div></header>
 <nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li>{{if .Banner}}<li><a href="#changes">What changed</a></li>{{end}}<li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li>{{if .Agents}}<li><a href="#ai-agents">AI agents</a></li>{{end}}{{if .BotMerge}}<li><a href="#ai-self-merge">AI self-merge</a></li>{{end}}{{if .Ownership}}<li><a href="#org-ownership">Org ownership</a></li>{{end}}<li><a href="#coverage">Not visible</a></li>{{if .Pinned}}<li><a href="#pinned">Pinned, still reachable</a></li>{{end}}<li><a href="#top-paths">Top paths</a></li>{{if .Orgs}}<li><a href="#org-settings">Org settings</a></li>{{end}}{{if .RepoHardening}}<li><a href="#repo-hardening">Repo hardening</a></li>{{end}}<li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
 <main id="main" class="wrap">

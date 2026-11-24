@@ -89,7 +89,9 @@ func TestBatchEquivalentToREST(t *testing.T) {
 func TestBatchAliasErrorFallsBackToREST(t *testing.T) {
 	f := newFakeGitHub(t)
 	f.objectErrors["acme-app/api"] = "FORBIDDEN"
-	_, got := collectBatch(t, f, Config{})
+	// Priority keeps the fixture's org order (the default puts larger orgs
+	// first), which the alias check below relies on.
+	_, got := collectBatch(t, f, Config{Priority: []string{"acme-actions", "acme-app"}})
 	testutil.Golden(t, "collect_acme.json", got)
 	hits := workflowDirHits(f)
 	if len(hits) != 1 || hits["acme-app/api"] != 1 {
