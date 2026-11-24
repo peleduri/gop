@@ -127,12 +127,22 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <label>Ends at <select name="kind"><option value="">any</option><option value="oidc">oidc</option><option value="secret">secret</option><option value="runner">runner</option><option value="repo">repo</option><option value="cloud">cloud</option></select></label>
 <label>Action ref <select name="ref"><option value="">any</option><option value="branch">branch</option><option value="tag">tag</option><option value="sha">sha</option></select></label>
 <label>Principal <input name="q" type="search" placeholder="members:acme-app"></label>
+<label>Through node <input name="via" type="search" placeholder="action:acme-actions/deploy@main"></label>
 {{if .OrgNames}}<fieldset><legend>Orgs</legend>{{range .OrgNames}}<label><input type="checkbox" name="org" value="{{.}}"> {{.}}</label>{{end}}</fieldset>{{end}}
 <button type="button" id="gop-reset">Reset</button>
 </form>
 {{if .Truncated}}<p class="note">{{.Truncated}}</p>{{end}}
 <p id="gop-count" class="note" role="status" aria-live="polite"></p>
-<div id="gop-paths"></div>
+<div class="tabs" role="tablist" aria-label="Path views"><button type="button" role="tab" id="gop-tab-list" aria-controls="gop-list-panel" aria-selected="true">List</button><button type="button" role="tab" id="gop-tab-graph" aria-controls="gop-graph-panel" aria-selected="false" tabindex="-1">Graph</button></div>
+<div id="gop-list-panel" role="tabpanel" aria-labelledby="gop-tab-list"><div id="gop-paths"></div></div>
+<div id="gop-graph-panel" role="tabpanel" aria-labelledby="gop-tab-graph" hidden>
+<p class="note">The filtered paths as one diagram, principals on the left, impact on the right, each hop drawn in control direction. Lines: solid is live, long dashes are inferred, dashed is audit, thin dashed marked "stale" is an audit fact too old to confirm (possible only), dotted with a question mark is not visible (unknown, not absent), dash-dot is a supplied file, and a thin grey line is an evidence class this report does not know, named in the hop's details. Select a node (click, or Tab to it and press Enter) to keep only the paths through it; select it again to clear. Hover or focus shows each hop's source.</p>
+<fieldset id="gop-pins" class="pins" hidden><legend>Simulate a pin</legend><div id="gop-pin-options"></div></fieldset>
+<p id="gop-graph-status" class="note" role="status" aria-live="polite"></p>
+<div id="gop-graph" class="graph"></div>
+<div id="gop-graph-detail" class="detail"></div>
+<details class="path"><summary>Paths in this graph, as text</summary><ol id="gop-graph-text"></ol></details>
+</div>
 <h3>Fixes for the selected orgs</h3>
 <div id="gop-fixes"></div>
 {{if .OrgNames}}<h3>Org views</h3>
