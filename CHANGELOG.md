@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 flags may change in minor releases.
 
 ## [Unreleased]
+### Fixed
+- Consistency fixes (#166). `gop fix-plan --format text` escapes names the
+  way the markdown checklist does (control, bidi and zero-width characters
+  as visible `\n`, `\u202E`, ...). `sanitize.NoAutolink`, and so the
+  fix-plan markdown and every other Markdown output that uses it, also
+  breaks email autolinks (`alice\@example.invalid`, also after `mailto:`)
+  and angle-bracket autolinks (`\<scheme:...>`, `\<alice@...>`), while a
+  `<sha-of-main>` placeholder stays as written. The Cypher export's
+  `GOP_REACHES` now follows the pair model of #147, like the SQL `reach`
+  table: what an identity reaches only through its org membership is one
+  edge from `members:X`, not one more per member (docs/cartography.md has a
+  query for a person's full reach). `gop diff` computes scores and totals in
+  one traversal per graph (`graph.Index.ScoresAndTotals`). The HTML report's
+  Explore view shows each hop's note (branch protection, hardening, bot
+  merge) next to the hop. `--advisories-live` follows `next_page_token` in
+  OSV `querybatch` results, so a package with many advisories is no longer
+  cut at the first page.
 
 ## [0.6.0] - 2026-11-24
 ### Added

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3mccwqOo5DQ0KCmhb+ciX8DYIYOQZa8ajMnVxMAvhz8='; style-src 'sha256-lGC5LPKCXjUkVQVEpByWSyn/4YOWhBDswZYH9yJFJ5s='; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WY+UykjNhA6uulfDokpl6zEcjdIPiKV932U1R1C6MVw='; style-src 'sha256-lGC5LPKCXjUkVQVEpByWSyn/4YOWhBDswZYH9yJFJ5s='; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>gop report: acme</title>
@@ -656,7 +656,7 @@ function pathEl(p){
 var ol=h("ol");
 p.hops.forEach(function(x){
 ol.appendChild(h("li","",code(x.from)," → ",code(x.to)," ",h("span","src",x.kind+(x.rev?" (reversed)":""))," ",evBadge(x.ev),
-x.api?" ":null,x.api?h("span","src",x.api):null,x.why?h("span","src"," undecided: "+x.why):null));
+x.api?" ":null,x.api?h("span","src",x.api):null,x.why?h("span","src"," undecided: "+x.why):null,x.note?h("span","src"," ("+x.note+")"):null));
 });
 return h("details","path",h("summary","",pathBadge(p)," ",code(p.from)," to ",code(p.to)," ",h("span","src",p.to_kind)),p.note?h("div","note",p.note):null,ol);
 }

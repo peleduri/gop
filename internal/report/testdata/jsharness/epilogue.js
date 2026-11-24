@@ -57,6 +57,7 @@ out.filtered = {
   count: ids["gop-count"].textContent,
   summaries: summaries(ids["gop-paths"]),
   paths: GOP.filterPaths(D, GOP.parseHash(location.hash).f).map(function (p) { return [p.from, p.to, p.ev, p.to_kind]; }),
+  text: ids["gop-paths"].textContent,
 };
 
 go("#org=acme-legacy");

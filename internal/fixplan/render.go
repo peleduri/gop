@@ -137,8 +137,45 @@ func delta(p Plan) string {
 		b.ConfirmedPairs, a.ConfirmedPairs, pct(b.ConfirmedPairs, a.ConfirmedPairs), b.PossiblePairs, a.PossiblePairs)
 }
 
-// WriteText prints a plan as numbered plain-text steps.
+// cleanText is a copy of p for the plain-text plan: every string that can
+// hold a GitHub name is escaped (sanitize.Clean), so no value can start a
+// new line, reorder the text with a bidi override or hide characters. A diff
+// keeps its own line breaks; each of its lines is escaped.
+func cleanText(p Plan) Plan { return cleanWith(p, sanitize.Clean, sanitize.Clean) }
+
+// cleanWith copies p with prose applied to every free-text field and code to
+// the fields a renderer may put in a code span (file, edge, API) and to each
+// diff line.
+func cleanWith(p Plan, prose, code func(string) string) Plan {
+	p.Description = prose(p.Description)
+	p.Caveats = append([]string{}, p.Caveats...)
+	for i := range p.Caveats {
+		p.Caveats[i] = prose(p.Caveats[i])
+	}
+	p.Steps = append([]Step{}, p.Steps...)
+	for i := range p.Steps {
+		s := &p.Steps[i]
+		for _, f := range []*string{&s.Repo, &s.FileRef, &s.Change, &s.Setting, &s.Owner, &s.Note} {
+			*f = prose(*f)
+		}
+		for _, f := range []*string{&s.File, &s.API, &s.Edge} {
+			*f = code(*f)
+		}
+		if s.Diff != "" {
+			lines := strings.Split(strings.TrimSuffix(s.Diff, "\n"), "\n")
+			for j := range lines {
+				lines[j] = code(lines[j])
+			}
+			s.Diff = strings.Join(lines, "\n") + "\n"
+		}
+	}
+	return p
+}
+
+// WriteText prints a plan as numbered plain-text steps. Names are escaped
+// (cleanText), as in the markdown checklist.
 func WriteText(w io.Writer, p Plan) {
+	p = cleanText(p)
 	plain := func(s string) string { return s }
 	fmt.Fprintln(w, Summary(p))
 	fmt.Fprintln(w, delta(p))
@@ -169,35 +206,13 @@ func WriteText(w io.Writer, p Plan) {
 // that can hold a GitHub name is escaped, so no value can start a new line
 // or hide text (sanitize.Clean). Fields in Markdown prose also have link and
 // autolink syntax escaped (sanitize.NoLinks), so a name such as
-// [fix](http://example.invalid) cannot become a live link. Fields the
+// [fix](http://example.invalid), alice@example.invalid or <gop://x> cannot
+// become a live link. Fields the
 // markdown puts inside a code span or fence (file, edge, API, diff lines)
 // get backticks escaped instead (sanitize.Code), so a value cannot end the
 // span. A diff keeps its own line breaks; each of its lines is escaped.
 func cleanMarkdown(p Plan) Plan {
-	c := func(s string) string { return sanitize.NoLinks(sanitize.Clean(s)) }
-	p.Description = c(p.Description)
-	p.Caveats = append([]string{}, p.Caveats...)
-	for i := range p.Caveats {
-		p.Caveats[i] = c(p.Caveats[i])
-	}
-	p.Steps = append([]Step{}, p.Steps...)
-	for i := range p.Steps {
-		s := &p.Steps[i]
-		for _, f := range []*string{&s.Repo, &s.FileRef, &s.Change, &s.Setting, &s.Owner, &s.Note} {
-			*f = c(*f)
-		}
-		for _, f := range []*string{&s.File, &s.API, &s.Edge} {
-			*f = sanitize.Code(*f)
-		}
-		if s.Diff != "" {
-			lines := strings.Split(strings.TrimSuffix(s.Diff, "\n"), "\n")
-			for j := range lines {
-				lines[j] = sanitize.Code(lines[j])
-			}
-			s.Diff = strings.Join(lines, "\n") + "\n"
-		}
-	}
-	return p
+	return cleanWith(p, func(s string) string { return sanitize.NoLinks(sanitize.Clean(s)) }, sanitize.Code)
 }
 
 // WriteMarkdown prints a plan as a checklist to paste into a ticket. Names

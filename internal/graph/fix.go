@@ -332,6 +332,14 @@ func (ix *Index) Totals() Totals {
 // sorted by principal ID: the set TopPaths, WhatIf and Totals use.
 func (ix *Index) Scores() []Score { return ix.allScores(ix.base) }
 
+// ScoresAndTotals returns Scores and Totals from one traversal of the graph
+// as collected: the same values as calling both, with each scoring
+// principal walked once instead of twice.
+func (ix *Index) ScoresAndTotals() ([]Score, Totals) {
+	full, pairs := ix.scoresAndPairs(ix.base)
+	return full, totalsOf(pairs)
+}
+
 // FixEdges returns the evidence edges a fix changes: the RESOLVES_TO edge of a
 // PinRef's action, the via=default_perm CAN_PUSH edges a LowerDefaultPerm
 // removes, the via=token_write CAN_PUSH edges a RestrictToken removes, the
