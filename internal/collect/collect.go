@@ -158,6 +158,10 @@ type queued struct {
 }
 
 type collector struct {
+	// codeowners is each repo's parsed CODEOWNERS (absent: none or unread),
+	// policy the policy files found per repo (policyfiles.go).
+	codeowners map[string]Codeowners
+	policy     map[string][]string
 	c          *Client
 	cfg        Config
 	now        time.Time
@@ -266,7 +270,7 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		nodes: map[string]*graph.Node{}, edges: map[string]*graph.Edge{},
 		covSeen: map[string]bool{}, byLower: map[string]*orgState{},
 		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
-		idByLower: map[string]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs, app: app,
+		idByLower: map[string]string{}, codeowners: map[string]Codeowners{}, policy: map[string][]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs, app: app,
 		batch: newBatchState(cfg), progressFn: progressFunc(cfg),
 		host: cfg.host(),
 	}
@@ -397,6 +401,9 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	k.addBotMergePaths()
+	if err := k.collectPolicyFiles(ctx); err != nil {
+		return err
+	}
 	return k.collectRefProtection(ctx)
 }
 

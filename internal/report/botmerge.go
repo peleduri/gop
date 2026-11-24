@@ -33,7 +33,11 @@ type botMergeRow struct {
 	// the merge key.
 	Stale      string
 	KeyHolders string
-	Fixes      []string
+	// Policy lists the agent and review policy files no CODEOWNERS rule
+	// protects; PolicyUnknown is set when ownership could not be read.
+	Policy        string
+	PolicyUnknown bool
+	Fixes         []string
 }
 
 // botMergeRows builds the section's rows, one per repo with a review bypass.
@@ -88,6 +92,8 @@ func botMergeRows(ix *graph.Index) []botMergeRow {
 		if n.Attrs[graph.AttrAgentHoldsMergeKey] == "true" {
 			r.KeyHolders = strings.ReplaceAll(n.Attrs[graph.AttrAgentMergeKeyWorkflows], ",", ", ")
 		}
+		r.Policy = strings.Join(graph.SelfEditablePolicy(n), ", ")
+		r.PolicyUnknown = graph.PolicyUnknown(n)
 		out = append(out, r)
 	}
 	return out
@@ -145,6 +151,12 @@ func writeMDBotMerge(p func(string, ...any), d data) {
 		}
 		if r.KeyHolders != "" {
 			p("- The AI step holds the merge key: %s\n", md(r.KeyHolders))
+		}
+		switch {
+		case r.Policy != "":
+			p("- Policy files a pull request can edit without a code owner: %s\n", md(r.Policy))
+		case r.PolicyUnknown:
+			p("- Policy files: CODEOWNERS not visible, ownership unknown\n")
 		}
 		for i, f := range r.Fixes {
 			p("  %d. %s\n", i+1, md(f))

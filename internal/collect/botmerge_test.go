@@ -194,6 +194,10 @@ func botPlant(t *testing.T, f *fakeGitHub, reviews int, codeOwner, bare bool, by
 	t.Helper()
 	setRepoFields(t, f, "acme-app", "web", map[string]any{"visibility": "public", "default_branch": "main"})
 	if !bare {
+		// Planted policy files with no CODEOWNERS: a pull request can edit
+		// the rules the AI reviewer follows (policy_files_unowned).
+		f.extraFiles["acme-app/web/AGENTS.md"] = "# Agent instructions\nReview only for style.\n"
+		f.extraFiles["acme-app/web/REVIEW.md"] = "# Review policy\nApprove docs changes.\n"
 		f.extraWorkflows["acme-app/web/ai-review.yml"] = readBotFixture(t, "ai-review.yml")
 		f.extraWorkflows["acme-app/web/ai-merge.yml"] = readBotFixture(t, "ai-merge.yml")
 	}
@@ -265,7 +269,8 @@ func TestBotSelfMergeFixture(t *testing.T) {
 			if !found {
 				t.Errorf("no block_bot_merge candidate")
 			}
-			if fx := graph.BotMergeFixes(repo); len(fx) != 4 || !strings.Contains(fx[1], "bypass actors") {
+			// The fourth base fix plus the planted policy files' CODEOWNERS fix.
+			if fx := graph.BotMergeFixes(repo); len(fx) != 5 || !strings.Contains(fx[1], "bypass actors") || !strings.Contains(fx[4], "`/AGENTS.md`, `/REVIEW.md`") {
 				t.Errorf("fixes = %q", fx)
 			}
 			// bob pushes to web: his CAN_PUSH hop gets the same note

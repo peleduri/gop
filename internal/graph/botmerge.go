@@ -186,6 +186,18 @@ func BotMergeExtras(n Node) []BotMergeExtra {
 	if n.Attrs[AttrReviewBypassReason] == ReviewBypassApprovals && n.Attrs[AttrActionsCanApprove] == "true" {
 		out = append(out, BotMergeExtra{Change: "Turn off \"Allow GitHub Actions to create and approve pull requests\" (Settings > Actions > General > Workflow permissions): then a GITHUB_TOKEN approval is refused and never counts toward the required reviews."})
 	}
+	if files := SelfEditablePolicy(n); len(files) > 0 {
+		names := make([]string, len(files))
+		for i, f := range files {
+			names[i] = "`/" + f + "`"
+		}
+		file := ".github/CODEOWNERS"
+		if co := n.Attrs[AttrCodeowners]; co != "" && co != "none" && co != "unknown" {
+			file = co
+		}
+		out = append(out, BotMergeExtra{File: file, Change: "Add CODEOWNERS lines with human owners for " + strings.Join(names, ", ") +
+			": these files steer the AI agents and reviewers, and a pull request can change them and still be merged by the bot."})
+	}
 	if n.Attrs[AttrAgentHoldsMergeKey] == "true" {
 		files := splitAttr(n.Attrs[AttrAgentMergeKeyWorkflows])
 		names := make([]string, len(files))

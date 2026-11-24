@@ -17,7 +17,7 @@ func TestBuildBlockBotMerge(t *testing.T) {
 	if p.Fix.Type != "block_bot_merge" || p.Fix.Repo != "repo:acme-app/web" || !strings.Contains(p.Description, "acme-app/web") {
 		t.Errorf("spec = %+v %q", p.Fix, p.Description)
 	}
-	if len(p.Steps) != 4 {
+	if len(p.Steps) != 5 {
 		t.Fatalf("steps = %+v", p.Steps)
 	}
 	want := []struct{ kind, file, change string }{
@@ -25,6 +25,7 @@ func TestBuildBlockBotMerge(t *testing.T) {
 		{KindChangeSetting, "", "Remove the GitHub App `77` from the bypass actors"},
 		{KindEditWorkflow, ".github/workflows/ai-merge.yml", "Do not let PR authors trigger the merge"},
 		{KindEditWorkflow, ".github/workflows/ai-review.yml", "Do not give the reviewer write or approve rights"},
+		{KindEditWorkflow, ".github/CODEOWNERS", "Add CODEOWNERS lines with human owners for `/AGENTS.md`, `/REVIEW.md`"},
 	}
 	for i, w := range want {
 		s := p.Steps[i]

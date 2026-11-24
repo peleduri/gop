@@ -159,6 +159,7 @@ func (k *collector) codeownersUnknown(repo *graph.Node, path, why string) {
 
 func (k *collector) setCodeowners(repo *graph.Node, path string, data []byte) {
 	co := ParseCodeowners(data)
+	k.codeowners[repo.ID] = co
 	setAttr(repo, graph.AttrCodeowners, path, graph.Live)
 	setAttr(repo, graph.AttrCodeownersValid, strconv.FormatBool(co.Valid), graph.Live)
 	setAttr(repo, graph.AttrCodeownersWorkflows, strconv.FormatBool(co.Workflows), graph.Live)
@@ -174,6 +175,25 @@ type Codeowners struct {
 	// .github/workflows/ (both .yml and .yaml) names at least one owner, so a
 	// workflow change needs a code owner's review when the branch requires it.
 	Workflows bool
+	// rules are the valid rules in file order, for Owns.
+	rules []coRule
+}
+
+// coRule is one valid CODEOWNERS line: its pattern and whether it names an owner.
+type coRule struct {
+	pattern string
+	owned   bool
+}
+
+// Owns reports whether the last rule matching path names an owner.
+func (co Codeowners) Owns(path string) bool {
+	owned := false
+	for _, r := range co.rules {
+		if coMatch(r.pattern, path) {
+			owned = r.owned // the last matching rule wins
+		}
+	}
+	return owned
 }
 
 var coOwnerRe = regexp.MustCompile(`^(@[A-Za-z0-9][A-Za-z0-9-]*(/[A-Za-z0-9._-]+)?|[^@\s]+@[^@\s]+\.[^@\s]+)$`)
@@ -184,12 +204,8 @@ var workflowProbes = []string{".github/workflows/gop.yml", ".github/workflows/go
 // ParseCodeowners parses CODEOWNERS text. Invalid lines are skipped, as
 // GitHub does, and make Valid false.
 func ParseCodeowners(data []byte) Codeowners {
-	type rule struct {
-		pattern string
-		owned   bool
-	}
 	co := Codeowners{Valid: true}
-	var rules []rule
+	var rules []coRule
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(strings.TrimSuffix(line, "\r"))
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -213,17 +229,12 @@ func ParseCodeowners(data []byte) Codeowners {
 			co.Valid = false
 			continue
 		}
-		rules = append(rules, rule{pat, owners > 0})
+		rules = append(rules, coRule{pat, owners > 0})
 	}
+	co.rules = rules
 	co.Workflows = true
 	for _, p := range workflowProbes {
-		owned := false
-		for _, r := range rules {
-			if coMatch(r.pattern, p) {
-				owned = r.owned // the last matching rule wins
-			}
-		}
-		co.Workflows = co.Workflows && owned
+		co.Workflows = co.Workflows && co.Owns(p)
 	}
 	return co
 }

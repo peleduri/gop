@@ -63,6 +63,7 @@ func init() {
 		graph.AttrBranchPushRestricted, graph.AttrBranchBypassActors, graph.AttrBranchAdminBypass, graph.AttrBranchAppBypass,
 		graph.AttrBranchSources, graph.AttrBranchValueSources,
 		graph.AttrCodeowners, graph.AttrCodeownersValid, graph.AttrCodeownersWorkflows,
+		graph.AttrPolicyFiles, graph.AttrPolicyFilesUnowned,
 		graph.AttrSecretScanning, graph.AttrSecretPushProtection, graph.AttrSecretValidity,
 		// documented in the JSON Schema
 		"token_write", "token_scopes", "risky_triggers", "trigger", "exec", "author_association",
@@ -351,6 +352,8 @@ var policies = map[string]policy{
 	graph.AttrCodeowners:            enum(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS", "none", "unknown"),
 	graph.AttrCodeownersValid:       boolish,
 	graph.AttrCodeownersWorkflows:   boolish,
+	graph.AttrPolicyFiles:           enumList(append([]string{"none", "unknown"}, graph.PolicyFiles...)...),
+	graph.AttrPolicyFilesUnowned:    enumList(append([]string{"none", "unknown"}, graph.PolicyFiles...)...),
 	graph.AttrSecretScanning:        enum("on", "off", "unknown"),
 	graph.AttrSecretPushProtection:  enum("on", "off", "unknown"),
 	graph.AttrSecretValidity:        enum("on", "off", "unknown"),

@@ -130,6 +130,8 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{end}}{{if .Script}}<dt>Merge rules</dt><dd>in <code>{{.Script}}</code> (read from the default branch, not run)</dd>
 {{end}}{{if .Stale}}<dt>Stale approvals</dt><dd><span class="badge nv"><span aria-hidden="true">?</span> suspected, heuristic</span> {{.Stale}}</dd>
 {{end}}{{if .KeyHolders}}<dt>Merge key</dt><dd>held by the AI step in <code>{{.KeyHolders}}</code></dd>
+{{end}}{{if .Policy}}<dt>Self-editable policy</dt><dd><code>{{.Policy}}</code>: no CODEOWNERS owner, so a pull request can change the rules its AI review follows</dd>
+{{else if .PolicyUnknown}}<dt>Self-editable policy</dt><dd><span class="badge nv"><span aria-hidden="true">?</span> not visible</span> CODEOWNERS could not be read</dd>
 {{end}}</dl>
 {{if .Fixes}}<ol class="ag-fix">{{range .Fixes}}<li>{{ticks .}}</li>{{end}}</ol>{{end}}
 </div>

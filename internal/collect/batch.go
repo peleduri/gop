@@ -313,8 +313,8 @@ func (k *collector) collectAllWorkflows(ctx context.Context) error {
 		reqs := make([]objReq, len(chunk))
 		for i, rr := range chunk {
 			reqs[i] = objReq{owner: rr.o.login, name: repoName(rr.o, rr.repo),
-				exprs:   append([]string{workflowDirExpr, githubDirExpr}, codeownersExprs()...),
-				shallow: []bool{false, true}}
+				exprs:   append(append([]string{workflowDirExpr, githubDirExpr}, codeownersExprs()...), policyExprs()...),
+				shallow: repoObjShallow()}
 		}
 		res, err := k.fetchObjects(ctx, c, reqs)
 		if err != nil {
@@ -333,7 +333,9 @@ func (k *collector) collectAllWorkflows(ctx context.Context) error {
 				}
 			}
 			if res[i].ok {
-				k.applyCodeownersObjs(rr.repo, res[i].objs[2:])
+				co := 2 + len(codeownersPaths)
+				k.applyCodeownersObjs(rr.repo, res[i].objs[2:co])
+				k.applyPolicyObjs(rr.repo, res[i].objs[co:])
 			} else if err := k.collectCodeowners(ctx, rr.o, rr.repo); err != nil {
 				return err
 			}
@@ -342,6 +344,20 @@ func (k *collector) collectAllWorkflows(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// repoObjShallow is the shallow flags of the per-repo object batch: the
+// .github listing and the policy files are read shallow (names and
+// existence only), the workflows directory and CODEOWNERS with content.
+func repoObjShallow() []bool {
+	s := []bool{false, true}
+	for range codeownersPaths {
+		s = append(s, false)
+	}
+	for range graph.PolicyFiles {
+		s = append(s, true)
+	}
+	return s
 }
 
 func repoName(o *orgState, repo *graph.Node) string {
