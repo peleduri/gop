@@ -1,4 +1,4 @@
 # A live run: the dry-run packages plus the agent client and DeepEval (docs/evals.md).
 -r requirements-dry.txt
 deepeval==4.3.4
-openai==3.53.0
+openai==3.57.0
