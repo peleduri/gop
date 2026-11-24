@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -44,7 +45,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
-              [--github-url URL]
+              [--github-url URL] [--verbose]
   gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json] --out graph2.json
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
               [--app-id N --app-key-file PATH]
@@ -82,6 +83,9 @@ GitHub App mode (--app-id and --app-key-file, or GOP_APP_ID and
 GOP_APP_PRIVATE_KEY with the PEM contents) mints a read-only installation
 token per org instead; it excludes GITHUB_TOKEN. The key stays in memory and
 is never printed.
+collect logs per-repository not-visible errors (for example collaborators the
+token cannot list) as one line per org with counts by HTTP status; the
+details are in coverage. --verbose (or GOP_VERBOSE=1) logs every repository.
 doctor is a read-only preflight for collect: token mode, scopes, SSO
 authorization gaps, rate limit, a time estimate and what will come out
 not_visible. In App mode it lists installations, the --orgs without one and
@@ -276,6 +280,8 @@ func (a *app) cmdCollect(args []string) error {
 		"gop creates it 0700; delete it after use and never commit it")
 	resume := fs.Bool("resume", false, "with --cache-dir, resume an interrupted collection of the same enterprise and orgs "+
 		"without re-requesting what it already fetched")
+	verbose := fs.Bool("verbose", false, "log every per-repository not-visible error (for example collaborators the token "+
+		"cannot list) instead of one summary line per org (or set GOP_VERBOSE=1)")
 	var trusts trustFlag
 	fs.Var(&trusts, "oidc-trust", trustUsage+" (runs gop enrich after collection)")
 	if err := parse(fs, args); err != nil {
@@ -312,6 +318,7 @@ func (a *app) cmdCollect(args []string) error {
 		GraphQLURL:       ep.graphql,
 		CacheDir:         *cacheDir,
 		Resume:           *resume,
+		Verbose:          *verbose || envTrue(a.getenv("GOP_VERBOSE")),
 		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -326,6 +333,13 @@ func (a *app) cmdCollect(args []string) error {
 		}
 	}
 	return a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) })
+}
+
+// envTrue reports whether an environment value turns a switch on: "1",
+// "true", "t" and other strconv.ParseBool true values, in any case.
+func envTrue(v string) bool {
+	b, err := strconv.ParseBool(strings.TrimSpace(v))
+	return err == nil && b
 }
 
 // scrub removes the token from a message, defensively.
