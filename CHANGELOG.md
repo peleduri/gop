@@ -29,6 +29,15 @@ flags may change in minor releases.
   actors are confirmed AI agent workflows, workflows that approve or merge
   through a bot, review bypass Apps and bot accounts, each counted once (#188).
 
+- Self-editable policy files: in a repo where a bot can approve or merge,
+  gop reads which agent and review policy files exist on the default branch
+  (`AGENTS.md`, `CLAUDE.md`, `REVIEW.md`, `.github/copilot-instructions.md`,
+  `.cursorrules`, `.cursor/rules`; existence only, in the same batched
+  query) and which of them no CODEOWNERS rule protects (`policy_files`,
+  `policy_files_unowned`). A pull request can change those files, and so the
+  rules its own AI review follows, and still be merged by the bot. The AI
+  self-merge section, the fix plan and SARIF add a CODEOWNERS fix (#190).
+
 - Project governance and community files, following the CNCF project
   template: `GOVERNANCE.md` (maintainer-led: decision making, adding and
   removing maintainers, conflict resolution, changing the governance),
