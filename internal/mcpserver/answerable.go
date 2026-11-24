@@ -26,6 +26,9 @@ const (
 	factOIDC             = "oidc"
 	factRunners          = "runners_and_secrets"
 	factOrgSettings      = "org_settings"
+	// factRepoHardening is default-branch protection, CODEOWNERS and secret
+	// scanning: context on paths, never reach, so no question requires it.
+	factRepoHardening = "repo_hardening"
 	// factOther is a gap gop cannot classify. Every question requires it, so
 	// an unclassified gap is never ignored.
 	factOther = "other"
@@ -47,6 +50,7 @@ var factDocs = []struct{ Fact, Covers string }{
 	{factOIDC, "OIDC tokens, their claims (environments) and cloud trust matches"},
 	{factRunners, "self-hosted runners and secret scopes a workflow runs with"},
 	{factOrgSettings, "org security settings that weight scores: SSO, two-factor, IP allow list and member privileges"},
+	{factRepoHardening, "default-branch protection, CODEOWNERS and secret scanning of repos: context on paths only, so no question requires it"},
 	{factOther, "any gap gop cannot classify"},
 }
 
@@ -152,7 +156,19 @@ var nameFacts = map[string]string{
 	graph.AttrIPAllowEntries: factOrgSettings, graph.AttrMembersCreate: factOrgSettings,
 	graph.AttrChangeVisiblity: factOrgSettings, graph.AttrDeleteRepos: factOrgSettings,
 	graph.AttrPrivateForks: factOrgSettings, graph.AttrIPAllowListEntries: factOrgSettings,
-	graph.AttrIPAllowListApps: factOrgSettings,
+	graph.AttrIPAllowListApps:  factOrgSettings,
+	graph.FactBranchProtection: factRepoHardening, graph.FactCodeowners: factRepoHardening,
+	graph.FactSecretScanning: factRepoHardening, graph.AttrSecretValidity: factRepoHardening,
+}
+
+func init() {
+	for _, k := range []string{graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview,
+		graph.AttrBranchDismissStale, graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits,
+		graph.AttrBranchForcePush, graph.AttrBranchPushRestricted, graph.AttrBranchBypassActors, graph.AttrBranchAdminBypass,
+		graph.AttrBranchAppBypass, graph.AttrCodeowners, graph.AttrCodeownersWorkflows,
+		graph.AttrSecretScanning, graph.AttrSecretPushProtection} {
+		nameFacts[k] = factRepoHardening
+	}
 }
 
 // factOfName classifies a coverage entry's fact, or a node attribute, on

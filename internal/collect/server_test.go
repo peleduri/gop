@@ -95,6 +95,11 @@ type fakeGitHub struct {
 	// "owner/repo/file.yml", so one test can plant a reference without
 	// changing the shared fixture.
 	extraWorkflows map[string]string
+	// extraFiles plants other files (CODEOWNERS), keyed "owner/repo/path".
+	extraFiles map[string]string
+	// secAnalysis overrides the listing's security_and_analysis per
+	// "owner/repo" (nil value: omitted, as for a token without admin).
+	secAnalysis map[string]any
 
 	// Branch protection, loaded from each repo's branch_rules, branch_protection
 	// and rulesets. Tests may change these before collecting.
@@ -103,6 +108,10 @@ type fakeGitHub struct {
 	rulesets   map[string]json.RawMessage   // "o/r#id" -> ruleset (with bypass_actors)
 	forbidRule map[string]bool              // "o/r" -> /rules/branches returns 403
 	hideBypass bool                         // rulesets omit bypass_actors, as for non-admins
+	// protQueries counts batched ...gopProtection queries; protUnsupported
+	// answers them with a query-level error, like an older GHES schema.
+	protQueries     int
+	protUnsupported bool
 	// forbidWorkflowPerms makes both default workflow permissions endpoints
 	// return 403 for every repo and org.
 	forbidWorkflowPerms bool
@@ -157,7 +166,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 	}
 	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{},
 		collabStatus:   map[string]int{},
-		extraWorkflows: map[string]string{}, objectErrors: map[string]string{}, truncated: map[string]bool{},
+		extraWorkflows: map[string]string{}, extraFiles: map[string]string{}, secAnalysis: map[string]any{}, objectErrors: map[string]string{}, truncated: map[string]bool{},
 		conditional: map[string]int{}, notModified: map[string]int{}, ok200: map[string]bool{}}
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
 		t.Fatal(err)
@@ -382,6 +391,22 @@ func (f *fakeGitHub) repos(w http.ResponseWriter, r *http.Request, org string) {
 			delete(m, "workflows_dir_object")
 			if _, ok := m["archived"]; !ok {
 				m["archived"] = false
+			}
+			// security_and_analysis: shown to org owners only; default on,
+			// push protection and validity checks off.
+			f.mu.Lock()
+			sa, override := f.secAnalysis[org+"/"+m["name"].(string)]
+			f.mu.Unlock()
+			if override {
+				m["security_and_analysis"] = sa
+			} else if !o.Owner {
+				delete(m, "security_and_analysis")
+			} else if _, ok := m["security_and_analysis"]; !ok {
+				m["security_and_analysis"] = map[string]any{
+					"secret_scanning":                 map[string]string{"status": "enabled"},
+					"secret_scanning_push_protection": map[string]string{"status": "disabled"},
+					"secret_scanning_validity_checks": map[string]string{"status": "disabled"},
+				}
 			}
 			b, _ := json.Marshal(m)
 			items = append(items, b)
@@ -692,6 +717,12 @@ func (f *fakeGitHub) file(owner, repo, path string) ([]byte, bool) {
 		data, err := os.ReadFile(filepath.Join("testdata", "workflows", owner, repo, name))
 		return data, err == nil
 	}
+	f.mu.Lock()
+	extra, ok := f.extraFiles[owner+"/"+repo+"/"+path]
+	f.mu.Unlock()
+	if ok {
+		return []byte(extra), true
+	}
 	data, err := os.ReadFile(filepath.Join("testdata", "actions", owner, repo, filepath.FromSlash(path)))
 	return data, err == nil
 }
@@ -852,6 +883,10 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := req.Query
+	if strings.Contains(q, "...gopProtection") {
+		f.protectionQuery(w, q, req.Variables)
+		return
+	}
 	if strings.Contains(q, "object(expression:") {
 		f.objects(w, string(body), q, req.Variables)
 		return

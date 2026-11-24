@@ -39,6 +39,9 @@ func WritePath(w io.Writer, p graph.Path) {
 		if h.Reason != "" {
 			fmt.Fprintf(w, "        undecided: %s\n", c(h.Reason))
 		}
+		if h.Note != "" {
+			fmt.Fprintf(w, "        note: %s\n", c(h.Note))
+		}
 	}
 }
 

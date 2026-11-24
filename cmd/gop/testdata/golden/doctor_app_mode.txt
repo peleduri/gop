@@ -14,7 +14,7 @@ Checks
   WARN  installation acme-legacy  GitHub App not installed on acme-legacy
                                   fix: install the App on acme-legacy with read-only permissions
   INFO  orgs                      2 of 3 organizations readable (from --orgs)
-  PASS  rate limit                collect needs about 58 REST requests and 4990 of 5000 remain
+  PASS  rate limit                collect needs about 59 REST requests and 4990 of 5000 remain
 
 Rate limit
   REST    4990 of 5000 remaining, resets 2026-11-23T12:40:00Z
@@ -22,7 +22,7 @@ Rate limit
 
 Estimate for gop collect
   2 orgs, 6 repos (GET /orgs/{org} counts), 3 workflows per repo assumed
-  about 58 requests and 1 minutes
+  about 59 requests and 1 minutes
 
 Predicted not_visible
   - enterprise settings (ownerInfo: SSO, 2FA, default permission, repo creation, visibility, deletion and fork policies); per-org values come from GET /orgs/{org} where readable, SSO stays not_visible

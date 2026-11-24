@@ -443,7 +443,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -488,7 +489,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -533,7 +535,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -578,7 +581,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -623,7 +627,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -668,7 +673,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -731,7 +737,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         }
       ]
     },
@@ -758,7 +765,8 @@
           "to": "repo:acme-actions/setup",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push reaches the default branch directly"
         }
       ]
     },
@@ -780,7 +788,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -825,7 +834,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -870,7 +880,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -915,7 +926,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -960,7 +972,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1005,7 +1018,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1050,7 +1064,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1095,7 +1110,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1140,7 +1156,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1163,7 +1180,8 @@
           "to": "repo:acme-app/web",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow"
+          "api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+          "note": "push needs 2 approvals to reach `main`"
         }
       ]
     },
@@ -1185,7 +1203,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:/repos/{owner}/{repo}/collaborators"
+          "api": "rest:/repos/{owner}/{repo}/collaborators",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1228,7 +1247,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         }
       ]
     },
@@ -1248,7 +1268,8 @@
           "to": "repo:acme-actions/setup",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push reaches the default branch directly"
         }
       ]
     },
@@ -1270,7 +1291,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1315,7 +1337,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1360,7 +1383,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1405,7 +1429,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1450,7 +1475,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1495,7 +1521,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1540,7 +1567,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1585,7 +1613,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1630,7 +1659,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",
@@ -1653,7 +1683,8 @@
           "to": "repo:acme-app/web",
           "kind": "CAN_PUSH",
           "ev": "live",
-          "api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow"
+          "api": "rest:GET /repos/{owner}/{repo}/actions/permissions/workflow",
+          "note": "push needs 2 approvals to reach `main`"
         }
       ]
     },
@@ -1675,7 +1706,8 @@
           "to": "repo:acme-actions/deploy",
           "kind": "CAN_PUSH",
           "ev": "inferred",
-          "api": "rest:/orgs/{org}"
+          "api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "from": "repo:acme-actions/deploy",

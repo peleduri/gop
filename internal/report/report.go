@@ -86,8 +86,14 @@ type data struct {
 	Paths    []principalPaths
 	Orgs     []orgRow
 	OrgWhy   []orgWhy // why each unknown org setting is unknown
-	Coverage []graph.Coverage
-	Banner   *banner // set only with Options.Changes
+	// RepoHardening is the per-org repo hardening rollup; HardenRepos the
+	// repos on the top paths with their protection state; HardenFixes the
+	// advisory hardening suggestions. Context only: no score depends on them.
+	RepoHardening []hardeningRow
+	HardenRepos   []hardenRepoRow
+	HardenFixes   []hardenFixRow
+	Coverage      []graph.Coverage
+	Banner        *banner // set only with Options.Changes
 
 	// HTML only: the data the filters and org views read, the org names
 	// for the filter bar, and a note when embedded paths were cut.
@@ -209,14 +215,53 @@ type pathView struct {
 	// Hardening is the target org's weak or unknown SSO and IP allow list
 	// (graph.OrgHardening.Line): context only, never part of the score.
 	Hardening string
+	// PushNote joins the repo hardening notes of the path's CAN_PUSH hops
+	// (graph.Index.HopNote): context only, never part of the score.
+	PushNote string
 }
 
 type hopView struct {
 	From, To, Kind, SourceAPI string
 	Reason                    string // why an undecided CAN_ASSUME match is possible only
+	Note                      string // hardening context (graph.Index.HopNote), never evidence
 	Reverse                   bool
 	Evidence                  string // live | inferred | audit | audit, stale | supplied file | not visible
 	Class                     string // live | audit | supplied | nv
+}
+
+// hcell is one heat-grid cell of the repo hardening table: good when every
+// repo has the fact, weak when one does not, unk when only unknowns are
+// missing.
+type hcell struct {
+	Value, Tone string
+}
+
+func shareCell(sh graph.Share) hcell {
+	c := hcell{Value: sh.String()}
+	switch {
+	case sh.No > 0:
+		c.Tone = "weak"
+	case sh.Unknown > 0:
+		c.Tone = "unk"
+	case sh.Yes > 0:
+		c.Tone = "good"
+	}
+	return c
+}
+
+type hardeningRow struct {
+	Cells                                                  []hcell
+	Org                                                    string
+	Repos                                                  int
+	Protected, Reviews, CodeownersWF, SecretScan, PushProt string
+}
+
+type hardenRepoRow struct {
+	Repo, State string
+}
+
+type hardenFixRow struct {
+	Description, Reason string
 }
 
 func build(g *graph.Graph, opts Options) data {
@@ -268,7 +313,7 @@ func build(g *graph.Graph, opts Options) data {
 	for _, pe := range ix.PinnedExposures() {
 		d.Pinned = append(d.Pinned, pinnedRow{Action: strings.TrimPrefix(pe.Action, "action:"),
 			Via: strings.TrimPrefix(pe.Via, "action:"), ViaNote: pe.ViaNote, Consumers: pe.Consumers,
-			Principal: pe.Path.From, Path: viewPath(pe.Path)})
+			Principal: pe.Path.From, Path: viewPath(ix, pe.Path)})
 	}
 	if n := len(d.Pinned); n > 0 {
 		verb := "run"
@@ -282,6 +327,7 @@ func build(g *graph.Graph, opts Options) data {
 		d.LockLine = lockLine(st)
 	}
 	d.Orgs, d.OrgWhy = orgSettings(g)
+	addHardening(&d, ix, opts.Top)
 	d.Coverage = g.Coverage
 	if opts.Changes != nil {
 		d.Banner = buildBanner(opts.Changes, pick)
@@ -499,7 +545,7 @@ func pickPaths(ix *graph.Index, principal string) []pathView {
 	}
 	out := make([]pathView, 0, len(chosen))
 	for _, p := range chosen {
-		pv := viewPath(p)
+		pv := viewPath(ix, p)
 		if h := ix.TargetOrgHardening(p); h != nil {
 			pv.Hardening = h.Line()
 		}
@@ -508,10 +554,10 @@ func pickPaths(ix *graph.Index, principal string) []pathView {
 	return out
 }
 
-func viewPath(p graph.Path) pathView {
-	pv := pathView{To: p.To, Confirmed: !p.Unverified, Note: p.SuppliedNote()}
-	for _, h := range p.Hops {
-		pv.Hops = append(pv.Hops, hopView{From: h.From, To: h.To, Kind: string(h.Kind), SourceAPI: h.SourceAPI, Reason: h.Reason,
+func viewPath(ix *graph.Index, p graph.Path) pathView {
+	pv := pathView{To: p.To, Confirmed: !p.Unverified, Note: p.SuppliedNote(), PushNote: strings.Join(ix.PathNotes(p), "; ")}
+	for _, h := range ix.Annotate(p).Hops {
+		pv.Hops = append(pv.Hops, hopView{From: h.From, To: h.To, Kind: string(h.Kind), SourceAPI: h.SourceAPI, Reason: h.Reason, Note: h.Note,
 			Reverse: h.Reverse, Evidence: mcpserver.HopEvidenceLabel(h), Class: evClass(h.Evidence)})
 	}
 	return pv
@@ -542,4 +588,34 @@ func lockLine(st graph.PinStats) string {
 	}
 	return fmt.Sprintf("Action pins (workflow uses: lines): %d pinned in the workflow file, %d pinned by actions.lock (%s)%s, %d with a stale actions.lock entry (counted as unpinned, listed below), %d unpinned.",
 		st.InWorkflow, st.ByLock, plural(st.Locks, "repo has a lockfile", "repos have a lockfile"), affected, st.Stale, st.Unpinned)
+}
+
+// hardeningFixes caps the advisory hardening suggestions the report lists.
+const hardeningFixes = 5
+
+// addHardening fills the repo hardening section: the per-org rollup, the
+// state of the repos the top principals push to, and advisory fixes.
+func addHardening(d *data, ix *graph.Index, top int) {
+	for _, r := range ix.HardeningRollups() {
+		d.RepoHardening = append(d.RepoHardening, hardeningRow{Org: orgName(r.Org), Repos: r.Repos,
+			Protected: r.Protected.String(), Reviews: r.Reviews.String(), CodeownersWF: r.CodeownersWF.String(),
+			SecretScan: r.SecretScanning.String(), PushProt: r.PushProtection.String(),
+			Cells: []hcell{shareCell(r.Protected), shareCell(r.Reviews), shareCell(r.CodeownersWF),
+				shareCell(r.SecretScanning), shareCell(r.PushProtection)}})
+	}
+	if len(d.RepoHardening) == 0 {
+		return
+	}
+	for _, repo := range ix.TopPathRepos(top) {
+		n, _ := ix.Node(repo)
+		h, ok := graph.RepoHardening(n)
+		if !ok {
+			continue
+		}
+		d.HardenRepos = append(d.HardenRepos, hardenRepoRow{Repo: strings.TrimPrefix(repo, "repo:"), State: h.Summary()})
+	}
+	for _, s := range ix.SuggestHardening(top, hardeningFixes) {
+		_, desc := mcpserver.DescribeFix(s.Fix)
+		d.HardenFixes = append(d.HardenFixes, hardenFixRow{Description: desc, Reason: s.Reason})
+	}
 }

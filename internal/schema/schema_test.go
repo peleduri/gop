@@ -98,6 +98,7 @@ func TestInvalidFixtures(t *testing.T) {
 	// message contains the given text.
 	want := map[string]struct{ ptr, msg string }{
 		"bad-actions-access.json":      {"/nodes/0/attrs/actions_access", `"everyone" is not one of "none", "user", "organization", "enterprise", "public", "unknown"`},
+		"bad-branch-protected.json":    {"/nodes/0/attrs/branch_protected", `"partly" is not one of "true", "false", "unknown"`},
 		"bad-edge-kind.json":           {"/edges/0/kind", `"PUSHES" is not one of`},
 		"bad-exec.json":                {"/edges/0/attrs/exec", `"fork" is not one of "checkout", "injection"`},
 		"bad-external-id.json":         {"/nodes/0/id", `does not match ^external:.+`},

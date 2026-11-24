@@ -1,7 +1,7 @@
-edge: `action:acme-actions/deploy@main` RESOLVES_TO `repo:acme-actions/deploy`: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z
+edge: `action:acme-actions/deploy@main` RESOLVES_TO `repo:acme-actions/deploy`: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z; `acme-actions/deploy` default branch `main`: protected (ruleset:7), 1 approval, CODEOWNERS review, force push blocked; CODEOWNERS covers workflows; secret scanning on, push protection on
 
 {
-  "summary": "edge: `action:acme-actions/deploy@main` RESOLVES_TO `repo:acme-actions/deploy`: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z",
+  "summary": "edge: `action:acme-actions/deploy@main` RESOLVES_TO `repo:acme-actions/deploy`: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z; `acme-actions/deploy` default branch `main`: protected (ruleset:7), 1 approval, CODEOWNERS review, force push blocked; CODEOWNERS covers workflows; secret scanning on, push protection on",
   "edges": [
     {
       "from": "action:acme-actions/deploy@main",
@@ -12,5 +12,29 @@ edge: `action:acme-actions/deploy@main` RESOLVES_TO `repo:acme-actions/deploy`: 
       "observed_at": "2026-11-20T10:00:00Z",
       "reversed": true
     }
-  ]
+  ],
+  "protection": {
+    "repo": "repo:acme-actions/deploy",
+    "default_branch": "main",
+    "protected": "true",
+    "required_reviews": "1",
+    "require_code_owner_review": "true",
+    "dismiss_stale_reviews": "true",
+    "require_last_push_approval": "false",
+    "required_status_checks": "1",
+    "require_signed_commits": "false",
+    "allow_force_push": "false",
+    "push_restricted": "false",
+    "bypass_actors": "1",
+    "admin_bypass": "false",
+    "app_bypass": "false",
+    "sources": "ruleset:7",
+    "value_sources": "required_reviews=ruleset:7,require_code_owner_review=ruleset:7,dismiss_stale_reviews=ruleset:7,required_status_checks=ruleset:7,allow_force_push=ruleset:7,admin_bypass=ruleset:7,app_bypass=ruleset:7",
+    "codeowners": ".github/CODEOWNERS",
+    "codeowners_valid": "true",
+    "codeowners_workflows": "true",
+    "secret_scanning": "on",
+    "secret_scanning_push_protection": "on",
+    "secret_scanning_validity_checks": "off"
+  }
 }

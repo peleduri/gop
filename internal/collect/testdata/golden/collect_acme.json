@@ -363,9 +363,28 @@
       "attrs": {
         "actions_access": "enterprise",
         "archived": "false",
+        "branch_admin_bypass": "false",
+        "branch_allow_force_push": "true",
+        "branch_app_bypass": "false",
+        "branch_bypass_actors": "1",
+        "branch_code_owner_review": "false",
+        "branch_dismiss_stale": "false",
+        "branch_last_push_approval": "false",
+        "branch_protected": "true",
+        "branch_protection_sources": "ruleset:7",
+        "branch_push_restricted": "false",
+        "branch_required_reviews": "1",
+        "branch_signed_commits": "false",
+        "branch_status_checks": "0",
+        "branch_value_sources": "required_reviews=ruleset:7,admin_bypass=ruleset:7,app_bypass=ruleset:7",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "default_branch": "main",
         "fork": "false",
         "org": "acme-actions",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "internal",
         "workflows": "1"
       },
@@ -378,9 +397,28 @@
       "attrs": {
         "actions_access": "organization",
         "archived": "false",
+        "branch_admin_bypass": "false",
+        "branch_allow_force_push": "true",
+        "branch_app_bypass": "false",
+        "branch_bypass_actors": "0",
+        "branch_code_owner_review": "false",
+        "branch_dismiss_stale": "false",
+        "branch_last_push_approval": "false",
+        "branch_protected": "true",
+        "branch_protection_sources": "ruleset:8",
+        "branch_push_restricted": "false",
+        "branch_required_reviews": "0",
+        "branch_signed_commits": "false",
+        "branch_status_checks": "1",
+        "branch_value_sources": "required_status_checks=ruleset:8,admin_bypass=ruleset:8,app_bypass=ruleset:8",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "default_branch": "main",
         "fork": "false",
         "org": "acme-actions",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "internal",
         "workflows": "1"
       },
@@ -404,8 +442,13 @@
       "name": "acme-app/api",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "2"
       },
@@ -417,8 +460,13 @@
       "name": "acme-app/billing",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "1"
       },
@@ -430,8 +478,13 @@
       "name": "acme-app/docs",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "internal",
         "workflows": "2"
       },
@@ -443,8 +496,13 @@
       "name": "acme-app/infra",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "1"
       },
@@ -456,8 +514,13 @@
       "name": "acme-app/mobile",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "1"
       },
@@ -469,8 +532,13 @@
       "name": "acme-app/notify",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "2"
       },
@@ -482,8 +550,13 @@
       "name": "acme-app/search",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "1"
       },
@@ -495,8 +568,13 @@
       "name": "acme-app/web",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "1"
       },
@@ -508,8 +586,13 @@
       "name": "acme-app/worker",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-app",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "1"
       },
@@ -536,15 +619,23 @@
       "name": "acme-legacy/old-site",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "collaborators": "unknown",
         "fork": "false",
         "org": "acme-legacy",
+        "secret_scanning": "unknown",
+        "secret_scanning_push_protection": "unknown",
+        "secret_scanning_validity_checks": "unknown",
         "visibility": "internal",
         "workflows": "1"
       },
       "evidence": "live",
       "attr_evidence": {
-        "collaborators": "not_visible"
+        "collaborators": "not_visible",
+        "secret_scanning": "not_visible",
+        "secret_scanning_push_protection": "not_visible",
+        "secret_scanning_validity_checks": "not_visible"
       }
     },
     {
@@ -553,8 +644,13 @@
       "name": "acme-secure/vault-proxy",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-secure",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "1"
       },
@@ -566,8 +662,13 @@
       "name": "acme-secure/vendor-mirror",
       "attrs": {
         "archived": "false",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
         "fork": "false",
         "org": "acme-secure",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "visibility": "private",
         "workflows": "unknown"
       },
@@ -2057,6 +2158,12 @@
       "fact": "ip_allow_list",
       "reason": "token is not an org owner",
       "needs_fix": "org owner on acme-legacy (SSO enforced: join through the identity provider first)"
+    },
+    {
+      "scope": "org:acme-legacy",
+      "fact": "secret_scanning",
+      "reason": "security_and_analysis not returned for 1 of 1 repositories (shown only to repo admins, org owners and security managers)",
+      "needs_fix": "admin on those repositories, or org owner or security manager in acme-legacy"
     },
     {
       "scope": "org:acme-legacy",

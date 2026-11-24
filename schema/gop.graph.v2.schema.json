@@ -132,7 +132,27 @@
         "poutine_file": {"description": "workflow: the poutine report the findings were read from.", "type": "string", "minLength": 1},
         "advisories": {"description": "action_ref: comma list of the OSV advisory IDs (GitHub Actions ecosystem) that affect this ref, e.g. a known compromise. Set only for affected refs.", "type": "string", "minLength": 1},
         "advisory_severity": {"description": "action_ref with advisories: the highest advisory severity.", "type": "string", "enum": ["critical", "high", "medium", "low", "unknown"]},
-        "advisory_fixed": {"description": "action_ref with advisories: the first fixed version that leaves every listed advisory; absent when one has no fix.", "type": "string", "minLength": 1}
+        "advisory_fixed": {"description": "action_ref with advisories: the first fixed version that leaves every listed advisory; absent when one has no fix.", "type": "string", "minLength": 1},
+        "branch_protected": {"description": "repo: whether classic branch protection or an active ruleset applies to the default branch; unknown when the rules could not be read (never read as unprotected).", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_required_reviews": {"description": "repo: approving reviews the default branch requires (the highest over classic protection and rulesets), or unknown.", "type": "string", "pattern": "^([0-9]+|unknown)$"},
+        "branch_code_owner_review": {"description": "repo: a source requires code owner review on the default branch.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_dismiss_stale": {"description": "repo: a source dismisses stale approvals on push.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_last_push_approval": {"description": "repo: a source requires the last push to be approved by someone else.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_status_checks": {"description": "repo: distinct required status checks on the default branch, or unknown.", "type": "string", "pattern": "^([0-9]+|unknown)$"},
+        "branch_signed_commits": {"description": "repo: a source requires signed commits.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_allow_force_push": {"description": "repo: force pushes to the default branch are allowed (no source blocks them).", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_push_restricted": {"description": "repo: a source restricts who may push (classic push restrictions or an update rule).", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_bypass_actors": {"description": "repo: bypass actors over all protecting sources (ruleset bypass actors and classic pull request bypass allowances), or unknown.", "type": "string", "pattern": "^([0-9]+|unknown)$"},
+        "branch_admin_bypass": {"description": "repo: repo or org admins get past every protecting source (classic without enforce_admins, rulesets with an admin bypass actor).", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_app_bypass": {"description": "repo: an app gets past every protecting source.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_protection_sources": {"description": "repo: comma list of the protecting sources (classic, ruleset:<id>), or none.", "type": "string", "pattern": "^(none|(classic|ruleset(:[0-9]+)?)(,(classic|ruleset(:[0-9]+)?))*)$"},
+        "branch_value_sources": {"description": "repo: which source set each effective value, comma list of key=source[+source], e.g. required_reviews=ruleset:7.", "type": "string", "minLength": 1},
+        "codeowners": {"description": "repo: the CODEOWNERS file GitHub uses on the default branch (the first of .github/, root, docs/), none, or unknown.", "type": "string", "enum": [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS", "none", "unknown"]},
+        "codeowners_valid": {"description": "repo: false when a CODEOWNERS line has syntax GitHub skips.", "type": "string", "enum": ["true", "false"]},
+        "codeowners_workflows": {"description": "repo: the CODEOWNERS rule matching .github/workflows/ files names an owner.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "secret_scanning": {"description": "repo: secret scanning, from security_and_analysis (shown to repo admins, org owners and security managers).", "type": "string", "enum": ["on", "off", "unknown"]},
+        "secret_scanning_push_protection": {"description": "repo: secret scanning push protection.", "type": "string", "enum": ["on", "off", "unknown"]},
+        "secret_scanning_validity_checks": {"description": "repo: secret scanning validity checks.", "type": "string", "enum": ["on", "off", "unknown"]}
       }
     },
     "EdgeAttrs": {

@@ -20,7 +20,7 @@ Checks
   FAIL  sso acme-legacy        token is not authorized for SAML SSO in acme-legacy
                                fix: authorize this token for SSO in acme-legacy
   INFO  orgs                   2 of 3 organizations readable (from enterprise organizations)
-  PASS  rate limit             collect needs about 684 REST requests and 4980 of 5000 remain
+  PASS  rate limit             collect needs about 690 REST requests and 4980 of 5000 remain
 
 Rate limit
   REST    4980 of 5000 remaining, resets 2026-11-23T12:40:00Z
@@ -28,7 +28,7 @@ Rate limit
 
 Estimate for gop collect
   2 orgs, 128 repos (GET /orgs/{org} counts), 3 workflows per repo assumed
-  about 684 requests and 4 minutes
+  about 690 requests and 4 minutes
 
 Predicted not_visible
   - org acme-legacy: everything (token not authorized for SSO)

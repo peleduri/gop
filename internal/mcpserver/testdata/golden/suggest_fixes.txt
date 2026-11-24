@@ -1,7 +1,7 @@
-3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it
+3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it; plus 3 hardening suggestions (advisory, not counted as removing reach)
 
 {
-  "summary": "3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it",
+  "summary": "3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it; plus 3 hardening suggestions (advisory, not counted as removing reach)",
   "fixes": [
     {
       "fix_id": "pin:action:acme-actions/deploy@main",
@@ -49,6 +49,35 @@
       "cumulative_removed": 23,
       "remaining": 2,
       "cumulative_pct": 92
+    }
+  ],
+  "hardening": [
+    {
+      "fix_id": "require_reviews:repo:acme-actions/setup",
+      "fix": {
+        "type": "require_reviews",
+        "repo": "repo:acme-actions/setup"
+      },
+      "description": "Require at least one approving review on the default branch of acme-actions/setup",
+      "reason": "default branch `main` is not protected"
+    },
+    {
+      "fix_id": "push_protection:repo:acme-actions/setup",
+      "fix": {
+        "type": "enable_push_protection",
+        "repo": "repo:acme-actions/setup"
+      },
+      "description": "Enable secret scanning push protection on acme-actions/setup",
+      "reason": "secret scanning push protection is off"
+    },
+    {
+      "fix_id": "push_protection:repo:acme-app/web",
+      "fix": {
+        "type": "enable_push_protection",
+        "repo": "repo:acme-app/web"
+      },
+      "description": "Enable secret scanning push protection on acme-app/web",
+      "reason": "secret scanning push protection is off"
     }
   ]
 }

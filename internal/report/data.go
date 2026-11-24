@@ -81,7 +81,8 @@ type embHop struct {
 	Ev   string `json:"ev"` // live | inferred | audit | audit, stale | supplied file | not visible
 	API  string `json:"api,omitempty"`
 	Rev  bool   `json:"rev,omitempty"`
-	Why  string `json:"why,omitempty"` // why an undecided CAN_ASSUME match is possible only
+	Why  string `json:"why,omitempty"`  // why an undecided CAN_ASSUME match is possible only
+	Note string `json:"note,omitempty"` // hardening context on a CAN_PUSH hop (graph.Index.HopNote)
 
 	raw   graph.Evidence // the hop's own evidence, for the Graph tab's label
 	stale bool           // an audit fact too old to confirm (graph.Hop.Stale)
@@ -263,9 +264,9 @@ func buildEmbedded(ix *graph.Index, g *graph.Graph, scores []graph.Score, fixes 
 				ep.Ev = "possible"
 			}
 			refs := map[string]bool{}
-			for _, h := range path.Hops {
+			for _, h := range ix.Annotate(path).Hops {
 				ep.Hops = append(ep.Hops, embHop{From: h.From, To: h.To, Kind: string(h.Kind),
-					Ev: mcpserver.HopEvidenceLabel(h), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason, raw: h.Evidence, stale: h.Stale})
+					Ev: mcpserver.HopEvidenceLabel(h), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason, Note: h.Note, raw: h.Evidence, stale: h.Stale})
 				for _, id := range []string{h.From, h.To} {
 					if ix.Kind(id) == graph.KindActionRef {
 						refs[refKind(ix, id)] = true

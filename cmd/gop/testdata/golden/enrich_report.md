@@ -34,18 +34,21 @@ Score counts confirmed reach only.
   _cloud hop from supplied trust file testdata/acme/trust/aws/deploy.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
 - **confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
@@ -53,6 +56,7 @@ Score counts confirmed reach only.
   _cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → cloud:azure:app:11111111-1111-1111-1111-111111111111, CAN\_ASSUME, **not visible**, supplied:testdata/acme/trust/azure/web-main.json
@@ -64,18 +68,21 @@ Score counts confirmed reach only.
   _cloud hop from supplied trust file testdata/acme/trust/aws/deploy.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
 - **confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
@@ -83,6 +90,7 @@ Score counts confirmed reach only.
   _cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → cloud:azure:app:11111111-1111-1111-1111-111111111111, CAN\_ASSUME, **not visible**, supplied:testdata/acme/trust/azure/web-main.json
@@ -114,6 +122,28 @@ Score counts confirmed reach only.
   - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
 - **acme-secure**
   - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+
+## Repo hardening
+
+Context only: these facts never change evidence, counts or scores. Each cell is repos where it holds / repos with the fact; unknown (not visible to the token) is counted separately, never as off.
+
+| Org | Repos | Protected default branch | Required reviews | CODEOWNERS covers workflows | Secret scanning | Push protection |
+|---|---:|---|---|---|---|---|
+| acme-actions | 2 | 1/2 | 1/2 | 1/2 | 2/2 | 1/2 |
+| acme-app | 1 | 1/1 | 1/1 | 0/1 | 1/1 | 0/1 |
+| acme-legacy | 1 | 0/1 (1 unknown) | 0/1 (1 unknown) | 0/1 (1 unknown) | 0/1 (1 unknown) | 0/1 (1 unknown) |
+
+Repos on the top paths:
+
+- **acme-actions/deploy**: default branch \`main\`: protected (ruleset:7), 1 approval, CODEOWNERS review, force push blocked; CODEOWNERS covers workflows; secret scanning on, push protection on
+- **acme-actions/setup**: default branch \`main\`: not protected; no CODEOWNERS; secret scanning on, push protection off
+- **acme-app/web**: default branch \`main\`: protected (classic), 2 approvals, force push blocked, admins can bypass; CODEOWNERS does not cover workflows; secret scanning on, push protection off
+
+Hardening suggestions (advisory: not counted as removing confirmed reach):
+
+- Require at least one approving review on the default branch of acme-actions/setup (default branch \`main\` is not protected)
+- Enable secret scanning push protection on acme-actions/setup (secret scanning push protection is off)
+- Enable secret scanning push protection on acme-app/web (secret scanning push protection is off)
 
 ## Coverage
 

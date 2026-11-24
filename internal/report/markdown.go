@@ -33,6 +33,9 @@ func writeMDHops(p func(string, ...any), hops []hopView) {
 		if h.Reason != "" {
 			p("     undecided: %s\n", md(h.Reason))
 		}
+		if h.Note != "" {
+			p("     note: %s\n", md(h.Note))
+		}
 	}
 }
 
@@ -190,6 +193,10 @@ func writeMarkdown(w io.Writer, d data) error {
 		}
 	}
 
+	if len(d.RepoHardening) > 0 {
+		writeMDHardening(p, d)
+	}
+
 	p("## Coverage\n\n")
 	if d.LockLine != "" {
 		p("%s\n\n", md(d.LockLine))
@@ -217,4 +224,29 @@ func principalCell(r riskRow) string {
 		return who
 	}
 	return who + " (" + md(r.Advisory) + ")"
+}
+
+// writeMDHardening writes the repo hardening section: context only.
+func writeMDHardening(p func(string, ...any), d data) {
+	p("## Repo hardening\n\n")
+	p("Context only: these facts never change evidence, counts or scores. Each cell is repos where it holds / repos with the fact; unknown (not visible to the token) is counted separately, never as off.\n\n")
+	p("| Org | Repos | Protected default branch | Required reviews | CODEOWNERS covers workflows | Secret scanning | Push protection |\n|---|---:|---|---|---|---|---|\n")
+	for _, h := range d.RepoHardening {
+		p("| %s | %d | %s | %s | %s | %s | %s |\n", md(h.Org), h.Repos, h.Protected, h.Reviews, h.CodeownersWF, h.SecretScan, h.PushProt)
+	}
+	p("\n")
+	if len(d.HardenRepos) > 0 {
+		p("Repos on the top paths:\n\n")
+		for _, r := range d.HardenRepos {
+			p("- **%s**: %s\n", md(r.Repo), md(r.State))
+		}
+		p("\n")
+	}
+	if len(d.HardenFixes) > 0 {
+		p("Hardening suggestions (advisory: not counted as removing confirmed reach):\n\n")
+		for _, f := range d.HardenFixes {
+			p("- %s (%s)\n", md(f.Description), md(f.Reason))
+		}
+		p("\n")
+	}
 }

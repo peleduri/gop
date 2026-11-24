@@ -258,7 +258,7 @@ footer{background:none}}
 </div></div>
 
 </div></header>
-<nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li><li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li><li><a href="#coverage">Not visible</a></li><li><a href="#top-paths">Top paths</a></li><li><a href="#org-settings">Org settings</a></li><li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
+<nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li><li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li><li><a href="#coverage">Not visible</a></li><li><a href="#top-paths">Top paths</a></li><li><a href="#org-settings">Org settings</a></li><li><a href="#repo-hardening">Repo hardening</a></li><li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
 <main id="main" class="wrap">
 <div id="gop-static">
 <section id="verdict" class="hero v-critical" aria-labelledby="verdict-h">
@@ -343,6 +343,7 @@ footer{background:none}}
 <details class="pathc">
 <summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/web</code></span> <span class="hopn">4 hops</span></summary>
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push needs 1 approval to reach `main` &#43; CODEOWNERS on workflows</p>
 <ol class="chain"><li><span class="chip"><small>identity</small><code>bob</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:/repos/{owner}/{repo}/collaborators</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source contents:.github/workflows (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
@@ -353,6 +354,7 @@ footer{background:none}}
 <details class="pathc">
 <summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/billing</code></span> <span class="hopn">4 hops</span></summary>
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push needs 1 approval to reach `main` &#43; CODEOWNERS on workflows</p>
 <ol class="chain"><li><span class="chip"><small>identity</small><code>bob</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:/repos/{owner}/{repo}/collaborators</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source contents:.github/workflows (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
@@ -363,6 +365,7 @@ footer{background:none}}
 <details class="pathc">
 <summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>runner:acme-app/worker</code></span> <span class="hopn">4 hops</span></summary>
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push needs 1 approval to reach `main` &#43; CODEOWNERS on workflows</p>
 <ol class="chain"><li><span class="chip"><small>identity</small><code>bob</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:/repos/{owner}/{repo}/collaborators</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source contents:.github/workflows (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
@@ -375,6 +378,7 @@ footer{background:none}}
 <details class="pathc">
 <summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/web</code></span> <span class="hopn">4 hops</span></summary>
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push needs 1 approval to reach `main` &#43; CODEOWNERS on workflows</p>
 <ol class="chain"><li><span class="chip"><small>members</small><code>acme-actions</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:/orgs/{org}</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source contents:.github/workflows (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
@@ -385,6 +389,7 @@ footer{background:none}}
 <details class="pathc">
 <summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/billing</code></span> <span class="hopn">4 hops</span></summary>
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push needs 1 approval to reach `main` &#43; CODEOWNERS on workflows</p>
 <ol class="chain"><li><span class="chip"><small>members</small><code>acme-actions</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:/orgs/{org}</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source contents:.github/workflows (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
@@ -395,6 +400,7 @@ footer{background:none}}
 <details class="pathc">
 <summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>runner:acme-app/worker</code></span> <span class="hopn">4 hops</span></summary>
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push needs 1 approval to reach `main` &#43; CODEOWNERS on workflows</p>
 <ol class="chain"><li><span class="chip"><small>members</small><code>acme-actions</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:/orgs/{org}</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source contents:.github/workflows (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
@@ -441,6 +447,29 @@ footer{background:none}}
 <li id="why-acme-app"><code>acme-app</code><ul><li><strong>IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos</strong>: not collected in this graph</li></ul></li>
 <li id="why-acme-legacy"><code>acme-legacy</code><ul><li><strong>IP allow list</strong>: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy</li><li><strong>Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members</strong>: not collected in this graph</li></ul></li>
 <li id="why-acme-secure"><code>acme-secure</code><ul><li><strong>IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos</strong>: not collected in this graph</li></ul></li>
+</ul>
+</section>
+<section aria-labelledby="repo-hardening">
+<h2 id="repo-hardening">Repo hardening</h2>
+<p class="lede">Context, not part of the score: default-branch protection, CODEOWNERS and secret scanning never change evidence, counts or scores. Each cell is repos where the fact holds / repos with the fact; repos gop could not read are counted as unknown, never as off.</p>
+<p class="lede keys"><span class="g g-good"><span aria-hidden="true">✓</span> every repo</span> <span class="g g-weak"><span aria-hidden="true">!</span> some repos lack it</span> <span class="g g-unk"><span aria-hidden="true">?</span> some repos unknown</span></p>
+<div class="card flush scroll"><table class="grid">
+<caption class="vh">Repo hardening per org; unknown repos are counted separately</caption>
+<thead><tr><th scope="col">Org</th><th scope="col">Repos</th><th scope="col">Protected default branch</th><th scope="col">Required reviews</th><th scope="col">CODEOWNERS covers workflows</th><th scope="col">Secret scanning</th><th scope="col">Push protection</th></tr></thead>
+<tbody><tr><th scope="row"><code>acme-actions</code></th><td>2</td><td class="g-weak"><span aria-hidden="true">!</span> 1/2</td><td class="g-weak"><span aria-hidden="true">!</span> 1/2</td><td class="g-weak"><span aria-hidden="true">!</span> 1/2</td><td class="g-good"><span aria-hidden="true">✓</span> 2/2</td><td class="g-weak"><span aria-hidden="true">!</span> 1/2</td></tr>
+<tr><th scope="row"><code>acme-app</code></th><td>1</td><td class="g-good"><span aria-hidden="true">✓</span> 1/1</td><td class="g-good"><span aria-hidden="true">✓</span> 1/1</td><td class="g-weak"><span aria-hidden="true">!</span> 0/1</td><td class="g-good"><span aria-hidden="true">✓</span> 1/1</td><td class="g-weak"><span aria-hidden="true">!</span> 0/1</td></tr>
+<tr><th scope="row"><code>acme-legacy</code></th><td>1</td><td class="g-unk"><span aria-hidden="true">?</span> 0/1 (1 unknown)</td><td class="g-unk"><span aria-hidden="true">?</span> 0/1 (1 unknown)</td><td class="g-unk"><span aria-hidden="true">?</span> 0/1 (1 unknown)</td><td class="g-unk"><span aria-hidden="true">?</span> 0/1 (1 unknown)</td><td class="g-unk"><span aria-hidden="true">?</span> 0/1 (1 unknown)</td></tr>
+</tbody></table></div>
+<h3 id="repo-hardening-top">Repos on the top paths</h3>
+<ul class="card whys"><li><code>acme-actions/deploy</code>: default branch `main`: protected (ruleset:7), 1 approval, CODEOWNERS review, force push blocked; CODEOWNERS covers workflows; secret scanning on, push protection on</li>
+<li><code>acme-actions/setup</code>: default branch `main`: not protected; no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/web</code>: default branch `main`: protected (classic), 2 approvals, force push blocked, admins can bypass; CODEOWNERS does not cover workflows; secret scanning on, push protection off</li>
+</ul>
+<h3 id="repo-hardening-fixes">Hardening suggestions</h3>
+<p class="lede">Advisory: these settings are not counted as removing confirmed reach.</p>
+<ul class="card whys"><li>Require at least one approving review on the default branch of acme-actions/setup (default branch `main` is not protected)</li>
+<li>Enable secret scanning push protection on acme-actions/setup (secret scanning push protection is off)</li>
+<li>Enable secret scanning push protection on acme-app/web (secret scanning push protection is off)</li>
 </ul>
 </section>
 </div>

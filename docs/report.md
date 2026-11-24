@@ -19,9 +19,20 @@ The report reads top to bottom, most important first. Light and dark themes foll
 - **What gop could not see.** Coverage gaps grouped by the access that closes them ("Org owner needed on 2 orgs"), then every gap with its reason.
 - **Pinned, still reachable** and **Top paths.** Each path is a hop chain, `principal → repo → workflow → target`, collapsed by default. Every hop shows its edge kind and evidence badge; hovering or focusing it shows the source API (and "reversed" when the evidence edge points the other way). Long commit SHAs are cut to 12 characters in the chip, with the full ID as its title. A path into an org with weak or unknown SSO or IP allow list carries the "Context, not part of the score" note above its chain. The chain stacks vertically on narrow screens.
 - **Org settings.** A heat grid of every org setting column: strong (✓), weak (!) or unknown (?). SSO enforced, 2FA required, IP allow list on and default permission read or none are strong; a member capability left on (create, delete, fork or change visibility of repos) is weak; member counts are neutral. An unknown cell links to its "Why unknown" entry and shows the reason and the access that fixes it on hover.
+- **Repo hardening.** When the graph has repo hardening facts: a heat grid per org of protected default branch, required reviews, CODEOWNERS covering workflows, secret scanning and push protection (✓ every repo, ! some repos lack it, ? some repos unknown), the repos on the top paths with their effective protection, and advisory hardening suggestions. A path with a `CAN_PUSH` hop into such a repo carries a second "Context, not part of the score" note ("push needs 2 approvals to reach `main`"). See [Repo hardening](#repo-hardening).
 - **Explore paths.** The filters, the List and Graph tabs and the org views, as before.
 
 Screenshots of the demo report: [light](assets/report-light.png), [dark](assets/report-dark.png), [390 px](assets/report-narrow.png), [print](assets/report-print.png), [hop chains](assets/report-paths.png), [org settings and hardening context](assets/report-settings.png).
+
+## Repo hardening
+
+When the graph has repo hardening facts (`gop collect` records them, see [docs/schema.md](schema.md#repo-hardening)), the report gets a "Repo hardening" section after the org settings:
+
+- one row per org: its non-archived repos with hardening facts, and for each of protected default branch, required reviews, CODEOWNERS covering `.github/workflows/`, secret scanning and push protection, `yes/total`, with repos gop could not read counted as `(N unknown)`, never as off;
+- the repos the top principals push to on a confirmed path, each with its effective protection and its source (`protected (ruleset:7), 2 approvals, force push blocked; CODEOWNERS covers workflows; secret scanning on, push protection off`);
+- advisory hardening suggestions (require reviews, enable push protection), which are not counted as removing confirmed reach.
+
+`CAN_PUSH` hops in the top paths carry the same notes as the MCP tools ("push needs 2 approvals to reach `main`", "push reaches the default branch directly"). The section and the notes are context only: the headline, scores, counts and fix ranking do not change.
 
 ## What changed: `--previous`
 

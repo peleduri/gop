@@ -4,162 +4,195 @@ Confirmed (every hop live, inferred, audit or supplied) (31):
   members:acme-actions -> repo:acme-actions/deploy  [confirmed]
       context: target org acme-actions: SSO not enforced (configured), IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
   members:acme-actions -> repo:acme-actions/setup  [confirmed]
       context: target org acme-actions: SSO not enforced (configured), IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/setup  source: rest:/orgs/{org}
+        note: push reaches the default branch directly
   members:acme-actions -> action:acme-actions/deploy@main  [confirmed]
       context: target org acme-actions: SSO not enforced (configured), IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
   members:acme-actions -> action:acme-actions/deploy@v1  [confirmed]
       context: target org acme-actions: SSO not enforced (configured), IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1  source: contents:.github/workflows
   members:acme-actions -> action:acme-actions/setup@main  [confirmed]
       context: target org acme-actions: SSO not enforced (configured), IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/setup  source: rest:/orgs/{org}
+        note: push reaches the default branch directly
       repo:acme-actions/setup =[RESOLVES_TO (reversed), live]=> action:acme-actions/setup@main  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-actions/deploy/.github/workflows/release.yml  [confirmed]
       context: target org acme-actions: SSO not enforced (configured), IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[DEFINED_IN (reversed), live]=> workflow:acme-actions/deploy/.github/workflows/release.yml  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> workflow:acme-app/admin/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/admin/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/api/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/auth/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1  source: contents:.github/workflows
       action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/auth/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/billing/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/billing/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/docs/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/docs/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/gateway/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/gateway/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/mobile/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/mobile/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/search/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/search/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/web/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/web/.github/workflows/release.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/release.yml  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/worker/.github/workflows/ci.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/worker/.github/workflows/ci.yml  source: contents:.github/workflows
   members:acme-actions -> oidc:acme-app/web  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/web/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> oidc:acme-app/web  source: contents:.github/workflows
   members:acme-actions -> repo:acme-app/admin  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/admin/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/admin/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/admin  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/api  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/api/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/api/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/api  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/auth  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@v1  source: contents:.github/workflows
       action:acme-actions/deploy@v1 =[USES (reversed), live]=> workflow:acme-app/auth/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/auth/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/auth  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/billing  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/billing/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/billing/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/billing  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/docs  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/docs/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/docs/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/docs  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/gateway  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/gateway/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/gateway/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/gateway  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/mobile  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/mobile/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/mobile/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/mobile  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/search  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/search/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/search/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/search  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> repo:acme-app/web  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/web/.github/workflows/ci.yml =[CAN_PUSH, live]=> repo:acme-app/web  source: rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
+        note: push needs 2 approvals to reach `main`
   members:acme-actions -> repo:acme-app/worker  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/worker/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/worker/.github/workflows/ci.yml =[DEFINED_IN, live]=> repo:acme-app/worker  source: rest:/repos/{owner}/{repo}/actions/workflows
   members:acme-actions -> runner:acme-app/worker  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/worker/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/worker/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> runner:acme-app/worker  source: contents:.github/workflows
   members:acme-actions -> secret:acme-app/billing  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/billing/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/billing/.github/workflows/ci.yml =[EXECUTES_WITH, live]=> secret:acme-app/billing  source: contents:.github/workflows
   members:acme-actions -> workflow:acme-app/web/.github/workflows/nightly.yml  [confirmed]
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/web/.github/workflows/ci.yml =[CAN_PUSH, live]=> repo:acme-app/web  source: rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
+        note: push needs 2 approvals to reach `main`
       repo:acme-app/web =[DEFINED_IN (reversed), live]=> workflow:acme-app/web/.github/workflows/nightly.yml  source: rest:/repos/{owner}/{repo}/actions/workflows

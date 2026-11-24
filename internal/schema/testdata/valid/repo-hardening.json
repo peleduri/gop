@@ -1,0 +1,33 @@
+{
+  "schema": "gop.graph/v2",
+  "collected_at": "2026-01-01T00:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {"id": "repo:acme-actions/deploy", "kind": "repo", "name": "acme-actions/deploy", "evidence": "live",
+     "attrs": {"visibility": "internal", "default_branch": "main",
+               "branch_protected": "true", "branch_required_reviews": "2", "branch_code_owner_review": "true",
+               "branch_dismiss_stale": "true", "branch_last_push_approval": "false", "branch_status_checks": "1",
+               "branch_signed_commits": "false", "branch_allow_force_push": "false", "branch_push_restricted": "false",
+               "branch_bypass_actors": "1", "branch_admin_bypass": "false", "branch_app_bypass": "false",
+               "branch_protection_sources": "classic,ruleset:7",
+               "branch_value_sources": "required_reviews=ruleset:7,allow_force_push=classic,admin_bypass=classic+ruleset:7",
+               "codeowners": ".github/CODEOWNERS", "codeowners_valid": "true", "codeowners_workflows": "true",
+               "secret_scanning": "on", "secret_scanning_push_protection": "off", "secret_scanning_validity_checks": "unknown"},
+     "attr_evidence": {"secret_scanning_validity_checks": "not_visible"}},
+    {"id": "repo:acme-legacy/old-site", "kind": "repo", "name": "acme-legacy/old-site", "evidence": "live",
+     "attrs": {"visibility": "internal", "default_branch": "main",
+               "branch_protected": "unknown", "branch_required_reviews": "unknown", "codeowners": "none", "codeowners_workflows": "false",
+               "secret_scanning": "unknown", "secret_scanning_push_protection": "unknown"},
+     "attr_evidence": {"branch_protected": "not_visible", "branch_required_reviews": "not_visible",
+                       "secret_scanning": "not_visible", "secret_scanning_push_protection": "not_visible"}}
+  ],
+  "edges": [],
+  "coverage": [
+    {"scope": "org:acme-actions", "fact": "secret_scanning_validity_checks",
+     "reason": "security_and_analysis did not report secret_scanning_validity_checks for 1 repositories", "needs_fix": "a host and token that report validity checks in security_and_analysis (GitHub Advanced Security)"},
+    {"scope": "repo:acme-legacy/old-site", "fact": "branch_protection",
+     "reason": "could not read the default branch rules of acme-legacy/old-site: HTTP 403", "needs_fix": "read access to acme-legacy/old-site"},
+    {"scope": "org:acme-legacy", "fact": "secret_scanning",
+     "reason": "security_and_analysis not returned for 1 of 1 repositories", "needs_fix": "admin on those repositories, or org owner or security manager in acme-legacy"}
+  ]
+}

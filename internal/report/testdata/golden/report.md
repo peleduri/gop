@@ -36,18 +36,21 @@ Score counts confirmed reach only.
 - **confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to runner:acme-app/worker
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/worker/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/worker/.github/workflows/ci.yml → runner:acme-app/worker, EXECUTES\_WITH, **live**, contents:.github/workflows
@@ -57,18 +60,21 @@ Score counts confirmed reach only.
 - **confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to runner:acme-app/worker
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+     note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/worker/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/worker/.github/workflows/ci.yml → runner:acme-app/worker, EXECUTES\_WITH, **live**, contents:.github/workflows
@@ -107,6 +113,28 @@ Score counts confirmed reach only.
   - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
 - **acme-secure**
   - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+
+## Repo hardening
+
+Context only: these facts never change evidence, counts or scores. Each cell is repos where it holds / repos with the fact; unknown (not visible to the token) is counted separately, never as off.
+
+| Org | Repos | Protected default branch | Required reviews | CODEOWNERS covers workflows | Secret scanning | Push protection |
+|---|---:|---|---|---|---|---|
+| acme-actions | 2 | 1/2 | 1/2 | 1/2 | 2/2 | 1/2 |
+| acme-app | 1 | 1/1 | 1/1 | 0/1 | 1/1 | 0/1 |
+| acme-legacy | 1 | 0/1 (1 unknown) | 0/1 (1 unknown) | 0/1 (1 unknown) | 0/1 (1 unknown) | 0/1 (1 unknown) |
+
+Repos on the top paths:
+
+- **acme-actions/deploy**: default branch \`main\`: protected (ruleset:7), 1 approval, CODEOWNERS review, force push blocked; CODEOWNERS covers workflows; secret scanning on, push protection on
+- **acme-actions/setup**: default branch \`main\`: not protected; no CODEOWNERS; secret scanning on, push protection off
+- **acme-app/web**: default branch \`main\`: protected (classic), 2 approvals, force push blocked, admins can bypass; CODEOWNERS does not cover workflows; secret scanning on, push protection off
+
+Hardening suggestions (advisory: not counted as removing confirmed reach):
+
+- Require at least one approving review on the default branch of acme-actions/setup (default branch \`main\` is not protected)
+- Enable secret scanning push protection on acme-actions/setup (secret scanning push protection is off)
+- Enable secret scanning push protection on acme-app/web (secret scanning push protection is off)
 
 ## Coverage
 
