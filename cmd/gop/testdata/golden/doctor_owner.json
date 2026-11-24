@@ -63,7 +63,7 @@
     {
       "name": "rate limit",
       "status": "pass",
-      "detail": "collect needs about 1389 REST requests and 4980 of 5000 remain"
+      "detail": "collect needs about 1126 REST requests and 4980 of 5000 remain; about 142 GraphQL points and 4995 of 5000 remain"
     }
   ],
   "orgs": [
@@ -106,8 +106,11 @@
     "repos": 252,
     "repos_rest_orgs": 3,
     "assumed_workflows_per_repo": 3,
-    "requests": 1389,
-    "minutes": 7,
+    "requests": 1148,
+    "rest_requests": 1126,
+    "graphql_queries": 22,
+    "graphql_points": 142,
+    "minutes": 6,
     "rate_limit_waits": 0
   },
   "not_visible": []

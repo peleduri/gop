@@ -31,6 +31,9 @@ type Progress struct {
 	Done, Total      int
 	RESTRemaining    int
 	GraphQLRemaining int
+	// GraphQLPoints is the GraphQL rate-limit points spent so far in the
+	// run (a query costs at least 1; batched queries report their cost).
+	GraphQLPoints int
 	// ResetAt is when the REST budget resets (zero when unknown).
 	ResetAt time.Time
 	// Cache holds the response cache counts; nil when the cache is off.
@@ -49,15 +52,20 @@ var phaseUnits = map[string]string{
 }
 
 // String renders p as one log line, for example
-// "workflows 1200/3000 repos | graphql 4100 left | rest 4870 left, resets 14:05Z".
+// "workflows 1200/3000 repos | graphql 4100 left, 52 points used | rest 4870 left, resets 14:05Z".
 func (p Progress) String() string {
 	var b strings.Builder
 	b.WriteString(p.Phase + " " + strconv.Itoa(p.Done) + "/" + strconv.Itoa(p.Total))
 	if u := phaseUnits[p.Phase]; u != "" {
 		b.WriteString(" " + u)
 	}
-	if p.GraphQLRemaining >= 0 {
+	switch {
+	case p.GraphQLRemaining >= 0 && p.GraphQLPoints > 0:
+		b.WriteString(" | graphql " + strconv.Itoa(p.GraphQLRemaining) + " left, " + strconv.Itoa(p.GraphQLPoints) + " points used")
+	case p.GraphQLRemaining >= 0:
 		b.WriteString(" | graphql " + strconv.Itoa(p.GraphQLRemaining) + " left")
+	case p.GraphQLPoints > 0:
+		b.WriteString(" | graphql " + strconv.Itoa(p.GraphQLPoints) + " points used")
 	}
 	if p.RESTRemaining >= 0 {
 		b.WriteString(" | rest " + strconv.Itoa(p.RESTRemaining) + " left")
@@ -112,7 +120,8 @@ func (k *collector) progress(phase string, done, total int) {
 	rs := k.c.RateState()
 	p := Progress{
 		Phase: phase, Done: done, Total: total,
-		RESTRemaining: rs.RESTRemaining, GraphQLRemaining: rs.GraphQLRemaining, ResetAt: rs.RESTReset,
+		RESTRemaining: rs.RESTRemaining, GraphQLRemaining: rs.GraphQLRemaining, GraphQLPoints: rs.GraphQLPoints,
+		ResetAt: rs.RESTReset,
 	}
 	if k.c.cache != nil {
 		st := k.c.cache.Stats()

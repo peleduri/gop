@@ -179,8 +179,9 @@ func (f *appGitHub) serve(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	if p == "/graphql" && (strings.Contains(gql.Query, "object(expression:") || strings.Contains(gql.Query, "...gopProtection")) {
-		// Batched file and branch protection reads: every repository owner must be the token's org
+	if p == "/graphql" && (strings.Contains(gql.Query, "object(expression:") || strings.Contains(gql.Query, "...gopProtection") ||
+		strings.Contains(gql.Query, "...gopCollaborators")) {
+		// Batched file, branch protection and collaborator reads: every repository owner must be the token's org
 		// (or an org without an installation, read through a fallback token).
 		for name, v := range gql.Variables {
 			owner, _ := v.(string)
