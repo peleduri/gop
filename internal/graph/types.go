@@ -485,6 +485,17 @@ const (
 	AttrPolicyFiles        = "policy_files"         // sorted comma list of PolicyFiles paths | none
 	AttrPolicyFilesUnowned = "policy_files_unowned" // sorted comma list of PolicyFiles paths | none | unknown
 
+	// GitHub Apps installed in an org (GET /orgs/{org}/installations). The
+	// org carries app_installations; each App is an identity node
+	// "identity:<slug>[bot]" with the attrs below.
+	AttrAppInstallations = "app_installations" // org: number of installed Apps, integer as string, or unknown (not_visible)
+	AttrAppID            = "app_id"            // identity: the App's numeric ID
+	AttrAppSlug          = "app_slug"          // identity: the App's slug
+	AttrAppOrgs          = "app_orgs"          // identity: sorted comma list of the collected orgs it is installed in
+	AttrAppWrite         = "app_write"         // identity: sorted comma list of the permissions granted with write in any of those orgs, or none
+	AttrAppRepos         = "app_repos"         // identity: all (installed on every repository of at least one org) | selected
+	AttrAppAI            = "app_ai"            // identity: name when the slug names an AI coding or review tool (AppAIWords)
+
 	// Secret scanning, from the repo's security_and_analysis.
 	AttrSecretScanning       = "secret_scanning"                 // on | off | unknown
 	AttrSecretPushProtection = "secret_scanning_push_protection" // on | off | unknown
@@ -496,6 +507,7 @@ const (
 	FactBranchProtection = "branch_protection"
 	FactCodeowners       = "codeowners"
 	FactPolicyFiles      = "policy_files"
+	FactAppInstallations = "app_installations"
 	FactSecretScanning   = "secret_scanning"
 )
 

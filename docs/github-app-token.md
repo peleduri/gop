@@ -35,7 +35,7 @@ settings, GitHub Apps, New GitHub App).
 | Repository: Administration | Read-only | Repository Actions settings: whether workflows in other repositories may use this repository's actions (`actions/permissions/access`) and the default `GITHUB_TOKEN` permission (`actions/permissions/workflow`), plus branch protection | Repository Actions access settings and branch protection, so cross-repo `uses:` reach and protected-ref gates are possible, not confirmed; the default token permission falls back to the org setting |
 | Repository: Actions | Read-only | Actions metadata for the repository | Actions metadata |
 | Organization: Members | Read-only | Org members, owners, teams with their repository grants, and outside collaborators (`MEMBER_OF` and team `CAN_PUSH` edges) | Org members, teams and outside collaborators, so team push grants are missing |
-| Organization: Administration | Read-only | The org's default `GITHUB_TOKEN` workflow permission (`actions/permissions/workflow`), used when a repository's own setting is not readable | Org Actions workflow permissions, so a repository whose own setting is not readable has an unknown default token permission |
+| Organization: Administration | Read-only | The org's default `GITHUB_TOKEN` workflow permission (`actions/permissions/workflow`), used when a repository's own setting is not readable, and the GitHub Apps installed in the org (`GET /orgs/{org}/installations`) | Org Actions workflow permissions, so a repository whose own setting is not readable has an unknown default token permission; the installed Apps (`app_installations` unknown) |
 
 These are the permissions gop requests for every installation token
 (`metadata`, `contents`, `administration`, `actions`, `members` and

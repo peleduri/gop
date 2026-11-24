@@ -419,6 +419,9 @@ func (k *collector) run(ctx context.Context) error {
 		if err := k.collectOwnerView(ctx, o); err != nil {
 			return err
 		}
+		if err := k.collectInstallations(ctx, o); err != nil {
+			return err
+		}
 		if err := k.collectRepos(ctx, o); err != nil {
 			return err
 		}

@@ -64,6 +64,7 @@ func init() {
 		graph.AttrBranchSources, graph.AttrBranchValueSources,
 		graph.AttrCodeowners, graph.AttrCodeownersValid, graph.AttrCodeownersWorkflows,
 		graph.AttrPolicyFiles, graph.AttrPolicyFilesUnowned,
+		graph.AttrAppInstallations, graph.AttrAppID, graph.AttrAppSlug, graph.AttrAppOrgs, graph.AttrAppWrite, graph.AttrAppRepos, graph.AttrAppAI,
 		graph.AttrSecretScanning, graph.AttrSecretPushProtection, graph.AttrSecretValidity,
 		// documented in the JSON Schema
 		"token_write", "token_scopes", "risky_triggers", "trigger", "exec", "author_association",
@@ -449,6 +450,13 @@ func init() {
 	policies[graph.AttrAgentMergeKeyWorkflows] = list(func(r *redactor, s string) string { return r.path(s) })
 	policies[graph.AttrBranchBypassApps] = appList
 	policies[graph.AttrBotMergeApps] = appList
+	policies[graph.AttrAppInstallations] = bucket
+	policies[graph.AttrAppID] = appList
+	policies[graph.AttrAppSlug] = func(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r.user(v), false, true }
+	policies[graph.AttrAppOrgs] = list(func(r *redactor, s string) string { return r.owner(s) })
+	policies[graph.AttrAppWrite] = words
+	policies[graph.AttrAppRepos] = enum("all", "selected")
+	policies[graph.AttrAppAI] = enum("name")
 	policies[graph.AttrActionsCanApprove] = boolish
 	policies[graph.AttrReviewBypassAppMatch] = enum(graph.AppMatched, graph.AppUnmatched, graph.AppUnknown)
 	policies[graph.AttrReviewBypassRecount] = enum(graph.StaleSuspected)

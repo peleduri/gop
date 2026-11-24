@@ -38,6 +38,15 @@ flags may change in minor releases.
   rules its own AI review follows, and still be merged by the bot. The AI
   self-merge section, the fix plan and SARIF add a CODEOWNERS fix (#190).
 
+- GitHub App inventory: for each org the token owns, gop lists the installed
+  GitHub Apps (`GET /orgs/{org}/installations`; GitHub requires an org owner,
+  and Organization Administration: read for fine-grained tokens and Apps).
+  Each App becomes an identity `identity:<slug>[bot]` with `app_id`,
+  `app_slug`, `app_orgs`, `app_write` (its write permissions), `app_repos`
+  (`all` or `selected`) and `app_ai=name` when its slug names an AI tool. The
+  org gets `app_installations` (a count, or `unknown` with a coverage entry
+  for orgs the token does not own); `gop doctor` predicts it (#192).
+
 - Project governance and community files, following the CNCF project
   template: `GOVERNANCE.md` (maintainer-led: decision making, adding and
   removing maintainers, conflict resolution, changing the governance),

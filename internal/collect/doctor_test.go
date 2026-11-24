@@ -499,7 +499,7 @@ func TestDoctorPredictsCollectCoverageForNotOwnedOrg(t *testing.T) {
 		t.Fatalf("owner check: %+v", c)
 	}
 	for _, want := range []string{"fix: " + fix, "(enterprise GraphQL and visible-to-token counts)",
-		"org acme-legacy: ip_allow_list, repositories, outside_collaborators, can_push:collaborators, secret_scanning, can_push:teams (token is not an org owner)"} {
+		"org acme-legacy: ip_allow_list, app_installations, repositories, outside_collaborators, can_push:collaborators, secret_scanning, can_push:teams (token is not an org owner)"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}

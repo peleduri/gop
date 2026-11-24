@@ -2,7 +2,7 @@
 
 Enterprise **acme**, collected 2026-11-24T12:00:00Z
 
-**AI agents and bots:** 3 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible).
+**AI agents and bots:** 4 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible).
 
 > identity:alice can push code that runs in 13 repos across 3 orgs (confirmed), including 2 cloud OIDC trusts, 3 secret scopes, 1 self-hosted runner pool.
 >
@@ -332,6 +332,7 @@ Hardening suggestions (advisory: not counted as removing confirmed reach):
 |---|---|---|---|
 | org:acme-app | team\_members:release | could not list members of team release: github api GET /orgs/acme-app/teams/release/members?role=all&amp;per\_page=100: HTTP 403: Must have admin rights to Team. | org owner on acme-app, or maintainer of team release |
 | org:acme-legacy | ip\_allow\_list | token is not an org owner | org owner on acme-legacy (SSO enforced: join through the identity provider first) |
+| org:acme-legacy | app\_installations | token is not an org owner | org owner on acme-legacy (SSO enforced: join through the identity provider first) |
 | org:acme-legacy | secret\_scanning | security\_and\_analysis not returned for 1 of 1 repositories (shown only to repo admins, org owners and security managers) | admin on those repositories, or org owner or security manager in acme-legacy |
 | org:acme-legacy | repositories | token is not an org owner: only repositories visible to the token are listed | org owner on acme-legacy (SSO enforced: join through the identity provider first) |
 | org:acme-legacy | outside\_collaborators | could not list outside collaborators: github api GET /orgs/acme-legacy/outside\_collaborators?per\_page=100: HTTP 403: Must have push access to view repository collaborators.; direct grants are labelled via=direct | org owner on acme-legacy (SSO enforced: join through the identity provider first) |

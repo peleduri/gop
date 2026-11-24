@@ -25,7 +25,7 @@ var appPermissionEffects = map[string]string{
 	"members":                     "org members, teams and outside collaborators (CAN_PUSH edges)",
 	"administration":              "repository Actions access settings and branch protection",
 	"actions":                     "Actions metadata",
-	"organization_administration": "org Actions workflow permissions",
+	"organization_administration": "org Actions workflow permissions and the org's installed GitHub Apps",
 }
 
 // doctorApp runs the preflight in GitHub App mode.
