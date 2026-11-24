@@ -9,12 +9,12 @@ Confirmed (principal, repo) pairs: 2 -> 0 (100% removed); possible pairs: 1 -> 0
 - [ ] Edit acme-app/docs `.github/workflows/preview.yml` line 14 (read at main)
   - owner: acme-app
   - evidence: `external:anyone CAN_TRIGGER workflow:acme-app/docs/.github/workflows/preview.yml` (live)
-  - change: in job preview, remove `ref: ${{ github.event.pull_request.head.sha }}` from the actions/checkout step so it checks out the base commit, or drop the checkout
+  - change: untrusted code runs: in job preview, a later step runs code from the pull request's checkout; remove `ref: ${{ github.event.pull_request.head.sha }}` from the actions/checkout step so it checks out the base commit, or check it out into a subdirectory that no step runs code from
   - note: on pull_request_target; can be triggered by external:anyone, members:acme-app [not visible]
 - [ ] Edit acme-app/docs `.github/workflows/preview.yml` line 23 (read at main)
   - owner: acme-app
   - evidence: `identity:bob CAN_TRIGGER workflow:acme-app/docs/.github/workflows/preview.yml` (live)
-  - change: in job label, move `${{ github.event.pull_request.title }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ github.event.pull_request.title }}`) and read it as "$UNTRUSTED", so the text is data, not code
+  - change: untrusted code runs: in job label, move `${{ github.event.pull_request.title }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ github.event.pull_request.title }}`) and read it as "$UNTRUSTED", so the text is data, not code
   - note: on pull_request_target; can be triggered by identity:bob
 
 ### Caveats

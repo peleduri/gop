@@ -268,3 +268,21 @@ func TestHardenAgentTrigger(t *testing.T) {
 		t.Fatalf("plan = %+v", p.Steps)
 	}
 }
+
+func TestHardenChangeSaysWhatHappens(t *testing.T) {
+	cases := []struct {
+		g    trigStep
+		want string
+	}{
+		{trigStep{job: "j", exec: "checkout", detail: "ref: ${{ github.head_ref }}"}, "untrusted code runs: in job j, a later step runs code"},
+		{trigStep{job: "j", exec: "checkout", detail: "gh pr checkout"}, "untrusted code runs: in job j, remove the `gh pr checkout`"},
+		{trigStep{job: "j", exec: execInject, detail: "github.event.issue.title"}, "untrusted code runs: in job j, move"},
+		{trigStep{job: "j", exec: execAgent, detail: "claude-code-action"}, "untrusted text reaches an AI step: in job j, stop people"},
+		{trigStep{job: "j", exec: execAgent, detail: llmScript}, "untrusted text reaches an AI step holding secrets: in job j, a step that holds a model API key"},
+	}
+	for _, c := range cases {
+		if got := hardenChange(&c.g); !strings.HasPrefix(got, c.want) {
+			t.Errorf("hardenChange(%s %s) = %q, want prefix %q", c.g.exec, c.g.detail, got, c.want)
+		}
+	}
+}

@@ -76,6 +76,7 @@ func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
 		return
 	}
 	wfSecrets := secretsIn(field(root, "env"))
+	wfEnv, _ := w.mapping(field(root, "env"), "env")
 	var risky []string
 	pullRequest := false
 	for _, t := range f.Triggers {
@@ -100,7 +101,7 @@ func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
 			}
 			f.JobNames[id] = name
 		}
-		aj, ok := agentJob(w, id, job)
+		aj, ok := agentJob(w, id, job, len(risky) > 0, wfEnv)
 		if !ok {
 			continue
 		}
@@ -116,9 +117,12 @@ func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
 		switch {
 		case len(risky) > 0 && open:
 			aj.Exposure = graph.ExposureOutsiders
+			// A heuristic match (no known agent, only a model API key next to
+			// the pull request's content) gives possible reach only.
+			heuristic := len(aj.Sources) == 1 && aj.Sources[0] == "heuristic"
 			for _, t := range risky {
 				f.UntrustedExec = append(f.UntrustedExec, UntrustedExec{Job: id, Trigger: t, Kind: ExecAgent, Detail: strings.Join(aj.Kinds, ","),
-					Line: aj.Line, Unverified: aj.Gate == graph.GateUnknown})
+					Line: aj.Line, Unverified: aj.Gate == graph.GateUnknown || heuristic, Assoc: assocGate(w, job, t)})
 			}
 		case len(risky) > 0 && aj.Gate == graph.GateListed:
 			aj.Exposure = graph.ExposureListed
@@ -135,7 +139,9 @@ func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
 }
 
 // agentJob reads one job's agent steps. ok is false when it has none.
-func agentJob(w *yamlWalk, id string, job *yamlMap) (AgentJob, bool) {
+// risky says the workflow has a risky trigger: only then does a job with no
+// known agent get the heuristic match (llmSteps).
+func agentJob(w *yamlWalk, id string, job *yamlMap, risky bool, wfEnv *yamlMap) (AgentJob, bool) {
 	aj := AgentJob{Job: id}
 	kinds, sources, prompt, tools := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
 	gate := -1
@@ -213,11 +219,77 @@ func agentJob(w *yamlWalk, id string, job *yamlMap) (AgentJob, bool) {
 			}
 		}
 	}
+	if len(kinds) == 0 && risky {
+		jobEnv, _ := w.mapping(field(job, "env"), "env")
+		for _, l := range llmSteps(w, steps, jobEnv, wfEnv) {
+			kinds[LLMScriptKind], sources["heuristic"] = true, true
+			setGate(graph.GateNone)
+			at(l.at)
+			for _, p := range l.prompt {
+				prompt[p] = true
+			}
+		}
+	}
 	if len(kinds) == 0 {
 		return AgentJob{}, false
 	}
 	aj.Kinds, aj.Sources, aj.Prompt, aj.Tools = sortedSet(kinds), sortedSet(sources), sortedSet(prompt), sortedSet(tools)
 	return aj, true
+}
+
+// llmStep is one step found by heuristic: it holds a model API key and
+// reads the pull request's content.
+type llmStep struct {
+	at     *yaml.Node // its run: or uses: key
+	prompt []string   // pr_content and the attacker contexts it reads
+}
+
+// llmSteps finds the steps of a job with no known agent that hold a model
+// API key (holdsLLMKey) and read the pull request's content: a checkout of
+// its head made by an earlier step, its diff or text through gh, or
+// attacker contexts in run:, with: or env:. Trusted code from the base
+// branch that feeds this to a model is an AI step attacker text reaches,
+// even though gop does not know the script.
+func llmSteps(w *yamlWalk, steps []*yaml.Node, jobEnv, wfEnv *yamlMap) []llmStep {
+	checkouts := prCheckouts(w, steps)
+	var out []llmStep
+	for i, sn := range steps {
+		step, err := w.mapping(sn, "step")
+		if err != nil || !holdsLLMKey(w, step, jobEnv, wfEnv) {
+			continue
+		}
+		set := map[string]bool{}
+		for _, c := range checkouts {
+			if c.step < i && stepReadsDir(w, step, c.dir) {
+				set[graph.PromptPRContent] = true
+			}
+		}
+		run := scalarOf(w, field(step, "run"))
+		for _, cmd := range prTextCmds {
+			if strings.Contains(run, cmd) {
+				set[graph.PromptPRContent] = true
+			}
+		}
+		vals := []string{run}
+		for _, k := range []string{"with", "env"} {
+			m, _ := w.mapping(field(step, k), k)
+			vals = append(vals, withValues(w, m)...)
+		}
+		for _, v := range vals {
+			for _, c := range injectedContexts(v) {
+				set[c] = true
+			}
+		}
+		if len(set) == 0 {
+			continue
+		}
+		k, _ := step.get("run")
+		if k == nil {
+			k, _ = step.get("uses")
+		}
+		out = append(out, llmStep{at: k, prompt: sortedSet(set)})
+	}
+	return out
 }
 
 // matchAgentAction finds u in the agent action table.
@@ -497,7 +569,8 @@ func addAgentFacts(wn *graph.Node, f *WorkflowFacts) {
 	kinds, sources, jobs, prompt, perms, tools := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
 	gate, exposure, refKind, runner := "", "", "", ""
 	secrets := map[string]bool{}
-	conf := graph.AgentCLI
+	confRank := map[string]int{graph.AgentHeuristic: 0, graph.AgentCLI: 1, graph.AgentAction: 2}
+	conf := graph.AgentHeuristic
 	for _, a := range f.Agents {
 		jobs[a.Job] = true
 		for _, set := range []struct {
@@ -518,8 +591,15 @@ func addAgentFacts(wn *graph.Node, f *WorkflowFacts) {
 			refKind = a.RefKind
 		}
 		runner = widerRunner(runner, a.Runner)
-		if containsStr(a.Sources, "uses") || containsStr(a.Sources, "setup") {
-			conf = graph.AgentAction
+		c := graph.AgentHeuristic
+		switch {
+		case containsStr(a.Sources, "uses") || containsStr(a.Sources, "setup"):
+			c = graph.AgentAction
+		case containsStr(a.Sources, "run"):
+			c = graph.AgentCLI
+		}
+		if confRank[c] > confRank[conf] {
+			conf = c
 		}
 	}
 	set := func(k string, m map[string]bool) {

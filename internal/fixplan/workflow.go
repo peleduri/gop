@@ -16,6 +16,7 @@ const (
 	attrDetail  = "detail"
 	execInject  = "injection"
 	execAgent   = "agent"
+	llmScript   = "llm-script"                    // the agent kind of an LLM step found by heuristic
 	settingsAPI = "/actions/permissions/workflow" // in the source_api of a token edge decided by the default
 )
 
@@ -222,20 +223,27 @@ func buildHarden(ix *graph.Index, f graph.HardenTrigger, p *Plan) {
 		"if the job must build or test the pull request's code, do it in a separate pull_request workflow with a read-only token and no secrets, and pass results through an artifact")
 }
 
-// hardenChange is the suggested edit for one untrusted execution.
+// hardenChange is the suggested edit for one untrusted execution. It says
+// which case it is: untrusted code runs (a checkout of the pull request's
+// code that a later step runs, or attacker text interpolated into a script),
+// or untrusted text reaches an AI step that acts with the job's token and
+// secrets.
 func hardenChange(g *trigStep) string {
 	job := orDefault(g.job, "(unknown)")
 	if g.exec == execInject {
-		return fmt.Sprintf("in job %s, move `${{ %s }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ %s }}`) and read it as \"$UNTRUSTED\", so the text is data, not code", job, g.detail, g.detail)
+		return fmt.Sprintf("untrusted code runs: in job %s, move `${{ %s }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ %s }}`) and read it as \"$UNTRUSTED\", so the text is data, not code", job, g.detail, g.detail)
 	}
 	if g.exec == execAgent {
-		return fmt.Sprintf("in job %s, stop people without push access from starting the AI agent (%s): keep the action's write-access check (remove allowed_non_write_users / allow-users), move the job off this trigger, or require approval for outside contributors; give it a read-only token and scope its tools (see docs/agents-in-ci.md)", job, g.detail)
+		if g.detail == llmScript {
+			return fmt.Sprintf("untrusted text reaches an AI step holding secrets: in job %s, a step that holds a model API key reads the pull request's files, diff or text (found by heuristic, confirm it calls a model); keep secrets it does not need out of its env, give the job a read-only token, treat the model's output as untrusted, or move the job off this trigger", job)
+		}
+		return fmt.Sprintf("untrusted text reaches an AI step: in job %s, stop people without push access from starting the AI agent (%s): keep the action's write-access check (remove allowed_non_write_users / allow-users), move the job off this trigger, or require approval for outside contributors; give it a read-only token and scope its tools (see docs/agents-in-ci.md)", job, g.detail)
 	}
 	switch {
 	case strings.HasPrefix(g.detail, "ref:"), strings.HasPrefix(g.detail, "repository:"):
-		return fmt.Sprintf("in job %s, remove `%s` from the actions/checkout step so it checks out the base commit, or drop the checkout", job, g.detail)
+		return fmt.Sprintf("untrusted code runs: in job %s, a later step runs code from the pull request's checkout; remove `%s` from the actions/checkout step so it checks out the base commit, or check it out into a subdirectory that no step runs code from", job, g.detail)
 	case g.detail != "":
-		return fmt.Sprintf("in job %s, remove the `%s` command that fetches the pull request's code", job, g.detail)
+		return fmt.Sprintf("untrusted code runs: in job %s, remove the `%s` command that fetches the pull request's code", job, g.detail)
 	}
-	return "in job " + job + ", stop checking out or running the pull request's code"
+	return "untrusted code runs: in job " + job + ", stop checking out or running the pull request's code"
 }

@@ -82,6 +82,30 @@ flags may change in minor releases.
   `gop fix-plan --reduce-owners N` and `gop report --owner-threshold N`.
 
 ### Fixed
+- A `pull_request_target` or `workflow_run` job that checks out the pull
+  request's head is no longer counted as running untrusted code unless a later
+  step runs code from that checkout (#145). gop now counts it as execution
+  when the checkout is at the workspace root (or an unresolvable path) and any
+  step follows, when a `uses: ./<path>/...` local action loads from it, when a
+  `run:` step works in it (`working-directory`, job `defaults.run`, `cd`), or
+  when a command runs a file, script or build from it (`pr/build.sh`,
+  `bash pr/x.sh`, `npm --prefix pr ci`, `make -C pr`, `pip install -e pr`,
+  `go run ./pr/...`, `docker build pr`). A checkout into a subdirectory that
+  only trusted base-branch code reads makes no `CAN_TRIGGER` edge and is no
+  longer ranked or suggested as a `harden_trigger` fix; the workflow gets
+  `untrusted_checkout=read_only` (`exec` when a job runs it). When such code
+  feeds the pull request's content to a model (a step holding
+  `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or a similar key that names the
+  checkout, runs `gh pr diff`/`gh pr view`, or reads attacker contexts), gop
+  records an `llm-script` agent with `agent_confidence=heuristic` and
+  `agent_prompt_injection` including `pr_content`, with `not_visible`
+  `CAN_TRIGGER` edges (possible reach only). A job `if:` that checks the
+  comment or review author's `author_association` now narrows who can
+  trigger it: `MEMBER` gives the org's members, `OWNER`/`COLLABORATOR` alone
+  give no edge and a coverage entry, and `CONTRIBUTOR` still counts outside
+  contributors; the edge records `author_association`. `harden_trigger` steps
+  now say whether untrusted code runs or untrusted text reaches an AI step
+  holding secrets.
 - `gop doctor` no longer states a repo total for an org the token does not
   own (#135). The enterprise GraphQL `repositories { totalCount }` counts only
   the repositories the token can see there, so it could print "the org has 0"

@@ -100,9 +100,21 @@ func AgentFixes(n Node) []string {
 	if !hasAttrValue(a[AttrAgentTools], "allowed_tools") && (a[AttrAgentExposure] == ExposureOutsiders || a[AttrAgentExposure] == ExposureListed || len(AgentUnrestricted(n)) > 0) {
 		out = append(out, "Scope the allowed tools to what the job needs, for example --allowedTools \"Bash(gh pr comment:*)\".")
 	}
-	if a[AttrAgentPrompt] != "" {
-		out = append(out, "Stop interpolating "+strings.Join(splitAttr(a[AttrAgentPrompt]), ", ")+
+	var ctxs []string
+	prContent := false
+	for _, p := range splitAttr(a[AttrAgentPrompt]) {
+		if p == PromptPRContent {
+			prContent = true
+			continue
+		}
+		ctxs = append(ctxs, p)
+	}
+	if len(ctxs) > 0 {
+		out = append(out, "Stop interpolating "+strings.Join(ctxs, ", ")+
 			" into the prompt or script: pass it through env or a file, and treat what the agent reads as untrusted.")
+	}
+	if prContent {
+		out = append(out, "The pull request's files, diff or text reach an AI step that holds secrets: keep secrets the step does not need out of its env, and treat the model's output as untrusted (never run it or pass it to a write step unchecked).")
 	}
 	return out
 }

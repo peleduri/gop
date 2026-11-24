@@ -167,3 +167,15 @@ func TestRanksAboveAgent(t *testing.T) {
 		t.Error("advisory must rank above agent exposed")
 	}
 }
+
+func TestAgentFixesPRContent(t *testing.T) {
+	n := Node{Kind: KindWorkflow, Attrs: map[string]string{
+		AttrAgent: "llm-script", AttrAgentConfidence: AgentHeuristic, AttrAgentGate: GateNone,
+		AttrAgentExposure: ExposureOutsiders, AttrAgentPrompt: "github.event.pull_request.title," + PromptPRContent,
+	}}
+	fixes := strings.Join(AgentFixes(n), "\n")
+	if !strings.Contains(fixes, "Stop interpolating github.event.pull_request.title into") || strings.Contains(fixes, "interpolating "+PromptPRContent) ||
+		!strings.Contains(fixes, "The pull request's files, diff or text reach an AI step that holds secrets") {
+		t.Errorf("fixes = %s", fixes)
+	}
+}

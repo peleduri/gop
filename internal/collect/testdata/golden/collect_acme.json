@@ -850,7 +850,8 @@
         "repo": "acme-app/docs",
         "risky_triggers": "pull_request_target",
         "token_scopes": "pull-requests",
-        "token_write": "false"
+        "token_write": "false",
+        "untrusted_checkout": "exec"
       },
       "evidence": "live"
     },
