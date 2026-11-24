@@ -136,6 +136,10 @@ type fakeGitHub struct {
 	cancelAfter int
 	cancel      func()
 	requests    int
+
+	// gqlRepoTotals overrides the repositories totalCount gop doctor's
+	// enterprise query returns per org (default: the fixture's repo count).
+	gqlRepoTotals map[string]int
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -265,6 +269,20 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		f.paged(w, r, f.fx.Users, func(page []json.RawMessage) any {
 			return map[string]any{"total_seats_consumed": len(f.fx.Users), "users": page}
 		})
+	case p == "/user":
+		writeJSON(w, 200, map[string]any{"login": "alice"})
+	case p == "/rate_limit":
+		writeJSON(w, 200, map[string]any{"resources": map[string]any{
+			"core":    map[string]any{"limit": 5000, "remaining": 4990, "reset": 1900000000},
+			"graphql": map[string]any{"limit": 5000, "remaining": 4990, "reset": 1900000000},
+		}})
+	case strings.HasPrefix(p, "/orgs/") && strings.Contains(p, "/memberships/"):
+		org, _, _ := strings.Cut(strings.TrimPrefix(p, "/orgs/"), "/")
+		if !f.orgOwner(org) {
+			notFoundOrForbidden(w, 404)
+			return
+		}
+		writeJSON(w, 200, map[string]any{"role": "admin", "state": "active"})
 	case strings.HasSuffix(p, "/actions/permissions/workflow"):
 		f.workflowPerms(w, p)
 	case strings.HasPrefix(p, "/orgs/") && strings.Contains(p, "/teams"):
@@ -833,6 +851,8 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case strings.Contains(q, "ref(qualifiedName"):
 		f.refLookups(w, q, req.Variables)
+	case strings.Contains(q, "viewerCanAdminister"):
+		f.doctorEnterprise(w)
 	case strings.Contains(q, "ownerInfo"):
 		m := settingFieldRe.FindStringSubmatch(q)
 		if m == nil {
@@ -889,6 +909,30 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, 200, map[string]any{"errors": []map[string]any{{"message": "unsupported query"}}})
 	}
+}
+
+// doctorEnterprise answers gop doctor's enterprise query: ownerInfo is
+// readable, and each org says whether the token owns it and how many
+// repositories it has.
+func (f *fakeGitHub) doctorEnterprise(w http.ResponseWriter) {
+	nodes := []map[string]any{}
+	for _, o := range f.fx.Orgs {
+		var archived any
+		if o.ArchivedAt != "" {
+			archived = o.ArchivedAt
+		}
+		total, ok := f.gqlRepoTotals[o.Login]
+		if !ok {
+			total = len(o.Repos)
+		}
+		nodes = append(nodes, map[string]any{"login": o.Login, "archivedAt": archived,
+			"viewerCanAdminister": o.Owner, "viewerIsAMember": o.Owner,
+			"repositories": map[string]any{"totalCount": total}})
+	}
+	writeJSON(w, 200, map[string]any{"data": map[string]any{"enterprise": map[string]any{
+		"slug": f.fx.Enterprise, "ownerInfo": map[string]any{"admins": map[string]any{"totalCount": 1}},
+		"organizations": map[string]any{"totalCount": len(nodes), "nodes": nodes},
+	}}})
 }
 
 // userOrgs serves /user/orgs: every fixture org for a user token, 403 for an

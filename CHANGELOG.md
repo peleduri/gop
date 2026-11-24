@@ -65,6 +65,24 @@ flags may change in minor releases.
   evidence are unchanged, and poutine is cited as its own source. SARIF and
   malformed files fail with a clear error. See `docs/poutine.md`.
 
+### Fixed
+
+- `gop doctor` predicted no gaps for orgs the token does not own, and its repo
+  count for them was 0 or 1. It now reads the token's role in each org
+  (`viewerCanAdminister` and `viewerIsAMember` in the enterprise query, or
+  `GET /orgs/{org}/memberships/{user}` without enterprise access). For an org
+  the token does not own it adds an `owner <org>` warning with the fix collect
+  uses (`org owner on <org>`, with the SSO note when SSO is enforced), lists
+  the not_visible facts collect will record there (`ip_allow_list`,
+  `repositories`, `outside_collaborators`, `can_push:collaborators`,
+  `can_push:teams`, and `can_push:default_perm` without enterprise access),
+  and returns them as `predicted_coverage` in `--format json`. Repo counts
+  come from the enterprise GraphQL `repositories { totalCount }` where
+  available; a `GET /orgs/{org}` count for an org the token does not own is
+  marked a lower bound (`repos_source`, `repos_lower_bound`). A test checks
+  that the predicted facts equal the ones collect records against the same
+  fake.
+
 ## [0.4.0] - 2026-11-24
 
 ### Added

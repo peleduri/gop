@@ -31,6 +31,11 @@ type doctorFake struct {
 	installRepos []string // full names served by /installation/repositories
 	partialSSO   string   // X-GitHub-SSO on /user/orgs
 	coreLeft     int
+	// notOwned are orgs the token user does not own: the enterprise query
+	// says so and /orgs/{org}/memberships/{user} is 404. gqlRepos, when
+	// set, is the enterprise query's repositories totalCount per org.
+	notOwned map[string]bool
+	gqlRepos map[string]int
 
 	mu   sync.Mutex
 	hits []string
@@ -89,6 +94,13 @@ func (f *doctorFake) handler() http.HandlerFunc {
 				out = append(out, map[string]any{"login": o})
 			}
 			writeJSON(w, 200, out)
+		case strings.HasPrefix(p, "/orgs/") && strings.Contains(p, "/memberships/"):
+			org, _, _ := strings.Cut(strings.TrimPrefix(p, "/orgs/"), "/")
+			if f.notOwned[org] {
+				writeJSON(w, 404, map[string]string{"message": "Not Found"})
+				return
+			}
+			writeJSON(w, 200, map[string]any{"role": "admin", "state": "active"})
 		case strings.HasPrefix(p, "/orgs/"):
 			org := strings.TrimPrefix(p, "/orgs/")
 			if f.ssoOrgs[org] {
@@ -119,7 +131,11 @@ func (f *doctorFake) handler() http.HandlerFunc {
 			if f.entVisible {
 				nodes := []map[string]any{}
 				for _, o := range f.orgs {
-					nodes = append(nodes, map[string]any{"login": o})
+					n := map[string]any{"login": o, "viewerCanAdminister": !f.notOwned[o], "viewerIsAMember": !f.notOwned[o]}
+					if c, ok := f.gqlRepos[o]; ok {
+						n["repositories"] = map[string]any{"totalCount": c}
+					}
+					nodes = append(nodes, n)
 				}
 				var oi any
 				if f.owner {
@@ -212,8 +228,8 @@ func TestDoctorOwnerAllPass(t *testing.T) {
 	if f, w := rep.Counts(); f != 0 || w != 0 {
 		t.Fatalf("want all pass, got %d fails %d warns:\n%s", f, w, out)
 	}
-	if len(rep.NotVisible) != 0 {
-		t.Fatalf("not_visible: %v", rep.NotVisible)
+	if len(rep.NotVisible) != 0 || len(rep.Predicted) != 0 {
+		t.Fatalf("not_visible: %v predicted: %v", rep.NotVisible, rep.Predicted)
 	}
 	e := rep.Estimate
 	if e == nil || e.Orgs != 3 || e.Repos != 47 || e.Requests == 0 || e.RateLimitWaits != 0 {
@@ -385,5 +401,154 @@ func TestTokenKind(t *testing.T) {
 		if got := TokenKind(tok); got != want {
 			t.Errorf("%s: %s, want %s", tok, got, want)
 		}
+	}
+}
+
+// predictedVsCollected runs gop doctor and gop collect against the same fake
+// and returns, per org scope, the coverage entries doctor predicted and the
+// ones collect recorded.
+func predictedVsCollected(t *testing.T, f *fakeGitHub) (*DoctorReport, string, map[string][]PredictedCoverage, map[string][]PredictedCoverage) {
+	t.Helper()
+	rep, err := Doctor(context.Background(), DoctorConfig{Enterprise: "acme", Token: testToken, Client: f.client(t),
+		Now: func() time.Time { return doctorNow }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	if err := WriteDoctor(&b, rep); err != nil {
+		t.Fatal(err)
+	}
+	g, err := Collect(context.Background(), Config{Enterprise: "acme", Client: f.client(t), DisableGraphQLBatch: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	predicted := map[string][]PredictedCoverage{}
+	for _, p := range rep.Predicted {
+		predicted[p.Scope] = append(predicted[p.Scope], p)
+	}
+	collected := map[string][]PredictedCoverage{}
+	for _, c := range g.Coverage {
+		if strings.HasPrefix(c.Scope, "org:") {
+			collected[c.Scope] = append(collected[c.Scope], PredictedCoverage{Scope: c.Scope, Fact: c.Fact, NeedsFix: c.NeedsFix})
+		}
+	}
+	return rep, b.String(), predicted, collected
+}
+
+func coverageSet(cs []PredictedCoverage) map[string]bool {
+	out := map[string]bool{}
+	for _, c := range cs {
+		out[c.Fact+" | "+c.NeedsFix] = true
+	}
+	return out
+}
+
+func assertSameCoverage(t *testing.T, scope string, predicted, collected map[string][]PredictedCoverage) {
+	t.Helper()
+	p, c := coverageSet(predicted[scope]), coverageSet(collected[scope])
+	if len(p) == 0 {
+		t.Fatalf("%s: nothing predicted; collect recorded %v", scope, c)
+	}
+	for k := range c {
+		if !p[k] {
+			t.Errorf("%s: collect recorded %q, doctor did not predict it", scope, k)
+		}
+	}
+	for k := range p {
+		if !c[k] {
+			t.Errorf("%s: doctor predicted %q, collect did not record it", scope, k)
+		}
+	}
+}
+
+// An enterprise-owner token that is not a member of acme-legacy: doctor
+// predicts exactly the org coverage collect records there, takes the repo
+// count from the enterprise GraphQL query and predicts nothing for owned orgs.
+func TestDoctorPredictsCollectCoverageForNotOwnedOrg(t *testing.T) {
+	f := newFakeGitHub(t)
+	f.gqlRepoTotals = map[string]int{"acme-legacy": 28}
+	rep, out, predicted, collected := predictedVsCollected(t, f)
+	if rep.Mode != ModeOwner {
+		t.Fatalf("mode %q", rep.Mode)
+	}
+	assertSameCoverage(t, "org:acme-legacy", predicted, collected)
+	for scope := range predicted {
+		if scope != "org:acme-legacy" {
+			t.Errorf("prediction for an owned org: %s %v", scope, predicted[scope])
+		}
+	}
+	var legacy *DoctorOrg
+	for i := range rep.Orgs {
+		if rep.Orgs[i].Login == "acme-legacy" {
+			legacy = &rep.Orgs[i]
+		}
+		if o := rep.Orgs[i]; o.Login != "acme-legacy" && o.Status == "ok" && o.Role != RoleOwner {
+			t.Errorf("org %s role %q, want owner", o.Login, o.Role)
+		}
+	}
+	if legacy == nil || legacy.Role != RoleNone || legacy.Repos == nil || *legacy.Repos != 28 ||
+		legacy.ReposSource != ReposGraphQL || legacy.ReposLowerBound {
+		t.Fatalf("acme-legacy: %+v", legacy)
+	}
+	fix := "org owner on acme-legacy (SSO enforced: join through the identity provider first)"
+	if c := findCheck(rep, "owner acme-legacy"); c == nil || c.Status != StatusWarn || c.Fix != fix ||
+		!strings.Contains(c.Detail, "the org has 28") {
+		t.Fatalf("owner check: %+v", c)
+	}
+	for _, want := range []string{"fix: " + fix, "(enterprise GraphQL counts)",
+		"org acme-legacy: ip_allow_list, repositories, outside_collaborators, can_push:collaborators, can_push:teams (token is not an org owner)"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output lacks %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "nothing predicted") {
+		t.Errorf("output says nothing predicted:\n%s", out)
+	}
+}
+
+// Per-org mode (no enterprise access): roles come from the memberships API,
+// and the prediction still matches collect, default permission included.
+func TestDoctorPredictsCollectCoveragePerOrg(t *testing.T) {
+	f := newFakeGitHub(t)
+	f.enterpriseForbidden = true
+	f.pageSize = 100
+	rep, out, predicted, collected := predictedVsCollected(t, f)
+	if rep.Mode != ModePerOrg {
+		t.Fatalf("mode %q", rep.Mode)
+	}
+	assertSameCoverage(t, "org:acme-legacy", predicted, collected)
+	if len(predicted) != 1 {
+		t.Errorf("predictions for owned orgs: %v", predicted)
+	}
+	if c := findCheck(rep, "owner acme-legacy"); c == nil || c.Fix != "org owner on acme-legacy" {
+		t.Fatalf("owner check: %+v\n%s", c, out)
+	}
+}
+
+// A REST repository count read by a token that does not own the org is
+// flagged as a lower bound.
+func TestDoctorNotOwnedRESTCountIsLowerBound(t *testing.T) {
+	f := ownerFake()
+	f.notOwned = map[string]bool{"acme-actions": true}
+	rep, out := runDoctor(t, f)
+	var o DoctorOrg
+	for _, x := range rep.Orgs {
+		if x.Login == "acme-actions" {
+			o = x
+		}
+	}
+	if o.Role != RoleNone || !o.ReposLowerBound || o.ReposSource != ReposREST {
+		t.Fatalf("acme-actions: %+v", o)
+	}
+	if rep.Estimate == nil || rep.Estimate.ReposLowerBound != 1 {
+		t.Fatalf("estimate: %+v", rep.Estimate)
+	}
+	for _, want := range []string{"the repo count (5) is a lower bound", "the repo count is a lower bound: 1 org not owned"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output lacks %q:\n%s", want, out)
+		}
+	}
+	if _, warns := rep.Counts(); warns != 1 {
+		t.Errorf("want 1 warning (owner acme-actions), got %d:\n%s", warns, out)
 	}
 }

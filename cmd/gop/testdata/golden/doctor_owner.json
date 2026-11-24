@@ -70,17 +70,23 @@
     {
       "login": "acme",
       "status": "ok",
-      "repos": 44
+      "repos": 44,
+      "repos_source": "rest",
+      "role": "owner"
     },
     {
       "login": "acme-actions",
       "status": "ok",
-      "repos": 124
+      "repos": 124,
+      "repos_source": "rest",
+      "role": "owner"
     },
     {
       "login": "acme-app",
       "status": "ok",
-      "repos": 84
+      "repos": 84,
+      "repos_source": "rest",
+      "role": "owner"
     }
   ],
   "orgs_total": 3,
@@ -98,6 +104,7 @@
     "orgs": 3,
     "orgs_uncounted": 0,
     "repos": 252,
+    "repos_rest_orgs": 3,
     "assumed_workflows_per_repo": 3,
     "requests": 1314,
     "minutes": 7,

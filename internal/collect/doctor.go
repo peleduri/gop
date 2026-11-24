@@ -115,11 +115,43 @@ type DoctorToken struct {
 	Installations []string `json:"installations,omitempty"`
 }
 
+// Org roles of the token's user, as doctor reads them.
+const (
+	RoleOwner  = "owner"
+	RoleMember = "member"
+	RoleNone   = "none" // not a member
+)
+
+// Repository count sources.
+const (
+	ReposGraphQL = "graphql" // enterprise organizations { repositories { totalCount } }
+	ReposREST    = "rest"    // GET /orgs/{org} public_repos + total_private_repos
+)
+
 // DoctorOrg is the probe result for one org.
 type DoctorOrg struct {
 	Login  string `json:"login"`
 	Status string `json:"status"` // ok, sso_unauthorized, forbidden, not_found, error
 	Repos  *int   `json:"repos,omitempty"`
+	// ReposSource says where Repos came from (graphql or rest).
+	ReposSource string `json:"repos_source,omitempty"`
+	// ReposLowerBound is set when Repos is a GET /orgs/{org} count read by
+	// a token that is not an org owner: private repositories it cannot see
+	// are missing from it.
+	ReposLowerBound bool `json:"repos_lower_bound,omitempty"`
+	// Role is the token user's role in the org (owner, member or none);
+	// empty when doctor could not tell.
+	Role string `json:"role,omitempty"`
+
+	defaultPermVisible bool // GET /orgs/{org} returned default_repository_permission
+}
+
+// PredictedCoverage is one coverage entry doctor expects gop collect to
+// record. Scope, Fact and NeedsFix use the same values as graph.Coverage.
+type PredictedCoverage struct {
+	Scope    string `json:"scope"`
+	Fact     string `json:"fact"`
+	NeedsFix string `json:"needs_fix"`
 }
 
 // RateBucket is one /rate_limit resource.
@@ -132,9 +164,15 @@ type RateBucket struct {
 
 // DoctorEstimate predicts the cost of gop collect.
 type DoctorEstimate struct {
-	Orgs             int `json:"orgs"`
-	OrgsUncounted    int `json:"orgs_uncounted"`
-	Repos            int `json:"repos"`
+	Orgs          int `json:"orgs"`
+	OrgsUncounted int `json:"orgs_uncounted"`
+	Repos         int `json:"repos"`
+	// ReposLowerBound counts the orgs whose repository count is a lower bound.
+	ReposLowerBound int `json:"repos_lower_bound_orgs,omitempty"`
+	// ReposGraphQL and ReposREST count the orgs whose repository count came
+	// from each source.
+	ReposGraphQL     int `json:"repos_graphql_orgs,omitempty"`
+	ReposREST        int `json:"repos_rest_orgs,omitempty"`
 	AssumedWorkflows int `json:"assumed_workflows_per_repo"`
 	Requests         int `json:"requests"`
 	Minutes          int `json:"minutes"`
@@ -154,6 +192,9 @@ type DoctorReport struct {
 	GraphQL    *RateBucket     `json:"rate_limit_graphql,omitempty"`
 	Estimate   *DoctorEstimate `json:"estimate,omitempty"`
 	NotVisible []string        `json:"not_visible"`
+	// Predicted lists the org coverage entries collect will record for orgs
+	// the token does not own.
+	Predicted []PredictedCoverage `json:"predicted_coverage,omitempty"`
 }
 
 // Counts returns the number of failed and warning checks.
@@ -234,7 +275,10 @@ const enterpriseQueryDoctor = `query($slug: String!) {
   enterprise(slug: $slug) {
     slug
     ownerInfo { admins(first: 1) { totalCount } }
-    organizations(first: 100) { totalCount nodes { login } }
+    organizations(first: 100) {
+      totalCount
+      nodes { login archivedAt viewerCanAdminister viewerIsAMember repositories { totalCount } }
+    }
   }
 }`
 
@@ -384,6 +428,16 @@ type doctorEnterprise struct {
 	visible   bool
 	total     int
 	logins    []string
+	orgs      map[string]entOrg // by lowercase login
+}
+
+// entOrg is what the enterprise query returned for one org. Nil fields were
+// not returned.
+type entOrg struct {
+	archived bool
+	admin    *bool
+	member   *bool
+	repos    *int
 }
 
 // enterprise runs the one enterprise GraphQL query.
@@ -395,12 +449,18 @@ func (d *doctor) enterprise(ctx context.Context) (*doctorEnterprise, error) {
 			Orgs      *struct {
 				TotalCount int `json:"totalCount"`
 				Nodes      []struct {
-					Login string `json:"login"`
+					Login               string  `json:"login"`
+					ArchivedAt          *string `json:"archivedAt"`
+					ViewerCanAdminister *bool   `json:"viewerCanAdminister"`
+					ViewerIsAMember     *bool   `json:"viewerIsAMember"`
+					Repositories        *struct {
+						TotalCount int `json:"totalCount"`
+					} `json:"repositories"`
 				} `json:"nodes"`
 			} `json:"organizations"`
 		} `json:"enterprise"`
 	}
-	out := &doctorEnterprise{}
+	out := &doctorEnterprise{orgs: map[string]entOrg{}}
 	_, err := d.c.GraphQL(ctx, enterpriseQueryDoctor, map[string]any{"slug": d.cfg.Enterprise}, &data)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -417,6 +477,13 @@ func (d *doctor) enterprise(ctx context.Context) (*doctorEnterprise, error) {
 			out.total = e.Orgs.TotalCount
 			for _, n := range e.Orgs.Nodes {
 				out.logins = append(out.logins, n.Login)
+				eo := entOrg{archived: n.ArchivedAt != nil && *n.ArchivedAt != "",
+					admin: n.ViewerCanAdminister, member: n.ViewerIsAMember}
+				if n.Repositories != nil {
+					c := n.Repositories.TotalCount
+					eo.repos = &c
+				}
+				out.orgs[strings.ToLower(n.Login)] = eo
 			}
 		}
 	}
@@ -542,6 +609,9 @@ func (d *doctor) orgs(ctx context.Context, e *doctorEnterprise) error {
 		}
 		r.Orgs = append(r.Orgs, o)
 	}
+	if err := d.ownership(ctx, e); err != nil {
+		return err
+	}
 	// Unreadable orgs already carry their own warn or fail check; the
 	// summary stays informational so they are not counted twice.
 	st := StatusPass
@@ -561,13 +631,15 @@ func (d *doctor) probeOrg(ctx context.Context, c *Client, login string) (DoctorO
 	r := d.r
 	o := DoctorOrg{Login: login}
 	var body struct {
-		PublicRepos       *int `json:"public_repos"`
-		TotalPrivateRepos *int `json:"total_private_repos"`
+		PublicRepos       *int    `json:"public_repos"`
+		TotalPrivateRepos *int    `json:"total_private_repos"`
+		DefaultPerm       *string `json:"default_repository_permission"`
 	}
 	_, err := c.GetJSONHeader(ctx, "/orgs/"+url.PathEscape(login), &body)
 	switch {
 	case err == nil:
 		o.Status = "ok"
+		o.defaultPermVisible = body.DefaultPerm != nil
 		if body.PublicRepos != nil || body.TotalPrivateRepos != nil {
 			n := 0
 			if body.PublicRepos != nil {
@@ -577,6 +649,7 @@ func (d *doctor) probeOrg(ctx context.Context, c *Client, login string) (DoctorO
 				n += *body.TotalPrivateRepos
 			}
 			o.Repos = &n
+			o.ReposSource = ReposREST
 		}
 	case ctx.Err() != nil:
 		return o, ctx.Err()
@@ -706,6 +779,15 @@ func (d *doctor) estimate() {
 			continue
 		}
 		e.Repos += *o.Repos
+		switch o.ReposSource {
+		case ReposGraphQL:
+			e.ReposGraphQL++
+		case ReposREST:
+			e.ReposREST++
+		}
+		if o.ReposLowerBound {
+			e.ReposLowerBound++
+		}
 		e.Requests += estPerOrg + int(math.Ceil(float64(*o.Repos)/estReposPerPage))
 	}
 	e.Requests += estEnterprise + e.OrgsUncounted*estPerOrg
@@ -891,8 +973,12 @@ func WriteDoctor(w io.Writer, r *DoctorReport) error {
 
 	if e := r.Estimate; e != nil {
 		b.WriteString("\nEstimate for gop collect\n")
-		fmt.Fprintf(&b, "  %d orgs, %d repos (GET /orgs/{org} counts), %d workflows per repo assumed\n",
-			e.Orgs, e.Repos, e.AssumedWorkflows)
+		fmt.Fprintf(&b, "  %d orgs, %d repos (%s), %d workflows per repo assumed\n",
+			e.Orgs, e.Repos, repoCountLabel(e), e.AssumedWorkflows)
+		if e.ReposLowerBound > 0 {
+			fmt.Fprintf(&b, "  the repo count is a lower bound: %s not owned by the token count only the repositories it can see\n",
+				plural(e.ReposLowerBound, "org"))
+		}
 		if e.OrgsUncounted > 0 {
 			fmt.Fprintf(&b, "  %d orgs did not expose repository counts and are counted without repos\n", e.OrgsUncounted)
 		}
@@ -922,6 +1008,17 @@ func WriteDoctor(w io.Writer, r *DoctorReport) error {
 	fmt.Fprintf(&b, "\nResult: %s\n", result)
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// repoCountLabel names where the estimate's repository counts came from.
+func repoCountLabel(e *DoctorEstimate) string {
+	switch {
+	case e.ReposGraphQL > 0 && e.ReposREST > 0:
+		return "enterprise GraphQL and GET /orgs/{org} counts"
+	case e.ReposGraphQL > 0:
+		return "enterprise GraphQL counts"
+	}
+	return "GET /orgs/{org} counts"
 }
 
 func plural(n int, word string) string {

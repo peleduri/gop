@@ -51,12 +51,14 @@
     {
       "login": "acme-actions",
       "status": "ok",
-      "repos": 3
+      "repos": 3,
+      "repos_source": "rest"
     },
     {
       "login": "acme-app",
       "status": "ok",
-      "repos": 3
+      "repos": 3,
+      "repos_source": "rest"
     },
     {
       "login": "acme-legacy",
@@ -78,6 +80,7 @@
     "orgs": 2,
     "orgs_uncounted": 0,
     "repos": 6,
+    "repos_rest_orgs": 2,
     "assumed_workflows_per_repo": 3,
     "requests": 58,
     "minutes": 1,
