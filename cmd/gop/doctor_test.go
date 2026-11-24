@@ -63,6 +63,8 @@ func (d doctorServer) start(t *testing.T) string {
 				repos = append(repos, map[string]any{"full_name": full, "owner": map[string]any{"login": owner}})
 			}
 			reply(w, 200, map[string]any{"total_count": len(repos), "repositories": repos})
+		case strings.HasPrefix(p, "/orgs/") && strings.Contains(p, "/memberships/"):
+			reply(w, 200, map[string]any{"role": "admin", "state": "active"})
 		case strings.HasPrefix(p, "/orgs/"):
 			org := strings.TrimPrefix(p, "/orgs/")
 			if d.sso[org] {
@@ -83,7 +85,7 @@ func (d doctorServer) start(t *testing.T) string {
 		case p == "/graphql":
 			nodes := []map[string]any{}
 			for _, o := range d.orgs {
-				nodes = append(nodes, map[string]any{"login": o})
+				nodes = append(nodes, map[string]any{"login": o, "viewerCanAdminister": true, "viewerIsAMember": true})
 			}
 			var oi any
 			if d.owner {

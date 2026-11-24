@@ -566,6 +566,12 @@ func settingQuery(field, value string) string {
 
 // settingOrgs returns the logins in one ownerInfo list, following pagination.
 func (k *collector) settingOrgs(ctx context.Context, field, value string) ([]string, error) {
+	return settingOrgs(ctx, k.c, k.enterprise, field, value)
+}
+
+// settingOrgs returns the logins in one ownerInfo list of enterprise, read
+// with c and following pagination.
+func settingOrgs(ctx context.Context, c *Client, enterprise, field, value string) ([]string, error) {
 	var out []string
 	var after any
 	q := settingQuery(field, value)
@@ -580,7 +586,7 @@ func (k *collector) settingOrgs(ctx context.Context, field, value string) ([]str
 				} `json:"ownerInfo"`
 			} `json:"enterprise"`
 		}
-		gqlErrs, err := k.c.GraphQL(ctx, q, map[string]any{"slug": k.enterprise, "after": after}, &data)
+		gqlErrs, err := c.GraphQL(ctx, q, map[string]any{"slug": enterprise, "after": after}, &data)
 		if err != nil {
 			return nil, err
 		}
@@ -794,8 +800,14 @@ const ownerViewQuery = `query($login: String!) {
 }`
 
 func (k *collector) ownerFix(o *orgState) string {
-	fix := "org owner on " + o.login
-	if o.node.Attrs[graph.AttrSSO] == "enforced" {
+	return orgOwnerFix(o.login, o.node.Attrs[graph.AttrSSO] == "enforced")
+}
+
+// orgOwnerFix is the coverage fix for a fact only an owner of org can read.
+// gop doctor prints the same line for the facts it predicts.
+func orgOwnerFix(org string, ssoEnforced bool) string {
+	fix := "org owner on " + org
+	if ssoEnforced {
 		fix += " (SSO enforced: join through the identity provider first)"
 	}
 	return fix
