@@ -9,7 +9,7 @@ access can start the agent, a prompt injection in their text can use all of
 those. gop finds agent workflows, says who can start them and what they
 reach, and ranks the exposed ones first.
 
-Why this matters: see the *Practical Guide to Securing AI Agents*, Parts 6, 7
+Why this matters: see the [Practical Guide to Securing AI Agents](https://github.com/peleduri/Practical-Guide-to-Securing-AI-Agents), [Part 15](https://github.com/peleduri/Practical-Guide-to-Securing-AI-Agents/blob/main/wiki/part-15-agents-in-ci.md) and Parts 6, 7
 and 14. The short version: treat everything an agent reads as untrusted,
 give it the least privilege its task needs, and keep the people who can start
 it to the people you would let push.
