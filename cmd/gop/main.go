@@ -499,7 +499,7 @@ func (a *app) loadGraph(cmd, path string, useDemo bool) (*graph.Graph, error) {
 
 func (a *app) cmdDemo(args []string) error {
 	fs := a.flags("demo")
-	size := fs.String("size", demo.SizeSmall, "small (5 orgs, ~60 repos), medium (20 orgs, ~1,000 repos) or large (60 orgs, ~10,000 repos)")
+	size := fs.String("size", demo.SizeSmall, "small (7 orgs, ~65 repos), medium (20 orgs, ~1,000 repos) or large (60 orgs, ~10,000 repos)")
 	seed := fs.Int64("seed", 1, "seed for the generated filler; the planted paths are the same for every seed")
 	out := fs.String("out", "-", `path to write graph.json ("-" for stdout)`)
 	if err := parse(fs, args); err != nil {

@@ -98,10 +98,22 @@ func confirmed(ix *graph.Index, from, to string, fixes ...graph.Fix) bool {
 
 func TestPinnedConsumers(t *testing.T) {
 	ix := graph.NewIndex(small(t))
-	// (2) SHA-pinned consumer of deploy with no nested mutable ref: unreachable.
+	// (2) SHA-pinned consumer of deploy with no nested mutable ref: no path
+	// through an action reaches it. acme-secure's own owners still push to
+	// vault directly.
 	for _, p := range ix.Principals() {
-		if _, ok := ix.Reach(p, graph.Options{}).Paths["oidc:acme-secure/vault"]; ok {
-			t.Errorf("%s reaches oidc:acme-secure/vault through a SHA pin", p)
+		path, ok := ix.Reach(p, graph.Options{}).Paths["oidc:acme-secure/vault"]
+		if !ok {
+			continue
+		}
+		for _, h := range path.Hops {
+			if ix.Kind(h.From) == graph.KindActionRef || ix.Kind(h.To) == graph.KindActionRef {
+				t.Errorf("%s reaches oidc:acme-secure/vault through an action: %+v", p, path.Hops)
+				break
+			}
+		}
+		if path.Hops[0].Kind != graph.CanPush || len(ix.OwnedOrgs(p)) == 0 {
+			t.Errorf("%s reaches oidc:acme-secure/vault, not as an owner of acme-secure: %+v", p, path.Hops)
 		}
 	}
 	// (3) SHA-pinned release still runs setup@main: reachable, before and after pinning deploy@main.
@@ -159,7 +171,7 @@ func TestRunnerPlanted(t *testing.T) {
 
 var (
 	orgRe  = regexp.MustCompile(`^acme(-[a-z0-9-]+)?$`)
-	userRe = regexp.MustCompile(`^(alice|bob|user-\d{3})$`)
+	userRe = regexp.MustCompile(`^(alice|bob|carol|dave|erin|user-\d{3})$`)
 )
 
 func TestSyntheticNames(t *testing.T) {
@@ -194,7 +206,7 @@ func TestSizes(t *testing.T) {
 		size           string
 		orgs, min, max int
 	}{
-		{SizeSmall, 5, 50, 75},
+		{SizeSmall, 7, 55, 75},
 		{SizeMedium, 20, 900, 1100},
 	} {
 		g := Generate(Options{Seed: 1, Size: tc.size})
@@ -254,5 +266,86 @@ func TestAgentStory(t *testing.T) {
 	top := ix.TopPaths(3)
 	if len(top[0].Advisories) == 0 || top[1].Principal != "external:anyone" || top[1].AgentExposed != 1 {
 		t.Errorf("top = %+v", top)
+	}
+}
+
+// TestOwnersStory (story 8): carol, dave and erin own five or more orgs and
+// share one risk row grouped by cause; reduce_owners cuts all three and
+// leaves every org its two local owners.
+func TestOwnersStory(t *testing.T) {
+	ix := graph.NewIndex(small(t))
+	for _, p := range MultiOrgOwners {
+		if n := len(ix.OwnedOrgs(p)); n < graph.DefaultOwnerThreshold {
+			t.Errorf("%s owns %d orgs, want %d or more", p, n, graph.DefaultOwnerThreshold)
+		}
+	}
+	var found bool
+	for _, g := range ix.TopGroups(5) {
+		if g.Cause != graph.CauseOrgOwner {
+			continue
+		}
+		found = true
+		if strings.Join(g.Members, ",") != strings.Join(MultiOrgOwners, ",") || g.Range == nil {
+			t.Errorf("owner cause group = %+v", g)
+		}
+	}
+	if !found {
+		t.Error("no org_owner cause group in the top five rows")
+	}
+	f := ix.ReduceOwners(0)
+	if strings.Join(f.Accounts(), ",") != strings.Join(MultiOrgOwners, ",") || len(f.Kept) != 0 {
+		t.Errorf("reduce_owners cuts %v, keeps %v", f.Accounts(), f.Kept)
+	}
+	sugg := ix.SuggestFixesOwners(5, 0)
+	if len(sugg) == 0 {
+		t.Fatal("no suggested fixes")
+	}
+	if _, ok := sugg[0].Fix.(graph.ReduceOwners); !ok {
+		t.Errorf("first fix = %s, want reduce_owners", sugg[0].FixID)
+	}
+}
+
+// TestBotMergeStory (story 9): anyone who can open a pull request on the
+// public acme-app/web gets code onto main through the AI approve +
+// self-merge chain, which merges in a script with an App that bypasses the
+// rules, and reaches web's OIDC trust.
+func TestBotMergeStory(t *testing.T) {
+	ix := graph.NewIndex(small(t))
+	n, _ := ix.Node(BotMergeRepo)
+	if !graph.ReviewBypassConfirmed(n) || n.Attrs[graph.AttrReviewBypassReason] != graph.ReviewBypassApp || graph.BotMergeScript(n) != MergeScript ||
+		n.Attrs[graph.AttrReviewBypassAppMatch] != graph.AppMatched || graph.BotMergeApp(n) == "" {
+		t.Fatalf("web review bypass attrs = %v", n.Attrs)
+	}
+	if got := ix.BotMergeRepos(); len(got) != 1 || got[0] != BotMergeRepo {
+		t.Errorf("BotMergeRepos = %v", got)
+	}
+	if !confirmed(ix, "external:anyone", "oidc:acme-app/web") {
+		t.Error("external:anyone does not reach oidc:acme-app/web")
+	}
+	if s := ix.BlastRadius("external:anyone"); s.BotSelfMerge != 1 {
+		t.Errorf("external:anyone bot_self_merge = %d", s.BotSelfMerge)
+	}
+	if !confirmed(ix, ActionsMembers, "oidc:acme-app/web", graph.BlockBotMerge{Repo: BotMergeRepo}) ||
+		confirmed(ix, "external:anyone", "oidc:acme-app/web", graph.BlockBotMerge{Repo: BotMergeRepo}) {
+		t.Error("block_bot_merge on web does not cut only the bot merge path")
+	}
+}
+
+// TestProtectionStory (story 10): a top path pushes into one protected repo
+// (deploy: one approval) and one unprotected repo (setup).
+func TestProtectionStory(t *testing.T) {
+	ix := graph.NewIndex(small(t))
+	notes := map[string]string{}
+	for _, to := range []string{"oidc:acme-app/web", "oidc:acme-app/payments"} {
+		p := ix.Reach(ActionsMembers, graph.Options{}).Paths[to]
+		for _, h := range p.Hops {
+			if n := ix.HopNote(h); n != "" {
+				notes[h.To] = n
+			}
+		}
+	}
+	if notes["repo:acme-actions/deploy"] != "push needs 1 approval to reach `main`" ||
+		notes["repo:acme-actions/setup"] != graph.NoteDirect {
+		t.Errorf("hop notes = %v", notes)
 	}
 }

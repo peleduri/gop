@@ -124,7 +124,7 @@ Use them together. A linter tells you a workflow is unsafe; Scorecard tells you 
 
 ## Try it without a token
 
-`gop demo` writes a synthetic enterprise (`acme`, orgs `acme-*`, users `alice`, `bob`, `user-NNN`) with no token and no network. It plants the cross-org `acme-actions/deploy@main` path, a SHA-pinned consumer that is safe, a SHA-pinned composite action that is not (it calls `acme-actions/setup@main` inside), one hop the token cannot see in `acme-legacy`, and a self-hosted runner.
+`gop demo` writes a synthetic enterprise (`acme`, orgs `acme-*`, users `alice`, `bob`, `carol`, `dave`, `erin`, `user-NNN`) with no token and no network. It plants the cross-org `acme-actions/deploy@main` path, a SHA-pinned consumer that is safe, a SHA-pinned composite action that is not (it calls `acme-actions/setup@main` inside), one hop the token cannot see in `acme-legacy`, a self-hosted runner, an AI agent anyone can start by commenting, three accounts that own most orgs (grouped by cause, with a `reduce_owners` fix), an AI approve + self-merge chain that lands code on `acme-app/web` without human review, and branch protection notes on the top paths.
 
 ```sh
 go install github.com/peleduri/gop/cmd/gop@latest
@@ -132,7 +132,7 @@ gop demo | gop report --graph - --out - --format md   # the headline, fixes, and
 claude mcp add gop -- gop serve --demo                # then ask: who can make code run in acme-app/web?
 ```
 
-`gop demo [--size small|medium|large] [--seed N] [--out graph.json]` writes the graph (stdout by default); `small` is about 60 repos, `medium` about 1,000, `large` about 10,000. The same size and seed give a byte-identical file. `gop serve --demo` and `gop report --demo` build the small graph in memory. Demo graphs say so: the enterprise node carries `demo=true`, every `source_api` starts with `demo:`, and every MCP summary and report title starts with `[demo data]`.
+`gop demo [--size small|medium|large] [--seed N] [--out graph.json]` writes the graph (stdout by default); `small` is 7 orgs and about 65 repos, `medium` about 1,000, `large` about 10,000. The same size and seed give a byte-identical file. `gop serve --demo` and `gop report --demo` build the small graph in memory. Demo graphs say so: the enterprise node carries `demo=true`, every `source_api` starts with `demo:`, and every MCP summary and report title starts with `[demo data]`.
 
 ## Quick start
 

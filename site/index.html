@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-GZg67HAM5zncshqXFrW0robs9Tzzw8AyQWo3NJ486f8='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-jxse70D5MMKAwK0zHbyvAa0/185yBw8MVIhfAxwcSt4='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>gop: who can make code run where in your GitHub Enterprise</title>
@@ -100,7 +100,7 @@ h2{font-size:clamp(1.6rem,3vw,2.15rem);font-weight:720;margin:0 0 var(--s2);text
 .bars b{color:var(--fg);text-align:right}
 .track{display:flex;height:8px;border-radius:999px;background:var(--track);overflow:hidden}
 .seg{display:block;height:100%}.seg.prev{background:var(--prev)}.seg.cur{background:var(--accent)}
-.w50{width:50%}.w24{width:24%}.w5{width:5%}
+.w42{width:42%}.w18{width:18%}.w4{width:4%}
 .src{margin:var(--s3) 0 0;font-size:.85rem;color:var(--muted)}
 .frame{border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--lift);overflow:hidden}
 .bar{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
@@ -219,12 +219,12 @@ th,td{padding:10px 12px}}
 <div class="wrap">
 <p class="kicker">What it finds</p>
 <h2 id="hooks-h">Three answers a settings checklist cannot give you</h2>
-<p class="lede">Numbers from the synthetic demo enterprise <code>acme</code> (5 orgs, about 60 repos), straight from <code>gop report --demo</code>.</p>
+<p class="lede">Numbers from the synthetic demo enterprise <code>acme</code> (7 orgs, about 65 repos), straight from <code>gop report --demo</code>.</p>
 <ul class="hooks">
 <li class="hook t-crit">
 <h3>AI agents outsiders can start</h3>
-<p class="big"><span data-n="agents.exposed">1</span><small>exposed agent workflow</small></p>
-<p>Anyone on the internet can start <code>claude-code-action</code> in <code>acme-app/docs</code> with an <code>issue_comment</code>. The agent reads that comment and acts with the job's write token and secrets, so a prompt injection gets all of them.</p>
+<p class="big"><span data-n="agents.exposed">2</span><small>exposed agent workflows</small></p>
+<p>Anyone on the internet can start <code>claude-code-action</code> in <code>acme-app/docs</code> with an <code>issue_comment</code>. The agent reads that comment and acts with the job's write token and secrets, so a prompt injection gets all of them. In <code>acme-app/web</code>, an AI reviewer approves pull requests and the author can merge them with an App that bypasses the rules: code lands on <code>main</code> with no human review.</p>
 <ul class="facts" aria-label="What the agent holds">
 <li class="chip"><span class="sw c-crit" aria-hidden="true"></span>contents:write</li>
 <li class="chip"><span class="sw c-secret" aria-hidden="true"></span>secrets</li>
@@ -233,22 +233,22 @@ th,td{padding:10px 12px}}
 </li>
 <li class="hook t-high">
 <h3>Reach across org boundaries</h3>
-<p class="big"><span data-n="reach.repos">34</span><small>repos across <span data-n="reach.orgs">4</span> orgs</small></p>
+<p class="big"><span data-n="reach.repos">34</span><small>repos across <span data-n="reach.orgs">6</span> orgs</small></p>
 <p>Members of <code>acme-actions</code> (default permission Write) can push code that ends up running in other orgs' CI, through shared Actions and an Action nested inside a SHA-pinned one.</p>
 <ul class="facts" aria-label="What that reach includes">
-<li class="chip"><span class="sw c-oidc" aria-hidden="true"></span><span data-n="reach.oidc">4</span> cloud OIDC trusts</li>
-<li class="chip"><span class="sw c-secret" aria-hidden="true"></span><span data-n="reach.secrets">6</span> secret scopes</li>
+<li class="chip"><span class="sw c-oidc" aria-hidden="true"></span><span data-n="reach.oidc">6</span> cloud OIDC trusts</li>
+<li class="chip"><span class="sw c-secret" aria-hidden="true"></span><span data-n="reach.secrets">7</span> secret scopes</li>
 <li class="chip"><span class="sw c-runner" aria-hidden="true"></span><span data-n="reach.runners">1</span> self-hosted runner pool</li>
 </ul>
 </li>
 <li class="hook t-acc">
 <h3>Fixes ranked by impact</h3>
-<p class="big"><span data-n="fix1.pct">50</span>%<small>of reach, one setting</small></p>
-<p>Lowering the default repository permission of <code>acme-actions</code> to read removes <span data-n="fix1.pct">50</span>% of confirmed reach. The top three fixes remove <span data-n="fix3.cum">79</span>%.</p>
+<p class="big"><span data-n="fix1.pct">42</span>%<small>of reach, one change</small></p>
+<p>Removing standing org ownership from the <span data-n="fix1.accounts">3</span> accounts that own 5 or more orgs, while every org keeps two owners, removes <span data-n="fix1.pct">42</span>% of confirmed reach. The top three fixes remove <span data-n="fix3.cum">64</span>%.</p>
 <ol class="bars" aria-label="Share of confirmed reach each fix removes">
-<li><span>1</span><span class="track"><span class="seg cur w50"></span></span><b><span data-n="fix1.pct">50</span>%</b></li>
-<li><span>2</span><span class="track"><span class="seg prev w50"></span><span class="seg cur w24"></span></span><b><span data-n="fix2.cum">74</span>%</b></li>
-<li><span>3</span><span class="track"><span class="seg prev w50"></span><span class="seg prev w24"></span><span class="seg cur w5"></span></span><b><span data-n="fix3.cum">79</span>%</b></li>
+<li><span>1</span><span class="track"><span class="seg cur w42"></span></span><b><span data-n="fix1.pct">42</span>%</b></li>
+<li><span>2</span><span class="track"><span class="seg prev w42"></span><span class="seg cur w18"></span></span><b><span data-n="fix2.cum">60</span>%</b></li>
+<li><span>3</span><span class="track"><span class="seg prev w42"></span><span class="seg prev w18"></span><span class="seg cur w4"></span></span><b><span data-n="fix3.cum">64</span>%</b></li>
 </ol>
 </li>
 </ul>

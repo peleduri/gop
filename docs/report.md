@@ -23,7 +23,7 @@ The report reads top to bottom, most important first. Light and dark themes foll
 - **Repo hardening.** When the graph has repo hardening facts: a heat grid per org of protected default branch, required reviews, CODEOWNERS covering workflows, secret scanning and push protection (✓ every repo, ! some repos lack it, ? some repos unknown), the repos on the top paths with their effective protection, and advisory hardening suggestions. A path with a `CAN_PUSH` hop into such a repo carries a second "Context, not part of the score" note ("push needs 2 approvals to reach `main`"). See [Repo hardening](#repo-hardening).
 - **Explore paths.** The filters, the List and Graph tabs and the org views, as before.
 
-Screenshots of the demo report: [light](assets/report-light.png), [dark](assets/report-dark.png), [390 px](assets/report-narrow.png), [print](assets/report-print.png), [hop chains](assets/report-paths.png), [org settings and hardening context](assets/report-settings.png).
+Screenshots of the demo report: [light](assets/report-light.png), [dark](assets/report-dark.png), [390 px](assets/report-narrow.png), [print](assets/report-print.png), [hop chains](assets/report-paths.png), [org settings and hardening context](assets/report-settings.png), [AI agents and AI approve + self-merge](assets/report-agents.png).
 
 ## Repo hardening
 

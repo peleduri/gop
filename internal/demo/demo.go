@@ -1,9 +1,10 @@
 // Package demo generates a synthetic enterprise graph so gop can be tried
 // without a token. The output is deterministic for a given seed and size, uses
 // only synthetic names (enterprise acme, orgs acme-*, users alice, bob,
-// user-NNN), and marks itself as demo data: the enterprise node carries
-// demo=true and every edge's source_api (and every node's source_api attr) is
-// "demo:<generator rule>", so nobody mistakes it for collected data.
+// carol, dave, erin, user-NNN), and marks itself as demo data: the enterprise
+// node carries demo=true and every edge's source_api (and every node's
+// source_api attr) is "demo:<generator rule>", so nobody mistakes it for
+// collected data.
 //
 // Every size plants the same core story on top of seeded filler:
 //
@@ -25,6 +26,20 @@
 //     with allowed_non_write_users: "*" and a token that can push: anyone
 //     on the internet can start the agent (agent_exposed), which ranks
 //     right after the advisory.
+//  8. A few accounts own most orgs: carol and dave own every visible org
+//     of the small size, erin every one but acme-secure, and each of those
+//     orgs also has two local owners. carol, dave and erin share one risk row grouped by cause
+//     (standing org ownership), and the reduce_owners fix removes their
+//     ownership while each org keeps its local owners.
+//  9. acme-app/web is public and has an AI approve + self-merge chain: an AI
+//     reviewer (ai-review.yml) approves pull requests with an App token and
+//     ai-merge.yml lets the pull request's author merge through
+//     tools/merge.py with the same App, which bypasses the rules on main.
+//     Anyone who can open a pull request gets code onto main without human
+//     review (CAN_MERGE_VIA_BOT), and it runs with web's OIDC trust.
+//  10. Branch protection notes on a top path: acme-actions/deploy needs one
+//     approval to reach main, acme-actions/setup is not protected, so a
+//     push reaches its default branch directly.
 package demo
 
 import (
@@ -48,7 +63,7 @@ type Options struct {
 
 // Size presets.
 const (
-	SizeSmall  = "small"  // 5 orgs, about 60 repos
+	SizeSmall  = "small"  // 7 orgs, about 65 repos
 	SizeMedium = "medium" // 20 orgs, about 1,000 repos
 	SizeLarge  = "large"  // 60 orgs, about 10,000 repos
 )
@@ -57,7 +72,7 @@ const (
 func Preset(size string) (orgs, reposPerOrg int, ok bool) {
 	switch size {
 	case "", SizeSmall:
-		return 5, 12, true
+		return 7, 10, true
 	case SizeMedium:
 		return 20, 50, true
 	case SizeLarge:
@@ -109,10 +124,25 @@ const (
 	ruleRunner     = "planted-self-hosted-runner"
 	ruleAdvisory   = "planted-advisory"
 	ruleAgent      = "planted-ai-agent"
+	ruleOwner      = "planted-org-owner"
+	ruleBotMerge   = "planted-bot-self-merge"
+	ruleProtection = "planted-branch-protection"
 )
 
 // The planted AI agent workflow (story 7).
 const AgentWorkflow = "workflow:acme-app/docs/.github/workflows/claude.yml"
+
+// The planted AI approve + self-merge chain (story 9).
+const (
+	BotMergeRepo   = "repo:acme-app/web"
+	ReviewWorkflow = "workflow:acme-app/web/.github/workflows/ai-review.yml"
+	MergeWorkflow  = "workflow:acme-app/web/.github/workflows/ai-merge.yml"
+	MergeScript    = "tools/merge.py"
+)
+
+// The accounts that own most orgs (story 8). erin owns every visible org
+// but acme-secure.
+var MultiOrgOwners = []string{"identity:carol", "identity:dave", "identity:erin"}
 
 type gen struct {
 	nodes map[string]graph.Node
@@ -238,8 +268,12 @@ func Generate(opts Options) *graph.Graph {
 		defaultPerm[o] = perm
 	}
 
-	// Filler repos.
+	// Filler repos. acme-secure is a small locked-down org: its two planted
+	// repos only.
 	for _, o := range orgNames {
+		if o == "acme-secure" {
+			continue
+		}
 		for n := len(repos[o]); n < rpo; n++ {
 			name := fmt.Sprintf("svc-%03d", n+1)
 			if o == "acme-legacy" {
@@ -286,7 +320,49 @@ func Generate(opts Options) *graph.Graph {
 			g.edge(id, graph.CanPush, r, graph.Live, ruleCollab, map[string]string{graph.AttrVia: "direct", "permission": "write"})
 		}
 	}
+	g.owners(orgNames, repos)
 	return g.graph()
+}
+
+// ownedOrgs is how many of the first org names story 8 covers: every org of
+// the small size. Larger sizes keep the same owners, so the story (and the
+// report size) does not grow with the filler.
+const ownedOrgs = 7
+
+// owners plants story 8: carol and dave own every visible org of the first
+// ownedOrgs, erin every one but acme-secure, and each of those orgs has two
+// local owners (filler users, one org each) so reduce_owners can cut the
+// three and still leave each org MinOwnersPerOrg owners. acme-legacy has
+// none: the token cannot list its repositories, so the graph shows no owners
+// there.
+func (g *gen) owners(orgNames []string, repos map[string][]string) {
+	for _, id := range MultiOrgOwners {
+		g.node(id, graph.KindIdentity, afterColon(id), graph.Live, ruleOwner, nil)
+	}
+	// An owner is also a member of each org it owns.
+	own := func(who, org string) {
+		g.edge(who, graph.MemberOf, "org:"+org, graph.Live, ruleOwner, nil)
+		for _, r := range repos[org] {
+			g.edge(who, graph.CanPush, r, graph.Inferred, ruleOwner, map[string]string{
+				graph.AttrVia: graph.ViaOrgOwner, graph.AttrRule: graph.RuleOrgOwner, "permission": "admin"})
+		}
+	}
+	k := 0
+	for _, o := range orgNames[:min(len(orgNames), ownedOrgs)] {
+		if o == "acme-legacy" {
+			continue
+		}
+		for _, id := range MultiOrgOwners {
+			if id == "identity:erin" && o == "acme-secure" {
+				continue
+			}
+			own(id, o)
+		}
+		for range graph.MinOwnersPerOrg {
+			k++
+			own(fmt.Sprintf("identity:user-%03d", k), o)
+		}
+	}
 }
 
 // filler adds a seeded workflow to a filler repo.
@@ -425,6 +501,16 @@ func (g *gen) plant() []string {
 	g.edge(agent, graph.ExecutesWith, "secret:acme-app/docs", graph.Live, ruleAgent, nil)
 	g.edge(agent, graph.CanPush, "repo:acme-app/docs", graph.Live, ruleAgent, map[string]string{graph.AttrVia: graph.ViaTokenWrite, graph.AttrJobs: "claude"})
 
+	g.botMerge()
+	// (10) Branch protection on the shared actions' repos: deploy needs an
+	// approval, setup is not protected, release is protected.
+	g.protect(deploy, map[string]string{graph.AttrBranchProtected: "true", graph.AttrBranchReviews: "1",
+		graph.AttrBranchSources: "ruleset:7", graph.AttrBranchValueSources: "required_reviews=ruleset:7"})
+	g.protect(setup, map[string]string{graph.AttrBranchProtected: "false", graph.AttrBranchSources: "none",
+		graph.AttrSecretPushProtection: "off"})
+	g.protect(release, map[string]string{graph.AttrBranchProtected: "true", graph.AttrBranchReviews: "2",
+		graph.AttrBranchSources: "classic", graph.AttrBranchValueSources: "required_reviews=classic"})
+
 	// (4) One hop the token cannot see.
 	g.repo("acme-legacy", "old-api", graph.NotVisible, ruleHidden)
 	g.edge(LegacyMembers, graph.CanPush, legacyHiddenRep, graph.NotVisible, ruleHidden,
@@ -432,6 +518,106 @@ func (g *gen) plant() []string {
 	old := g.workflow("acme-legacy", "old-api", "ci.yml", graph.Audit, ruleHidden)
 	g.terminal(old, "secret:acme-legacy/old-api", graph.KindSecret, graph.Audit, ruleHidden)
 	return repos
+}
+
+// protect sets a repo's default-branch, CODEOWNERS and secret scanning facts
+// (story 10). Branch values not given default to off, as the collector
+// writes them for a branch it could read; secret scanning and push
+// protection default to on.
+func (g *gen) protect(repo string, attrs map[string]string) {
+	n := g.nodes[repo]
+	a := map[string]string{"default_branch": "main", graph.AttrBranchCodeOwnerReview: "false",
+		graph.AttrBranchDismissStale: "false", graph.AttrBranchLastPush: "false", graph.AttrBranchStatusChecks: "0",
+		graph.AttrBranchSignedCommits: "false", graph.AttrBranchForcePush: "false", graph.AttrBranchPushRestricted: "false",
+		graph.AttrBranchBypassActors: "0", graph.AttrBranchAdminBypass: "false", graph.AttrBranchAppBypass: "false",
+		graph.AttrBranchReviews: "0", graph.AttrCodeowners: "none", graph.AttrCodeownersWorkflows: "false",
+		graph.AttrSecretScanning: "on", graph.AttrSecretPushProtection: "on", graph.AttrSecretValidity: "off"}
+	if attrs[graph.AttrBranchProtected] == "false" {
+		for _, k := range []string{graph.AttrBranchCodeOwnerReview, graph.AttrBranchDismissStale, graph.AttrBranchLastPush,
+			graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits, graph.AttrBranchForcePush,
+			graph.AttrBranchPushRestricted, graph.AttrBranchBypassActors, graph.AttrBranchAdminBypass,
+			graph.AttrBranchAppBypass, graph.AttrBranchReviews} {
+			delete(a, k)
+		}
+	}
+	for k, v := range attrs {
+		a[k] = v
+	}
+	for k, v := range a {
+		n.Attrs[k] = v
+	}
+	g.nodes[repo] = n
+}
+
+// botMerge plants story 9 on acme-app/web, shaped like what the collector
+// writes for testdata/botmerge-script: an AI reviewer that approves with an
+// App token and a merge workflow the pull request's author can start, which
+// merges in tools/merge.py with the same App; the App bypasses the rules on
+// main. web is public, so anyone who can open a pull request lands code on
+// main without human review.
+func (g *gen) botMerge() {
+	const (
+		reviewFile = ".github/workflows/ai-review.yml"
+		mergeFile  = ".github/workflows/ai-merge.yml"
+		secret     = "secret:acme-app/web"
+		mergeApp   = "77" // the App the merge mints its token for, a bypass actor on main
+	)
+	g.protect(BotMergeRepo, map[string]string{graph.AttrBranchProtected: "true", graph.AttrBranchReviews: "1",
+		graph.AttrBranchBypassActors: "1", graph.AttrBranchAppBypass: "true", graph.AttrBranchSources: "ruleset:46",
+		graph.AttrBranchValueSources: "required_reviews=ruleset:46,app_bypass=ruleset:46", graph.AttrSecretPushProtection: "off",
+		graph.AttrBranchBypassApps: mergeApp + ":acme-merge-bot"})
+	web := g.nodes[BotMergeRepo]
+	for k, v := range map[string]string{
+		graph.AttrVisibility: "public", graph.AttrReviewBypass: graph.ReviewBypassBotSelfMerge,
+		graph.AttrReviewBypassReason: graph.ReviewBypassApp, graph.AttrReviewBypassApprove: reviewFile,
+		graph.AttrReviewBypassMerge: mergeFile, graph.AttrBotMergeSource: graph.BotScriptPrefix + MergeScript,
+		graph.AttrBotMergeStale: graph.StaleSuspected, graph.AttrBotMergeStaleConf: graph.StaleHeuristic,
+		graph.AttrReviewBypassStale:  graph.StaleSuspected,
+		graph.AttrAgentHoldsMergeKey: "true", graph.AttrAgentMergeKeyWorkflows: reviewFile,
+		graph.AttrBotMergeApps: mergeApp, graph.AttrReviewBypassAppMatch: graph.AppMatched,
+	} {
+		web.Attrs[k] = v
+	}
+	web.AttrEvidence = map[string]graph.Evidence{graph.AttrBotMergeStale: graph.NotVisible, graph.AttrReviewBypassStale: graph.NotVisible}
+	g.nodes[BotMergeRepo] = web
+
+	review := g.workflow("acme-app", "web", "ai-review.yml", graph.Live, ruleBotMerge)
+	rn := g.nodes[review]
+	for k, v := range map[string]string{
+		graph.AttrAgent: "claude-cli", graph.AttrAgentSource: "run", graph.AttrAgentConfidence: graph.AgentCLI,
+		graph.AttrAgentJobs: "review", graph.AttrAgentGate: graph.GateNone, graph.AttrAgentExposure: graph.ExposureOutsiders,
+		graph.AttrAgentSecrets: "2", graph.AttrAgentRunner: "hosted", graph.AttrAgentTools: "allowed_tools",
+		graph.AttrBotApproves: "true", graph.AttrBotApproveToken: graph.BotTokenApp, graph.AttrBotApproveJobs: "review",
+		graph.AttrBotApproveStart: graph.StarterPROpeners, "risky_triggers": "pull_request_target",
+	} {
+		rn.Attrs[k] = v
+	}
+	g.nodes[review] = rn
+	merge := g.workflow("acme-app", "web", "ai-merge.yml", graph.Live, ruleBotMerge)
+	mn := g.nodes[merge]
+	for k, v := range map[string]string{
+		graph.AttrBotMerges: "true", graph.AttrBotMergeToken: graph.BotTokenApp, graph.AttrBotMergeJobs: "merge",
+		graph.AttrBotMergeStart: graph.StarterPROpeners, graph.AttrBotMergeGate: graph.BotGateAuthor,
+		graph.AttrBotMergeTriggers: "issue_comment", graph.AttrBotMergeSource: graph.BotScriptPrefix + MergeScript,
+		graph.AttrBotMergeApps:  mergeApp,
+		graph.AttrBotMergeStale: graph.StaleSuspected, graph.AttrBotMergeStaleConf: graph.StaleHeuristic,
+		"risky_triggers": "issue_comment",
+	} {
+		mn.Attrs[k] = v
+	}
+	mn.AttrEvidence = map[string]graph.Evidence{graph.AttrBotMergeStale: graph.NotVisible}
+	g.nodes[merge] = mn
+
+	g.node(secret, graph.KindSecret, afterColon(secret), graph.Live, ruleBotMerge, nil)
+	g.edge(review, graph.ExecutesWith, secret, graph.Live, ruleBotMerge, map[string]string{"secrets": "ANTHROPIC_API_KEY,APP_PRIVATE_KEY"})
+	g.edge(merge, graph.ExecutesWith, secret, graph.Live, ruleBotMerge, map[string]string{"secrets": "APP_PRIVATE_KEY"})
+	g.node("external:anyone", graph.KindExternal, "anyone on the internet", graph.Live, ruleAgent, nil)
+	g.edge("external:anyone", graph.CanTrigger, review, graph.Live, ruleBotMerge, map[string]string{
+		"trigger": "pull_request_target", "exec": "agent", "job": "review", "detail": "claude-cli",
+		graph.AttrFile: reviewFile, graph.AttrLine: "27"})
+	g.edge("external:anyone", graph.CanMergeViaBot, BotMergeRepo, graph.Live, ruleBotMerge, map[string]string{
+		graph.AttrMergeWorkflow: merge, graph.AttrApproveWorkflows: review, graph.AttrReviewBypassReason: graph.ReviewBypassApp,
+		"trigger": "issue_comment", graph.AttrFile: mergeFile, graph.AttrLine: "24"})
 }
 
 func (g *gen) graph() *graph.Graph {
@@ -443,6 +629,13 @@ func (g *gen) graph() *graph.Graph {
 				NeedsFix: "org owner on acme-legacy (SAML enforced: join through the IdP first)"},
 			{Scope: "org:acme-legacy", Fact: "ip_allow_list", Reason: "token is not an org owner",
 				NeedsFix: "org owner on acme-legacy"},
+			// Story 9: the stale-approval suspicion is a heuristic, never confirmed.
+			{Scope: MergeWorkflow, Fact: graph.FactStaleApprovals,
+				Reason:   "suspected, heuristic: " + MergeScript + " seems to count approvals not tied to the head commit; gop matched text and never ran it",
+				NeedsFix: "confirm by hand: read " + MergeScript + " and check it counts only APPROVED reviews whose commit_id is the pull request's head SHA"},
+			{Scope: BotMergeRepo, Fact: graph.FactStaleApprovals,
+				Reason:   "suspected, heuristic: the merge in " + MergeScript + " may count older approvals and ai-review.yml does not re-run on push",
+				NeedsFix: "confirm by hand: read " + MergeScript + " and the pull_request types of ai-review.yml"},
 		},
 	}
 	for _, n := range g.nodes {
