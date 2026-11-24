@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -122,5 +123,5 @@ func textContent(summary, body string) string {
 
 // Serve runs the MCP server over stdio until the client disconnects or ctx ends.
 func Serve(ctx context.Context, g *graph.Graph, version string) error {
-	return NewServer(g, version).Run(ctx, &mcp.StdioTransport{})
+	return serveStream(ctx, NewServer(g, version), os.Stdin, os.Stdout)
 }
