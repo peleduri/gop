@@ -1,5 +1,6 @@
 {
   "name": "gop",
+  "version": "0.6.1",
   "displayName": "gop: who can make code run where",
   "description": "Ask who can make code run where in your GitHub Enterprise: the gop MCP server over your graph.json, plus the gop triage skill. Read-only.",
   "author": {
@@ -9,11 +10,22 @@
   "homepage": "https://peleduri.github.io/gop/",
   "repository": "https://github.com/peleduri/gop",
   "license": "Apache-2.0",
-  "keywords": ["github", "github-enterprise", "github-actions", "security", "supply-chain", "mcp"],
+  "keywords": [
+    "github",
+    "github-enterprise",
+    "github-actions",
+    "security",
+    "supply-chain",
+    "mcp"
+  ],
   "mcpServers": {
     "gop": {
       "command": "gop",
-      "args": ["serve", "--graph", "${user_config.graph}"]
+      "args": [
+        "serve",
+        "--graph",
+        "${user_config.graph}"
+      ]
     }
   },
   "userConfig": {

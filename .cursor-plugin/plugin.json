@@ -7,6 +7,15 @@
   "homepage": "https://peleduri.github.io/gop/",
   "repository": "https://github.com/peleduri/gop",
   "license": "Apache-2.0",
-  "keywords": ["github", "github-enterprise", "github-actions", "security", "supply-chain", "mcp"],
-  "skills": "./skills/"
+  "keywords": [
+    "github",
+    "github-enterprise",
+    "github-actions",
+    "security",
+    "supply-chain",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "logo": "./.cursor-plugin/logo.png",
+  "version": "0.6.1"
 }

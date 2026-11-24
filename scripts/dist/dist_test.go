@@ -289,6 +289,7 @@ func TestWriteBundle(t *testing.T) {
 // all documented in the Claude Code plugin manifest reference.
 type claudePlugin struct {
 	Name        string `json:"name"`
+	Version     string `json:"version"`
 	DisplayName string `json:"displayName"`
 	Description string `json:"description"`
 	Author      struct {
@@ -320,6 +321,7 @@ type claudeMarketplace struct {
 	} `json:"owner"`
 	Plugins []struct {
 		Name        string   `json:"name"`
+		Version     string   `json:"version"`
 		Source      string   `json:"source"`
 		Description string   `json:"description"`
 		Category    string   `json:"category"`
@@ -405,6 +407,8 @@ func checkSkillOnlyPlugin(t *testing.T, file string) {
 		License    string   `json:"license"`
 		Keywords   []string `json:"keywords"`
 		Skills     string   `json:"skills"`
+		Version    string   `json:"version"`
+		Logo       string   `json:"logo"`
 	}
 	strictJSON(t, readRepo(t, file), &p, file)
 	if !regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`).MatchString(p.Name) || p.Description == "" || p.Author.Name == "" {
@@ -415,5 +419,36 @@ func checkSkillOnlyPlugin(t *testing.T, file string) {
 	}
 	if _, err := os.Stat(filepath.Join("..", "..", filepath.FromSlash(p.Skills), p.Name, "SKILL.md")); err != nil {
 		t.Errorf("skill: %v", err)
+	}
+}
+
+// TestPluginVersionsAgree keeps every plugin manifest on one semver version, bumped with each release.
+func TestPluginVersionsAgree(t *testing.T) {
+	semver := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+	var want string
+	for _, f := range []string{".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"} {
+		var v struct {
+			Version string `json:"version"`
+		}
+		if err := json.Unmarshal(readRepo(t, f), &v); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		if !semver.MatchString(v.Version) {
+			t.Errorf("%s: version %q is not semver", f, v.Version)
+		}
+		if want == "" {
+			want = v.Version
+		} else if v.Version != want {
+			t.Errorf("%s: version %q, want %q (same as .claude-plugin/plugin.json)", f, v.Version, want)
+		}
+	}
+	var m claudeMarketplace
+	if err := json.Unmarshal(readRepo(t, ".claude-plugin/marketplace.json"), &m); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range m.Plugins {
+		if p.Version != want {
+			t.Errorf("marketplace plugin %s: version %q, want %q", p.Name, p.Version, want)
+		}
 	}
 }

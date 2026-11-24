@@ -7,6 +7,7 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- Plugin icon and Cursor logo, and a `version` in every plugin manifest (Claude Code, Cursor, Codex) so `claude plugin validate --strict` passes for directory submission. A test keeps the versions in step; bump them with each release.
 - One-step installs in AI assistants (#163). The repository is a Claude Code
   plugin marketplace: `/plugin marketplace add peleduri/gop` and
   `/plugin install gop@gop` add the MCP server (asking for the graph.json
