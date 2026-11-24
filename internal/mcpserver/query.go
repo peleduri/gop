@@ -259,6 +259,10 @@ func ReachSentence(s graph.Score) string {
 	if len(term) > 0 {
 		out += ", including " + strings.Join(term, ", ")
 	}
+	if s.PoutineInjectable > 0 {
+		out += fmt.Sprintf("; %s with an injection finding from poutine (cited, not proved by gop)",
+			plural(s.PoutineInjectable, "reached workflow", "reached workflows"))
+	}
 	return out + fmt.Sprintf("; %d more possible", s.Possible.Repos)
 }
 

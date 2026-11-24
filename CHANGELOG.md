@@ -52,6 +52,18 @@ flags may change in minor releases.
   previous answers (the `diff` per-list default of 50 is unchanged there). On a
   synthetic 2,000-repo, 50-team enterprise every brief answer stays under 8 kB.
   The `gop paths` and `gop who` commands still print full answers.
+- `gop enrich --poutine <report.json>` imports a
+  [poutine](https://github.com/boostsecurityio/poutine) JSON report (format
+  checked against poutine v1.1.6; gop never runs poutine). Each finding maps
+  to its workflow node by repo and file and sets `poutine_rules`,
+  `poutine_severity`, `poutine_jobs` and `poutine_file`. Findings that match no
+  workflow (repo outside the graph, composite action, non-GitHub purl, no
+  path) are printed and listed in coverage as `poutine_finding`, never
+  dropped. A new, separate rank factor `poutine_injectable` (confirmed-reached
+  workflows with an `injection` or `untrusted_checkout_exec` finding) ranks
+  such principals first in `top_risks` and the report; scores, counts and
+  evidence are unchanged, and poutine is cited as its own source. SARIF and
+  malformed files fail with a clear error. See `docs/poutine.md`.
 
 ## [0.4.0] - 2026-11-24
 

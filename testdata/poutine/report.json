@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "debug_enabled": {"id": "debug_enabled", "title": "CI Runner Debug Enabled", "description": "The workflow is configured to increase the verbosity of the runner.", "level": "note", "refs": []},
+    "injection": {"id": "injection", "title": "Injection with Arbitrary External Contributor Input", "description": "The pipeline contains an injection into bash or JavaScript with an expression that can contain user input.", "level": "warning", "refs": [{"ref": "https://securitylab.github.com/research/github-actions-preventing-pwn-requests/", "description": ""}]},
+    "pr_runs_on_self_hosted": {"id": "pr_runs_on_self_hosted", "title": "Pull Request Runs on Self-Hosted GitHub Actions Runner", "description": "This job runs on a self-hosted runner on a pull request.", "level": "warning", "refs": []},
+    "untrusted_checkout_exec": {"id": "untrusted_checkout_exec", "title": "Arbitrary Code Execution from Untrusted Code Changes", "description": "The workflow appears to checkout untrusted code from a fork and uses a command that is known to allow code execution.", "level": "error", "refs": []}
+  },
+  "findings": [
+    {"rule_id": "injection", "purl": "pkg:github/acme-app/infra@main?repository_url=github.acme.example", "meta": {"path": ".github/workflows/ci.yml", "line": 21, "job": "lint", "step": "2", "details": "Sources: github.event.issue.title", "injection_sources": ["github.event.issue.title"], "event_triggers": ["issues"]}},
+    {"rule_id": "pr_runs_on_self_hosted", "purl": "pkg:github/acme-app/infra@main?repository_url=github.acme.example", "meta": {"path": ".github/workflows/ci.yml", "line": 9, "job": "build", "details": "runs-on: self-hosted"}},
+    {"rule_id": "debug_enabled", "purl": "pkg:github/acme-app/web@main?repository_url=github.acme.example", "meta": {"path": ".github/workflows/nightly.yml", "line": 4, "details": "ACTIONS_RUNNER_DEBUG"}},
+    {"rule_id": "untrusted_checkout_exec", "purl": "pkg:github/acme-app/ghost@main?repository_url=github.acme.example", "meta": {"path": ".github/workflows/pr.yml", "line": 30, "job": "test", "step": "3", "details": "Detected usage of `npm`", "event_triggers": ["pull_request_target"]}},
+    {"rule_id": "injection", "purl": "pkg:github/acme-actions/deploy@main?repository_url=github.acme.example", "meta": {"path": "action.yml", "line": 12, "step": "0", "details": "Sources: inputs.target"}},
+    {"rule_id": "injection", "purl": "pkg:gitlab/acme/tools@main", "meta": {"path": ".gitlab-ci.yml", "job": "deploy.script[0]", "line": 7}},
+    {"rule_id": "debug_enabled", "purl": "pkg:github/acme-app/web@main", "meta": {"blobsha": "0123456789abcdef0123456789abcdef01234567", "line": 4}}
+  ],
+  "packages": {
+    "pkg:github/acme-app/infra@main?repository_url=github.acme.example": {"dependencies": [], "commit_sha": "1111111111111111111111111111111111111111", "ref": "main"},
+    "pkg:github/acme-app/web@main?repository_url=github.acme.example": {"dependencies": [], "commit_sha": "2222222222222222222222222222222222222222", "ref": "main"}
+  }
+}

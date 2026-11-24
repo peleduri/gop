@@ -135,7 +135,7 @@ func TestEnrichCartography(t *testing.T) {
 
 func TestEnrichCartographyUsage(t *testing.T) {
 	r := runApp(t, nil, nil, "enrich", "--graph", fixture, "--out", "-")
-	if r.code != exitUsage || !strings.Contains(r.stderr, "--oidc-trust or --cartography") {
+	if r.code != exitUsage || !strings.Contains(r.stderr, "--oidc-trust, --cartography or --poutine") {
 		t.Errorf("no input: %+v", r)
 	}
 	r = runApp(t, nil, nil, "enrich", "--graph", fixture, "--cartography", "does-not-exist.json", "--out", "-")
