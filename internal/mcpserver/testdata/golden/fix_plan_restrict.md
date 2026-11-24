@@ -1,4 +1,4 @@
-Set permissions: contents: read on the GITHUB_TOKEN of acme-app/web/.github/workflows/ci.yml: 1 line to edit across 1 repo; removes 0 of 25 confirmed (principal, repo) pairs (0%); confirmed workflows 27 -> 25, score 176.8 -> 174.5
+Set permissions: contents: read on the GITHUB_TOKEN of `acme-app/web/.github/workflows/ci.yml`: 1 line to edit across 1 repo; removes 0 of 25 confirmed (principal, repo) pairs (0%); confirmed workflows 27 -> 25, score 176.8 -> 174.5
 
 ## Fix plan: Set permissions: contents: read on the GITHUB_TOKEN of acme-app/web/.github/workflows/ci.yml
 

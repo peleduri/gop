@@ -1,7 +1,7 @@
-members:acme-actions can control 12 repos across 2 orgs (confirmed), including 1 OIDC trust, 1 secret scope, 1 self-hosted runner pool; 0 more possible
+blast radius: `members:acme-actions` can control 12 repos across 2 orgs (confirmed), including 1 OIDC trust, 1 secret scope, 1 self-hosted runner pool; 0 more possible
 
 {
-  "summary": "members:acme-actions can control 12 repos across 2 orgs (confirmed), including 1 OIDC trust, 1 secret scope, 1 self-hosted runner pool; 0 more possible",
+  "summary": "blast radius: `members:acme-actions` can control 12 repos across 2 orgs (confirmed), including 1 OIDC trust, 1 secret scope, 1 self-hosted runner pool; 0 more possible",
   "score": {
     "principal": "members:acme-actions",
     "confirmed": {

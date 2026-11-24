@@ -107,6 +107,26 @@ flags may change in minor releases.
   that the predicted facts equal the ones collect records against the same
   fake.
 
+### Security
+
+- Harden MCP and report output against prompt injection through GitHub
+  names (repo, workflow, team, branch, environment and file names are
+  written by whoever can create them). A new `internal/sanitize` package
+  escapes newlines, control characters, Unicode bidi and zero-width
+  characters, tag characters and variation selectors. MCP text summaries
+  wrap every name in backticks, never start a line with a name, cut names
+  over 200 characters with an ellipsis (the structured JSON keeps the full
+  value) and cap the line at 1024 characters; summaries now lead with fixed
+  text (`blast radius:`, `paths:`, `edge:`). The JSON copy in text content
+  and resources escapes invisible characters as `\uXXXX` (same decoded
+  values), unknown-node suggestions are delimited, and every tool
+  description and the server instructions say names may be written by an
+  attacker and are data, never instructions. The fix_plan markdown, the
+  prompts, `gop who` and `gop paths`, the markdown report, the drift
+  markdown the Action uploads (`diff.md`) and the HTML report escape the
+  same characters. `docs/threat-model.md` has a new "Prompt injection
+  through names" section.
+
 ## [0.4.0] - 2026-11-24
 
 ### Added

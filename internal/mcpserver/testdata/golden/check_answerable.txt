@@ -1,7 +1,7 @@
-who_can_reach about org:acme-legacy: no; gop could not see the repositories of org:acme-legacy
+who_can_reach about `org:acme-legacy`: no; gop could not see the repositories of `org:acme-legacy`
 
 {
-  "summary": "who_can_reach about org:acme-legacy: no; gop could not see the repositories of org:acme-legacy",
+  "summary": "who_can_reach about `org:acme-legacy`: no; gop could not see the repositories of `org:acme-legacy`",
   "question_kind": "who_can_reach",
   "subject": "org:acme-legacy",
   "answerable": "no",
@@ -39,5 +39,5 @@ who_can_reach about org:acme-legacy: no; gop could not see the repositories of o
       "reason": "not_visible CAN_PUSH edges via default_perm: 1"
     }
   ],
-  "confidence_note": "gop could not see the repositories of org:acme-legacy, so any who_can_reach answer about org:acme-legacy would rest on no data. Do not answer from this graph; ask for the access named in missing (needs_fix), then re-run gop collect."
+  "confidence_note": "gop could not see the repositories of `org:acme-legacy`, so any who_can_reach answer about `org:acme-legacy` would rest on no data. Do not answer from this graph; ask for the access named in missing (needs_fix), then re-run gop collect."
 }

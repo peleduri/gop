@@ -14,7 +14,11 @@ import (
 
 	"github.com/peleduri/gop/internal/fixplan"
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/sanitize"
 )
+
+// q delimits a GitHub-controlled value in a text summary (sanitize.Value).
+func q(s string) string { return sanitize.Value(s) }
 
 // Default limits for optional inputs.
 const (
@@ -75,7 +79,11 @@ type UnknownNodeError struct {
 func (u *UnknownNodeError) Error() string {
 	msg := fmt.Sprintf("unknown %s %q: no such node in the graph", u.Field, u.ID)
 	if len(u.Suggestions) > 0 {
-		return msg + ". Did you mean: " + strings.Join(u.Suggestions, ", ") + "?"
+		qs := make([]string, len(u.Suggestions))
+		for i, s := range u.Suggestions {
+			qs[i] = q(s)
+		}
+		return msg + ". Did you mean: " + strings.Join(qs, ", ") + "?"
 	}
 	return msg + `. Node IDs look like "members:<org>", "identity:<login>", "repo:<org>/<repo>", "action:<owner>/<repo>@<ref>"`
 }
@@ -218,7 +226,7 @@ func (e *Engine) WhoCanReach(in WhoCanReachInput) (res WhoCanReachOutput, _ erro
 	conf, poss := splitPaths(e.ix.WhoCanReach(t))
 	return WhoCanReachOutput{
 		Summary: withNote(fmt.Sprintf("%s can control %s (confirmed); %d more possible through a not visible hop",
-			plural(len(conf), "principal", "principals"), t, len(poss)), suppliedNote(append(append([]graph.Path{}, conf...), poss...)...)),
+			plural(len(conf), "principal", "principals"), q(t), len(poss)), suppliedNote(append(append([]graph.Path{}, conf...), poss...)...)),
 		Target: t, Confirmed: conf, Possible: poss,
 	}, nil
 }
@@ -241,7 +249,7 @@ type BlastRadiusOutput struct {
 // ReachSentence is the headline sentence for a score, confirmed numbers first.
 func ReachSentence(s graph.Score) string {
 	c := s.Confirmed
-	out := fmt.Sprintf("%s can control %s across %s (confirmed)", s.Principal,
+	out := fmt.Sprintf("%s can control %s across %s (confirmed)", q(s.Principal),
 		plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
 	var term []string
 	if c.CloudTargets > 0 {
@@ -275,7 +283,7 @@ func (e *Engine) BlastRadius(in BlastRadiusInput) (res BlastRadiusOutput, _ erro
 	}
 	s := e.ix.BlastRadius(p)
 	r := e.ix.Reach(p, graph.Options{})
-	return BlastRadiusOutput{Summary: withNote(ReachSentence(s), suppliedNote(cloudPaths(r)...)), Score: s, Confirmed: r.Confirmed, Possible: r.Possible}, nil
+	return BlastRadiusOutput{Summary: withNote("blast radius: "+ReachSentence(s), suppliedNote(cloudPaths(r)...)), Score: s, Confirmed: r.Confirmed, Possible: r.Possible}, nil
 }
 
 // PathsInput is the paths tool input.
@@ -313,13 +321,13 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 		p, ok := r.Paths[to]
 		switch {
 		case !ok:
-			out.Summary = fmt.Sprintf("%s has no path to %s, confirmed or possible", from, to)
+			out.Summary = fmt.Sprintf("paths: %s has no path to %s, confirmed or possible", q(from), q(to))
 		case p.Unverified:
 			out.Possible = append(out.Possible, p)
-			out.Summary = withNote(fmt.Sprintf("%s can possibly reach %s in %s; a hop is not visible, so it is unconfirmed", from, to, plural(len(p.Hops), "hop", "hops")), suppliedNote(p))
+			out.Summary = withNote(fmt.Sprintf("paths: %s can possibly reach %s in %s; a hop is not visible, so it is unconfirmed", q(from), q(to), plural(len(p.Hops), "hop", "hops")), suppliedNote(p))
 		default:
 			out.Confirmed = append(out.Confirmed, p)
-			out.Summary = withNote(fmt.Sprintf("%s can reach %s in %s (confirmed)", from, to, plural(len(p.Hops), "hop", "hops")), suppliedNote(p))
+			out.Summary = withNote(fmt.Sprintf("paths: %s can reach %s in %s (confirmed)", q(from), q(to), plural(len(p.Hops), "hop", "hops")), suppliedNote(p))
 		}
 		return out, nil
 	}
@@ -334,7 +342,7 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 		return ps[i].To < ps[j].To
 	})
 	out.Confirmed, out.Possible = splitPaths(ps)
-	out.Summary = withNote(fmt.Sprintf("%s has confirmed paths to %s; %d more possible", from,
+	out.Summary = withNote(fmt.Sprintf("paths: %s has confirmed paths to %s; %d more possible", q(from),
 		plural(len(out.Confirmed), "node", "nodes"), len(out.Possible)), suppliedNote(ps...))
 	return out, nil
 }
@@ -520,7 +528,7 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 	} else {
 		last := out.Fixes[len(out.Fixes)-1]
 		out.Summary = fmt.Sprintf("%s remove %.0f%% of confirmed (principal, repo) pairs; first: %s",
-			plural(len(out.Fixes), "fix", "fixes"), last.CumulativePct, out.Fixes[0].Description)
+			plural(len(out.Fixes), "fix", "fixes"), last.CumulativePct, quotedDescription(out.Fixes[0].Fix))
 	}
 	return out, nil
 }
@@ -631,14 +639,14 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 		if kind != "" {
 			k = " of kind " + kind
 		}
-		out.Summary = fmt.Sprintf("no edge%s between %s and %s", k, from, to)
+		out.Summary = fmt.Sprintf("edge: none%s between %s and %s", k, q(from), q(to))
 		return out, nil
 	}
 	first := out.Edges[0]
-	out.Summary = fmt.Sprintf("%s %s %s: evidence %s, from %s at %s", first.From, first.Kind, first.To,
+	out.Summary = fmt.Sprintf("edge: %s %s %s: evidence %s, from %s at %s", q(first.From), first.Kind, q(first.To),
 		EvidenceLabel(graph.Evidence(first.Evidence)), first.SourceAPI, first.ObservedAt)
 	if loc := fileLine(first.Attrs); loc != "" {
-		out.Summary += ", at " + loc
+		out.Summary += ", at " + q(loc)
 	}
 	if first.Evidence == string(graph.Inferred) {
 		rule := first.Rule
@@ -660,7 +668,7 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 		out.Summary += ", read from a supplied file, not from the cloud"
 	}
 	if r := first.Attrs[graph.AttrReason]; r != "" && first.Evidence == string(graph.NotVisible) {
-		out.Summary += "; undecided: " + r
+		out.Summary += "; undecided: " + q(r)
 	}
 	if len(out.Edges) > 1 {
 		out.Summary += fmt.Sprintf(" (+%d more)", len(out.Edges)-1)

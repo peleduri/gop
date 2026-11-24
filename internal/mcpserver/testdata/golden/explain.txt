@@ -1,7 +1,7 @@
-action:acme-actions/deploy@main RESOLVES_TO repo:acme-actions/deploy: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z
+edge: `action:acme-actions/deploy@main` RESOLVES_TO `repo:acme-actions/deploy`: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z
 
 {
-  "summary": "action:acme-actions/deploy@main RESOLVES_TO repo:acme-actions/deploy: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z",
+  "summary": "edge: `action:acme-actions/deploy@main` RESOLVES_TO `repo:acme-actions/deploy`: evidence live, from contents:.github/workflows at 2026-11-20T10:00:00Z",
   "edges": [
     {
       "from": "action:acme-actions/deploy@main",

@@ -1,7 +1,7 @@
-2 principals can control repo:acme-app/web (confirmed); 0 more possible through a not visible hop
+2 principals can control `repo:acme-app/web` (confirmed); 0 more possible through a not visible hop
 
 {
-  "summary": "2 principals can control repo:acme-app/web (confirmed); 0 more possible through a not visible hop",
+  "summary": "2 principals can control `repo:acme-app/web` (confirmed); 0 more possible through a not visible hop",
   "target": "repo:acme-app/web",
   "confirmed": [
     {

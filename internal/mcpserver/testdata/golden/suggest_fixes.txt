@@ -1,7 +1,7 @@
-3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it
+3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it
 
 {
-  "summary": "3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it",
+  "summary": "3 fixes remove 92% of confirmed (principal, repo) pairs; first: Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it",
   "fixes": [
     {
       "fix_id": "pin:action:acme-actions/deploy@main",

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // Sections that Only can keep.
@@ -352,11 +353,21 @@ func WriteText(w io.Writer, r Report) {
 	}
 }
 
-func mdEsc(s string) string { return strings.ReplaceAll(s, "|", `\|`) }
+// mdCell escapes the characters that end a table cell or open HTML. GitHub
+// names never contain them, so only a hostile name shows the escapes.
+var mdCell = strings.NewReplacer("|", `\|`, "&", "&amp;", "<", "&lt;", ">", "&gt;")
+
+// mdEsc makes a value safe in a Markdown table cell: unsafe characters
+// (newlines, control, bidi, zero-width) are escaped (sanitize.Clean), so a
+// GitHub name can never start a line, and it cannot end the cell or open HTML.
+func mdEsc(s string) string { return mdCell.Replace(sanitize.Clean(s)) }
+
+// mdCode is mdEsc for a value inside a code span: backticks are escaped too.
+func mdCode(s string) string { return mdCell.Replace(sanitize.Code(s)) }
 
 // WriteMarkdown writes the report as GitHub-flavored Markdown.
 func WriteMarkdown(w io.Writer, r Report) {
-	fmt.Fprintf(w, "# gop posture drift\n\n%s\n\n", r.summary())
+	fmt.Fprintf(w, "# gop posture drift\n\n%s\n\n", sanitize.Line(r.summary()))
 	fmt.Fprintf(w, "`%s`\n\n", r.span())
 	o, n := r.Totals.Old, r.Totals.New
 	fmt.Fprintf(w, "| | Old | New | Change |\n|---|---|---|---|\n")
@@ -365,7 +376,7 @@ func WriteMarkdown(w io.Writer, r Report) {
 	if len(r.Paths) > 0 {
 		fmt.Fprintf(w, "\n## Paths\n\n| Status | Principal | Target | Old | New |\n|---|---|---|---|---|\n")
 		for _, c := range r.Paths {
-			fmt.Fprintf(w, "| %s | `%s` | `%s` | %s | %s |\n", mdEsc(pathLabel[c.Status]), c.Principal, c.Target, pathState(c.Old), pathState(c.New))
+			fmt.Fprintf(w, "| %s | `%s` | `%s` | %s | %s |\n", mdEsc(pathLabel[c.Status]), mdCode(c.Principal), mdCode(c.Target), pathState(c.Old), pathState(c.New))
 		}
 	}
 	if len(r.Settings) > 0 {
@@ -379,24 +390,24 @@ func WriteMarkdown(w io.Writer, r Report) {
 		fmt.Fprintf(w, "\n## Edges\n\n| Status | Edge |\n|---|---|\n")
 		for _, l := range [][]EdgeChange{e.Added, e.Removed, e.Changed, e.LostVisibility} {
 			for _, c := range l {
-				fmt.Fprintf(w, "| %s | `%s` |\n", strings.ReplaceAll(c.Status, "_", " "), mdEsc(edgeLine(c)))
+				fmt.Fprintf(w, "| %s | `%s` |\n", strings.ReplaceAll(c.Status, "_", " "), mdCode(edgeLine(c)))
 			}
 		}
 	}
 	if len(r.Scores) > 0 {
 		fmt.Fprintf(w, "\n## Scores\n\n| Principal | Confirmed | Possible |\n|---|---|---|\n")
 		for _, s := range r.Scores {
-			fmt.Fprintf(w, "| `%s` | %g → %g (%s) | %g → %g (%s) |\n", s.Principal,
+			fmt.Fprintf(w, "| `%s` | %g → %g (%s) | %g → %g (%s) |\n", mdCode(s.Principal),
 				s.Old.Score, s.New.Score, signed(s.DeltaConfirmed), s.Old.PossibleScore, s.New.PossibleScore, signed(s.DeltaPossible))
 		}
 	}
 	if len(r.Coverage.Opened)+len(r.Coverage.Closed) > 0 {
 		fmt.Fprintf(w, "\n## Coverage\n\n| Gap | Scope | Fact | Reason | Needs |\n|---|---|---|---|---|\n")
 		for _, c := range r.Coverage.Opened {
-			fmt.Fprintf(w, "| opened | `%s` | %s | %s | %s |\n", c.Scope, mdEsc(c.Fact), mdEsc(c.Reason), mdEsc(c.NeedsFix))
+			fmt.Fprintf(w, "| opened | `%s` | %s | %s | %s |\n", mdCode(c.Scope), mdEsc(c.Fact), mdEsc(c.Reason), mdEsc(c.NeedsFix))
 		}
 		for _, c := range r.Coverage.Closed {
-			fmt.Fprintf(w, "| closed | `%s` | %s | %s | %s |\n", c.Scope, mdEsc(c.Fact), mdEsc(c.Reason), mdEsc(c.NeedsFix))
+			fmt.Fprintf(w, "| closed | `%s` | %s | %s | %s |\n", mdCode(c.Scope), mdEsc(c.Fact), mdEsc(c.Reason), mdEsc(c.NeedsFix))
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // The HTML report embeds the data its filters and per-org views need as one
@@ -366,7 +367,9 @@ func marshalEmbedded(e embedded) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s := string(b)
+	// Bidi, zero-width and C1 characters become \u escapes: the same values,
+	// no raw invisible characters in the page source.
+	s := string(sanitize.JSON(b))
 	if strings.Contains(s, "</") || strings.Contains(s, "<!--") {
 		return "", fmt.Errorf("report: embedded data is not script-safe")
 	}

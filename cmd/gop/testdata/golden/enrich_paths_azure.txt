@@ -1,4 +1,4 @@
-members:acme-actions can possibly reach cloud:azure:app:11111111-1111-1111-1111-111111111111 in 4 hops; a hop is not visible, so it is unconfirmed (cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud)
+paths: `members:acme-actions` can possibly reach `cloud:azure:app:11111111-1111-1111-1111-111111111111` in 4 hops; a hop is not visible, so it is unconfirmed (cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud)
 
 Possible (at least one hop not visible) (1):
   members:acme-actions -> cloud:azure:app:11111111-1111-1111-1111-111111111111  [possible: a hop is not visible]

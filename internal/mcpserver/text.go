@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // WritePath prints one path as indented hops, each with its evidence and source.
@@ -17,9 +18,10 @@ func WritePath(w io.Writer, p graph.Path) {
 	case p.Unverified:
 		status = "possible: a hop is not visible"
 	}
-	fmt.Fprintf(w, "  %s -> %s  [%s]\n", p.From, p.To, status)
+	c := sanitize.Clean
+	fmt.Fprintf(w, "  %s -> %s  [%s]\n", c(p.From), c(p.To), status)
 	if n := p.SuppliedNote(); n != "" {
-		fmt.Fprintf(w, "      note: %s\n", n)
+		fmt.Fprintf(w, "      note: %s\n", c(n))
 	}
 	for _, h := range p.Hops {
 		kind := string(h.Kind)
@@ -28,11 +30,11 @@ func WritePath(w io.Writer, p graph.Path) {
 		}
 		src := ""
 		if h.SourceAPI != "" {
-			src = "  source: " + h.SourceAPI
+			src = "  source: " + c(h.SourceAPI)
 		}
-		fmt.Fprintf(w, "      %s =[%s, %s]=> %s%s\n", h.From, kind, HopEvidenceLabel(h), h.To, src)
+		fmt.Fprintf(w, "      %s =[%s, %s]=> %s%s\n", c(h.From), kind, HopEvidenceLabel(h), c(h.To), src)
 		if h.Reason != "" {
-			fmt.Fprintf(w, "        undecided: %s\n", h.Reason)
+			fmt.Fprintf(w, "        undecided: %s\n", c(h.Reason))
 		}
 	}
 }
@@ -49,7 +51,7 @@ func writeGroup(w io.Writer, title string, ps []graph.Path) {
 
 // WriteWho prints a who_can_reach answer as text.
 func WriteWho(w io.Writer, o WhoCanReachOutput) {
-	fmt.Fprintln(w, o.Summary)
+	fmt.Fprintln(w, sanitize.Line(o.Summary))
 	writeGroup(w, confirmedTitle, o.Confirmed)
 	writeGroup(w, "Possible (at least one hop not visible)", o.Possible)
 }
@@ -59,7 +61,7 @@ const confirmedTitle = "Confirmed (every hop live, inferred, audit or supplied)"
 
 // WritePaths prints a paths answer as text.
 func WritePaths(w io.Writer, o PathsOutput) {
-	fmt.Fprintln(w, o.Summary)
+	fmt.Fprintln(w, sanitize.Line(o.Summary))
 	writeGroup(w, confirmedTitle, o.Confirmed)
 	writeGroup(w, "Possible (at least one hop not visible)", o.Possible)
 }

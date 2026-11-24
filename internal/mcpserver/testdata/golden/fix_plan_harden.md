@@ -1,4 +1,4 @@
-Stop acme-app/docs/.github/workflows/preview.yml from running attacker-controlled code on its risky triggers: 2 lines to edit across 1 repo; removes 2 of 2 confirmed (principal, repo) pairs (100%)
+Stop `acme-app/docs/.github/workflows/preview.yml` from running attacker-controlled code on its risky triggers: 2 lines to edit across 1 repo; removes 2 of 2 confirmed (principal, repo) pairs (100%)
 
 ## Fix plan: Stop acme-app/docs/.github/workflows/preview.yml from running attacker-controlled code on its risky triggers
 

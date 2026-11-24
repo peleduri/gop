@@ -499,19 +499,19 @@ func (e *Engine) CheckAnswerable(in CheckAnswerableInput) (res CheckAnswerableOu
 	switch blind := e.noData(subject, all); {
 	case blind != "":
 		out.Answerable = AnswerNo
-		out.Summary = fmt.Sprintf("%s about %s: no; gop could not see %s", kind, subject, blindWhat(blind))
+		out.Summary = fmt.Sprintf("%s about %s: no; gop could not see %s", kind, q(subject), blindWhat(blind))
 		out.ConfidenceNote = fmt.Sprintf("gop could not see %s, so any %s answer about %s would rest on no data. "+
-			"Do not answer from this graph; ask for the access named in missing (needs_fix), then re-run gop collect.", blindWhat(blind), kind, subject)
+			"Do not answer from this graph; ask for the access named in missing (needs_fix), then re-run gop collect.", blindWhat(blind), kind, q(subject))
 	case len(missing) > 0:
 		out.Answerable = AnswerPartial
-		out.Summary = fmt.Sprintf("%s about %s: partial (a lower bound); %s not visible across %s", kind, subject,
+		out.Summary = fmt.Sprintf("%s about %s: partial (a lower bound); %s not visible across %s", kind, q(subject),
 			plural(len(missing), "required fact", "required facts"), plural(len(scopes), "scope", "scopes"))
 		out.ConfidenceNote = "The answer is a lower bound: confirmed reach in it is real, but gop could not see " +
 			"facts it depends on, so more reach may exist. Say so when you give the answer, and name the missing facts " +
 			"and the access that would make them visible."
 	default:
 		out.Answerable = AnswerYes
-		out.Summary = fmt.Sprintf("%s about %s: yes; every required fact was visible", kind, subject)
+		out.Summary = fmt.Sprintf("%s about %s: yes; every required fact was visible", kind, q(subject))
 		out.ConfidenceNote = "gop saw every fact this answer depends on in this snapshot. The answer is complete " +
 			"for the snapshot's collection time; it says nothing about changes made since."
 	}
@@ -530,11 +530,11 @@ func appendNew(xs []string, s string) []string {
 func blindWhat(id string) string {
 	switch graph.KindFromID(id) {
 	case graph.KindOrg:
-		return "the repositories of " + id
+		return "the repositories of " + q(id)
 	case graph.KindEnterprise:
 		return "the repositories of any org"
 	}
-	return id + " itself (not_visible)"
+	return q(id) + " itself (not_visible)"
 }
 
 // answerSubject resolves the subject: a node ID, or an org login. For a

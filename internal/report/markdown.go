@@ -7,17 +7,21 @@ import (
 	"strings"
 
 	"github.com/peleduri/gop/internal/mcpserver"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // mdEsc makes a value safe inside Markdown text and table cells: HTML is
 // neutralized, and characters that break tables or formatting are escaped.
+// md first escapes newlines, control, bidi and zero-width characters
+// (sanitize.Truncate), so a GitHub name can never start a line or hide
+// text, and caps the value at sanitize.MaxLine runes.
 var mdEsc = strings.NewReplacer(
 	"&", "&amp;", "<", "&lt;", ">", "&gt;",
 	"|", `\|`, "`", "\\`", "*", `\*`, "_", `\_`, "[", `\[`, "]", `\]`,
 	"\r", " ", "\n", " ",
 )
 
-func md(s string) string { return mdEsc.Replace(s) }
+func md(s string) string { return mdEsc.Replace(sanitize.Truncate(s, sanitize.MaxLine)) }
 
 func writeMDHops(p func(string, ...any), hops []hopView) {
 	for i, h := range hops {

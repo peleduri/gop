@@ -1,7 +1,7 @@
-members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)
+paths: `members:acme-actions` can reach `oidc:acme-app/web` in 4 hops (confirmed)
 
 {
-  "summary": "members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)",
+  "summary": "paths: `members:acme-actions` can reach `oidc:acme-app/web` in 4 hops (confirmed)",
   "from": "members:acme-actions",
   "to": "oidc:acme-app/web",
   "confirmed": [

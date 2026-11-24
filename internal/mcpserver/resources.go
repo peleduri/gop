@@ -15,6 +15,7 @@ import (
 
 	"github.com/peleduri/gop/docs"
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // Resource URIs.
@@ -283,6 +284,6 @@ func jsonContents(uri string, v any) (*mcp.ReadResourceResult, error) {
 		return nil, err
 	}
 	return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{
-		{URI: uri, MIMEType: "application/json", Text: string(b)},
+		{URI: uri, MIMEType: "application/json", Text: string(sanitize.JSON(b))},
 	}}, nil
 }
