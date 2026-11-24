@@ -74,7 +74,24 @@ flags may change in minor releases.
   `actions/checkout`. `harden_trigger` titles now say the kind: "Harden
   <workflow> (untrusted code runs on <triggers>)" or "(untrusted text
   reaches an AI step on <triggers>)", in fix-plan, the report and MCP.
-
+### Changed
+- Direct collaborators are read in batched GraphQL queries (#177): one
+  `collaborators(affiliation: DIRECT)` query per 25 repositories of an org
+  replaces one REST `GET /repos/{o}/{r}/collaborators` per repository. A
+  repository falls back to REST when its alias fails (no push access, not
+  found), when it has more than 100 direct collaborators, or when a
+  collaborator's role may be a custom or organization role, which only REST
+  names; batching off (`DisableGraphQLBatch`) or an older GHES schema uses
+  REST throughout. Both paths give the same graph, coverage and not-visible
+  summary. On the test fixture REST requests drop from 67 to 55.
+  Default-branch protection was already batched (#133); the other per-repo
+  REST reads (Actions workflow permissions and access level) have no GraphQL
+  equivalent. `gop collect` progress lines show the GraphQL points spent
+  (each query's `rateLimit { cost }`, else 1), and the `gop doctor` estimate
+  splits requests into REST requests, GraphQL queries and GraphQL points
+  (new JSON fields `rest_requests`, `graphql_queries`, `graphql_points`;
+  `requests` is their total) and checks the points against the GraphQL
+  budget.
 ### Fixed
 - Consistency fixes (#166). `gop fix-plan --format text` escapes names the
   way the markdown checklist does (control, bidi and zero-width characters

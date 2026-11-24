@@ -57,7 +57,7 @@ const (
 	DoctorMaxOrgs = 100
 
 	estAvgWorkflows  = 3   // workflow files per repository (not counted by doctor)
-	estPerRepo       = 2   // collaborators + workflow directory listing
+	estPerRepo       = 1   // workflow directory listing (collaborators ride in a batched GraphQL query)
 	estPerOrg        = 8   // owner view, roles, teams, outside collaborators, members
 	estEnterprise    = 10  // org list, licenses and other enterprise-level reads
 	estLatencyMillis = 300 // average time per sequential request
@@ -70,11 +70,19 @@ const (
 	// local composite actions, same-repo reusable workflows and keyed repo
 	// scripts of workflows with a trigger outsiders can cause, each read
 	// once per repo.
-	estFollowPct      = 20
-	estReposPerPage   = 100
-	headerScopes      = "X-OAuth-Scopes"
-	headerSSO         = "X-GitHub-SSO"
-	headerTokenExpiry = "GitHub-Authentication-Token-Expiration"
+	estFollowPct    = 20
+	estReposPerPage = 100
+	// GraphQL cost per repository, in GitHub's unit: one "request" per
+	// connection page a query may need, assuming every first: limit is
+	// reached; a query costs that sum / 100, rounded, and at least 1 point.
+	// Protection: rules(first: 50), bypassActors(first: 20) on each of the 50
+	// rules, bypassPullRequestAllowances(first: 20). Collaborators: one
+	// collaborators(first: 100).
+	estProtectionCostPerRepo = 52
+	estCollabCostPerRepo     = 1
+	headerScopes             = "X-OAuth-Scopes"
+	headerSSO                = "X-GitHub-SSO"
+	headerTokenExpiry        = "GitHub-Authentication-Token-Expiration"
 )
 
 // DoctorConfig drives one doctor run.
@@ -192,9 +200,16 @@ type DoctorEstimate struct {
 	ReposREST        int `json:"repos_rest_orgs,omitempty"`
 	ReposVisible     int `json:"repos_visible_orgs,omitempty"`
 	AssumedWorkflows int `json:"assumed_workflows_per_repo"`
-	Requests         int `json:"requests"`
-	Minutes          int `json:"minutes"`
-	RateLimitWaits   int `json:"rate_limit_waits"`
+	// Requests is RESTRequests plus GraphQLQueries.
+	Requests     int `json:"requests"`
+	RESTRequests int `json:"rest_requests"`
+	// GraphQLQueries are the batched queries (protection and
+	// collaborators, one each per DefaultBatchSize repositories) and
+	// GraphQLPoints the GraphQL rate-limit points they cost.
+	GraphQLQueries int `json:"graphql_queries"`
+	GraphQLPoints  int `json:"graphql_points"`
+	Minutes        int `json:"minutes"`
+	RateLimitWaits int `json:"rate_limit_waits"`
 }
 
 // DoctorReport is the result of Doctor.
@@ -817,19 +832,25 @@ func (d *doctor) estimate() {
 		}
 	}
 	e.Requests += e.Repos * (estPerRepo + estAvgWorkflows)
-	// Default-branch protection: one batched GraphQL query per
-	// DefaultBatchSize repositories (CODEOWNERS rides in the batched
-	// workflow read and secret scanning in the repository listing, at no
-	// extra request).
-	e.Requests += int(math.Ceil(float64(e.Repos) / DefaultBatchSize))
 	// Bot merge scripts: one read-only contents GET per followed script.
 	e.Requests += int(math.Ceil(float64(e.Repos) * estBotScriptPct / 100))
 	// One level of indirection for agents and exec: one read-only contents
 	// GET per followed file.
 	e.Requests += int(math.Ceil(float64(e.Repos) * estFollowPct / 100))
+	e.RESTRequests = e.Requests
+	// Default-branch protection and direct collaborators: one batched
+	// GraphQL query each per DefaultBatchSize repositories (CODEOWNERS rides
+	// in the batched workflow read and secret scanning in the repository
+	// listing, at no extra request).
+	for _, perRepo := range []int{estProtectionCostPerRepo, estCollabCostPerRepo} {
+		q, pts := batchCost(e.Repos, perRepo)
+		e.GraphQLQueries += q
+		e.GraphQLPoints += pts
+	}
+	e.Requests += e.GraphQLQueries
 	minutes := float64(e.Requests) * estLatencyMillis / 1000 / 60
-	if b := r.REST; b != nil && e.Requests > b.Remaining && b.Limit > 0 {
-		short := e.Requests - b.Remaining
+	if b := r.REST; b != nil && e.RESTRequests > b.Remaining && b.Limit > 0 {
+		short := e.RESTRequests - b.Remaining
 		e.RateLimitWaits = int(math.Ceil(float64(short) / float64(b.Limit)))
 		wait := b.reset.Sub(d.now)
 		if wait < 0 {
@@ -842,17 +863,38 @@ func (d *doctor) estimate() {
 		e.Minutes = 1
 	}
 	r.Estimate = e
+	gql, gqlShort := "", false
+	if g := r.GraphQL; g != nil && e.GraphQLQueries > 0 {
+		gql = fmt.Sprintf("; about %d GraphQL points and %d of %d remain", e.GraphQLPoints, g.Remaining, g.Limit)
+		gqlShort = e.GraphQLPoints > g.Remaining
+	}
 	switch b := r.REST; {
 	case b == nil:
 	case e.RateLimitWaits > 0:
 		r.check("rate limit", StatusWarn,
-			fmt.Sprintf("collect needs about %d REST requests and %d remain; it will wait for %d rate-limit reset(s)",
-				e.Requests, b.Remaining, e.RateLimitWaits),
+			fmt.Sprintf("collect needs about %d REST requests and %d remain; it will wait for %d rate-limit reset(s)%s",
+				e.RESTRequests, b.Remaining, e.RateLimitWaits, gql),
 			"run collect after the reset at "+b.Reset+", or with a token that has more budget")
+	case gqlShort:
+		r.check("rate limit", StatusWarn,
+			fmt.Sprintf("collect needs about %d REST requests and %d of %d remain%s", e.RESTRequests, b.Remaining, b.Limit, gql),
+			"run collect after the GraphQL reset at "+r.GraphQL.Reset+", or with a token that has more budget")
 	default:
 		r.check("rate limit", StatusPass,
-			fmt.Sprintf("collect needs about %d REST requests and %d of %d remain", e.Requests, b.Remaining, b.Limit), "")
+			fmt.Sprintf("collect needs about %d REST requests and %d of %d remain%s", e.RESTRequests, b.Remaining, b.Limit, gql), "")
 	}
+}
+
+// batchCost returns the batched GraphQL queries for repos repositories,
+// DefaultBatchSize per query, and the points they cost when each repository
+// adds perRepo connection requests (see estProtectionCostPerRepo).
+func batchCost(repos, perRepo int) (queries, points int) {
+	for left := repos; left > 0; left -= DefaultBatchSize {
+		n := min(left, DefaultBatchSize)
+		queries++
+		points += max(1, int(math.Round(float64(n*perRepo)/100)))
+	}
+	return queries, points
 }
 
 // ssoRequired reports a 403 carrying X-GitHub-SSO: required.
@@ -1016,7 +1058,8 @@ func WriteDoctor(w io.Writer, r *DoctorReport) error {
 		if e.RateLimitWaits > 0 {
 			wait = fmt.Sprintf(", including %d rate-limit wait(s)", e.RateLimitWaits)
 		}
-		fmt.Fprintf(&b, "  about %d requests and %d minutes%s\n", e.Requests, e.Minutes, wait)
+		fmt.Fprintf(&b, "  about %d requests (%d REST, %d GraphQL queries costing about %d points) and %d minutes%s\n",
+			e.Requests, e.RESTRequests, e.GraphQLQueries, e.GraphQLPoints, e.Minutes, wait)
 	}
 
 	b.WriteString("\nPredicted not_visible\n")

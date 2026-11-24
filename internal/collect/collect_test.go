@@ -542,10 +542,23 @@ func TestCanPushCollaborators(t *testing.T) {
 		}
 	})
 
-	t.Run("one request per repo and org, archived repos skipped", func(t *testing.T) {
-		f, _ := collectAcme(t)
+	t.Run("one request per repo and org over REST, archived repos skipped", func(t *testing.T) {
+		f := newFakeGitHub(t)
+		if _, err := Collect(context.Background(), Config{Enterprise: "acme", Client: f.client(t), DisableGraphQLBatch: true}); err != nil {
+			t.Fatal(err)
+		}
 		if got := f.hitCount("/repos/acme-actions/deploy/collaborators?affiliation=direct&per_page=100"); got != 1 {
 			t.Errorf("deploy collaborators requested %d times, want 1", got)
+		}
+		if got := f.hitCount("/repos/acme-app/admin/collaborators?affiliation=direct&per_page=100"); got != 0 {
+			t.Errorf("archived repo collaborators requested %d times, want 0", got)
+		}
+	})
+
+	t.Run("batched: one query per org, archived repos skipped", func(t *testing.T) {
+		f, _ := collectAcme(t)
+		if got := f.hitCount("/repos/acme-actions/deploy/collaborators?affiliation=direct&per_page=100"); got != 0 {
+			t.Errorf("deploy collaborators requested over REST %d times, want 0 (batched)", got)
 		}
 		if got := f.hitCount("/repos/acme-app/admin/collaborators?affiliation=direct&per_page=100"); got != 0 {
 			t.Errorf("archived repo collaborators requested %d times, want 0", got)
@@ -558,7 +571,8 @@ func TestCanPushCollaborators(t *testing.T) {
 
 func TestCollaboratorPagination(t *testing.T) {
 	f := newFakeGitHub(t)
-	f.pageSize = 1 // deploy's three collaborators span three pages
+	f.pageSize = 1      // deploy's three collaborators span three REST pages
+	f.collabPageMax = 1 // and more than one batched page: REST reads them all
 	g, err := Collect(context.Background(), Config{Enterprise: "acme", Client: f.client(t)})
 	if err != nil {
 		t.Fatal(err)

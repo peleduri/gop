@@ -112,6 +112,14 @@ type fakeGitHub struct {
 	// answers them with a query-level error, like an older GHES schema.
 	protQueries     int
 	protUnsupported bool
+	// collabQueries counts batched ...gopCollaborators queries;
+	// collabUnsupported answers them with a query-level error, like an older
+	// GHES schema; collabPageMax (default 100) is how many collaborators one
+	// alias returns before hasNextPage; noPermSources omits permissionSources.
+	collabQueries     int
+	collabUnsupported bool
+	collabPageMax     int
+	noPermSources     bool
 	// forbidWorkflowPerms makes both default workflow permissions endpoints
 	// return 403 for every repo and org.
 	forbidWorkflowPerms bool
@@ -438,9 +446,21 @@ func listPage(page []json.RawMessage) any {
 }
 
 // collaborators serves /repos/{o}/{r}/collaborators from the repo's
-// "collaborators" array. Non-owner orgs, repos flagged collaborators_forbidden
-// and f.forbidCollab entries get 403.
+// "collaborators" array (see collabLookup for who gets 403 or 404).
 func (f *fakeGitHub) collaborators(w http.ResponseWriter, r *http.Request, full string) {
+	collabs, status := f.collabLookup(full)
+	if status != http.StatusOK {
+		notFoundOrForbidden(w, status)
+		return
+	}
+	f.paged(w, r, collabs, listPage)
+}
+
+// collabLookup returns the fixture collaborators of "o/r" and 200, or the
+// status the REST endpoint answers: collabStatus entries first, then 403 for
+// non-owner orgs, repos flagged collaborators_forbidden and forbidCollab
+// entries, and 404 for an unknown repo.
+func (f *fakeGitHub) collabLookup(full string) ([]json.RawMessage, int) {
 	owner, name, _ := strings.Cut(full, "/")
 	for _, o := range f.fx.Orgs {
 		if o.Login != owner {
@@ -461,18 +481,15 @@ func (f *fakeGitHub) collaborators(w http.ResponseWriter, r *http.Request, full 
 			status := f.collabStatus[full]
 			f.mu.Unlock()
 			if status != 0 {
-				notFoundOrForbidden(w, status)
-				return
+				return nil, status
 			}
 			if !o.Owner || m.Forbidden || forbid {
-				notFoundOrForbidden(w, 403)
-				return
+				return nil, http.StatusForbidden
 			}
-			f.paged(w, r, m.Collaborators, listPage)
-			return
+			return m.Collaborators, http.StatusOK
 		}
 	}
-	notFoundOrForbidden(w, 404)
+	return nil, http.StatusNotFound
 }
 
 // teams serves /orgs/{o}/teams, /orgs/{o}/teams/{slug}/members and
@@ -883,6 +900,10 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := req.Query
+	if strings.Contains(q, "...gopCollaborators") {
+		f.collabQuery(w, q, req.Variables)
+		return
+	}
 	if strings.Contains(q, "...gopProtection") {
 		f.protectionQuery(w, q, req.Variables)
 		return

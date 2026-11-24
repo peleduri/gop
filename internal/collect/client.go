@@ -84,6 +84,11 @@ type RateState struct {
 	RESTReset        time.Time
 	GraphQLRemaining int
 	GraphQLReset     time.Time
+	// GraphQLQueries counts the GraphQL queries sent and GraphQLPoints the
+	// rate-limit points they cost: the rateLimit { cost } a query asked for,
+	// else 1 (the least a query costs).
+	GraphQLQueries int
+	GraphQLPoints  int
 }
 
 type rateTracker struct {
@@ -136,6 +141,27 @@ func (c *Client) noteRateHeaders(h http.Header, graphql bool) {
 	} else {
 		c.rate.s.RESTRemaining, c.rate.s.RESTReset = rem, reset
 	}
+}
+
+// noteGraphQLCost counts one GraphQL query and the points it cost, from
+// its data's rateLimit { cost } when the query asked for it.
+func (c *Client) noteGraphQLCost(data json.RawMessage) {
+	if c.rate == nil {
+		return
+	}
+	cost := 1
+	var d struct {
+		RateLimit *struct {
+			Cost *int `json:"cost"`
+		} `json:"rateLimit"`
+	}
+	if len(data) > 0 && json.Unmarshal(data, &d) == nil && d.RateLimit != nil && d.RateLimit.Cost != nil && *d.RateLimit.Cost > 0 {
+		cost = *d.RateLimit.Cost
+	}
+	c.rate.mu.Lock()
+	defer c.rate.mu.Unlock()
+	c.rate.s.GraphQLQueries++
+	c.rate.s.GraphQLPoints += cost
 }
 
 // noteGraphQLRate records a GraphQL rateLimit { remaining resetAt } result.
@@ -770,6 +796,7 @@ func (c *Client) GraphQL(ctx context.Context, query string, vars map[string]any,
 			}
 			continue
 		}
+		c.noteGraphQLCost(env.Data)
 		if out != nil && len(env.Data) > 0 && string(env.Data) != "null" {
 			if err := json.Unmarshal(env.Data, out); err != nil {
 				return env.Errors, fmt.Errorf("graphql: decoding data: %w", err)

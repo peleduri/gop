@@ -190,6 +190,9 @@ type collector struct {
 	// actors read over REST by ruleset ID.
 	protOff       bool
 	rulesetBypass map[int64]*apiRulesetBypass
+	// collabOff disables batched collaborator reads after a query GitHub
+	// does not support (collabbatch.go).
+	collabOff bool
 	// progressFn receives progress updates (progress.go); nil means none.
 	progressFn func(Progress)
 	// host is the GitHub host; ghes is set when it is a GitHub Enterprise
@@ -1113,9 +1116,17 @@ func (k *collector) collectPushGrants(ctx context.Context, o *orgState) error {
 	if err := k.collectOutside(ctx, o); err != nil {
 		return err
 	}
+	pre, err := k.prefetchCollaborators(ctx, o)
+	if err != nil {
+		return err
+	}
 	failed := 0
 	for _, r := range o.repos {
 		if r.Attrs[graph.AttrArchived] == "true" {
+			continue
+		}
+		if collabs, ok := pre[r.ID]; ok {
+			k.applyCollaborators(ctx, o, r, collabs)
 			continue
 		}
 		ok, err := k.collectCollaborators(ctx, o, r)
@@ -1245,6 +1256,13 @@ func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo 
 		}
 		return false, nil
 	}
+	k.applyCollaborators(ctx, o, repo, collabs)
+	return true, nil
+}
+
+// applyCollaborators adds a CAN_PUSH edge for each collaborator whose
+// permissions include push. The REST and batched GraphQL reads both end here.
+func (k *collector) applyCollaborators(ctx context.Context, o *orgState, repo *graph.Node, collabs []apiCollaborator) {
 	for _, c := range collabs {
 		p := c.Permissions
 		if c.Login == "" || !p.canPush() {
@@ -1260,7 +1278,6 @@ func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo 
 		idn := k.identity(c.Login)
 		k.edge(idn.ID, repo.ID, graph.CanPush, graph.Live, srcCollabs, attrs)
 	}
-	return true, nil
 }
 
 // baseRole returns the base role of a custom repository role, reading the org's
