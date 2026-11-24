@@ -429,6 +429,14 @@ const (
 	AttrCodeownersValid     = "codeowners_valid"     // true | false (a line gop or GitHub cannot parse)
 	AttrCodeownersWorkflows = "codeowners_workflows" // true | false | unknown: the rule matching .github/workflows/ names an owner
 
+	// Agent and review policy files on the default branch: files that steer
+	// AI agents and reviewers (PolicyFiles). policy_files lists the ones
+	// that exist ("none" when none does); policy_files_unowned the ones no
+	// CODEOWNERS rule names an owner for ("none" when all are owned,
+	// "unknown" not_visible when CODEOWNERS could not be read).
+	AttrPolicyFiles        = "policy_files"         // sorted comma list of PolicyFiles paths | none
+	AttrPolicyFilesUnowned = "policy_files_unowned" // sorted comma list of PolicyFiles paths | none | unknown
+
 	// Secret scanning, from the repo's security_and_analysis.
 	AttrSecretScanning       = "secret_scanning"                 // on | off | unknown
 	AttrSecretPushProtection = "secret_scanning_push_protection" // on | off | unknown
@@ -439,6 +447,7 @@ const (
 const (
 	FactBranchProtection = "branch_protection"
 	FactCodeowners       = "codeowners"
+	FactPolicyFiles      = "policy_files"
 	FactSecretScanning   = "secret_scanning"
 )
 

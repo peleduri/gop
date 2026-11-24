@@ -608,6 +608,8 @@
         "default_branch": "main",
         "fork": "false",
         "org": "acme-app",
+        "policy_files": "AGENTS.md,REVIEW.md",
+        "policy_files_unowned": "AGENTS.md,REVIEW.md",
         "review_bypass": "bot_self_merge",
         "review_bypass_app_match": "matched",
         "review_bypass_approve": ".github/workflows/ai-review.yml",

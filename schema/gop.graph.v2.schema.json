@@ -164,6 +164,8 @@
         "codeowners": {"description": "repo: the CODEOWNERS file GitHub uses on the default branch (the first of .github/, root, docs/), none, or unknown.", "type": "string", "enum": [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS", "none", "unknown"]},
         "codeowners_valid": {"description": "repo: false when a CODEOWNERS line has syntax GitHub skips.", "type": "string", "enum": ["true", "false"]},
         "codeowners_workflows": {"description": "repo: the CODEOWNERS rule matching .github/workflows/ files names an owner.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "policy_files": {"description": "repo with a review bypass: sorted comma list of the agent and review policy files on the default branch (AGENTS.md, CLAUDE.md, REVIEW.md, .github/copilot-instructions.md, .cursorrules, .cursor/rules), none, or unknown (not_visible).", "type": "string", "minLength": 1},
+        "policy_files_unowned": {"description": "repo with a review bypass: the policy files no CODEOWNERS rule names an owner for, so a pull request can edit them and still be merged by the bot; none when every one is owned, unknown (not_visible) when CODEOWNERS could not be read.", "type": "string", "minLength": 1},
         "secret_scanning": {"description": "repo: secret scanning, from security_and_analysis (shown to repo admins, org owners and security managers).", "type": "string", "enum": ["on", "off", "unknown"]},
         "secret_scanning_push_protection": {"description": "repo: secret scanning push protection.", "type": "string", "enum": ["on", "off", "unknown"]},
         "secret_scanning_validity_checks": {"description": "repo: secret scanning validity checks.", "type": "string", "enum": ["on", "off", "unknown"]},

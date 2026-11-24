@@ -53,10 +53,12 @@ A bot approves a pull request its author can steer, and a workflow the author ca
 - Who: external:anyone
 - Why no human review: app\_bypass
 - Merging App: 77, a bypass actor of the default branch rules
+- Policy files a pull request can edit without a code owner: AGENTS.md, REVIEW.md
   1. Require a human approval that bots cannot give: require CODEOWNERS review on \`main\` with human owners (or a team), so a bot approval never satisfies the rule.
   2. Remove the GitHub App \`77\` from the bypass actors of the rules on \`main\`: the merging workflow uses its token, so the merge skips every rule.
   3. Do not let PR authors trigger the merge: drop the author check from \`ai-merge.yml\`, or require a maintainer (author\_association OWNER, or a write-permission check) and an environment with required reviewers.
   4. Do not give the reviewer write or approve rights: let the AI reviewer comment (pull-requests: write without approving, or a read-only token) and keep approve and merge with people.
+  5. Add CODEOWNERS lines with human owners for \`/AGENTS.md\`, \`/REVIEW.md\`: these files steer the AI agents and reviewers, and a pull request can change them and still be merged by the bot.
 
 ## Org ownership
 

@@ -255,6 +255,19 @@ three closes the path):
    environment with required reviewers.
 4. Do not give the reviewer write or approve rights: let it comment only.
 
+**Self-editable policy files.** In a repo with a review bypass, gop also
+checks the files that steer AI agents and reviewers: `AGENTS.md`,
+`CLAUDE.md`, `REVIEW.md`, `.github/copilot-instructions.md`, `.cursorrules`
+and `.cursor/rules`. It reads only whether each exists on the default branch
+(in the same batched query as CODEOWNERS; one contents `GET` per path over
+REST, only for these repos) and checks each against CODEOWNERS (the last
+matching rule must name an owner). `policy_files` lists the ones present and
+`policy_files_unowned` those with no owner (`unknown`, `not_visible`, when
+CODEOWNERS could not be read). A pull request can edit an unowned one, so
+change the rules its own AI review follows, and still be merged by the bot.
+The report's AI self-merge card names them, and the fixes gain: add
+CODEOWNERS lines with human owners for those files.
+
 **Merges in a script.** The merge rules often live in a repo script the
 workflow runs (`run: python3 tools/merge.py`). For a `run:` step that
 invokes a repo script (`python3 path.py`, `node path.js`, `bash path.sh`,
