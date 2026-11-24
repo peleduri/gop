@@ -1796,7 +1796,7 @@
       "id": "pin:action:acme-actions/deploy@main",
       "desc": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it",
       "removed": 18,
-      "pct": "72%",
+      "pct": "75%",
       "orgs": [
         "acme-actions",
         "acme-app"
@@ -1806,7 +1806,7 @@
       "n": 2,
       "id": "default_perm:org:acme-actions-\u003eread",
       "desc": "Lower the default repository permission of acme-actions to read",
-      "removed": 4,
+      "removed": 3,
       "pct": "88%",
       "orgs": [
         "acme-actions"

@@ -71,12 +71,12 @@ Confirmed (every hop live, inferred, audit or supplied) (29):
 $ gop report --graph testdata/acme/graph.json --out - --format md
 > Members of acme-actions can push code that runs in 12 repos across 2 orgs (confirmed), including 1 cloud OIDC trust, 1 secret scope, 1 self-hosted runner pool.
 >
-> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 72% of confirmed reach.
+> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 75% of confirmed reach.
 ...
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 18 | 72% |
-| 2 | Lower the default repository permission of acme-actions to read | 4 | 88% |
+| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 18 | 75% |
+| 2 | Lower the default repository permission of acme-actions to read | 3 | 88% |
 | 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 1 | 92% |
 ...
 

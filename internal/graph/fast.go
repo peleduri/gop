@@ -17,6 +17,7 @@ type fastIndex struct {
 	ids    []string
 	num    map[string]int32
 	isRepo []bool
+	isPop  []bool // an org_members population (see Index.pairReach)
 
 	// All base control edges, grouped by source in the order of
 	// controlGraph.out (target ID, then control before CI).
@@ -151,9 +152,11 @@ func (ix *Index) buildFast() *fastIndex {
 	fx := &fastIndex{ids: sortedKeys(set), num: map[string]int32{}, tagNum: map[string]int32{}}
 	n := len(fx.ids)
 	fx.isRepo = make([]bool, n)
+	fx.isPop = make([]bool, n)
 	for i, id := range fx.ids {
 		fx.num[id] = int32(i)
 		fx.isRepo[i] = ix.Kind(id) == KindRepo
+		fx.isPop[i] = ix.Kind(id) == KindOrgMembers
 	}
 	fx.start = make([]int32, n+1)
 	fx.vstart = make([]int32, n+1)

@@ -518,8 +518,9 @@ func pathEvidence(hops []Hop) Evidence {
 
 // bfs walks the control graph in layers. Among equally short candidate paths it
 // keeps the one with the strongest evidence (ties: first in sorted order), so the
-// output is deterministic. verifiedOnly skips not_visible hops.
-func (cg *controlGraph) bfs(from string, verifiedOnly bool) map[string]*visit {
+// output is deterministic. verifiedOnly skips not_visible hops; skip, when
+// set, names nodes the walk never enters.
+func (cg *controlGraph) bfs(from string, verifiedOnly bool, skip func(string) bool) map[string]*visit {
 	seen := map[string]*visit{from: {controlled: true}}
 	frontier := []string{from}
 	type cand struct {
@@ -532,7 +533,7 @@ func (cg *controlGraph) bfs(from string, verifiedOnly bool) map[string]*visit {
 		for _, u := range frontier {
 			base := seen[u].ctrlPath
 			for _, e := range cg.out[u] {
-				if verifiedOnly && !Verified(e.hop.Evidence) {
+				if (verifiedOnly && !Verified(e.hop.Evidence)) || (skip != nil && skip(e.to)) {
 					continue
 				}
 				if st := seen[e.to]; st != nil && (st.controlled || e.ci) {
@@ -586,9 +587,30 @@ func (ix *Index) Reach(from string, opts Options) Result {
 	return ix.reach(ix.control(opts.Fixes, opts.MaxAuditAge), from)
 }
 
-func (ix *Index) reach(cg *controlGraph, from string) Result {
-	conf := cg.bfs(from, true)
-	all := cg.bfs(from, false)
+func (ix *Index) reach(cg *controlGraph, from string) Result { return ix.reachSkip(cg, from, nil) }
+
+// pairReach is what from contributes to the (principal, repo) pair totals:
+// its reach without entering an org_members population (members:X) other
+// than from itself. Every population is a scoring principal of its own, so
+// what an identity reaches only through its MEMBER_OF org edge is already
+// counted once on the members:X row; counting it again for each member would
+// multiply the org's default-permission reach by the number of members who
+// happen to qualify for another reason (a team, a grant elsewhere). Reach the
+// identity also holds through its own grants or teams is still counted.
+// Individual scores, paths and top_risks use the full reach.
+func (ix *Index) pairReach(cg *controlGraph, from string) Result {
+	return ix.reachSkip(cg, from, func(id string) bool { return id != from && ix.Kind(id) == KindOrgMembers })
+}
+
+// PairReach is Reach (no fixes, default audit age) restricted to what from
+// adds to the pair totals: nothing it reaches only through an org_members
+// population other than itself, which that population's own row counts.
+func (ix *Index) PairReach(from string) Result { return ix.pairReach(ix.base, from) }
+
+// reachSkip is reach with a walk that never enters a node skip names.
+func (ix *Index) reachSkip(cg *controlGraph, from string, skip func(string) bool) Result {
+	conf := cg.bfs(from, true, skip)
+	all := cg.bfs(from, false, skip)
 	res := Result{From: from, Paths: map[string]Path{}}
 	confOrgs, possOrgs := map[string]bool{}, map[string]bool{}
 	for _, id := range sortedCandKeys(all) {

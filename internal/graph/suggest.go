@@ -176,10 +176,11 @@ func (s *countScratch) removed(fx *fastIndex, e int32) bool {
 	return true
 }
 
-// count is the number of repos in p's confirmed reach under s.off (p itself
-// excluded): the nodes p controls over verified control edges, plus the CI
-// targets of those nodes. After it returns, s.ctrlList holds the controlled
-// nodes when keep is set.
+// count is the number of repos in p's confirmed pair reach under s.off (p
+// itself excluded): the nodes p controls over verified control edges, plus
+// the CI targets of those nodes, never entering an org_members population
+// other than p (see Index.pairReach). After it returns, s.ctrlList holds the
+// controlled nodes when keep is set.
 func (s *countScratch) count(fx *fastIndex, p int32, keep bool) int {
 	s.stamp++
 	mark := s.stamp
@@ -190,7 +191,7 @@ func (s *countScratch) count(fx *fastIndex, p int32, keep bool) int {
 		u := s.queue[i]
 		for e := fx.vstart[u]; e < fx.vstart[u+1]; e++ {
 			v := fx.vto[e]
-			if s.ctrl[v] == mark || (fx.vci[e] && s.reached[v] == mark) || s.removed(fx, e) {
+			if s.ctrl[v] == mark || (fx.vci[e] && s.reached[v] == mark) || fx.isPop[v] || s.removed(fx, e) {
 				continue
 			}
 			if s.reached[v] != mark {

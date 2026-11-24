@@ -226,3 +226,33 @@ func (ix *Index) allScores(cg *controlGraph) []Score {
 	}
 	return out
 }
+
+// scoresAndPairs returns allScores(cg) and, in the same order, what each
+// scoring principal adds to the pair totals: its score over pairReach (see
+// Totals). The pair score is the full score unless the full walk entered an
+// org_members population other than the principal itself.
+func (ix *Index) scoresAndPairs(cg *controlGraph) (full, pair []Score) {
+	ps := ix.ScoringPrincipals()
+	full, pair = make([]Score, 0, len(ps)), make([]Score, 0, len(ps))
+	for _, p := range ps {
+		r := ix.reach(cg, p)
+		s := ix.scoreOf(p, r)
+		full = append(full, s)
+		if ix.entersPopulation(p, r) {
+			s = ix.scoreOf(p, ix.pairReach(cg, p))
+		}
+		pair = append(pair, s)
+	}
+	return full, pair
+}
+
+// entersPopulation reports whether reach result r of p went through an
+// org_members population other than p.
+func (ix *Index) entersPopulation(p string, r Result) bool {
+	for id := range r.Paths {
+		if id != p && ix.Kind(id) == KindOrgMembers {
+			return true
+		}
+	}
+	return false
+}

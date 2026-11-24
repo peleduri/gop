@@ -4,7 +4,7 @@ Enterprise **acme**, collected 2026-11-20T12:00:00Z
 
 > identity:bob can push code that runs in 9 repos across 3 orgs (confirmed), including 1 cloud OIDC trust, 2 secret scopes, 1 self-hosted runner pool. 1 repo more possible through facts gop could not see.
 >
-> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 28% of confirmed reach.
+> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 31% of confirmed reach.
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
@@ -79,7 +79,7 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 
 ## Org ownership
 
-9% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 6 of 64 confirmed (principal, repo) pairs.
+11% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 62 confirmed (principal, repo) pairs.
 
 | Orgs owned | Accounts |
 |---|---:|
@@ -94,11 +94,11 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 18 | 28% |
-| 2 | Lower the default repository permission of acme-actions to read | 8 | 41% |
-| 3 | Stop acme-actions/setup/.github/workflows/codex-review.yml from running attacker-controlled code on its risky triggers | 6 | 50% |
+| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 19 | 31% |
+| 2 | Lower the default repository permission of acme-actions to read | 8 | 44% |
+| 3 | Stop acme-actions/setup/.github/workflows/codex-review.yml from running attacker-controlled code on its risky triggers | 4 | 50% |
 | 4 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 56% |
-| 5 | Lower the default repository permission of acme-legacy to read | 3 | 61% |
+| 5 | Lower the default repository permission of acme-legacy to read | 2 | 60% |
 
 ## Pinned, still reachable
 

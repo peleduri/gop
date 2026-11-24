@@ -16,7 +16,7 @@ func suggestFixesNaive(ix *Index, budget int) []FixSuggestion {
 		cg := ix.control(fixes, 0)
 		n := 0
 		for _, p := range ix.ScoringPrincipals() {
-			n += len(ix.reach(cg, p).Confirmed.Repos)
+			n += len(ix.pairReach(cg, p).Confirmed.Repos)
 		}
 		return n
 	}

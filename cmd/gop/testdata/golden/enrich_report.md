@@ -4,7 +4,7 @@ Enterprise **acme**, collected 2026-11-20T10:00:00Z
 
 > Members of acme-actions can push code that runs in 12 repos across 2 orgs (confirmed), including 1 cloud role, 1 cloud OIDC trust, 1 secret scope, 1 self-hosted runner pool. Cloud hops from supplied trust files testdata/acme/trust/aws/deploy.json, not read from the cloud.
 >
-> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 72% of confirmed reach.
+> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 75% of confirmed reach.
 
 Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry, or (a cloud hop) from a supplied file: a cloud trust policy you supplied, not read from the cloud. Possible means at least one hop is not visible to the token: unknown, not absent.
 
@@ -22,8 +22,8 @@ Score counts confirmed reach only.
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 18 | 72% |
-| 2 | Lower the default repository permission of acme-actions to read | 4 | 88% |
+| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 18 | 75% |
+| 2 | Lower the default repository permission of acme-actions to read | 3 | 88% |
 | 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 1 | 92% |
 
 ## Top paths

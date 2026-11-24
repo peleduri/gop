@@ -222,7 +222,10 @@ func isPrincipalKind(k NodeKind) bool {
 // team; a team with neither reaches nothing. An identity whose only edges are
 // org MEMBER_OF reaches exactly what members:X reaches, so counting it again
 // would multiply the totals by the number of licensed users without adding
-// reach. Sorted.
+// reach. An identity that does qualify still reaches what members:X
+// reaches through its MEMBER_OF org edge; its score shows that, but the pair
+// totals leave it out and count it once, on the members:X row (see
+// Index.pairReach and Totals). Sorted.
 func (ix *Index) ScoringPrincipals() []string {
 	var out []string
 	for _, p := range ix.Principals() {

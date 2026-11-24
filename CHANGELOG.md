@@ -116,6 +116,21 @@ flags may change in minor releases.
   `repos_source: "visible_to_token"` and `repos_lower_bound: true`. The
   estimate says its repo count and requests are lower bounds when any org is
   not owned. An owned org keeps its exact count.
+- Pair totals no longer count an org's default-permission reach once per
+  member (#147). A member that is scored for another reason (a team that
+  grants nothing, a grant in another org) also reached everything
+  `members:X` reaches, and `what_if`, `suggest_fixes`, `fix-plan`, `gop diff`,
+  the report and the SQL export summed it again for each such member, so
+  "removes N of M confirmed pairs" overstated lowering a default permission
+  and changed when people joined unrelated teams. Totals and fix gains now
+  count reach held only through `members:X` once, on the population's row;
+  a member's own grants and teams still count for the member, and individual
+  scores (`blast_radius`, `top_risks`, per-principal `what_if`) still show
+  the full personal reach. The SQL export's `reach` table follows the totals
+  (an identity's rows leave out reach held only through its org membership),
+  and `graph.Index.Totals` and `PairReach` replace `graph.TotalsOf`. On the
+  demo, lowering the default permission of acme-actions now removes 50% of
+  confirmed reach (34 of 68 pairs), not 58% (47 of 81).
 
 ## [0.5.0] - 2026-11-24
 ### Added

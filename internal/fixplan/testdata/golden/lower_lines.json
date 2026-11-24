@@ -23,7 +23,7 @@
           "runners": 0
         },
         "possible": {
-          "repos": 5,
+          "repos": 4,
           "orgs": 3,
           "workflows": 3,
           "secrets": 0,
@@ -31,9 +31,9 @@
           "runners": 0
         },
         "confirmed_pairs": 14,
-        "possible_pairs": 5,
+        "possible_pairs": 4,
         "score": 56,
-        "possible_score": 12.5
+        "possible_score": 11.5
       },
       "after": {
         "principals": 5,

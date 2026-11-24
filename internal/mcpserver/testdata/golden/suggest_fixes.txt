@@ -15,8 +15,8 @@
       ],
       "removed": 18,
       "cumulative_removed": 18,
-      "remaining": 7,
-      "cumulative_pct": 72
+      "remaining": 6,
+      "cumulative_pct": 75
     },
     {
       "fix_id": "default_perm:org:acme-actions-\u003eread",
@@ -30,10 +30,10 @@
         "members:acme-actions CAN_PUSH repo:acme-actions/deploy",
         "members:acme-actions CAN_PUSH repo:acme-actions/setup"
       ],
-      "removed": 4,
-      "cumulative_removed": 22,
+      "removed": 3,
+      "cumulative_removed": 21,
       "remaining": 3,
-      "cumulative_pct": 88
+      "cumulative_pct": 87.5
     },
     {
       "fix_id": "pin:action:acme-actions/deploy@v1",
@@ -46,9 +46,9 @@
         "action:acme-actions/deploy@v1 RESOLVES_TO repo:acme-actions/deploy"
       ],
       "removed": 1,
-      "cumulative_removed": 23,
+      "cumulative_removed": 22,
       "remaining": 2,
-      "cumulative_pct": 92
+      "cumulative_pct": 91.66666666666667
     }
   ],
   "hardening": [

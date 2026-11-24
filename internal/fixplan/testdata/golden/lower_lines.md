@@ -1,6 +1,6 @@
 ## Fix plan: Lower the default repository permission of acme-actions to read
 
-Confirmed (principal, repo) pairs: 14 -> 9 (36% removed); possible pairs: 5 -> 2.
+Confirmed (principal, repo) pairs: 14 -> 9 (36% removed); possible pairs: 4 -> 2.
 
 > gop never runs these steps or calls write APIs: make each change with your own access.
 
