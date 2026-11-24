@@ -1,0 +1,19 @@
+# Synthetic: a base-branch script calls a vLLM server with its key and reads
+# the pull request's head checkout (issue #153, case b).
+name: vllm-review
+on: pull_request_target
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          persist-credentials: false
+      - run: python scripts/review.py --dir pr/
+        env:
+          VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}

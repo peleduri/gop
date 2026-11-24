@@ -389,7 +389,7 @@ func assocClass(vals []string) string {
 const LLMScriptKind = "llm-script"
 
 // llmKeyRe matches env and secret names of model API keys.
-var llmKeyRe = regexp.MustCompile(`(?i)^(?:[A-Z0-9_]*_)?(?:ANTHROPIC|OPENAI|AZURE_OPENAI|GEMINI|MISTRAL|GROQ|COHERE|DEEPSEEK|XAI|OPENROUTER|TOGETHER|PERPLEXITY|FIREWORKS|LLM)_API_KEY$|^CLAUDE_CODE_OAUTH_TOKEN$`)
+var llmKeyRe = regexp.MustCompile(`(?i)^(?:[A-Z0-9_]*_)?(?:ANTHROPIC|OPENAI|AZURE_OPENAI|GEMINI|MISTRAL|GROQ|COHERE|DEEPSEEK|XAI|OPENROUTER|TOGETHER|PERPLEXITY|FIREWORKS|OLLAMA|VLLM|LLM)_API_KEY$|^CLAUDE_CODE_OAUTH_TOKEN$`)
 
 // prTextCmds are run: commands that read the pull request's diff or text.
 var prTextCmds = []string{"gh pr diff", "gh pr view"}

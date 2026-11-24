@@ -1,0 +1,13 @@
+# Synthetic: only pulls a model, never prompts it (issue #153, case c).
+name: models
+on: pull_request_target
+permissions:
+  contents: read
+jobs:
+  cache:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          ollama --version
+          ollama pull llama3
+          ollama serve &

@@ -209,6 +209,13 @@ func agentJob(w *yamlWalk, id string, job *yamlMap, risky bool, wfEnv *yamlMap) 
 			for _, ctx := range injectedContexts(run) {
 				prompt[ctx] = true
 			}
+			// The pull request's diff or text read in the same script (gh
+			// pr diff | ollama run ...) is a prompt too.
+			for _, cmd := range prTextCmds {
+				if strings.Contains(run, cmd) {
+					prompt[graph.PromptPRContent] = true
+				}
+			}
 		}
 		if found {
 			env, _ := w.mapping(field(step, "env"), "env")
@@ -443,7 +450,10 @@ func matchAgentCLI(run string) (agentCLI, string, bool) {
 		if i := strings.Index(line, "#"); i == 0 || (i > 0 && line[i-1] == ' ') {
 			line = line[:i]
 		}
-		for _, seg := range shellSplit.Split(line, -1) {
+		segs, seps := shellSplit.Split(line, -1), shellSplit.FindAllString(line, -1)
+		for si, seg := range segs {
+			// piped: the segment reads the previous command's output.
+			piped := si > 0 && seps[si-1] == "|"
 			fields := strings.Fields(seg)
 			i := 0
 			for i < len(fields) && (cmdPrefix[fields[i]] || isEnvAssign(fields[i])) {
@@ -455,7 +465,7 @@ func matchAgentCLI(run string) (agentCLI, string, bool) {
 			bin := cliName(fields[i])
 			rest := fields[i+1:]
 			for _, c := range agentCLIs {
-				if !containsStr(c.bins, bin) || !cliMarked(c, rest) {
+				if !containsStr(c.bins, bin) || !cliMarked(c, rest) || (c.model && !modelPrompted(c, rest, piped)) {
 					continue
 				}
 				return c, strings.Join(rest, " "), true
@@ -509,6 +519,41 @@ func cliMarked(c agentCLI, args []string) bool {
 	}
 	return false
 }
+
+// modelPrompted reports whether a model run (args: run MODEL ...) gets a
+// prompt: a prompt argument, --ask, or stdin from a redirect or a pipe.
+// Output redirects and the values of c.modelValueFlags are not prompts.
+func modelPrompted(c agentCLI, args []string, piped bool) bool {
+	if len(args) < 2 || strings.HasPrefix(args[1], "-") || strings.HasPrefix(args[1], "<") || strings.HasPrefix(args[1], ">") {
+		return false
+	}
+	if piped {
+		return true
+	}
+	for i := 2; i < len(args); i++ {
+		a := strings.ToLower(args[i])
+		switch {
+		case a == "--ask" || strings.HasPrefix(a, "--ask="):
+			return true
+		case strings.HasPrefix(a, "<"):
+			return true
+		case outRedirect.MatchString(a):
+			if strings.Trim(strings.TrimLeft(a, "0123456789&"), ">|") == "" {
+				i++ // a bare > or 2>: the next word is its target
+			}
+		case strings.HasPrefix(a, "-"):
+			if containsStr(c.modelValueFlags, a) {
+				i++
+			}
+		default:
+			return true
+		}
+	}
+	return false
+}
+
+// outRedirect matches an output redirect word: > out, 2>&1, >>log, &>out.
+var outRedirect = regexp.MustCompile(`^(?:[0-9]*|&)>`)
 
 func containsStr(xs []string, x string) bool {
 	for _, v := range xs {
