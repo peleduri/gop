@@ -21,7 +21,7 @@ Loading into an existing database adds runs: the script uses `CREATE TABLE IF NO
 
 gop writes SQL text and links no database driver, which keeps the binary small and CGO-free. Load the script with the `sqlite3` or `duckdb` shell, or any client that runs a multi-statement script; a naive splitter that cuts on `;` at line ends can break on names that contain one. `--demo` exports the synthetic demo graph. `--github-url` applies to `--format cypher` only.
 
-Values are standard SQL string literals (single quotes doubled, nothing else escaped). A value that contains a control character (a newline, carriage return, tab, escape, ...) is written JSON-encoded and decoded on load, as `('"a\r\nb"' ->> '$')`, so the script itself holds no control character and no shell's line handling can change a value; this needs JSON support (SQLite 3.38 or later, DuckDB's built-in `json` extension). Any name round-trips except NUL and invalid UTF-8, which become U+FFFD. Booleans are `INTEGER` 0 or 1. Times are RFC 3339 UTC text. Evidence is plain text (`live`, `audit`, `supplied`, `not_visible`, and any level a later schema adds), so check `confirmed` rather than listing evidence values.
+Values are standard SQL string literals (single quotes doubled, nothing else escaped). A value that contains a control character (a newline, carriage return, tab, escape, ...) is written JSON-encoded and decoded on load, as `('"a\r\nb"' ->> '$')`, so the script itself holds no control character and no shell's line handling can change a value; this needs JSON support (SQLite 3.38 or later, DuckDB's built-in `json` extension). Any name round-trips except NUL and invalid UTF-8, which become U+FFFD. Booleans are `INTEGER` 0 or 1. Times are RFC 3339 UTC text. Evidence is plain text (`live`, `inferred`, `audit`, `supplied`, `not_visible`, and any level a later schema adds), so check `confirmed` rather than listing evidence values.
 
 ## Schema
 
@@ -42,10 +42,12 @@ reach(run_id, principal, target, target_kind, confirmed, evidence, hops, path)
 | `runs` | One per exported graph. `schema_version` is the graph's `schema` (`gop.graph/v1`). |
 | `nodes` | One per node. `org` is the org the node belongs to and `repo` its repo (an action ref's `repo` is the repo that hosts it); both are NULL when they do not apply. An edge endpoint the graph does not declare gets a row with `declared` = 0, its kind taken from the ID prefix, and NULL `evidence`. |
 | `node_attrs` | One per node attribute. `evidence` is the attribute's own evidence when the graph records one (`attr_evidence`), else the node's. |
-| `edges` | One per edge. `label` is the edge kind (`CAN_PUSH`, `USES`, ...). `confirmed` is 1 for `live`, `audit` and `supplied` evidence. `edge_id` numbers the edges of a run in a stable order. |
+| `edges` | One per edge. `label` is the edge kind (`CAN_PUSH`, `USES`, ...). `confirmed` is 1 for `live`, `inferred`, `audit` and `supplied` evidence (an edge's own evidence: audit facts are not aged here; the `reach` table applies the audit age). `edge_id` numbers the edges of a run in a stable order. |
 | `edge_attrs` | One per edge attribute (`via`, `ref_kind`, `file`, `line`, ...), keyed by `edge_id`. |
 | `reach` | gop's computed reach, so SQL never reimplements the traversal: one row per scoring principal (org members, outside principals, and identities and teams with their own grants; see [schema.md](schema.md#principals-and-scoring)) and node it reaches (repos, workflows, action refs, secrets, OIDC, runners, cloud targets, ...). `confirmed` is 1 when every hop of the path is confirmed, 0 when the path needs a fact gop could not see (possible reach). `path` is the shortest path as a JSON array of node IDs, `hops` its length. |
 | `findings` | `rule = 'top_risk'`: one row per scoring principal with any reach; `severity` is its confirmed blast-radius score (as in `top_risks` and the report) and `possible` its possible score. `rule = 'fix_pin'`, `'fix_default_perm'`, `'fix_restrict_token'`, `'fix_harden_trigger'`: one row per fix candidate, `subject` is the fix ID (`pin:action:acme-actions/deploy@main`), `severity` the confirmed (principal, repo) pairs that fix alone removes and `possible` the possible pairs it removes (each fix is evaluated on its own, unlike the greedy order of `suggest_fixes`). |
+
+For semantic-layer and text-to-SQL tools, [contrib/ossie](../contrib/ossie/README.md) has a reviewed [Apache Ossie](https://ossie.apache.org/) model of this schema (terms, joins and measures), with views to load after the export.
 
 ## Example queries
 

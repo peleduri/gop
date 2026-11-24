@@ -1,0 +1,8 @@
+confirmed_reach_count: 80 33
+confirmed_reach_delta: NULL -47
+finding_count: 19 17
+max_finding_severity: 273.375 165.375
+orgs_default_write: 2 1
+possible_reach_count: 13 13
+possible_reach_delta: NULL 0
+unpinned_reachable_actions: 3 2

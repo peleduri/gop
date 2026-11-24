@@ -9,6 +9,20 @@ flags may change in minor releases.
 
 ### Added
 
+- `contrib/ossie/`: a reviewed [Apache Ossie](https://ossie.apache.org/) semantic
+  model (`gop.ossie.yaml`, Ossie 0.3.0.dev0) of the `gop export --format sql`
+  schema, for Ossie-aware tools such as NVIDIA Auto Ontology. It defines the
+  terms (organization, repository, workflow, action, identity, principal,
+  cloud role, secret, self-hosted runner, finding, run, reach) with synonyms,
+  every edge label as a join, and measures: confirmed and possible reach (kept
+  apart), unpinned reachable actions, orgs with write as the default
+  permission, findings, and the run-over-run reach delta. `views.sql` adds one
+  view per term over the export (load it after the export). A test validates
+  the model against the Ossie JSON Schema, checks every referenced column
+  exists in the export schema, and runs each measure's SQL on the demo export
+  against the engine's numbers. The README covers loading into Auto Ontology
+  and warns that it sends schema samples and questions to its model endpoint
+  (NVIDIA's hosted API by default), so self-host models for real data.
 - Opt-in REST response cache for `gop collect`: `--cache-dir DIR`
   (`Config.CacheDir`, off by default) stores `GET` responses that are `200`
   with an `ETag` or `Last-Modified` and revalidates them on the next run with
