@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 flags may change in minor releases.
 
 ## [Unreleased]
+### Fixed
+- `gop doctor` no longer states a repo total for an org the token does not
+  own (#135). The enterprise GraphQL `repositories { totalCount }` counts only
+  the repositories the token can see there, so it could print "the org has 0"
+  for an org with many private repositories. For such an org doctor now keeps
+  the larger of that count and `GET /orgs/{org}` `public_repos`, prints it as
+  "at least N visible to this token; the real total needs org owner" (or the
+  count as unknown when the token sees none), and in `--format json` sets
+  `repos_source: "visible_to_token"` and `repos_lower_bound: true`. The
+  estimate says its repo count and requests are lower bounds when any org is
+  not owned. An owned org keeps its exact count.
 
 ## [0.5.0] - 2026-11-24
 ### Added

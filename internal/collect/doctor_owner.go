@@ -16,8 +16,10 @@ import (
 // doctor predicts the same entries so the gap is known before a long run.
 
 // ownership reads the token user's role in every readable org, replaces the
-// repository counts with the enterprise GraphQL ones where it has them, and
-// predicts the coverage facts collect will record for orgs it does not own.
+// repository counts with the enterprise GraphQL ones for orgs the token owns
+// (or whose role it cannot read), marks the counts of the other orgs as a
+// lower bound, and predicts the coverage facts collect will record for orgs
+// it does not own.
 func (d *doctor) ownership(ctx context.Context, e *doctorEnterprise) error {
 	r := d.r
 	var notOwned []int
@@ -27,23 +29,34 @@ func (d *doctor) ownership(ctx context.Context, e *doctorEnterprise) error {
 			continue
 		}
 		info, inEnt := e.orgs[strings.ToLower(o.Login)]
-		if inEnt && info.repos != nil {
-			// Accurate for enterprise owners, unlike GET /orgs/{org}, which
-			// counts only what the token can see.
-			n := *info.repos
-			o.Repos, o.ReposSource = &n, ReposGraphQL
-		}
 		role, err := d.orgRole(ctx, o.Login, info, inEnt)
 		if err != nil {
 			return err
 		}
 		o.Role = role
 		if role != RoleMember && role != RoleNone {
+			if inEnt && info.repos != nil {
+				// Complete for an org owner: it sees every repository.
+				n := *info.repos
+				o.Repos, o.ReposSource = &n, ReposGraphQL
+			}
 			continue
 		}
-		if o.ReposSource == ReposREST {
-			o.ReposLowerBound = true
+		// Not an org owner: the enterprise totalCount and GET /orgs/{org}
+		// (public_repos; total_private_repos is returned to owners only)
+		// both count only the repositories the token can see. Keep the
+		// larger one, as a lower bound.
+		if inEnt && info.repos != nil {
+			o.gqlEmpty = *info.repos == 0
+			if o.Repos == nil || *info.repos > *o.Repos {
+				n := *info.repos
+				o.Repos = &n
+			}
 		}
+		if o.Repos != nil {
+			o.ReposSource = ReposVisible
+		}
+		o.ReposLowerBound = true
 		if inEnt && info.archived {
 			continue // collect skips archived orgs
 		}
@@ -132,9 +145,9 @@ func (d *doctor) predictNotOwned(o *DoctorOrg, ssoEnforced, entVisible bool) {
 		note("can_push:default_perm", "enterprise owner on "+d.cfg.Enterprise+", or "+fix)
 	}
 	note("outside_collaborators", fix)
-	// Direct collaborators need push access on each repository; an org the
-	// enterprise query counts as empty has no repositories to try.
-	if o.ReposSource != ReposGraphQL || o.Repos == nil || *o.Repos > 0 {
+	// Direct collaborators need push access on each repository; an org in
+	// which the token sees no repository has none for collect to try.
+	if !o.gqlEmpty || o.Repos == nil || *o.Repos > 0 {
 		note("can_push:collaborators", fix+", or push access on each repository")
 		// security_and_analysis is returned to repo admins, org owners and
 		// security managers only.
@@ -146,12 +159,13 @@ func (d *doctor) predictNotOwned(o *DoctorOrg, ssoEnforced, entVisible bool) {
 	if o.Role == RoleMember {
 		relation = "a member, not an owner"
 	}
+	// The token's view of the org's repositories is never its total: say
+	// "at least N", or "unknown" when the token sees none.
 	repos := "collect lists only the repositories the token can see"
-	switch {
-	case o.ReposLowerBound && o.Repos != nil:
-		repos += fmt.Sprintf("; the repo count (%d) is a lower bound", *o.Repos)
-	case o.ReposSource == ReposGraphQL && o.Repos != nil:
-		repos += fmt.Sprintf(" (the org has %d)", *o.Repos)
+	if o.Repos != nil && *o.Repos > 0 {
+		repos += fmt.Sprintf(" (at least %d visible to this token; the real total needs org owner)", *o.Repos)
+	} else {
+		repos += " (repo count unknown: none visible to this token; the real total needs org owner)"
 	}
 	r.check("owner "+o.Login, StatusWarn,
 		fmt.Sprintf("token is %s of %s: %d facts will be not_visible and %s", relation, o.Login, len(facts), repos), fix)

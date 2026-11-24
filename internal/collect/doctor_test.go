@@ -113,11 +113,14 @@ func (f *doctorFake) handler() http.HandlerFunc {
 				writeJSON(w, 404, map[string]string{"message": "Not Found"})
 				return
 			}
-			body := map[string]any{"login": org, "public_repos": 2}
-			if !installation {
-				body["total_private_repos"] = n - 2
-			} else {
+			public := min(n, 2)
+			body := map[string]any{"login": org, "public_repos": public}
+			switch {
+			case installation:
 				body["public_repos"] = n
+			case !f.notOwned[org]:
+				// GitHub returns total_private_repos to org owners only.
+				body["total_private_repos"] = n - public
 			}
 			writeJSON(w, 200, body)
 		case p == "/rate_limit":
@@ -487,15 +490,15 @@ func TestDoctorPredictsCollectCoverageForNotOwnedOrg(t *testing.T) {
 		}
 	}
 	if legacy == nil || legacy.Role != RoleNone || legacy.Repos == nil || *legacy.Repos != 28 ||
-		legacy.ReposSource != ReposGraphQL || legacy.ReposLowerBound {
+		legacy.ReposSource != ReposVisible || !legacy.ReposLowerBound {
 		t.Fatalf("acme-legacy: %+v", legacy)
 	}
 	fix := "org owner on acme-legacy (SSO enforced: join through the identity provider first)"
 	if c := findCheck(rep, "owner acme-legacy"); c == nil || c.Status != StatusWarn || c.Fix != fix ||
-		!strings.Contains(c.Detail, "the org has 28") {
+		!strings.Contains(c.Detail, "at least 28 visible to this token") {
 		t.Fatalf("owner check: %+v", c)
 	}
-	for _, want := range []string{"fix: " + fix, "(enterprise GraphQL counts)",
+	for _, want := range []string{"fix: " + fix, "(enterprise GraphQL and visible-to-token counts)",
 		"org acme-legacy: ip_allow_list, repositories, outside_collaborators, can_push:collaborators, secret_scanning, can_push:teams (token is not an org owner)"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
@@ -537,18 +540,73 @@ func TestDoctorNotOwnedRESTCountIsLowerBound(t *testing.T) {
 			o = x
 		}
 	}
-	if o.Role != RoleNone || !o.ReposLowerBound || o.ReposSource != ReposREST {
+	if o.Role != RoleNone || !o.ReposLowerBound || o.ReposSource != ReposVisible || o.Repos == nil || *o.Repos != 2 {
 		t.Fatalf("acme-actions: %+v", o)
 	}
 	if rep.Estimate == nil || rep.Estimate.ReposLowerBound != 1 {
 		t.Fatalf("estimate: %+v", rep.Estimate)
 	}
-	for _, want := range []string{"the repo count (5) is a lower bound", "the repo count is a lower bound: 1 org not owned"} {
+	for _, want := range []string{"(at least 2 visible to this token; the real total needs org owner)",
+		"the repo count and the request estimate are lower bounds: 1 org not owned"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, out)
 		}
 	}
 	if _, warns := rep.Counts(); warns != 1 {
 		t.Errorf("want 1 warning (owner acme-actions), got %d:\n%s", warns, out)
+	}
+}
+
+// The enterprise GraphQL totalCount counts only what the token can see: for
+// an org the token is not a member of it can be 0 although the org has public
+// repositories and hidden private ones. Doctor reports public_repos as a lower
+// bound and never says the org has 0; an owned org keeps its exact count.
+func TestDoctorNotMemberGraphQLZeroIsLowerBound(t *testing.T) {
+	f := ownerFake()
+	f.notOwned = map[string]bool{"acme-actions": true}
+	f.repos["acme-actions"] = 40 // 2 public, 38 private the token cannot see
+	f.gqlRepos = map[string]int{"acme": 12, "acme-actions": 0}
+	rep, out := runDoctor(t, f)
+	orgs := map[string]DoctorOrg{}
+	for _, o := range rep.Orgs {
+		orgs[o.Login] = o
+	}
+	if o := orgs["acme-actions"]; o.Repos == nil || *o.Repos != 2 || !o.ReposLowerBound || o.ReposSource != ReposVisible {
+		t.Fatalf("acme-actions: %+v", o)
+	}
+	if o := orgs["acme"]; o.Repos == nil || *o.Repos != 12 || o.ReposLowerBound || o.ReposSource != ReposGraphQL {
+		t.Fatalf("acme (owned): %+v", o)
+	}
+	if c := findCheck(rep, "owner acme-actions"); c == nil || !strings.Contains(c.Detail, "at least 2 visible to this token") {
+		t.Fatalf("owner check: %+v", c)
+	}
+	if strings.Contains(out, "has 0") {
+		t.Errorf("output claims an empty org:\n%s", out)
+	}
+	js, err := json.Marshal(rep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"login":"acme-actions","status":"ok","repos":2,"repos_source":"visible_to_token","repos_lower_bound":true,"role":"none"}`; !strings.Contains(string(js), want) {
+		t.Errorf("JSON lacks %s:\n%s", want, js)
+	}
+}
+
+// A non-member org with no repository visible to the token reports the
+// repo count as unknown, not as 0, and still flags it as a lower bound.
+func TestDoctorNotMemberNothingVisibleIsUnknown(t *testing.T) {
+	f := ownerFake()
+	f.notOwned = map[string]bool{"acme-actions": true}
+	f.repos["acme-actions"] = 0
+	f.gqlRepos = map[string]int{"acme-actions": 0}
+	rep, out := runDoctor(t, f)
+	c := findCheck(rep, "owner acme-actions")
+	if c == nil || !strings.Contains(c.Detail, "repo count unknown: none visible to this token") || strings.Contains(out, "has 0") {
+		t.Fatalf("owner check: %+v\n%s", c, out)
+	}
+	for _, o := range rep.Orgs {
+		if o.Login == "acme-actions" && (!o.ReposLowerBound || o.ReposSource != ReposVisible) {
+			t.Fatalf("acme-actions: %+v", o)
+		}
 	}
 }
