@@ -172,8 +172,8 @@ func TestRenderGroupsIdenticalReach(t *testing.T) {
 	h := render(t, g, "html")
 	for _, want := range []string{
 		"The 14 owners of acme-security can push code",
-		"<td>14 principals (org owners of acme-security): <code>identity:owner01, identity:owner02, identity:owner03 and 11 more</code></td>",
-		`<h3><code>identity:owner01</code><span class="src">, one of 14 principals (org owners of acme-security)</span></h3>`,
+		`<span class="grp">14 principals (org owners of acme-security)</span> <code>identity:owner01, identity:owner02, identity:owner03 and 11 more</code>`,
+		`<h3><code>identity:owner01</code> <span class="src">one of 14 principals (org owners of acme-security)</span>`,
 	} {
 		if !strings.Contains(h, want) {
 			t.Errorf("html lacks %q", want)

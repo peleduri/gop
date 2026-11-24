@@ -170,8 +170,8 @@ func TestStaticSectionWithoutJS(t *testing.T) {
 	for _, want := range []string{
 		"Members of acme-actions can push code that runs in 12 repos", // headline
 		`<h2 id="top-paths">Top paths</h2>`, "oidc:acme-app/web",      // top paths
-		`<h2 id="fixes">Suggested fixes</h2>`, "Pin acme-actions/deploy@main to a commit SHA", // fixes
-		`<h2 id="coverage">Coverage</h2>`, "org owner on acme-legacy", // coverage
+		`<h2 id="fixes">Top fixes</h2>`, "Pin acme-actions/deploy@main to a commit SHA", // fixes
+		`<h2 id="coverage">What gop could not see</h2>`, "org owner on acme-legacy", // coverage
 	} {
 		if !strings.Contains(static, want) {
 			t.Errorf("static section missing %q", want)
