@@ -367,18 +367,23 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 
 // TopRisksInput is the top_risks tool input.
 type TopRisksInput struct {
-	N int `json:"n,omitempty" jsonschema:"how many principals to return (default 10)"`
+	N int `json:"n,omitempty" jsonschema:"how many rows to return (default 10); principals with identical confirmed reach share one row"`
 	DetailInput
 }
 
-// TopRisksOutput ranks principals by confirmed score.
+// TopRisksOutput ranks principals by confirmed score. Principals whose
+// confirmed reach is the same set of nodes share one row (graph.RiskGroup):
+// the row's principal is its first member, and members lists all of them.
 type TopRisksOutput struct {
-	Summary string        `json:"summary"`
-	Risks   []graph.Score `json:"risks"`
-	Brief   *Brief        `json:"brief,omitempty"`
+	Summary string            `json:"summary"`
+	Risks   []graph.RiskGroup `json:"risks"`
+	Brief   *Brief            `json:"brief,omitempty"`
+	// rows is the number of rows before n cut them (brief.total).
+	rows int
 }
 
-// TopRisks ranks principals by confirmed blast radius.
+// TopRisks ranks principals by confirmed blast radius, grouping identical
+// reach; n counts rows, not principals.
 func (e *Engine) TopRisks(in TopRisksInput) (res TopRisksOutput, _ error) {
 	defer e.mark(&res.Summary)
 	n := in.N
@@ -388,15 +393,19 @@ func (e *Engine) TopRisks(in TopRisksInput) (res TopRisksOutput, _ error) {
 	if n == 0 {
 		n = DefaultTopN
 	}
-	risks := e.ix.TopPaths(n)
-	if risks == nil {
-		risks = []graph.Score{}
+	risks := e.ix.TopGroups(0)
+	rows := len(risks)
+	if n < rows {
+		risks = risks[:n]
 	}
-	out := TopRisksOutput{Risks: risks}
+	if risks == nil {
+		risks = []graph.RiskGroup{}
+	}
+	out := TopRisksOutput{Risks: risks, rows: rows}
 	if len(risks) == 0 {
 		out.Summary = "the graph has no principals"
 	} else {
-		out.Summary = withNote("top risk: "+ReachSentence(risks[0]), suppliedNote(cloudPaths(e.ix.Reach(risks[0].Principal, graph.Options{}))...))
+		out.Summary = withNote("top risk: "+GroupReachSentence(e.ix, risks[0]), suppliedNote(cloudPaths(e.ix.Reach(risks[0].Principal, graph.Options{}))...))
 	}
 	return out, nil
 }

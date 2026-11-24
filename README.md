@@ -124,7 +124,7 @@ Every tool is annotated read-only, and every answer keeps confirmed and possible
 | `who_can_reach` | Which principals can make code run in a target repo, workflow, action, secret scope, OIDC trust or runner pool, with one shortest path each. |
 | `blast_radius` | Everything one principal (an org's members, a user, a team, an app) can make code run in, with a score. |
 | `paths` | The concrete hops from a principal, optionally to one target, each with its edge kind, evidence level and API source. |
-| `top_risks` | Principals ranked by confirmed blast radius. |
+| `top_risks` | Principals ranked by confirmed blast radius. Principals whose confirmed reach is the same set of targets share one row that lists every member (for example the owners of one org). |
 | `what_if` | Reach before and after hypothetical fixes: `pin_ref` (pin an action to a SHA), `lower_default_perm` (set an org's default permission to read or none), `restrict_token` (set a workflow's `GITHUB_TOKEN` to `contents: read`) or `harden_trigger` (stop a workflow from running attacker-controlled code on its risky triggers). |
 | `suggest_fixes` | A greedy plan: the fixes that remove the most confirmed (principal, repo) pairs, with the cumulative percentage. |
 | `fix_plan` | Concrete change steps for one fix (`fix`, or `suggestion_rank` from `suggest_fixes`): every workflow line to edit with a one-line diff, or the org setting with its REST call as text. gop never runs the steps. |

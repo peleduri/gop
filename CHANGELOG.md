@@ -9,6 +9,23 @@ flags may change in minor releases.
 
 ### Added
 
+- Principals with identical reach share one row in the report's top risks
+  table, the `top_risks` MCP tool and `gop sarif` messages. Two principals group
+  only when their confirmed reach is the same set of targets and every score
+  field matches, never on equal counts alone; an org's members (a population
+  with its own name) never fold into a group. A row names what its members share
+  ("14 principals (org owners of acme-security)", or a team), and the report
+  headline names the group ("The 14 owners of acme-security can push code that
+  runs in ...") instead of one owner picked by tie-break. `top N` counts rows,
+  the text lists the first members and "and N more", and the JSON lists every
+  member in `members` with the shared `via` and `via_scope` (brief
+  `total.risks` counts rows too); the row's other
+  fields are its first member's score, so the JSON shape is otherwise unchanged
+  and `paths`, `explain` and `blast_radius` work on any member. A `gop sarif`
+  message folds a group only when it has more members than the message names;
+  its principal lists stay complete. Scores, counts and the rank order are
+  unchanged: grouping is presentation only.
+
 - `skills/gop/SKILL.md`: an agent skill for MCP triage. It walks the agent
   through checking the graph (`gop validate`, or `gop doctor` then
   `gop collect`), `coverage` and `check_answerable` before any claim,
