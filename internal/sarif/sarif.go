@@ -49,6 +49,10 @@ const (
 	// RuleAgent: an AI coding agent workflow that people without push
 	// access can start on a trigger that holds the repo's token and secrets.
 	RuleAgent = "GOP004"
+	// RuleBotSelfMerge: a pull request's author can get code onto the
+	// default branch through a bot approve and a bot merge, with no human
+	// review (review_bypass=bot_self_merge).
+	RuleBotSelfMerge = "GOP005"
 )
 
 // Severities, lowest first.
@@ -224,6 +228,9 @@ type Properties struct {
 	Agent string `json:"agent,omitempty"`
 	// AgentFixes are the changes that shrink a GOP004 result's exposure.
 	AgentFixes []string `json:"agent_fixes,omitempty"`
+	// BotMergeFixes are the changes that close a GOP005 result's review
+	// bypass, most effective first (graph.BotMergeFixes).
+	BotMergeFixes []string `json:"bot_merge_fixes,omitempty"`
 }
 
 // Rules returns the rules gop reports, in ruleIndex order.
@@ -324,6 +331,32 @@ func Rules() []Rule {
 			DefaultConfiguration: Configuration{Level: "error"},
 			Properties:           map[string]any{"tags": []string{"security", "supply-chain", "github-actions", "ai-agent"}, "precision": "medium"},
 		},
+		{
+			ID:               RuleBotSelfMerge,
+			Name:             "review-bypass-bot-self-merge",
+			ShortDescription: Message{Text: "A pull request's author can get code onto the default branch through a bot approval and a bot merge, with no human review"},
+			FullDescription: Message{Text: "A workflow approves pull requests with a bot token, often an AI reviewer the author's text can steer, and a workflow the author can start " +
+				"merges with a bot token that the default branch's rules let through (a bypass App, an admin token, bot approvals that meet the required reviews, " +
+				"or no rule at all). Anyone who can open a pull request lands code on the default branch with no human review: gop treats it like push access."},
+			Help: Help{
+				Text: "Require a CODEOWNERS review with human owners on the default branch, remove the merging App from the bypass actors, stop pull request authors " +
+					"from starting the merge, and do not let the AI reviewer approve. When the merge rules live in a script, count only approvals of the head commit. " +
+					"The block_bot_merge fix in properties.fix has the full checklist (the MCP fix_plan tool renders it). See docs/agents-in-ci.md.",
+				Markdown: "## Fix: put a human back between the pull request and the default branch\n\n" +
+					"A bot approves a pull request its author can steer, and a workflow the author can start merges it with a bot token the default " +
+					"branch's rules let through. Anyone who can open a pull request lands code with no human review.\n\n" +
+					"- Require a CODEOWNERS review on the default branch with human owners (or a team): a bot approval never satisfies it.\n" +
+					"- Remove the merging GitHub App from the bypass actors of the default branch rules, and drop `--admin` from merge steps.\n" +
+					"- Do not let pull request authors start the merge: require a maintainer and an environment with required reviewers.\n" +
+					"- Let the AI reviewer comment, not approve; turn off \"Allow GitHub Actions to create and approve pull requests\" when the approval uses `GITHUB_TOKEN`.\n" +
+					"- When the merge rules live in a script, count only `APPROVED` reviews of the head commit, never `DISMISSED` ones (a suspected, heuristic finding: confirm by hand).\n\n" +
+					"`properties.bot_merge_fixes` lists the changes for this repo; `properties.fix` is the `block_bot_merge` fix, whose checklist the MCP `fix_plan` tool gives. " +
+					"See docs/agents-in-ci.md. gop never makes this change: make it with your own access.",
+			},
+			HelpURI:              HelpURI,
+			DefaultConfiguration: Configuration{Level: "error"},
+			Properties:           map[string]any{"tags": []string{"security", "supply-chain", "github-actions", "ai-agent", "code-review"}, "precision": "medium"},
+		},
 	}
 }
 
@@ -371,6 +404,11 @@ func Build(g *graph.Graph, opts Options) (*Log, error) {
 	}
 	for _, w := range ix.AgentWorkflows() {
 		if r, ok := en.agentResult(w); ok {
+			results = append(results, r)
+		}
+	}
+	for _, repo := range ix.BotMergeRepos() {
+		if r, ok := en.botMergeResult(repo); ok {
 			results = append(results, r)
 		}
 	}
@@ -873,6 +911,87 @@ func (en *engine) agentResult(w string) (Result, bool) {
 			Severity: sev, Repository: repo, Edge: at.From + " " + string(at.Kind) + " " + at.To, Evidence: ev, Possible: possible,
 			ConfirmedPrincipals: nonNil(conf), PossiblePrincipals: nonNil(poss), Terminals: t,
 			Fix: spec, Agent: n.Attrs[graph.AttrAgent], AgentFixes: fixes,
+		},
+	}, true
+}
+
+// botMergeResult makes the GOP005 result for a repo with a review bypass:
+// one per merge workflow line (a repo's review bypass names one merging
+// workflow), located at the merging step its CAN_MERGE_VIA_BOT edges name.
+// It is possible when no such edge is verified (the review bypass is
+// possible only, or who can open a pull request is not visible). A repo
+// whose bypass only people with push access can use has no result: it
+// gives no one reach they lack.
+func (en *engine) botMergeResult(repoID string) (Result, bool) {
+	n, _ := en.ix.Node(repoID)
+	var conf, poss []string
+	var at *graph.Edge
+	for _, e := range en.ix.In(repoID) {
+		if e.Kind != graph.CanMergeViaBot {
+			continue
+		}
+		if graph.Verified(e.Evidence) {
+			conf = append(conf, e.From)
+		} else {
+			poss = append(poss, e.From)
+		}
+		if at == nil || (graph.Verified(e.Evidence) && !graph.Verified(at.Evidence)) {
+			e := e
+			at = &e
+		}
+	}
+	if at == nil {
+		return Result{}, false
+	}
+	sort.Strings(conf)
+	sort.Strings(poss)
+	possible := len(conf) == 0
+	rr := en.reachOf(repoID)
+	reached := rr.Confirmed
+	if possible {
+		reached = union(rr.Confirmed, rr.Possible)
+	}
+	t := count(reached)
+	if t.Repos == 0 {
+		t.Repos = 1 // the repo itself: its default branch
+	}
+	sev := severityOf(t)
+	repo := strings.TrimPrefix(repoID, "repo:")
+	file := at.Attrs[graph.AttrFile]
+	if file == "" {
+		file = n.Attrs[graph.AttrReviewBypassMerge]
+	}
+	who := en.whoPhrase(conf, 3)
+	if possible {
+		who = en.whoPhrase(poss, 3) + " (possible)"
+	}
+	msg := fmt.Sprintf("%s: %s. %s can use it and reach %s.", orDefault(file, repo), graph.BotMergeNote(n), who, terminalPhrase(t))
+	fixes := graph.BotMergeFixes(n)
+	if len(fixes) > 0 {
+		msg += " " + fixes[0]
+	}
+	loc := Location{LogicalLocations: []LogicalLocation{logical(repoID)}}
+	if file != "" {
+		loc.PhysicalLocation = &PhysicalLocation{ArtifactLocation: ArtifactLocation{URI: file}}
+		if l, _ := strconv.Atoi(at.Attrs[graph.AttrLine]); l > 0 {
+			loc.PhysicalLocation.Region = &Region{StartLine: l}
+		}
+	}
+	ev := at.Evidence
+	if possible {
+		ev = graph.NotVisible
+	}
+	f := graph.BlockBotMerge{Repo: repoID}
+	plan := fixplan.Build(en.ix, f)
+	return Result{
+		RuleID: RuleBotSelfMerge, RuleIndex: ruleIndex(RuleBotSelfMerge), Level: level(sev, possible),
+		Message:             Message{Text: msg},
+		Locations:           []Location{loc},
+		PartialFingerprints: map[string]string{FingerprintKey: fingerprint(RuleBotSelfMerge, repo, file)},
+		Properties: Properties{
+			Severity: sev, Repository: repo, Edge: at.From + " " + string(at.Kind) + " " + at.To, Evidence: ev, Possible: possible,
+			ConfirmedPrincipals: nonNil(conf), PossiblePrincipals: nonNil(poss), Terminals: t,
+			Fix: plan.Fix, ReachRemovedPct: removedPct(plan.Removes), BotMergeFixes: fixes,
 		},
 	}, true
 }

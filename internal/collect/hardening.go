@@ -311,6 +311,9 @@ type protSource struct {
 	admin, app    string // true | false | unknown: admins / an app get past this source
 	bypass        int
 	bypassHidden  bool
+	// apps are the GitHub Apps that get past this source, by app ID (the
+	// value is the slug when known). nil when gop could not list them.
+	apps map[int64]string
 }
 
 // protFacts is the default-branch protection of one repo before merging.
@@ -326,7 +329,7 @@ type protFacts struct {
 }
 
 func newRuleset(id string) protSource {
-	return protSource{id: id, admin: "false", app: "false"}
+	return protSource{id: id, admin: "false", app: "false", apps: map[int64]string{}}
 }
 
 // merge turns the sources into repo attrs and per-value sources. A
@@ -472,6 +475,11 @@ func (pf *protFacts) merge() (vals map[string]string, unknown map[string]bool, v
 	}
 	bypass(graph.AttrBranchAdminBypass, "admin_bypass", func(s protSource) string { return s.admin })
 	bypass(graph.AttrBranchAppBypass, "app_bypass", func(s protSource) string { return s.app })
+	if vals[graph.AttrBranchAppBypass] == "true" {
+		if apps := bypassApps(pf.sources); apps != "" {
+			set(graph.AttrBranchBypassApps, apps)
+		}
+	}
 
 	total, hidden := 0, partial
 	for _, s := range pf.sources {
@@ -503,7 +511,7 @@ func sourceLess(a, b string) bool {
 var protectionAttrs = []string{graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview,
 	graph.AttrBranchDismissStale, graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits,
 	graph.AttrBranchForcePush, graph.AttrBranchPushRestricted, graph.AttrBranchBypassActors, graph.AttrBranchAdminBypass,
-	graph.AttrBranchAppBypass, graph.AttrBranchSources, graph.AttrBranchValueSources}
+	graph.AttrBranchAppBypass, graph.AttrBranchBypassApps, graph.AttrBranchSources, graph.AttrBranchValueSources}
 
 // applyProtFacts writes the merged facts on repo.
 func (k *collector) applyProtFacts(repo *graph.Node, pf *protFacts) {
@@ -604,7 +612,7 @@ const protectionFragment = `fragment gopProtection on Repository {
     branchProtectionRule {
       requiresApprovingReviews requiredApprovingReviewCount requiresCodeOwnerReviews dismissesStaleReviews requireLastPushApproval
       isAdminEnforced allowsForcePushes requiresCommitSignatures requiredStatusCheckContexts restrictsPushes
-      bypassPullRequestAllowances(first: 20) { totalCount nodes { actor { __typename } } }
+      bypassPullRequestAllowances(first: 20) { totalCount nodes { actor { __typename ... on App { databaseId slug } } } }
     }
     %s
   }
@@ -625,13 +633,20 @@ const protectionRules = `rules(first: 50) {
         repositoryRuleset {
           databaseId
           source { __typename }
-          bypassActors(first: 20) { totalCount nodes { organizationAdmin enterpriseOwner repositoryRoleName actor { __typename } } }
+          bypassActors(first: 20) { totalCount nodes { organizationAdmin enterpriseOwner repositoryRoleName actor { __typename ... on App { databaseId slug } } } }
         }
       }
     }`
 
 type gqlTypename struct {
 	Typename string `json:"__typename"`
+}
+
+// gqlActor is a bypass actor: an App carries its database ID and slug.
+type gqlActor struct {
+	Typename   string `json:"__typename"`
+	DatabaseID *int64 `json:"databaseId"`
+	Slug       string `json:"slug"`
 }
 
 // gqlRuleset is the ruleset a rule comes from.
@@ -641,10 +656,10 @@ type gqlRuleset struct {
 	BypassActors *struct {
 		TotalCount int `json:"totalCount"`
 		Nodes      []struct {
-			OrganizationAdmin  bool         `json:"organizationAdmin"`
-			EnterpriseOwner    bool         `json:"enterpriseOwner"`
-			RepositoryRoleName string       `json:"repositoryRoleName"`
-			Actor              *gqlTypename `json:"actor"`
+			OrganizationAdmin  bool      `json:"organizationAdmin"`
+			EnterpriseOwner    bool      `json:"enterpriseOwner"`
+			RepositoryRoleName string    `json:"repositoryRoleName"`
+			Actor              *gqlActor `json:"actor"`
 		} `json:"nodes"`
 	} `json:"bypassActors"`
 }
@@ -674,7 +689,7 @@ type gqlProtRepo struct {
 			BypassPullRequestAllowances  *struct {
 				TotalCount int `json:"totalCount"`
 				Nodes      []struct {
-					Actor *gqlTypename `json:"actor"`
+					Actor *gqlActor `json:"actor"`
 				} `json:"nodes"`
 			} `json:"bypassPullRequestAllowances"`
 		} `json:"branchProtectionRule"`
@@ -831,7 +846,7 @@ func (k *collector) gqlProtFacts(hr hardenRepo, r *gqlProtRepo, noRules bool) *p
 		s := protSource{id: "classic", codeOwner: bp.RequiresCodeOwnerReviews, dismissStale: bp.DismissesStaleReviews,
 			lastPush: bp.RequireLastPushApproval, signed: bp.RequiresCommitSignatures, blocksForce: !bp.AllowsForcePushes,
 			restrictsPush: bp.RestrictsPushes, checks: bp.RequiredStatusCheckContexts,
-			admin: strconv.FormatBool(!bp.IsAdminEnforced), app: "false"}
+			admin: strconv.FormatBool(!bp.IsAdminEnforced), app: "false", apps: map[int64]string{}}
 		if bp.RequiresApprovingReviews && bp.RequiredApprovingReviewCount != nil {
 			s.reviews = *bp.RequiredApprovingReviewCount
 		}
@@ -843,10 +858,14 @@ func (k *collector) gqlProtFacts(hr hardenRepo, r *gqlProtRepo, noRules bool) *p
 			for _, n := range a.Nodes {
 				if n.Actor != nil && n.Actor.Typename == "App" {
 					s.app = "true"
+					s.apps = addApp(s.apps, n.Actor)
 				}
 			}
-			if s.app == "false" && a.TotalCount > len(a.Nodes) {
-				s.app = "unknown"
+			if a.TotalCount > len(a.Nodes) {
+				s.apps = nil
+				if s.app == "false" {
+					s.app = "unknown"
+				}
 			}
 		}
 		pf.sources = append(pf.sources, s)
@@ -873,6 +892,7 @@ func (k *collector) gqlProtFacts(hr hardenRepo, r *gqlProtRepo, noRules bool) *p
 			if !ok {
 				s := newRuleset(id)
 				s.admin, s.app, s.bypass, s.bypassHidden = k.gqlBypass(hr.o, rs, isAdmin)
+				s.apps = gqlBypassApps(rs, s.bypassHidden)
 				if s.bypassHidden {
 					pf.hidden = true
 				}
@@ -1029,6 +1049,7 @@ func (k *collector) restProtection(ctx context.Context, o *orgState, repo *graph
 			s := newRuleset("ruleset:" + strconv.FormatInt(r.RulesetID, 10))
 			var err error
 			s.admin, s.app, s.bypass, s.bypassHidden, err = k.restBypass(ctx, o.login, name, r.RulesetID)
+			s.apps = k.restBypassApps(r.RulesetID, s.bypassHidden)
 			if err != nil {
 				return nil, err
 			}
@@ -1087,7 +1108,7 @@ func (k *collector) restProtection(ctx context.Context, o *orgState, repo *graph
 		}
 		return pf, nil
 	}
-	s := protSource{id: "classic", admin: "true", app: "false",
+	s := protSource{id: "classic", admin: "true", app: "false", apps: map[int64]string{},
 		blocksForce:   cp.AllowForcePushes == nil || !cp.AllowForcePushes.Enabled,
 		signed:        cp.RequiredSignatures != nil && cp.RequiredSignatures.Enabled,
 		restrictsPush: cp.Restrictions != nil}
@@ -1107,6 +1128,14 @@ func (k *collector) restProtection(ctx context.Context, o *orgState, repo *graph
 			s.bypass = len(a.Users) + len(a.Teams) + len(a.Apps)
 			if len(a.Apps) > 0 {
 				s.app = "true"
+			}
+			for _, ap := range a.Apps {
+				if ap.ID > 0 {
+					s.apps[ap.ID] = strings.ToLower(ap.Slug)
+				} else {
+					s.apps = nil // an App without an ID: gop cannot list them
+					break
+				}
 			}
 		}
 	}

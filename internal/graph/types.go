@@ -412,6 +412,10 @@ const (
 	AttrBranchBypassActors    = "branch_bypass_actors"    // integer as string | unknown
 	AttrBranchAdminBypass     = "branch_admin_bypass"     // true | false | unknown: repo or org admins get past every protecting source
 	AttrBranchAppBypass       = "branch_app_bypass"       // true | false | unknown: an app gets past every protecting source
+	// AttrBranchBypassApps names the GitHub Apps that get past every
+	// protecting source when branch_app_bypass is true: a sorted comma list
+	// of <app id> or <app id>:<slug>. Absent when gop could not list them.
+	AttrBranchBypassApps = "branch_bypass_apps"
 	// AttrBranchSources lists the protecting sources: classic and
 	// ruleset:<id>, comma separated, or none.
 	AttrBranchSources = "branch_protection_sources"
@@ -535,6 +539,28 @@ const (
 	AttrBotMergeStale     = "bot_merge_stale_approvals"  // workflow, repo: suspected when the merge script seems to count approvals not tied to the head commit (heuristic, never confirmed; attr evidence not_visible)
 	AttrBotMergeStaleConf = "bot_merge_stale_confidence" // workflow, repo: heuristic (the only value): bot_merge_stale_approvals is a text match, not a proof
 
+	// AttrBotMergeApps names the GitHub Apps whose token the merging jobs
+	// mint: a sorted comma list of app ids or slugs the workflow names
+	// literally (in the App token step's with:, or next to a *_PRIVATE_KEY
+	// secret in the step env), with unknown for an App it does not name
+	// (a vars. or secrets. reference).
+	AttrBotMergeApps = "bot_merge_apps" // workflow, repo
+
+	// AttrActionsCanApprove is the repo's "Allow GitHub Actions to create
+	// and approve pull requests" setting (can_approve_pull_request_reviews),
+	// read only for a repo with a bot approval made with GITHUB_TOKEN.
+	AttrActionsCanApprove = "actions_can_approve_prs" // repo: true | false | unknown (not_visible)
+
+	// AttrReviewBypassAppMatch says whether the App a merge mints is the App
+	// listed as a bypass actor (review_bypass_reason=app_bypass only):
+	// matched (live), or unmatched / unknown (not_visible: possible only).
+	AttrReviewBypassAppMatch = "review_bypass_app_match" // repo
+
+	// AttrReviewBypassRecount is set when the rules dismiss stale reviews
+	// and the merge script counts DISMISSED reviews: the script re-counts
+	// approvals GitHub dismissed. A heuristic: suspected, not_visible.
+	AttrReviewBypassRecount = "review_bypass_recounts_dismissed" // repo: suspected
+
 	AttrReviewBypassStale      = "review_bypass_stale_approval" // repo: suspected when the merge counts older approvals (suspected) and the approving workflow does not re-run on synchronize: the approval may not cover the merged code
 	AttrAgentHoldsMergeKey     = "agent_holds_merge_key"        // repo: true when an AI agent step's env holds the same secret the bot merge uses as its key
 	AttrAgentMergeKeyWorkflows = "agent_merge_key_workflows"    // repo: sorted comma list of the workflow files whose agent step holds the merge key
@@ -555,6 +581,13 @@ const (
 
 // Values of review_bypass.
 const ReviewBypassBotSelfMerge = "bot_self_merge"
+
+// Values of review_bypass_app_match.
+const (
+	AppMatched   = "matched"   // the merging App is one of the bypass Apps
+	AppUnmatched = "unmatched" // the workflow names an App that is not in the bypass list gop read
+	AppUnknown   = "unknown"   // the workflow does not name its App, or the bypass Apps are not listed
+)
 
 // Values of bot_merge_stale_approvals, review_bypass_stale_approval and
 // bot_merge_stale_confidence.

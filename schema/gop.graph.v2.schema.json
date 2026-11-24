@@ -158,6 +158,7 @@
         "branch_bypass_actors": {"description": "repo: bypass actors over all protecting sources (ruleset bypass actors and classic pull request bypass allowances), or unknown.", "type": "string", "pattern": "^([0-9]+|unknown)$"},
         "branch_admin_bypass": {"description": "repo: repo or org admins get past every protecting source (classic without enforce_admins, rulesets with an admin bypass actor).", "type": "string", "enum": ["true", "false", "unknown"]},
         "branch_app_bypass": {"description": "repo: an app gets past every protecting source.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "branch_bypass_apps": {"description": "repo: when branch_app_bypass is true, the GitHub Apps that get past every protecting source, as a sorted comma list of <app id> or <app id>:<slug>; absent when gop could not list them (gop redact replaces each App with app-<hash>).", "type": "string", "minLength": 1},
         "branch_protection_sources": {"description": "repo: comma list of the protecting sources (classic, ruleset:<id>), or none.", "type": "string", "pattern": "^(none|(classic|ruleset(:[0-9]+)?)(,(classic|ruleset(:[0-9]+)?))*)$"},
         "branch_value_sources": {"description": "repo: which source set each effective value, comma list of key=source[+source], e.g. required_reviews=ruleset:7.", "type": "string", "minLength": 1},
         "codeowners": {"description": "repo: the CODEOWNERS file GitHub uses on the default branch (the first of .github/, root, docs/), none, or unknown.", "type": "string", "enum": [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS", "none", "unknown"]},
@@ -187,7 +188,11 @@
         "bot_merge_stale_confidence": {"description": "workflow, repo: the confidence of bot_merge_stale_approvals.", "type": "string", "enum": ["heuristic"]},
         "review_bypass_stale_approval": {"description": "repo: suspected when the merge counts older approvals (suspected) and an approving workflow does not re-run on synchronize: the approval may not cover the merged code.", "type": "string", "enum": ["suspected"]},
         "agent_holds_merge_key": {"description": "repo: an AI agent step's env (or with:) holds the same secret the bot merge's token comes from.", "type": "string", "enum": ["true"]},
-        "agent_merge_key_workflows": {"description": "repo: sorted comma list of the workflow files whose agent step holds the merge key.", "type": "string", "minLength": 1}
+        "agent_merge_key_workflows": {"description": "repo: sorted comma list of the workflow files whose agent step holds the merge key.", "type": "string", "minLength": 1},
+        "bot_merge_apps": {"description": "workflow, repo: sorted comma list of the GitHub Apps the merging steps' App tokens are for: the app id or slug the workflow names literally (an App token step's with:, or an APP_ID beside a private key in the step env), or unknown for an App it does not name (a vars. or secrets. reference); gop redact replaces each App with app-<hash>.", "type": "string", "minLength": 1},
+        "actions_can_approve_prs": {"description": "repo: the \"Allow GitHub Actions to create and approve pull requests\" setting (can_approve_pull_request_reviews), read only for a repo with a bot approval made with GITHUB_TOKEN; unknown (not_visible, with an actions_can_approve_prs coverage entry) when gop could not read it.", "type": "string", "enum": ["true", "false", "unknown"]},
+        "review_bypass_app_match": {"description": "repo, app_bypass only: matched (live) when an App the merge mints for is a bypass actor of the default branch rules; unmatched or unknown (not_visible: the review bypass is possible only) otherwise.", "type": "string", "enum": ["matched", "unmatched", "unknown"]},
+        "review_bypass_recounts_dismissed": {"description": "repo: suspected when the default branch rules dismiss stale reviews and the merge script counts DISMISSED reviews: the script re-counts approvals GitHub dismissed. A heuristic, never confirmed: attr evidence not_visible.", "type": "string", "enum": ["suspected"]}
       }
     },
     "EdgeAttrs": {

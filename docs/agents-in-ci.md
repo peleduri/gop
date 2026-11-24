@@ -160,15 +160,25 @@ are joined with its approving workflows and its default-branch rules. The
 bot merge needs no human review when:
 
 - the merge uses an App token and an app bypasses every rule of the default
-  branch (`branch_app_bypass=true`): `review_bypass_reason=app_bypass`;
+  branch (`branch_app_bypass=true`): `review_bypass_reason=app_bypass`. It is
+  confirmed only when the App the merge mints for is the bypass App: the
+  workflow names it literally (`app-id: 123456` on an App token step, or
+  `APP_ID: "123456"` beside a `*_PRIVATE_KEY` secret in a script step's env,
+  recorded as `bot_merge_apps`) and that ID or slug is in
+  `branch_bypass_apps` (`review_bypass_app_match=matched`). An App the
+  workflow does not name (`vars.` or `secrets.`), or one that is not in the
+  bypass list, leaves it possible (`unknown` or `unmatched`);
 - the merge passes `--admin` with a personal token and admins bypass the
   rules: `admin_bypass`, always possible only (gop cannot see whose token it
   is);
 - the required approvals are no more than the distinct bot approvals the
   same people can trigger, and no CODEOWNERS review is required:
-  `bot_approvals` (approvals with `GITHUB_TOKEN` count as possible only: they
-  need the repo's "Allow GitHub Actions to create and approve pull requests"
-  setting, which gop does not read);
+  `bot_approvals`. Approvals with `GITHUB_TOKEN` need the repo's "Allow
+  GitHub Actions to create and approve pull requests" setting: gop reads it
+  (`can_approve_pull_request_reviews`, read-only, only for a repo with such
+  an approval) into `actions_can_approve_prs`. `true` confirms the approval,
+  `false` drops it, and a setting gop cannot read (`unknown`, with an
+  `actions_can_approve_prs` coverage entry) leaves it possible;
 - the default branch is not protected: `unprotected`.
 
 The repo then gets `review_bypass=bot_self_merge` with
@@ -238,7 +248,11 @@ entry asks for a manual check: it is a text match, never confirmed. When an
 approving workflow of the path also does not re-run on `synchronize` (its
 `pull_request` or `pull_request_target` types leave it out),
 `review_bypass_stale_approval=suspected` is set and the path note adds "the
-approval may not cover the merged code".
+approval may not cover the merged code". When the default branch rules
+dismiss stale reviews (`branch_dismiss_stale=true`) and the script counts
+`DISMISSED` reviews, gop says it plainly: `review_bypass_recounts_dismissed=
+suspected` and the path note reads "the script re-counts approvals GitHub
+dismissed". It stays a heuristic (`not_visible`).
 
 **The merge key next to the AI.** When an AI agent step (a known agent
 action or CLI) has the same secret in its env or `with:` as the merge's
@@ -248,12 +262,22 @@ merging step's env), the repo gets `agent_holds_merge_key=true` and
 itself.
 
 These add fixes after the four above (they narrow the path, they do not
-close it): count only approvals of the head commit in the script, re-run the
-AI review on every push, and keep the merge key out of the AI step.
+close it): count only approvals of the head commit in the script (stop
+counting `DISMISSED` reviews when it re-counts them), re-run the AI review on
+every push, turn off "Allow GitHub Actions to create and approve pull
+requests" when a `GITHUB_TOKEN` approval counts, and keep the merge key out
+of the AI step.
 
-**Limits.** gop does not know which App a token belongs to, so any app
-bypass actor counts for any App token; it does not read the "allow GitHub
-Actions to approve" setting; it follows only literal script paths (not
+**Reports.** The Markdown and HTML reports have an "AI approve + self-merge"
+section per repo (who, why, the merging App, the setting, the script, the
+suspected stale approvals and the fixes), and mark the principal's risk row
+`[bot_self_merge]`. `gop sarif` writes one `GOP005`
+`review-bypass-bot-self-merge` result per merge workflow line (see
+[sarif.md](sarif.md)).
+
+**Limits.** gop matches an App only by an ID or slug the workflow names
+literally: it does not read the values of `vars.` (an App named that way is
+possible, not confirmed); it follows only literal script paths (not
 `$SCRIPT`, `python -m`, imports or a called reusable workflow), and the
 stale-approval check is a text heuristic; and a scheduled job that merges
 approved pull requests is not modeled.

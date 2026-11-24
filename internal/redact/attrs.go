@@ -55,6 +55,8 @@ func init() {
 		graph.AttrApproveWorkflows, graph.AttrMergeWorkflow,
 		graph.AttrBotMergeSource, graph.AttrBotApproveSource, graph.AttrBotMergeStale, graph.AttrBotMergeStaleConf,
 		graph.AttrReviewBypassStale, graph.AttrAgentHoldsMergeKey, graph.AttrAgentMergeKeyWorkflows,
+		graph.AttrBranchBypassApps, graph.AttrBotMergeApps, graph.AttrActionsCanApprove, graph.AttrReviewBypassAppMatch,
+		graph.AttrReviewBypassRecount,
 		graph.AttrLockAdvisories, graph.AttrLockAdvisorySeverity, graph.AttrLockAdvisoryFixed,
 		graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview, graph.AttrBranchDismissStale,
 		graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits, graph.AttrBranchForcePush,
@@ -442,6 +444,30 @@ func init() {
 	policies[graph.AttrReviewBypassStale] = enum(graph.StaleSuspected)
 	policies[graph.AttrAgentHoldsMergeKey] = enum("true")
 	policies[graph.AttrAgentMergeKeyWorkflows] = list(func(r *redactor, s string) string { return r.path(s) })
+	policies[graph.AttrBranchBypassApps] = appList
+	policies[graph.AttrBotMergeApps] = appList
+	policies[graph.AttrActionsCanApprove] = boolish
+	policies[graph.AttrReviewBypassAppMatch] = enum(graph.AppMatched, graph.AppUnmatched, graph.AppUnknown)
+	policies[graph.AttrReviewBypassRecount] = enum(graph.StaleSuspected)
+}
+
+// appList is a branch_bypass_apps or bot_merge_apps value: each app ID or
+// slug becomes app-<keyed hash> (the slug of an <id>:<slug> entry is
+// dropped), so the two attrs still match after redaction; unknown stays.
+func appList(r *redactor, _ attrCtx, v string) (string, bool, bool) {
+	var out []string
+	for _, e := range strings.Split(v, ",") {
+		if e == graph.AppUnknown {
+			out = append(out, e)
+			continue
+		}
+		id, _, _ := strings.Cut(e, ":")
+		if id == "" {
+			return "", false, false
+		}
+		out = append(out, "app-"+hex.EncodeToString(r.mac("app\x00" + strings.ToLower(id)))[:10])
+	}
+	return strings.Join(out, ","), false, true
 }
 
 // botSourceAttr is a bot_merge_source or bot_approve_source value:

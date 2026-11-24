@@ -18,7 +18,7 @@ jobs:
       - run: pip install PyGithub==2.5.0
       - name: Merge when approved
         env:
-          APP_ID: ${{ vars.MERGE_APP_ID }}
+          APP_ID: "77" # the App listed as a bypass actor
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
           PR_NUMBER: ${{ github.event.issue.number }}
         run: python3 tools/merge.py --pr "$PR_NUMBER"

@@ -26,6 +26,27 @@ flags may change in minor releases.
   `scripts/dist` builds the bundles and the registry `server.json`; its tests
   check them against copies of the published schemas.
 
+- Bot self-merge in the HTML report and SARIF, the Actions-approve setting,
+  App-to-bypass matching and dismissed approvals re-counted (#164). The
+  redesigned HTML report gets an "AI approve + self-merge" section (who, why,
+  the merging App, the setting, the script, suspected stale approvals and
+  the fixes, linked from the nav) and the `[bot_self_merge]` marker on risk
+  rows. `gop sarif` adds rule `GOP005` `review-bypass-bot-self-merge`: one
+  result per merge workflow line, at the merging step, with
+  `bot_merge_fixes` and the `block_bot_merge` fix. `gop collect` reads
+  "Allow GitHub Actions to create and approve pull requests"
+  (`can_approve_pull_request_reviews`, read-only, repo then org) for repos
+  with a `GITHUB_TOKEN` bot approval, so that approval is confirmed or ruled
+  out instead of possible (`actions_can_approve_prs`). The App a merge mints
+  for (an `app-id` or slug the workflow names literally, or `APP_ID` beside
+  a `*_PRIVATE_KEY` secret: `bot_merge_apps`) is matched against the bypass
+  Apps of the default branch rules (`branch_bypass_apps`, from ruleset and
+  classic bypass actors): only a match confirms an `app_bypass` review
+  bypass, an unmatched or unnamed App leaves it possible
+  (`review_bypass_app_match`). When the rules dismiss stale reviews and the
+  merge script counts `DISMISSED` reviews, the path note says "the script
+  re-counts approvals GitHub dismissed" (`review_bypass_recounts_dismissed`,
+  still heuristic). Scores of unrelated principals are unchanged.
 ### Fixed
 - Consistency fixes (#166). `gop fix-plan --format text` escapes names the
   way the markdown checklist does (control, bidi and zero-width characters

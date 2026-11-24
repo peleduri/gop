@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WY+UykjNhA6uulfDokpl6zEcjdIPiKV932U1R1C6MVw='; style-src 'sha256-lGC5LPKCXjUkVQVEpByWSyn/4YOWhBDswZYH9yJFJ5s='; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>gop report: acme</title>
+<style>
+:root{--bg:#f6f8fa;--card:#ffffff;--fg:#1f2328;--muted:#59636e;--line:#d1d9e0;--line2:#e8ecf0;--accent:#0969da;--accent-bg:#ddf4ff;
+--live:#1a7f37;--live-bg:#dafbe1;--audit:#7d4e00;--audit-bg:#fff8c5;--nv:#59636e;--nv-bg:#eff2f5;
+--crit:#cf222e;--crit-fg:#a40e26;--crit-bg:#ffebe9;--high:#e16f24;--high-fg:#953800;--high-bg:#fff1e5;
+--med:#d4a72c;--med-fg:#7d4e00;--med-bg:#fff8c5;--low:#8c959f;--low-fg:#59636e;--low-bg:#eff2f5;
+--good:#1a7f37;--good-bg:#dafbe1;--good-tint:#f0fbf3;--weak:#953800;--weak-bg:#fff1e5;--weak-tint:#fff7f0;--ok:#1a7f37;
+--c-cloud:#1b7c83;--c-oidc:#8250df;--c-secret:#bf3989;--c-runner:#0969da;--track:#e8ecf0;--prev:#9ec5f8;
+--shadow:0 1px 0 rgba(31,35,40,.04),0 1px 3px rgba(31,35,40,.06);
+--s1:8px;--s2:16px;--s3:24px;--s4:32px;--s6:48px;--r:10px;
+--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+@media screen and (prefers-color-scheme: dark){:root{--bg:#0d1117;--card:#151b23;--fg:#f0f6fc;--muted:#9198a1;--line:#3d444d;--line2:#262c36;--accent:#4493f8;--accent-bg:#0b2148;
+--live:#3fb950;--live-bg:#12261e;--audit:#d29922;--audit-bg:#2b2111;--nv:#9198a1;--nv-bg:#212830;
+--crit:#f85149;--crit-fg:#ff9492;--crit-bg:#3c1618;--high:#db6d28;--high-fg:#ffa657;--high-bg:#3d1d06;
+--med:#d29922;--med-fg:#e3b341;--med-bg:#2e2108;--low:#656c76;--low-fg:#9198a1;--low-bg:#212830;
+--good:#3fb950;--good-bg:#12261e;--good-tint:#0f1f18;--weak:#ffa657;--weak-bg:#3d1d06;--weak-tint:#2a1707;--ok:#3fb950;
+--c-cloud:#39c5cf;--c-oidc:#a371f7;--c-secret:#db61a2;--c-runner:#4493f8;--track:#262c36;--prev:#1f4a8a;
+--shadow:0 0 0 1px rgba(0,0,0,.2)}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1200px;margin:0 auto;padding-left:var(--s2);padding-right:var(--s2)}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:8px;z-index:10}.skip:focus{left:16px;background:var(--card);padding:4px 8px}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+code{font:.86em/1.4 var(--mono);overflow-wrap:anywhere}
+p{margin:0 0 var(--s1)}
+.top{background:var(--card);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);flex-wrap:wrap;padding-top:20px;padding-bottom:20px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:var(--fg);color:var(--card);font:700 20px/1 var(--mono)}
+h1{font-size:1.15rem;line-height:1.3;margin:0;letter-spacing:-.01em}
+.meta{color:var(--muted);font-size:.85rem;margin:2px 0 0}.sep{margin:0 6px}
+.demo{margin:0;padding:2px 10px;border:1px dashed var(--muted);border-radius:999px;color:var(--muted);font-size:.8rem;font-weight:600}
+nav{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+nav ul{list-style:none;display:flex;gap:4px;margin:0;padding:0;overflow-x:auto;scrollbar-width:none}
+nav a{display:block;padding:10px 10px;color:var(--muted);font-size:.85rem;font-weight:500;text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+nav a:hover{color:var(--fg);border-bottom-color:var(--line)}
+main{padding-top:var(--s3);padding-bottom:var(--s4)}
+section{margin:0 0 var(--s4);scroll-margin-top:56px}
+h2{font-size:1.2rem;line-height:1.3;letter-spacing:-.01em;margin:0 0 var(--s1);scroll-margin-top:56px}
+h3{font-size:.95rem;margin:var(--s3) 0 var(--s1)}
+.lede{color:var(--muted);margin:0 0 var(--s2);max-width:80ch}
+.note{color:var(--muted);font-size:.85rem;margin:var(--s1) 0}
+.muted{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.flush{padding:0;overflow:hidden}
+.hero{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:var(--s3);overflow:hidden}
+.hero:before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--low)}
+.v-critical:before{background:var(--crit)}.v-high:before{background:var(--high)}.v-medium:before{background:var(--med)}.v-ok:before{background:var(--ok)}
+.v-unk:before{background:repeating-linear-gradient(90deg,var(--nv) 0 8px,transparent 8px 14px)}
+.hero-top{display:flex;align-items:center;gap:var(--s1) var(--s2);flex-wrap:wrap;margin-bottom:var(--s2)}
+.hero-top .meta{margin:0}
+.verdict{display:inline-flex;align-items:center;gap:8px;margin:0;padding:4px 12px;border-radius:999px;font-size:.8rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase;background:var(--low-bg);color:var(--low-fg)}
+.verdict .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.v-critical .verdict{background:var(--crit-bg);color:var(--crit-fg)}.v-high .verdict{background:var(--high-bg);color:var(--high-fg)}
+.v-medium .verdict{background:var(--med-bg);color:var(--med-fg)}.v-ok .verdict{background:var(--good-bg);color:var(--good)}
+.v-unk .verdict{background:var(--nv-bg);color:var(--nv);border:1px dashed var(--nv)}
+.big{font-size:1.3rem;line-height:1.4;font-weight:600;letter-spacing:-.01em;margin:0 0 var(--s2);max-width:70ch;text-wrap:pretty}
+.start,.pinline{margin:0 0 var(--s1)}.start .tag,.pinline .tag{margin-right:6px}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--accent-bg);color:var(--accent)}
+.tag.warn{background:var(--high-bg);color:var(--high-fg)}
+.kpis{list-style:none;margin:var(--s3) 0 var(--s2);padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpi a{display:flex;flex-direction:column;height:100%;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--fg);text-decoration:none}
+.kpi a:hover{border-color:var(--accent);border-left-color:var(--accent)}
+.t-crit a{border-left-color:var(--crit)}.t-high a{border-left-color:var(--high)}.t-med a{border-left-color:var(--med)}.t-ok a{border-left-color:var(--ok)}
+.t-unk a{border-left:3px dashed var(--nv)}
+.k-label{font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.k-val{font-size:1.9rem;font-weight:700;line-height:1.15;margin:6px 0 2px;letter-spacing:-.02em}
+.k-unit{font-size:.85rem;font-weight:500;color:var(--muted);letter-spacing:0}
+.k-sub{font-size:.8rem;color:var(--muted)}
+.k-poss{margin-top:8px;padding-top:6px;border-top:1px dashed var(--line);font-size:.8rem;color:var(--muted);font-style:italic}
+.legend{font-size:.82rem;color:var(--muted);margin:0;padding-top:var(--s2);border-top:1px solid var(--line2)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:0 7px;border-radius:999px;font-size:.72rem;font-weight:600;line-height:1.6;white-space:nowrap;vertical-align:baseline}
+.live{color:var(--live);background:var(--live-bg)}.inferred{color:var(--live);background:var(--live-bg);border:1px dashed var(--live)}.audit{color:var(--audit);background:var(--audit-bg)}
+.nv{color:var(--nv);background:var(--nv-bg);border:1px dashed var(--nv)}
+.supplied{color:var(--accent);background:var(--card);border:1px solid var(--accent)}
+.other{color:var(--fg);background:var(--card);border:1px solid var(--muted)}
+.banner{padding:var(--s3);border-left:3px solid var(--accent)}
+.banner .big{font-size:1.1rem}.banner h3{display:flex;align-items:center;gap:8px;font-size:.9rem;margin:var(--s2) 0 4px}
+.count{display:inline-block;min-width:22px;padding:0 6px;border-radius:999px;background:var(--nv-bg);color:var(--fg);font-size:.75rem;text-align:center}
+.banner ul{margin:0;padding-left:18px;font-size:.9rem}.group:has(ul){grid-column:1/-1}.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 var(--s3)}
+.fixes{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.fix{display:grid;grid-template-columns:auto 1fr 260px;gap:var(--s2);align-items:start;padding:var(--s2) 20px}
+.fix-n{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--fg);color:var(--card);font-weight:700;font-size:.9rem}
+.fix:first-child .fix-n{background:var(--accent);color:var(--card)}
+.fix-title{font-weight:600;margin:4px 0 4px;line-height:1.4}
+.fix-why{color:var(--muted);font-size:.88rem;margin:0 0 6px}
+.fix-caveat{font-size:.85rem;margin:0 0 6px}
+.fix-id{margin:0;color:var(--muted);font-size:.85rem}
+.fix-impact{padding-top:4px}
+.fix-pct{margin:0 0 6px;font-size:.85rem;color:var(--muted)}.fix-pct strong{font-size:1.35rem;color:var(--fg);margin-right:2px}
+.track{display:flex;height:8px;border-radius:999px;background:var(--track);overflow:hidden}
+.seg{display:block;height:100%}.seg.prev{background:var(--prev)}.seg.cur{background:var(--accent)}
+.fix-cum{margin:6px 0 0;font-size:.8rem;color:var(--muted)}.fix-cum strong{color:var(--fg)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line2);vertical-align:middle}
+thead th{background:var(--bg);color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:last-child>*{border-bottom:0}
+tbody tr:hover>*{background:var(--bg)}
+.n,td.n,th.n{text-align:right}
+.rank{color:var(--muted);width:1%}
+.strong{font-weight:700}
+.who code{font-size:.85em}.grp{display:block;font-weight:600;font-size:.85rem}
+.mem{margin-top:4px;font-size:.8rem}.mem summary{cursor:pointer;color:var(--accent)}.mem ul{margin:4px 0 0;padding-left:18px;color:var(--muted)}.mem li{margin:2px 0}
+.ownh{list-style:none;margin:0;padding:var(--s2);display:grid;gap:10px}
+.ownh li{display:grid;grid-template-columns:7em 1fr 4em;align-items:center;gap:12px;font-size:.88rem}
+.ownh .on{text-align:right;font-weight:700}.ownh .track{height:10px}
+.ownh .t-high .seg.cur{background:var(--high)}.ownh .t-crit .seg.cur{background:var(--crit)}
+.adv{display:block;width:fit-content;max-width:320px;margin-top:4px;padding:1px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit-fg);font-size:.75rem;font-weight:600;white-space:normal}.adv.inj{background:var(--high-bg);color:var(--high-fg)}
+.sev{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.72rem;font-weight:700;white-space:nowrap}.sev:first-letter{text-transform:uppercase}
+.s-critical{background:var(--crit-bg);color:var(--crit-fg)}.s-high{background:var(--high-bg);color:var(--high-fg)}
+.s-medium{background:var(--med-bg);color:var(--med-fg)}.s-low{background:var(--low-bg);color:var(--low-fg)}.s-unknown{background:var(--nv-bg);color:var(--nv);border:1px dashed var(--nv);text-transform:none}
+.impact{display:flex;flex-direction:column;gap:4px;min-width:170px}
+.ibar{display:flex;width:160px;height:8px;border-radius:999px;background:var(--track);overflow:hidden;gap:1px}
+.ibar span{display:block;height:100%}
+.c-cloud{background:var(--c-cloud)}.c-oidc{background:var(--c-oidc)}.c-secret{background:var(--c-secret)}.c-runner{background:var(--c-runner)}
+.itext{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:.78rem;color:var(--muted)}
+.it{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.sw{display:inline-block;width:8px;height:8px;border-radius:2px}
+.poss{color:var(--muted);font-style:italic;white-space:nowrap}
+.gaps{list-style:none;margin:0 0 var(--s2);padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.gap{padding:14px 16px;border:1px dashed var(--nv);box-shadow:none}
+.gap-t{display:flex;align-items:center;gap:8px;font-weight:600;margin:0 0 4px}
+.gi{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;border:1px dashed var(--nv);background:var(--nv-bg);color:var(--nv);font-size:.8rem;font-weight:700}
+.gap-s{margin:0;color:var(--muted);font-size:.85rem}
+.ok-note{padding:12px 16px;color:var(--good)}
+.pinned{padding:var(--s2) 20px;margin:0 0 12px}
+.agent{padding:var(--s2) 20px;margin:0 0 12px;border-left:4px solid var(--line)}.agent.t-crit{border-left-color:var(--crit-fg)}.agent.t-high{border-left-color:var(--high-fg)}.ag-h{margin:0 0 6px}.ag-k{margin-left:6px;font-size:.8rem;font-weight:600}.ag-h .adv{display:inline-block;margin:0 0 0 6px}dl.ag{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:0}dl.ag dt{font-weight:600}dl.ag dd{margin:0}.ag-fix{margin:8px 0 0;padding-left:20px}a.adv{text-decoration:none}@media (max-width:640px){dl.ag{grid-template-columns:1fr}}
+.plist{overflow:hidden}.pgroup+.pgroup{border-top:1px solid var(--line)}
+.pgroup h3{display:flex;align-items:center;gap:8px;margin:0;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line);font-size:.9rem}
+.pathc{margin:0;padding:0;border-top:1px solid var(--line2)}
+.pgroup h3+.pathc{border-top:0}
+.is-poss summary{background:repeating-linear-gradient(135deg,transparent 0 6px,var(--nv-bg) 6px 7px)}.is-poss li:last-child .chip{border-style:dashed}
+.pathc summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 16px;cursor:pointer;list-style:none}
+.pathc summary::-webkit-details-marker{display:none}
+.pathc summary:before{content:"";flex:none;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-right:2px;transition:transform .15s}
+.pathc[open] summary:before{transform:rotate(45deg)}
+.pathc[open] summary{border-bottom:1px dashed var(--line2)}
+.pathc summary:hover{background:var(--bg)}
+.pathc .to{min-width:0}
+.hopn{margin-left:auto;color:var(--muted);font-size:.8rem}
+.pathc>.note{margin:10px 16px 0}
+.ctx{margin:10px 16px 0;padding:6px 10px;border-radius:6px;background:var(--nv-bg);color:var(--fg);font-size:.82rem}
+.whys{list-style:none;margin:8px 0 0;padding:12px 16px;font-size:.85rem}.whys>li+li{margin-top:8px}.whys ul{margin:4px 0 0;padding-left:18px;color:var(--muted)}.whys strong{color:var(--fg)}
+.chain{list-style:none;margin:0;padding:14px 16px;display:flex;flex-wrap:wrap;align-items:center;row-gap:12px}
+.chain>li{display:flex;align-items:center;min-width:0;position:relative}
+.chip{display:inline-flex;flex-direction:column;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);max-width:340px;min-width:0}
+.chip code{font-size:.8rem}
+.chip>small{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);line-height:1.3}
+.chain>li:first-child .chip{border-color:var(--fg)}
+.chain>li:last-child .chip{border-width:2px;border-color:var(--accent)}
+.hop{position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:0 10px 0 6px;margin:0 2px;outline-offset:0}
+.hop:after{content:"";position:absolute;left:4px;right:2px;top:50%;border-top:1px solid var(--line);z-index:0}
+.hop:before{content:"";position:absolute;right:0;top:50%;margin-top:-4px;border:4px solid transparent;border-left:6px solid var(--line);border-right:0}
+.hop .hk{position:relative;z-index:1;font:600 .62rem/1.2 var(--mono);color:var(--muted);background:var(--card);padding:0 4px}
+.hop .badge{position:relative;z-index:1}
+.tip{position:absolute;left:50%;top:100%;z-index:4;transform:translate(-50%,6px);width:max-content;max-width:280px;padding:6px 10px;border-radius:6px;background:var(--fg);color:var(--card);font:.75rem/1.4 var(--mono);opacity:0;pointer-events:none;transition:opacity .12s}
+.hop:hover .tip,.hop:focus .tip,.tipcell:hover .tip,.tipcell:focus .tip{opacity:1}
+.chain em{display:block;font-style:normal;width:100%;font-size:.78rem;color:var(--muted);margin-left:8px}
+.grid th[scope=row]{font-weight:600;white-space:nowrap}
+.grid td{white-space:nowrap}.grid th,.grid td{padding:8px 10px}.grid thead th{white-space:normal;vertical-align:bottom;min-width:84px}
+.g-good{color:var(--good)}.g-weak{color:var(--weak)}
+.grid td.g-good{background:var(--good-tint)}.grid td.g-weak{background:var(--weak-tint)}.grid td.g-unk{background:var(--nv-bg)}
+.g.g-weak{background:var(--weak-bg)}
+.tipcell{position:relative;cursor:help}
+.keys{display:flex;flex-wrap:wrap;gap:8px}
+.g{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.78rem;font-weight:600}
+.g.g-good{background:var(--good-bg)}.g.g-unk{color:var(--nv);border:1px dashed var(--nv)}
+.path{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;margin:8px 0}
+.path ol{margin:6px 0 0;padding-left:20px}.path li{margin:2px 0}
+.path summary{cursor:pointer}
+#gop-paths{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}#gop-paths:empty{display:none}
+#gop-paths .path{margin:0;padding:8px 14px;border:0;border-radius:0;border-bottom:1px solid var(--line2)}#gop-paths .path:last-child{border-bottom:0}
+.src{color:var(--muted);font-size:.8rem}
+.filters{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2)}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:500;color:var(--muted)}
+.filters select,.filters input,.filters button{font:inherit;font-size:.88rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.filters button{cursor:pointer;font-weight:600}
+.filters fieldset{border:1px solid var(--line);border-radius:6px;margin:0;padding:4px 10px;font-size:.85rem}
+.filters fieldset label{display:inline-flex;flex-direction:row;align-items:center;gap:4px;margin-right:10px;color:var(--fg)}
+.orglinks a{margin-right:12px}
+.tabs{display:flex;gap:4px;margin:var(--s2) 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:.9rem;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:8px 14px;cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+.pins{border:1px solid var(--line);border-radius:6px;margin:8px 0;padding:4px 10px;font-size:.85rem}
+.pins label{display:inline-block;margin-right:12px}
+.graph{overflow:auto;max-height:80vh;background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin:8px 0}
+.graph svg{display:block}
+.node rect{fill:var(--bg);stroke:var(--line);stroke-width:1}
+.node{cursor:pointer}.node:focus{outline:none}
+.node text{fill:var(--fg);font:12px var(--mono)}
+.node:hover rect,.node:focus-visible rect{stroke:var(--accent);stroke-width:2}
+.node.sel rect{stroke:var(--accent);stroke-width:3}
+.node.off rect{stroke-dasharray:3 3}.node.off text{fill:var(--muted)}
+.edge path{fill:none;stroke-width:1.5}.edge:hover path{stroke-width:3}
+.e-live path{stroke:var(--live)}.e-audit path{stroke:var(--audit);stroke-dasharray:6 4}
+.e-inferred path{stroke:var(--live);stroke-dasharray:10 3}
+.e-stale path{stroke:var(--audit);stroke-dasharray:6 4;stroke-width:1}
+.e-nv path{stroke:var(--nv);stroke-dasharray:2 3}.e-supplied path{stroke:var(--accent);stroke-dasharray:8 3 2 3}
+.e-other path{stroke:var(--muted);stroke-width:1}
+.edge.off path{stroke:var(--line);stroke-width:1}
+.edge text{fill:var(--muted);font:700 12px system-ui,sans-serif}
+.detail{font-size:.85rem}.detail ul{margin:4px 0;padding-left:20px}
+#gop-orgview h2{margin-top:var(--s3)}
+footer{border-top:1px solid var(--line);background:var(--card);color:var(--muted);font-size:.82rem}
+footer .wrap{padding-top:var(--s2);padding-bottom:var(--s4)}
+.w0{width:0%}.w4{width:4%}.w8{width:8%}.w12{width:12%}.w16{width:16%}.w20{width:20%}.w24{width:24%}.w28{width:28%}.w32{width:32%}.w36{width:36%}.w40{width:40%}.w44{width:44%}.w48{width:48%}.w52{width:52%}.w56{width:56%}.w60{width:60%}.w64{width:64%}.w68{width:68%}.w72{width:72%}.w76{width:76%}.w80{width:80%}.w84{width:84%}.w88{width:88%}.w92{width:92%}.w96{width:96%}.w100{width:100%}
+@media screen and (max-width:720px){body{font-size:14.5px}.hero{padding:var(--s2);border-radius:var(--r)}.big{font-size:1.12rem}
+.kpis{grid-template-columns:1fr 1fr;gap:8px}.kpi a{padding:12px}.k-val{font-size:1.5rem}
+.fix{grid-template-columns:auto 1fr;padding:var(--s2)}.fix-impact{grid-column:1/-1}
+.chain{flex-direction:column;align-items:stretch}.chain>li{flex-direction:column;align-items:stretch}
+.chip{max-width:none}
+.hop{flex-direction:row;justify-content:flex-start;padding:10px 0 10px 18px;margin:0 0 0 14px;border-left:1px solid var(--line)}
+.hop:after,.hop:before{display:none}.hop .hk{background:none;padding:0 6px 0 0}
+.hop .tip{left:18px;transform:translate(0,4px)}.chain em{margin:4px 0 0}
+th,td{padding:8px 10px}
+.stack,.stack tbody{display:block;width:100%}
+.stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.stack tr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:12px 14px;border-bottom:1px solid var(--line2)}
+.stack tbody tr:last-child{border-bottom:0}
+.stack td{display:block;padding:0;border:0;text-align:left}
+.stack td[data-l]:before{content:attr(data-l) " ";color:var(--muted);font-size:.75rem;font-weight:400}
+.risks .rank{width:auto;font-weight:600}.risks .who{flex:1 1 calc(100% - 150px);min-width:0}.risks .who code{font-size:.9em}
+.risks .sevc{margin-left:auto}.risks .reach{order:9;flex-basis:100%;padding-left:24px;font-size:.85rem}
+.risks td.strong{padding-left:24px}.risks .poss,.risks td.n[data-l]{font-size:.85rem}
+.cov td{flex-basis:100%}.cov td:nth-child(-n+2){flex-basis:auto}}
+@media print{
+@page{margin:14mm}
+body{font-size:10.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.wrap{max-width:none;padding:0}
+nav,.skip,#gop-explore,#gop-orgview,.pathc summary:before{display:none!important}
+.tip{position:static;opacity:1;transform:none;width:auto;max-width:150px;padding:0;background:none;color:var(--muted);font-size:6.5pt;text-align:center}.tipcell .tip{display:block;text-align:left}
+.top .wrap{padding:0 0 12px}main{padding-top:16px}
+.kpi a,.fix,.gap,.pathc,.pinned,.agent,tr{break-inside:avoid}
+.kpis{grid-template-columns:repeat(3,1fr)}
+.pathc::details-content{content-visibility:visible;display:block}
+.pathc>*{display:block}
+.chain,.chain>li{display:flex}
+section{margin-bottom:20px}h2,.lede{break-after:avoid}
+.scroll{overflow:visible}table{font-size:8.5pt}th,td{padding:6px 8px}thead th,.grid td,.grid th[scope=row]{white-space:normal}.impact{min-width:0}.ibar{width:96px}
+a{color:var(--fg);text-decoration:none}
+a[href]:not([href^="#"]):after{content:" (" attr(href) ")";font-size:.8em;color:var(--muted)}
+footer{background:none}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the report</a>
+<header class="top"><div class="wrap">
+<div class="brand"><span class="mark" aria-hidden="true">g</span><div>
+<h1>gop: who can make code run where</h1>
+<p class="meta">Enterprise <strong>acme</strong><span class="sep" aria-hidden="true">·</span>collected <time>2026-11-24T12:00:00Z</time></p>
+</div></div>
+
+</div></header>
+<nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li><li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li><li><a href="#ai-agents">AI agents</a></li><li><a href="#ai-self-merge">AI self-merge</a></li><li><a href="#org-ownership">Org ownership</a></li><li><a href="#coverage">Not visible</a></li><li><a href="#pinned">Pinned, still reachable</a></li><li><a href="#top-paths">Top paths</a></li><li><a href="#org-settings">Org settings</a></li><li><a href="#repo-hardening">Repo hardening</a></li><li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
+<main id="main" class="wrap">
+<div id="gop-static">
+<section id="verdict" class="hero v-critical" aria-labelledby="verdict-h">
+<h2 id="verdict-h" class="vh">Verdict</h2>
+<div class="hero-top"><p class="verdict"><span class="dot" aria-hidden="true"></span>Critical exposure</p><p class="meta">Widest confirmed reach: <strong>identity:alice</strong></p></div>
+<p class="big">identity:alice can push code that runs in 13 repos across 3 orgs (confirmed), including 2 cloud OIDC trusts, 3 secret scopes, 1 self-hosted runner pool.</p>
+<p class="start"><span class="tag">Start here</span> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 32% of confirmed reach. <a href="#fixes">All fixes</a></p>
+<p class="pinline"><span class="tag warn">Heads up</span> Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to. <a href="#pinned">See which</a></p>
+<ul class="kpis" aria-label="Key figures; reach figures are for identity:alice, the widest confirmed reach"><li class="kpi t-med"><a href="#top-paths"><span class="k-label">Confirmed reach</span><span class="k-val">13 <span class="k-unit">repos</span></span><span class="k-sub">across 3 orgs</span></a></li><li class="kpi t-crit"><a href="#top-paths"><span class="k-label">Cloud OIDC trusts</span><span class="k-val">2 <span class="k-unit">trusts</span></span><span class="k-sub">cloud credentials CI can mint</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Secret scopes</span><span class="k-val">3 <span class="k-unit">scopes</span></span><span class="k-sub">repo, environment or org secrets</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Self-hosted runners</span><span class="k-val">1 <span class="k-unit">pool</span></span><span class="k-sub">runner pools jobs land on</span><span class="k-poss"><span aria-hidden="true">?</span> &#43;1 pool possible</span></a></li><li class="kpi t-crit"><a href="#top-risks"><span class="k-label">Top risks</span><span class="k-val">11 <span class="k-unit">principals</span></span><span class="k-sub">6 critical · 2 high</span></a></li><li class="kpi t-unk"><a href="#coverage"><span class="k-label">Coverage</span><span class="k-val">1/5 <span class="k-unit">orgs fully visible</span></span><span class="k-sub">17 facts not visible: unknown, not absent</span></a></li></ul>
+<p class="legend">Confirmed means every hop was read live, <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent. The two are separate figures and never added up.</p>
+</section>
+
+<section aria-labelledby="fixes">
+<h2 id="fixes">Top fixes</h2>
+<p class="lede">Choke points first: each fix removes the most confirmed reach left after the fixes above it.</p>
+<ol class="fixes"><li class="card fix">
+<span class="fix-n" aria-hidden="true">1</span>
+<div class="fix-body"><p class="fix-title">Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it</p>
+<p class="fix-why">A branch or tag ref can be moved: whoever can push to acme-actions/deploy changes the code every workflow that uses it runs.</p>
+
+<p class="fix-id"><code>pin:action:acme-actions/deploy@main</code></p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>32%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w0"></span><span class="seg cur w32"></span></div>
+<p class="fix-cum">19 confirmed pairs · <strong>32%</strong> cumulative</p></div>
+</li>
+<li class="card fix">
+<span class="fix-n" aria-hidden="true">2</span>
+<div class="fix-body"><p class="fix-title">Lower the default repository permission of acme-actions to read</p>
+<p class="fix-why">Every member of acme-actions inherits write access to its repos by default, so any member account can push code that CI runs.</p>
+
+<p class="fix-id"><code>default_perm:org:acme-actions-&gt;read</code></p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>15%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w32"></span><span class="seg cur w16"></span></div>
+<p class="fix-cum">9 confirmed pairs · <strong>47%</strong> cumulative</p></div>
+</li>
+<li class="card fix">
+<span class="fix-n" aria-hidden="true">3</span>
+<div class="fix-body"><p class="fix-title">Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it</p>
+<p class="fix-why">A branch or tag ref can be moved: whoever can push to acme-actions/deploy changes the code every workflow that uses it runs.</p>
+
+<p class="fix-id"><code>pin:action:acme-actions/deploy@v1</code></p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>7%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w48"></span><span class="seg cur w8"></span></div>
+<p class="fix-cum">4 confirmed pairs · <strong>54%</strong> cumulative</p></div>
+</li>
+<li class="card fix">
+<span class="fix-n" aria-hidden="true">4</span>
+<div class="fix-body"><p class="fix-title">Lower the default repository permission of acme-legacy to read</p>
+<p class="fix-why">Every member of acme-legacy inherits write access to its repos by default, so any member account can push code that CI runs.</p>
+
+<p class="fix-id"><code>default_perm:org:acme-legacy-&gt;read</code></p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>3%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w56"></span><span class="seg cur w4"></span></div>
+<p class="fix-cum">2 confirmed pairs · <strong>58%</strong> cumulative</p></div>
+</li>
+<li class="card fix">
+<span class="fix-n" aria-hidden="true">5</span>
+<div class="fix-body"><p class="fix-title">Pin acme-actions/setup@main to a commit SHA in every workflow that uses it</p>
+<p class="fix-why">A branch or tag ref can be moved: whoever can push to acme-actions/setup changes the code every workflow that uses it runs.</p>
+
+<p class="fix-id"><code>pin:action:acme-actions/setup@main</code></p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>2%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w56"></span><span class="seg cur w4"></span></div>
+<p class="fix-cum">1 confirmed pair · <strong>59%</strong> cumulative</p></div>
+</li>
+</ol>
+<p class="note">Greedy pick by confirmed (principal, repo) pairs removed; the bar shows the earlier fixes in a lighter shade. Fixes that only touch not visible edges are never suggested.</p>
+
+</section>
+<section aria-labelledby="top-risks">
+<h2 id="top-risks">Top risks</h2>
+<div class="card flush scroll"><table class="risks stack">
+<caption class="vh">Top risks: confirmed reach per principal</caption>
+<thead><tr><th scope="col" class="n">#</th><th scope="col">Principal</th><th scope="col">Impact</th><th scope="col" class="n">Confirmed repos</th><th scope="col" class="n">Orgs</th><th scope="col">Reaches (confirmed)</th><th scope="col">Possible</th><th scope="col" class="n">Score</th></tr></thead>
+<tbody><tr><td class="n rank">1</td><td class="who"><code>identity:alice</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">13</td><td class="n" data-l="Orgs">3</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w32"></span><span class="c-secret w52"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>2 OIDC trusts</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>3 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible"><span aria-hidden="true">?</span> 0 repos + 1 impact</td><td class="n" data-l="Score">138.4</td></tr>
+<tr><td class="n rank">2</td><td class="who"><code>members:acme-actions</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">9</td><td class="n" data-l="Orgs">3</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">94.5</td></tr>
+<tr><td class="n rank">3</td><td class="who"><span class="grp">2 principals (team:acme-actions/platform)</span> <code>team:acme-actions/platform, team:acme-actions/platform-oncall</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">7</td><td class="n" data-l="Orgs">2</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">82.1</td></tr>
+<tr><td class="n rank">4</td><td class="who"><code>identity:bob</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">9</td><td class="n" data-l="Orgs">3</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible"><span aria-hidden="true">?</span> 1 repo</td><td class="n" data-l="Score">61.5</td></tr>
+<tr><td class="n rank">5</td><td class="who"><code>identity:erin</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">7</td><td class="n" data-l="Orgs">2</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">36.5</td></tr>
+<tr><td class="n rank">6</td><td class="who"><code>team:acme-app/release</code></td><td class="sevc"><span class="sev s-high" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">high impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-secret w16"></span></span><span class="itext"><span class="it"><span class="sw c-secret" aria-hidden="true"></span>1 secret</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">13.5</td></tr>
+<tr><td class="n rank">7</td><td class="who"><code>external:anyone</code><a class="adv inj" href="#ai-self-merge"><span aria-hidden="true">!</span> lands code on 1 repo without human review [bot_self_merge]</a></td><td class="sevc"><span class="sev s-high" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">high impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-secret w16"></span></span><span class="itext"><span class="it"><span class="sw c-secret" aria-hidden="true"></span>1 secret</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">9.5</td></tr>
+<tr><td class="n rank">8</td><td class="who"><code>members:acme-legacy</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">2</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible"><span aria-hidden="true">?</span> 1 repo</td><td class="n" data-l="Score">6.8</td></tr>
+<tr><td class="n rank">9</td><td class="who"><code>team:acme-legacy/legacy-devs</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">5.2</td></tr>
+<tr><td class="n rank">10</td><td class="who"><code>identity:carol</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">2</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">4.5</td></tr>
+</tbody></table></div>
+<p class="note">Impact is the severity of confirmed reach, as in <code>gop sarif</code>, and is separate from an advisory's own severity: critical for cloud OIDC trust or a cloud role, high for secrets or self-hosted runners, medium for CI in repos. Score counts confirmed reach only; possible reach depends on at least one fact gop could not see.</p>
+
+</section>
+<section aria-labelledby="ai-agents">
+<h2 id="ai-agents">AI agents in CI</h2>
+<p class="lede">2 workflows run an AI coding agent; 1 can be started by people without push access, 1 of them while the agent holds write, secrets or OIDC. An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.</p>
+<div class="card agent t-crit">
+<p class="ag-h"><code>acme-app/web/.github/workflows/ai-review.yml</code> <span class="ag-k">claude-cli</span> <span class="adv">exposed: ranks first</span></p>
+<dl class="ag">
+<dt>Who can start it</dt><dd>outsiders: people without push access: anyone on the internet on <code>issue_comment, pull_request_target</code></dd>
+<dt>What it holds</dt><dd>secrets</dd>
+<dt>What it reaches</dt><dd>1 secret scope, 1 repo</dd>
+<dt>Prompt injection</dt><dd>reads the triggering comment, pull request text</dd>
+
+</dl>
+<ol class="ag-fix"><li>Restrict who can start it: the agent has no actor check of its own, so move it off issue_comment or pull_request_target, check the actor&#39;s repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers).</li></ol>
+</div>
+<div class="card agent t-unk">
+<p class="ag-h"><code>acme-app/web/.github/workflows/ai-merge.yml</code> <span class="ag-k">name only</span></p>
+<dl class="ag">
+<dt>Who can start it</dt><dd>name only: not counted as an agent</dd>
+
+</dl>
+
+</div>
+<p class="note">Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.</p>
+</section>
+<section aria-labelledby="ai-self-merge">
+<h2 id="ai-self-merge">AI approve + self-merge</h2>
+<p class="lede">1 repo where a bot approves and merges a pull request its author can steer: anyone who can open a pull request there lands code on the default branch with no human review, and gop treats it like push access.</p>
+<div class="card agent t-crit">
+<p class="ag-h"><code>acme-app/web</code> <span class="badge live"><span aria-hidden="true">✓</span> confirmed</span></p>
+<p>a PR author can get code onto <code>main</code> without human review: <code>ai-review.yml</code> + <code>ai-merge.yml</code> (merges in <code>tools/merge.py</code>); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)</p>
+<dl class="ag">
+<dt>Who can use it</dt><dd><code>external:anyone</code></dd>
+<dt>Why no human review</dt><dd><code>app_bypass</code></dd>
+<dt>Merging App</dt><dd>77, a bypass actor of the default branch rules</dd>
+<dt>Merge rules</dt><dd>in <code>tools/merge.py</code> (read from the default branch, not run)</dd>
+<dt>Stale approvals</dt><dd><span class="badge nv"><span aria-hidden="true">?</span> suspected, heuristic</span> the script re-counts approvals GitHub dismissed: the rules dismiss stale reviews on push, and the merge counts DISMISSED reviews; confirm by hand</dd>
+<dt>Merge key</dt><dd>held by the AI step in <code>.github/workflows/ai-review.yml</code></dd>
+</dl>
+<ol class="ag-fix"><li>Require a human approval that bots cannot give: require CODEOWNERS review on <code>main</code> with human owners (or a team), so a bot approval never satisfies the rule.</li><li>Remove the GitHub App <code>77</code> from the bypass actors of the rules on <code>main</code>: the merging workflow uses its token, so the merge skips every rule.</li><li>Do not let PR authors trigger the merge: drop the author check from <code>ai-merge.yml</code>, or require a maintainer (author_association OWNER, or a write-permission check) and an environment with required reviewers.</li><li>Do not give the reviewer write or approve rights: let the AI reviewer comment (pull-requests: write without approving, or a read-only token) and keep approve and merge with people.</li><li>Stop counting DISMISSED reviews in <code>tools/merge.py</code> (suspected, heuristic: confirm by hand): the rules already dismiss stale reviews on push, but the script re-counts approvals GitHub dismissed. Count only APPROVED reviews whose commit_id is the head SHA.</li><li>Re-run the AI review on every push: add synchronize to the pull_request types of <code>ai-review.yml</code>, so an approval always covers the code that is merged.</li><li>Keep the merge key out of the AI step: the agent in <code>ai-review.yml</code> holds the secret the merge uses, so a prompt injection can merge by itself. Give the merge its own App and key, outside the agent&#39;s env.</li></ol>
+</div>
+<p class="note">A bot merge is found from the workflow files (and the repo scripts they run, read and never executed), joined with the default branch's rules. A deciding fact gop could not see (the bypass list, which App a token is for, the required reviews, whether GITHUB_TOKEN may approve) makes it possible, never confirmed. Stale approvals are a text match: confirm by hand. See docs/agents-in-ci.md.</p>
+</section>
+<section aria-labelledby="org-ownership">
+<h2 id="org-ownership">Org ownership</h2>
+<p class="lede">12% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 59 confirmed (principal, repo) pairs.</p>
+<div class="card"><ul class="ownh" aria-label="Accounts by number of orgs owned"><li class="t-"><span class="ol">1 org</span><span class="track" aria-hidden="true"><span class="seg cur w100"></span></span><span class="on">1 <span class="vh">account</span></span></li>
+<li class="t-"><span class="ol">2–4 orgs</span><span class="track" aria-hidden="true"><span class="seg cur w100"></span></span><span class="on">1 <span class="vh">account</span></span></li>
+<li class="t-high"><span class="ol">5–9 orgs</span><span class="track" aria-hidden="true"><span class="seg cur w0"></span></span><span class="on">0 <span class="vh">accounts</span></span></li>
+<li class="t-crit"><span class="ol">10&#43; orgs</span><span class="track" aria-hidden="true"><span class="seg cur w0"></span></span><span class="on">0 <span class="vh">accounts</span></span></li>
+</ul></div>
+<p class="note">2 accounts own at least one org. An org owner is admin on every repo of the org, so an account that owns many orgs can push code that runs across all of them. gop counts owners from org owner grants on repos: an org with no repos shows no owners. The gop://graph/summary resource lists the accounts in each bucket.</p>
+</section>
+<section aria-labelledby="coverage">
+<h2 id="coverage">What gop could not see</h2>
+<p class="lede">These facts are unknown, not absent: reach through them shows as possible, never as confirmed or as safe. The access below would let gop see them.</p>
+<ul class="gaps"><li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>Org owner needed on 3 scopes</p><p class="gap-s">7 facts not visible: <code>acme-app, or maintainer of team release</code>, <code>acme-legacy</code>, <code>workflow:acme-app/search/.github/workflows/index.yaml</code></p></li>
+<li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>Admin needed on 3 scopes</p><p class="gap-s">3 facts not visible: <code>acme-legacy/hidden-tool</code>, <code>acme-legacy/old-site</code>, <code>those repositories, or org owner or security manager in acme-legacy</code></p></li>
+<li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>Read access to acme-legacy/hidden-tool needed on 2 scopes</p><p class="gap-s">2 facts not visible: <code>action:acme-legacy/hidden-tool@v2</code>, <code>repo:acme-legacy/hidden-tool</code></p></li>
+<li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>None: archived organizations cannot run workflows needed on 1 org</p><p class="gap-s">1 fact not visible: <code>org:acme-archive</code></p></li>
+<li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>None: replace the expression with literal owner/repo@sha references to make them visible needed on 1 scope</p><p class="gap-s">1 fact not visible: <code>workflow:acme-app/search/.github/workflows/index.yaml</code></p></li>
+<li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>Check .github/workflows in acme-secure/vendor-mirror is a directory needed on 1 scope</p><p class="gap-s">1 fact not visible: <code>repo:acme-secure/vendor-mirror</code></p></li>
+<li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>Read access to contents needed on 1 scope</p><p class="gap-s">1 fact not visible: <code>acme-legacy/hidden-tool</code></p></li>
+<li class="card gap"><p class="gap-t"><span class="gi" aria-hidden="true">?</span>Confirm by hand: read tools/merge.py and check it counts only APPROVED reviews whose commit_id is the pull request&#39;s head SHA needed on 1 scope</p><p class="gap-s">1 fact not visible: <code>workflow:acme-app/web/.github/workflows/ai-merge.yml</code></p></li>
+</ul>
+<div class="card flush scroll"><table class="stack cov">
+<caption class="vh">Coverage: facts the token could not see</caption>
+<thead><tr><th scope="col">Scope</th><th scope="col">Not visible</th><th scope="col">Why</th><th scope="col">Access that fixes it</th></tr></thead>
+<tbody><tr><td><code>org:acme-app</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> team_members:release</span></td><td data-l="Why">could not list members of team release: github api GET /orgs/acme-app/teams/release/members?role=all&amp;per_page=100: HTTP 403: Must have admin rights to Team.</td><td data-l="Fix">org owner on acme-app, or maintainer of team release</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> ip_allow_list</span></td><td data-l="Why">token is not an org owner</td><td data-l="Fix">org owner on acme-legacy (SSO enforced: join through the identity provider first)</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> secret_scanning</span></td><td data-l="Why">security_and_analysis not returned for 1 of 1 repositories (shown only to repo admins, org owners and security managers)</td><td data-l="Fix">admin on those repositories, or org owner or security manager in acme-legacy</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> repositories</span></td><td data-l="Why">token is not an org owner: only repositories visible to the token are listed</td><td data-l="Fix">org owner on acme-legacy (SSO enforced: join through the identity provider first)</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> outside_collaborators</span></td><td data-l="Why">could not list outside collaborators: github api GET /orgs/acme-legacy/outside_collaborators?per_page=100: HTTP 403: Must have push access to view repository collaborators.; direct grants are labelled via=direct</td><td data-l="Fix">org owner on acme-legacy (SSO enforced: join through the identity provider first)</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> can_push:collaborators</span></td><td data-l="Why">could not list collaborators on 1 repos (needs push access)</td><td data-l="Fix">org owner on acme-legacy (SSO enforced: join through the identity provider first), or push access on each repository</td></tr>
+<tr><td><code>org:acme-legacy</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> can_push:teams</span></td><td data-l="Why">token is not an org owner: secret teams and their grants are not listed</td><td data-l="Fix">org owner on acme-legacy (SSO enforced: join through the identity provider first)</td></tr>
+<tr><td><code>org:acme-archive</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> repositories</span></td><td data-l="Why">organization is archived; not collected</td><td data-l="Fix">none: archived organizations cannot run workflows</td></tr>
+<tr><td><code>workflow:acme-app/search/.github/workflows/index.yaml</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> runner_labels</span></td><td data-l="Why">runs-on gpu,linux is not a GitHub-hosted label: the runner may be self-hosted</td><td data-l="Fix">org owner (runner groups and self-hosted runners are not read yet)</td></tr>
+<tr><td><code>workflow:acme-app/search/.github/workflows/index.yaml</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> dynamic_uses</span></td><td data-l="Why">uses: is an expression; the action cannot be resolved statically</td><td data-l="Fix">none: replace the expression with literal owner/repo@sha references to make them visible</td></tr>
+<tr><td><code>repo:acme-legacy/old-site</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> default_workflow_permissions</span></td><td data-l="Why">could not read the default workflow permissions: repo: github api GET /repos/acme-legacy/old-site/actions/permissions/workflow: HTTP 403: Must have admin rights to Repository.; org: github api GET /orgs/acme-legacy/actions/permissions/workflow: HTTP 403: Must have admin rights to Repository.</td><td data-l="Fix">admin on acme-legacy/old-site (or org owner)</td></tr>
+<tr><td><code>repo:acme-secure/vendor-mirror</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> workflows</span></td><td data-l="Why">unexpected contents response for .github/workflows</td><td data-l="Fix">check .github/workflows in acme-secure/vendor-mirror is a directory</td></tr>
+<tr><td><code>action:acme-legacy/hidden-tool@v2</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> nested_uses</span></td><td data-l="Why">action.yaml not found at v2 (missing, or repository not visible to the token)</td><td data-l="Fix">read access to contents on acme-legacy/hidden-tool</td></tr>
+<tr><td><code>repo:acme-legacy/hidden-tool</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> can_push</span></td><td data-l="Why">host repository not listed for the token</td><td data-l="Fix">read access to acme-legacy/hidden-tool</td></tr>
+<tr><td><code>repo:acme-legacy/hidden-tool</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> actions_access</span></td><td data-l="Why">could not read the Actions access setting of acme-legacy/hidden-tool: github api GET /repos/acme-legacy/hidden-tool/actions/permissions/access: HTTP 404: Not Found</td><td data-l="Fix">admin on acme-legacy/hidden-tool (or org owner)</td></tr>
+<tr><td><code>action:acme-legacy/hidden-tool@v2</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> ref_kind</span></td><td data-l="Why">repository acme-legacy/hidden-tool not found or not visible to the token (NOT_FOUND: Could not resolve to a Repository with the name &#39;acme-legacy/hidden-tool&#39;.); ref_kind is a guess from the name</td><td data-l="Fix">read access to acme-legacy/hidden-tool</td></tr>
+<tr><td><code>workflow:acme-app/web/.github/workflows/ai-merge.yml</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> bot_merge_stale_approvals</span></td><td data-l="Why">suspected, heuristic: tools/merge.py seems to count approvals not tied to the head commit (a dismissed review, or a review of an older commit it does not skip); gop matched text and never ran it</td><td data-l="Fix">confirm by hand: read tools/merge.py and check it counts only APPROVED reviews whose commit_id is the pull request&#39;s head SHA</td></tr>
+</tbody></table></div>
+
+</section>
+<section aria-labelledby="pinned">
+<h2 id="pinned">Pinned, still reachable</h2>
+<p class="lede">A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:</p>
+<div class="card pinned">
+<p><code>acme-actions/deploy@0123456789abcdef0123456789abcdef01234567</code> (used by 3 workflows) runs <code>acme-actions/setup@main</code>. <code>identity:alice</code> can change it <span class="badge live"><span aria-hidden="true">✓</span> confirmed</span></p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>alice</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>repo</small><code>acme-actions/setup</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/setup@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}?ref={ref} (reversed)</span></span><span class="chip"><small>action</small><code title="action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567">acme-actions/deploy@0123456789ab…</code></span></li>
+</ol>
+</div>
+</section>
+
+<section aria-labelledby="top-paths">
+<h2 id="top-paths">Top paths</h2>
+<p class="lede">How each top principal gets there, one hop at a time. Open a path to see every hop and its evidence; hover or focus a hop for the API it was read from (reversed: the evidence edge points the other way).</p>
+<div class="card plist"><div class="pgroup"><h3><code>identity:alice</code> <span class="hopn">4 paths</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/billing</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>alice</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>repo</small><code>acme-app/billing</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/billing/.github/workflows/deploy.yml">acme-app/billing › deploy.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/billing</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/search</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>alice</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>repo</small><code>acme-app/search</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/search/.github/workflows/index.yaml">acme-app/search › index.yaml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/search</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/docs</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>alice</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>repo</small><code>acme-app/docs</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/docs/.github/workflows/build.yml">acme-app/docs › build.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/docs</code></span></li>
+</ol>
+</details>
+<details class="pathc is-poss">
+<summary><span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span> <span class="to">to <code>runner:acme-app/search</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>alice</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>repo</small><code>acme-app/search</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/search/.github/workflows/index.yaml">acme-app/search › index.yaml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge nv"><span aria-hidden="true">?</span> not visible</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>runner</small><code>acme-app/search</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>members:acme-actions</code> <span class="hopn">3 paths</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/billing</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>members</small><code>acme-actions</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/billing/.github/workflows/deploy.yml">acme-app/billing › deploy.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/billing</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/mobile</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>members</small><code>acme-actions</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/mobile/.github/workflows/release.yml">acme-app/mobile › release.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/mobile</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/web</code></span> <span class="hopn">6 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly; a PR author can get code onto `main` without human review: `ai-review.yml` &#43; `ai-merge.yml` (merges in `tools/merge.py`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)</p>
+<ol class="chain"><li><span class="chip"><small>members</small><code>acme-actions</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ci.yml">acme-app/web › ci.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/actions/permissions/workflow</span></span><span class="chip"><small>repo</small><code>acme-app/web</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ai-merge.yml">acme-app/web › ai-merge.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/web</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>team:acme-actions/platform</code> <span class="src">one of 2 principals (team:acme-actions/platform)</span> <span class="hopn">3 paths</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/billing</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>team</small><code>acme-actions/platform</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /orgs/{org}/teams/{team_slug}/repos</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/billing/.github/workflows/deploy.yml">acme-app/billing › deploy.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/billing</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/mobile</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>team</small><code>acme-actions/platform</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /orgs/{org}/teams/{team_slug}/repos</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/mobile/.github/workflows/release.yml">acme-app/mobile › release.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/mobile</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/web</code></span> <span class="hopn">6 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly; a PR author can get code onto `main` without human review: `ai-review.yml` &#43; `ai-merge.yml` (merges in `tools/merge.py`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)</p>
+<ol class="chain"><li><span class="chip"><small>team</small><code>acme-actions/platform</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /orgs/{org}/teams/{team_slug}/repos</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ci.yml">acme-app/web › ci.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/actions/permissions/workflow</span></span><span class="chip"><small>repo</small><code>acme-app/web</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ai-merge.yml">acme-app/web › ai-merge.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/web</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>identity:bob</code> <span class="hopn">4 paths</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/billing</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>bob</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/billing/.github/workflows/deploy.yml">acme-app/billing › deploy.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/billing</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/mobile</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>bob</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/mobile/.github/workflows/release.yml">acme-app/mobile › release.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/mobile</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/web</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: a PR author can get code onto `main` without human review: `ai-review.yml` &#43; `ai-merge.yml` (merges in `tools/merge.py`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>bob</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct</span></span><span class="chip"><small>repo</small><code>acme-app/web</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ai-merge.yml">acme-app/web › ai-merge.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/web</code></span></li>
+</ol>
+</details>
+<details class="pathc is-poss">
+<summary><span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span> <span class="to">to <code>repo:acme-secure/vault-proxy</code></span> <span class="hopn">5 hops</span></summary>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>bob</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">MEMBER_OF</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>members</small><code>acme-legacy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations</span></span><span class="chip"><small>repo</small><code>acme-legacy/hidden-tool</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-legacy/hidden-tool@v2</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge nv"><span aria-hidden="true">?</span> not visible</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-secure/vault-proxy/.github/workflows/ci.yml">acme-secure/vault-proxy › ci.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows</span></span><span class="chip"><small>repo</small><code>acme-secure/vault-proxy</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>identity:erin</code> <span class="hopn">3 paths</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/billing</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>erin</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/billing/.github/workflows/deploy.yml">acme-app/billing › deploy.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/billing</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/mobile</code></span> <span class="hopn">4 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>erin</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/mobile/.github/workflows/release.yml">acme-app/mobile › release.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/mobile</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/web</code></span> <span class="hopn">6 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: push reaches the default branch directly; a PR author can get code onto `main` without human review: `ai-review.yml` &#43; `ai-merge.yml` (merges in `tools/merge.py`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>erin</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct</span></span><span class="chip"><small>repo</small><code>acme-actions/deploy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-actions/deploy@main</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ci.yml">acme-app/web › ci.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/actions/permissions/workflow</span></span><span class="chip"><small>repo</small><code>acme-app/web</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ai-merge.yml">acme-app/web › ai-merge.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/web</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>team:acme-app/release</code> <span class="hopn">1 path</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/docs</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>team</small><code>acme-app/release</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /orgs/{org}/teams/{team_slug}/repos</span></span><span class="chip"><small>repo</small><code>acme-app/docs</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/docs/.github/workflows/build.yml">acme-app/docs › build.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/docs</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>external:anyone</code> <span class="hopn">1 path</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/web</code></span> <span class="hopn">2 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>external</small><code>anyone</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_TRIGGER</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/web/.github/workflows/ai-review.yml">acme-app/web › ai-review.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/web</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>members:acme-legacy</code> <span class="hopn">2 paths</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>repo:acme-legacy/hidden-tool</code></span> <span class="hopn">1 hop</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-legacy: SSO enforced, IP allow list unknown</p>
+<ol class="chain"><li><span class="chip"><small>members</small><code>acme-legacy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations</span></span><span class="chip"><small>repo</small><code>acme-legacy/hidden-tool</code></span></li>
+</ol>
+</details>
+<details class="pathc is-poss">
+<summary><span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span> <span class="to">to <code>repo:acme-secure/vault-proxy</code></span> <span class="hopn">4 hops</span></summary>
+<ol class="chain"><li><span class="chip"><small>members</small><code>acme-legacy</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations</span></span><span class="chip"><small>repo</small><code>acme-legacy/hidden-tool</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">RESOLVES_TO</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source derived:workflow.uses&#43;graphql:enterprise.organizations (reversed)</span></span><span class="chip"><small>action</small><code>acme-legacy/hidden-tool@v2</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">USES</span><span class="badge nv"><span aria-hidden="true">?</span> not visible</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path} (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-secure/vault-proxy/.github/workflows/ci.yml">acme-secure/vault-proxy › ci.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows</span></span><span class="chip"><small>repo</small><code>acme-secure/vault-proxy</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>team:acme-legacy/legacy-devs</code> <span class="hopn">1 path</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>repo:acme-legacy/old-site</code></span> <span class="hopn">1 hop</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-legacy: SSO enforced, IP allow list unknown</p>
+<ol class="chain"><li><span class="chip"><small>team</small><code>acme-legacy/legacy-devs</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /orgs/{org}/teams/{team_slug}/repos</span></span><span class="chip"><small>repo</small><code>acme-legacy/old-site</code></span></li>
+</ol>
+</details>
+</div>
+<div class="pgroup"><h3><code>identity:carol</code> <span class="hopn">1 path</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>repo:acme-secure/vault-proxy</code></span> <span class="hopn">1 hop</span></summary>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>carol</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>repo</small><code>acme-secure/vault-proxy</code></span></li>
+</ol>
+</details>
+</div>
+</div>
+</section>
+<section aria-labelledby="org-settings">
+<h2 id="org-settings">Org settings</h2>
+<p class="lede keys"><span class="g g-good"><span aria-hidden="true">✓</span> strong</span> <span class="g g-weak"><span aria-hidden="true">!</span> weak</span> <span class="g g-unk"><span aria-hidden="true">?</span> unknown: follow it for why</span></p>
+<div class="card flush scroll"><table class="grid">
+<caption class="vh">Org settings; a setting gop could not see reads unknown, linked to why</caption>
+<thead><tr><th scope="col">Org</th><th scope="col">SSO</th><th scope="col">2FA</th><th scope="col">IP allow list</th><th scope="col">Default permission</th><th scope="col">Members can create repos</th><th scope="col">Members can change visibility</th><th scope="col">Members can delete repos</th><th scope="col">Members can fork private repos</th><th scope="col">Members</th></tr></thead>
+<tbody><tr><th scope="row"><code>acme-actions</code></th><td class="g-weak"><span aria-hidden="true">!</span> configured</td><td class="g-weak"><span aria-hidden="true">!</span> not_required</td><td class="g-weak"><span aria-hidden="true">!</span> off (0 active entries, installed apps off)</td><td class="g-weak"><span aria-hidden="true">!</span> write</td><td class="g-weak"><span aria-hidden="true">!</span> true</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-weak"><span aria-hidden="true">!</span> true</td><td>1</td></tr>
+<tr><th scope="row"><code>acme-app</code></th><td class="g-weak"><span aria-hidden="true">!</span> configured</td><td class="g-good"><span aria-hidden="true">✓</span> required</td><td class="g-weak"><span aria-hidden="true">!</span> off (0 active entries, installed apps off)</td><td class="g-good"><span aria-hidden="true">✓</span> read</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-weak"><span aria-hidden="true">!</span> true</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td>3</td></tr>
+<tr><th scope="row"><code>acme-archive</code></th><td class="g-weak"><span aria-hidden="true">!</span> none</td><td class="g-weak"><span aria-hidden="true">!</span> not_required</td><td class="g-unk tipcell"><a class="badge nv" href="#why-acme-archive"><span aria-hidden="true">?</span> unknown</a><span class="tip">not collected in this graph</span></td><td class="g-good"><span aria-hidden="true">✓</span> none</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td>0</td></tr>
+<tr><th scope="row"><code>acme-legacy</code></th><td class="g-good"><span aria-hidden="true">✓</span> enforced</td><td class="g-weak"><span aria-hidden="true">!</span> not_required</td><td class="g-unk tipcell"><a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a><span class="tip">not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy (SSO enforced: join through the identity provider first)</span></td><td class="g-weak"><span aria-hidden="true">!</span> write</td><td class="g-weak"><span aria-hidden="true">!</span> true</td><td class="g-weak"><span aria-hidden="true">!</span> true</td><td class="g-weak"><span aria-hidden="true">!</span> true</td><td class="g-weak"><span aria-hidden="true">!</span> true</td><td>1</td></tr>
+<tr><th scope="row"><code>acme-secure</code></th><td class="g-good"><span aria-hidden="true">✓</span> enforced</td><td class="g-good"><span aria-hidden="true">✓</span> required</td><td class="g-good"><span aria-hidden="true">✓</span> on (4 active entries, installed apps on)</td><td class="g-good"><span aria-hidden="true">✓</span> read</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td class="g-good"><span aria-hidden="true">✓</span> false</td><td>1</td></tr>
+</tbody></table></div>
+<h3 id="why-unknown">Why unknown</h3>
+<ul class="card whys"><li id="why-acme-archive"><code>acme-archive</code><ul><li><strong>IP allow list</strong>: not collected in this graph</li></ul></li>
+<li id="why-acme-legacy"><code>acme-legacy</code><ul><li><strong>IP allow list</strong>: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy (SSO enforced: join through the identity provider first)</li></ul></li>
+</ul>
+</section>
+<section aria-labelledby="repo-hardening">
+<h2 id="repo-hardening">Repo hardening</h2>
+<p class="lede">Context, not part of the score: default-branch protection, CODEOWNERS and secret scanning never change evidence, counts or scores. Each cell is repos where the fact holds / repos with the fact; repos gop could not read are counted as unknown, never as off.</p>
+<p class="lede keys"><span class="g g-good"><span aria-hidden="true">✓</span> every repo</span> <span class="g g-weak"><span aria-hidden="true">!</span> some repos lack it</span> <span class="g g-unk"><span aria-hidden="true">?</span> some repos unknown</span></p>
+<div class="card flush scroll"><table class="grid">
+<caption class="vh">Repo hardening per org; unknown repos are counted separately</caption>
+<thead><tr><th scope="col">Org</th><th scope="col">Repos</th><th scope="col">Protected default branch</th><th scope="col">Required reviews</th><th scope="col">CODEOWNERS covers workflows</th><th scope="col">Secret scanning</th><th scope="col">Push protection</th></tr></thead>
+<tbody><tr><th scope="row"><code>acme-actions</code></th><td>2</td><td class="g-good"><span aria-hidden="true">✓</span> 2/2</td><td class="g-weak"><span aria-hidden="true">!</span> 1/2</td><td class="g-weak"><span aria-hidden="true">!</span> 0/2</td><td class="g-good"><span aria-hidden="true">✓</span> 2/2</td><td class="g-weak"><span aria-hidden="true">!</span> 0/2</td></tr>
+<tr><th scope="row"><code>acme-app</code></th><td>9</td><td class="g-good"><span aria-hidden="true">✓</span> 1/1</td><td class="g-good"><span aria-hidden="true">✓</span> 1/1</td><td class="g-weak"><span aria-hidden="true">!</span> 0/9</td><td class="g-good"><span aria-hidden="true">✓</span> 9/9</td><td class="g-weak"><span aria-hidden="true">!</span> 0/9</td></tr>
+<tr><th scope="row"><code>acme-legacy</code></th><td>1</td><td>0/0</td><td>0/0</td><td class="g-weak"><span aria-hidden="true">!</span> 0/1</td><td class="g-unk"><span aria-hidden="true">?</span> 0/1 (1 unknown)</td><td class="g-unk"><span aria-hidden="true">?</span> 0/1 (1 unknown)</td></tr>
+<tr><th scope="row"><code>acme-secure</code></th><td>2</td><td>0/0</td><td>0/0</td><td class="g-weak"><span aria-hidden="true">!</span> 0/2</td><td class="g-good"><span aria-hidden="true">✓</span> 2/2</td><td class="g-weak"><span aria-hidden="true">!</span> 0/2</td></tr>
+</tbody></table></div>
+<h3 id="repo-hardening-top">Repos on the top paths</h3>
+<ul class="card whys"><li><code>acme-actions/deploy</code>: default branch `main`: protected (ruleset:7), 1 approval, force push allowed; no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-actions/setup</code>: default branch `main`: protected (ruleset:8), no approvals required, force push allowed; no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/api</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/billing</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/docs</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/infra</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/mobile</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/notify</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/search</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/web</code>: default branch `main`: protected (ruleset:46), 1 approval, force push blocked; no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-app/worker</code>: no CODEOWNERS; secret scanning on, push protection off</li>
+<li><code>acme-legacy/old-site</code>: no CODEOWNERS; secret scanning unknown, push protection unknown</li>
+</ul>
+<h3 id="repo-hardening-fixes">Hardening suggestions</h3>
+<p class="lede">Advisory: these settings are not counted as removing confirmed reach.</p>
+<ul class="card whys"><li>Enable secret scanning push protection on acme-actions/deploy (secret scanning push protection is off)</li>
+<li>Require at least one approving review on the default branch of acme-actions/setup (default branch `main` needs no approval)</li>
+<li>Enable secret scanning push protection on acme-actions/setup (secret scanning push protection is off)</li>
+<li>Enable secret scanning push protection on acme-app/api (secret scanning push protection is off)</li>
+<li>Enable secret scanning push protection on acme-app/billing (secret scanning push protection is off)</li>
+</ul>
+</section>
+</div>
+
+<section id="gop-explore" hidden>
+<h2 id="gop-explore-h" tabindex="-1">Explore paths</h2>
+<p class="lede">Filter every embedded path. The view is saved in the address, so a link to it opens the same filters.</p>
+<form id="gop-filters" class="filters">
+<label>Evidence <select name="ev"><option value="">confirmed and possible</option><option value="confirmed">confirmed</option><option value="possible">possible</option></select></label>
+<label>Ends at <select name="kind"><option value="">any</option><option value="oidc">oidc</option><option value="secret">secret</option><option value="runner">runner</option><option value="repo">repo</option><option value="cloud">cloud</option></select></label>
+<label>Action ref <select name="ref"><option value="">any</option><option value="branch">branch</option><option value="tag">tag</option><option value="sha">sha</option></select></label>
+<label>Principal <input name="q" type="search" placeholder="members:acme-app"></label>
+<label>Through node <input name="via" type="search" placeholder="action:acme-actions/deploy@main"></label>
+<fieldset><legend>Orgs</legend><label><input type="checkbox" name="org" value="acme-actions"> acme-actions</label><label><input type="checkbox" name="org" value="acme-app"> acme-app</label><label><input type="checkbox" name="org" value="acme-archive"> acme-archive</label><label><input type="checkbox" name="org" value="acme-legacy"> acme-legacy</label><label><input type="checkbox" name="org" value="acme-secure"> acme-secure</label></fieldset>
+<button type="button" id="gop-reset">Reset</button>
+</form>
+
+<p id="gop-count" class="note" role="status" aria-live="polite"></p>
+<div class="tabs" role="tablist" aria-label="Path views"><button type="button" role="tab" id="gop-tab-list" aria-controls="gop-list-panel" aria-selected="true">List</button><button type="button" role="tab" id="gop-tab-graph" aria-controls="gop-graph-panel" aria-selected="false" tabindex="-1">Graph</button></div>
+<div id="gop-list-panel" role="tabpanel" aria-labelledby="gop-tab-list"><div id="gop-paths"></div></div>
+<div id="gop-graph-panel" role="tabpanel" aria-labelledby="gop-tab-graph" hidden>
+<p class="note">The filtered paths as one diagram, principals on the left, impact on the right, each hop drawn in control direction. Lines: solid is live, long dashes are inferred, dashed is audit, thin dashed marked "stale" is an audit fact too old to confirm (possible only), dotted with a question mark is not visible (unknown, not absent), dash-dot is a supplied file, and a thin grey line is an evidence class this report does not know, named in the hop's details. Select a node (click, or Tab to it and press Enter) to keep only the paths through it; select it again to clear. Hover or focus shows each hop's source.</p>
+<fieldset id="gop-pins" class="pins" hidden><legend>Simulate a pin</legend><div id="gop-pin-options"></div></fieldset>
+<p id="gop-graph-status" class="note" role="status" aria-live="polite"></p>
+<div id="gop-graph" class="graph"></div>
+<div id="gop-graph-detail" class="detail"></div>
+<details class="path"><summary>Paths in this graph, as text</summary><ol id="gop-graph-text"></ol></details>
+</div>
+<h3>Fixes for the selected orgs</h3>
+<div id="gop-fixes"></div>
+<h3>Org views</h3>
+<p class="orglinks"><a href="#/org/acme-actions">acme-actions</a> <a href="#/org/acme-app">acme-app</a> <a href="#/org/acme-archive">acme-archive</a> <a href="#/org/acme-legacy">acme-legacy</a> <a href="#/org/acme-secure">acme-secure</a> </p>
+</section>
+
+<section id="gop-orgview" hidden></section>
+</main>
+<footer><div class="wrap">Generated by gop vTEST. This file maps attack paths in your organization. Treat it as sensitive.</div></footer>
+<script type="application/json" id="gop-data">@@data@@</script>
+<script>
+var GOP=(function(){
+"use strict";
+var KINDS=["oidc","secret","runner","repo","cloud"],REFS=["branch","tag","sha"],EVS=["confirmed","possible"];
+function dec(v){try{return decodeURIComponent(v);}catch(e){return "";}}
+function blank(){return {ev:"",kind:"",ref:"",q:"",via:"",view:"",orgs:[]};}
+function parseHash(h){
+var s={route:"",org:"",f:blank()};
+h=String(h||"");
+if(h.charAt(0)==="#"){h=h.slice(1);}
+if(h.indexOf("/org/")===0){s.route="org";s.org=dec(h.slice(5));return s;}
+h.split("&").forEach(function(kv){
+var i=kv.indexOf("=");
+if(i<1){return;}
+var k=kv.slice(0,i),raw=kv.slice(i+1),v=dec(raw);
+if(k==="ev"&&EVS.indexOf(v)>=0){s.f.ev=v;}
+else if(k==="kind"&&KINDS.indexOf(v)>=0){s.f.kind=v;}
+else if(k==="ref"&&REFS.indexOf(v)>=0){s.f.ref=v;}
+else if(k==="q"){s.f.q=v;}
+else if(k==="via"){s.f.via=v;}
+else if(k==="view"&&v==="graph"){s.f.view=v;}
+else if(k==="org"){s.f.orgs=raw.split(",").map(dec).filter(Boolean);}
+});
+return s;
+}
+function toHash(f){
+var p=[];
+if(f.orgs.length){p.push("org="+f.orgs.map(encodeURIComponent).join(","));}
+if(f.ev){p.push("ev="+f.ev);}
+if(f.kind){p.push("kind="+f.kind);}
+if(f.ref){p.push("ref="+f.ref);}
+if(f.q){p.push("q="+encodeURIComponent(f.q));}
+if(f.via){p.push("via="+encodeURIComponent(f.via));}
+if(f.view){p.push("view="+f.view);}
+return p.join("&");
+}
+function anyIn(a,b){return a.some(function(x){return b.indexOf(x)>=0;});}
+function matchPath(p,f){
+if(f.ev&&p.ev!==f.ev){return false;}
+if(f.kind&&p.to_kind!==f.kind){return false;}
+if(f.ref&&p.refs.indexOf(f.ref)<0){return false;}
+if(f.orgs.length&&f.orgs.indexOf(p.to_org)<0&&!anyIn(p.from_orgs,f.orgs)){return false;}
+if(f.q&&p.from.toLowerCase().indexOf(f.q.toLowerCase())<0){return false;}
+if(f.via&&!p.hops.some(function(x){return x.from===f.via||x.to===f.via;})){return false;}
+return true;
+}
+function filterPaths(d,f){return d.paths.filter(function(p){return matchPath(p,f);});}
+function fixesFor(d,orgs){return orgs.length?d.fixes.filter(function(x){return anyIn(x.orgs,orgs);}):d.fixes;}
+function inbound(d,org){return d.paths.filter(function(p){return p.to_org===org&&p.from_orgs.indexOf(org)<0;});}
+function outbound(d,org){return d.paths.filter(function(p){return p.from_orgs.indexOf(org)>=0&&p.to_org!==org;});}
+function coverageFor(d,org){return d.coverage.filter(function(c){return c.org===org;});}
+function edgeKey(x){return x.from+"\n"+x.kind+"\n"+x.to;}
+function lookup(d){
+if(!d.gi){
+d.gi={node:{},edge:{},pos:new Map()};
+d.graph.nodes.forEach(function(n){d.gi.node[n.id]=n;});
+d.graph.edges.forEach(function(e){d.gi.edge[edgeKey(e)]=e;});
+d.paths.forEach(function(p,i){d.gi.pos.set(p,i);});
+}
+return d.gi;
+}
+function graphModel(d,ps){
+var gi=lookup(d),seen={},ids=[],ekeys={},edges=[];
+ps.forEach(function(p){p.hops.forEach(function(x){
+[x.from,x.to].forEach(function(id){if(!seen[id]){seen[id]=1;ids.push(id);}});
+var k=edgeKey(x);
+if(!ekeys[k]){ekeys[k]=1;edges.push(gi.edge[k]||{from:x.from,to:x.to,kind:x.kind,ev:x.ev,api:x.api,rev:x.rev});}
+});});
+if(ids.length>d.graph.max_nodes){return {over:true,count:ids.length,ids:[],edges:[],pos:{},cols:0,rows:0};}
+var by={},pos={},rows=0;
+ids.forEach(function(id){var n=gi.node[id]||{layer:0,order:0};(by[n.layer]=by[n.layer]||[]).push(id);});
+var layers=Object.keys(by).map(Number).sort(function(a,b){return a-b;});
+layers.forEach(function(l){rows=Math.max(rows,by[l].length);});
+layers.forEach(function(l,c){
+var col=by[l].sort(function(a,b){return (gi.node[a]||{order:0}).order-(gi.node[b]||{order:0}).order;}),off=(rows-col.length)/2;
+col.forEach(function(id,r){pos[id]={col:c,row:r+off};});
+});
+ids.sort(function(a,b){return pos[a].col-pos[b].col||pos[a].row-pos[b].row;});
+return {over:false,count:ids.length,ids:ids,edges:edges,pos:pos,cols:layers.length,rows:rows};
+}
+function removedBy(d,fix){
+var out={};
+d.graph.what_if.forEach(function(w){if(w.fix===fix){w.removed.forEach(function(i){out[i]=1;});}});
+return out;
+}
+function pathIndex(d,p){return lookup(d).pos.get(p);}
+function evClass(ev){return {"live":"live","inferred":"inferred","audit":"audit","audit, stale":"nv","not visible":"nv","supplied file":"supplied"}[ev]||"other";}
+function edgeClass(e){return e.stale||e.ev==="audit, stale"?"stale":evClass(e.ev);}
+function short(id){
+var i=id.indexOf(":"),r=i>0?id.slice(i+1):id,w=r.indexOf("/.github/workflows/");
+if(w>0){r=r.slice(0,w)+" "+r.slice(w+19);}
+var t=(i>0?id.slice(0,i)+" ":"")+r;
+return t.length>30?t.slice(0,29)+"…":t;
+}
+function edgeText(e){
+var t=[e.from+" → "+e.to,e.kind+", evidence: "+e.ev];
+if(e.stale||e.ev==="audit, stale"){t.push("Stale: this audit fact is older than the audit age limit, so the hop counts as not visible and its paths are possible only.");}
+if(e.rev){t.push("Drawn in control direction. The evidence edge points the other way ("+e.to+" "+e.kind+" "+e.from+"): whoever controls "+e.from+" controls "+e.to+".");}
+if(e.api){t.push("source_api: "+e.api);}
+if(e.at){t.push("observed_at: "+e.at);}
+var a=e.attrs||{};
+if(a.file){t.push("at "+a.file+(a.line?":"+a.line:""));}
+Object.keys(a).sort().forEach(function(k){if(k!=="file"&&k!=="line"){t.push(k+": "+a[k]);}});
+return t;
+}
+return {parseHash:parseHash,toHash:toHash,matchPath:matchPath,filterPaths:filterPaths,fixesFor:fixesFor,
+inbound:inbound,outbound:outbound,coverageFor:coverageFor,blank:blank,graphModel:graphModel,removedBy:removedBy,
+pathIndex:pathIndex,edgeKey:edgeKey,evClass:evClass,edgeClass:edgeClass,short:short,edgeText:edgeText};
+})();
+if(typeof document!=="undefined"){(function(){
+"use strict";
+var LIMIT=200;
+var el=document.getElementById("gop-data"),D;
+if(!el){return;}
+try{D=JSON.parse(el.textContent);}catch(e){return;}
+function $(id){return document.getElementById(id);}
+function h(tag,cls){
+var e=document.createElement(tag);
+if(cls){e.className=cls;}
+for(var i=2;i<arguments.length;i++){
+var c=arguments[i];
+if(c===null||c===undefined){continue;}
+e.appendChild(typeof c==="object"?c:document.createTextNode(String(c)));
+}
+return e;
+}
+function code(t){return h("code","",t);}
+function clear(e){while(e.firstChild){e.removeChild(e.firstChild);}}
+function icon(t){var e=h("span","",t);e.setAttribute("aria-hidden","true");return e;}
+function badge(cls,t,txt){return h("span","badge "+cls,icon(t)," "+txt);}
+function evBadge(ev){var c=GOP.evClass(ev);return badge(c,{supplied:"≡",inferred:"≈",nv:"?",other:"•"}[c]||"✓",ev);}
+function pathBadge(p){return p.ev==="confirmed"?badge("live","✓","confirmed"):badge("nv","?","possible: a hop is not visible");}
+function table(cap,heads,tb){
+var tr=h("tr");
+heads.forEach(function(t){var th=h("th","",t);th.scope="col";tr.appendChild(th);});
+return h("div","scroll",h("table","",h("caption","vh",cap),h("thead","",tr),tb));
+}
+function plural(n,one,many){return n+" "+(n===1?one:many);}
+function pathEl(p){
+var ol=h("ol");
+p.hops.forEach(function(x){
+ol.appendChild(h("li","",code(x.from)," → ",code(x.to)," ",h("span","src",x.kind+(x.rev?" (reversed)":""))," ",evBadge(x.ev),
+x.api?" ":null,x.api?h("span","src",x.api):null,x.why?h("span","src"," undecided: "+x.why):null,x.note?h("span","src"," ("+x.note+")"):null));
+});
+return h("details","path",h("summary","",pathBadge(p)," ",code(p.from)," to ",code(p.to)," ",h("span","src",p.to_kind)),p.note?h("div","note",p.note):null,ol);
+}
+function pathList(box,ps){
+ps.slice(0,LIMIT).forEach(function(p){box.appendChild(pathEl(p));});
+if(ps.length>LIMIT){box.appendChild(h("p","note","Showing the first "+LIMIT+" of "+ps.length+" paths. Narrow the filters to see the rest."));}
+if(!ps.length){box.appendChild(h("p","note","No paths match."));}
+}
+function fixTable(box,fs,none){
+if(!fs.length){box.appendChild(h("p","note",none));return;}
+var tb=h("tbody");
+fs.forEach(function(x){tb.appendChild(h("tr","",h("td","n",x.n),h("td","",x.desc,h("br"),h("span","src",code(x.id))),h("td","n",x.removed),h("td","n",x.pct)));});
+box.appendChild(table("Suggested fixes for this view",["#","Fix","Confirmed pairs removed","Cumulative removed"],tb));
+}
+function counts(ps){
+var c=0,pr={};
+ps.forEach(function(p){if(p.ev==="confirmed"){c++;}pr[p.from]=1;});
+return {conf:c,poss:ps.length-c,princ:Object.keys(pr).length};
+}
+var form=$("gop-filters");
+function readForm(){
+var f=GOP.blank();
+f.ev=form.elements.ev.value;f.kind=form.elements.kind.value;f.ref=form.elements.ref.value;f.q=form.elements.q.value.trim();
+f.via=form.elements.via.value.trim();f.view=view;
+Array.prototype.forEach.call(form.querySelectorAll("input[name=org]"),function(b){if(b.checked){f.orgs.push(b.value);}});
+return f;
+}
+function writeForm(f){
+form.elements.ev.value=f.ev;form.elements.kind.value=f.kind;form.elements.ref.value=f.ref;form.elements.q.value=f.q;
+form.elements.via.value=f.via;setView(f.view);
+Array.prototype.forEach.call(form.querySelectorAll("input[name=org]"),function(b){b.checked=f.orgs.indexOf(b.value)>=0;});
+}
+function renderExplore(f){
+var ps=GOP.filterPaths(D,f),c=counts(ps);
+var cnt=$("gop-count");clear(cnt);
+cnt.appendChild(document.createTextNode(plural(ps.length,"path","paths")+" match ("+c.conf+" confirmed, "+c.poss+" possible) from "+plural(c.princ,"principal","principals")+", of "+D.paths.length+" embedded."));
+var box=$("gop-paths");clear(box);pathList(box,ps);
+shown=ps;if(view){renderGraph();}
+var fx=$("gop-fixes");clear(fx);fixTable(fx,GOP.fixesFor(D,f.orgs),"No suggested fix touches the selected orgs.");
+}
+var SVGNS="http://www.w3.org/2000/svg",COLW=248,ROWH=36,NW=216,NH=26,view="",pin="",shown=[],nodeEls={};
+function sv(tag,cls,at){
+var e=document.createElementNS(SVGNS,tag);
+if(cls){e.setAttribute("class",cls);}
+Object.keys(at||{}).forEach(function(k){e.setAttribute(k,String(at[k]));});
+return e;
+}
+function tip(e,t){var x=sv("title");x.appendChild(document.createTextNode(t));e.appendChild(x);return e;}
+function setView(v){
+view=v==="graph"?"graph":"";
+var g=!!view,tl=$("gop-tab-list"),tg=$("gop-tab-graph");
+tl.setAttribute("aria-selected",String(!g));tg.setAttribute("aria-selected",String(g));
+tl.tabIndex=g?-1:0;tg.tabIndex=g?0:-1;
+$("gop-list-panel").hidden=g;$("gop-graph-panel").hidden=!g;
+}
+function renderPins(m){
+var box=$("gop-pin-options"),fs=$("gop-pins"),opts=[{fix:"",desc:"No pin"}],ok=false;
+clear(box);
+D.graph.what_if.forEach(function(w){if(w.kind==="pin"&&m.pos[w.node]){opts.push({fix:w.fix,desc:w.node.replace(/^action:/,"")});ok=ok||w.fix===pin;}});
+if(!ok){pin="";}
+fs.hidden=opts.length<2;
+opts.forEach(function(o){
+var r=h("input");r.type="radio";r.name="gop-pin";r.value=o.fix;r.checked=o.fix===pin;
+r.addEventListener("change",function(){if(r.checked){pin=r.value;renderGraph();}});
+box.appendChild(h("label","",r," "+o.desc));
+});
+}
+function nodeDetail(id,m,use){
+var det=$("gop-graph-detail");clear(det);
+var n=use[id]||{all:0,on:0},ul=h("ul");
+det.appendChild(h("p","",h("strong","",id)," ",plural(n.all,"path","paths")+" through it"+(pin?", "+(n.all-n.on)+" removed by the simulated pin":"")+"."));
+m.edges.forEach(function(e){if(e.from===id||e.to===id){ul.appendChild(edgeLi(e));}});
+det.appendChild(ul);
+}
+function edgeLi(e){
+var t=GOP.edgeText(e);
+return h("li","",code(e.from)," → ",code(e.to)," ",h("span","src",e.kind+(e.rev?" (reversed)":""))," ",evBadge(e.ev),h("br"),h("span","src",t.slice(2).join(" · ")));
+}
+function choose(id){
+form.elements.via.value=form.elements.via.value===id?"":id;
+onInput();
+focusOn(nodeEls[id]);
+}
+function renderGraph(){
+var box=$("gop-graph"),st=$("gop-graph-status"),tx=$("gop-graph-text"),ps=shown;
+clear(box);clear(tx);clear($("gop-graph-detail"));clear(st);nodeEls={};
+var m=GOP.graphModel(D,ps);
+renderPins(m);
+if(m.over){st.appendChild(document.createTextNode("Too many paths to draw: "+m.count+" nodes, the graph shows at most "+D.graph.max_nodes+". Narrow the filter, for example to one org, principal or node."));return;}
+if(!ps.length){st.appendChild(document.createTextNode("No paths match."));return;}
+var rm=GOP.removedBy(D,pin),use={},off=0,via=form.elements.via.value.trim();
+ps.forEach(function(p){
+var gone=!!rm[GOP.pathIndex(D,p)];
+if(gone){off++;}
+p.hops.forEach(function(x){[x.from,x.to,GOP.edgeKey(x)].forEach(function(k){var u=use[k]=use[k]||{all:0,on:0};if(u.last!==p){u.last=p;u.all++;if(!gone){u.on++;}}});});
+});
+st.appendChild(document.createTextNode(plural(m.count,"node","nodes")+", "+plural(m.edges.length,"hop","hops")+", "+plural(ps.length,"path","paths")+"."+(pin?" Simulating "+pin+": "+off+" of "+ps.length+" paths removed (greyed).":"")));
+var W=Math.max(1,m.cols)*COLW,H=Math.max(1,m.rows)*ROWH+8;
+var svg=sv("svg","",{width:W,height:H,viewBox:"0 0 "+W+" "+H,role:"group","aria-label":"Path graph: "+plural(m.count,"node","nodes")+" and "+plural(ps.length,"path","paths")+". The same paths are listed as text below the graph."});
+svg.setAttribute("aria-describedby","gop-graph-text");
+function at(id){var q=m.pos[id];return {x:q.col*COLW+8,y:q.row*ROWH+8};}
+var eg=sv("g");
+m.edges.forEach(function(e){
+var a=at(e.from),b=at(e.to),x1=a.x+NW,y1=a.y+NH/2,x2=b.x,y2=b.y+NH/2,d,u=use[GOP.edgeKey(e)]||{on:1};
+d=x2>x1?"M"+x1+" "+y1+"C"+(x1+40)+" "+y1+" "+(x2-40)+" "+y2+" "+x2+" "+y2:"M"+x1+" "+y1+"C"+(x1+60)+" "+(y1+ROWH)+" "+(x2-60)+" "+(y2+ROWH)+" "+x2+" "+y2;
+var ec=GOP.edgeClass(e),g=sv("g","edge e-"+ec+(pin&&!u.on?" off":""));
+g.appendChild(sv("path","",{d:d}));
+if(ec==="nv"||ec==="stale"){var q=sv("text","",{x:(x1+x2)/2-(ec==="nv"?3:14),y:(y1+y2)/2-3});q.appendChild(document.createTextNode(ec==="nv"?"?":"stale"));g.appendChild(q);}
+tip(g,GOP.edgeText(e).join("\n")+(pin&&!u.on?"\nRemoved by the simulated pin.":""));
+g.addEventListener("mouseenter",function(){var det=$("gop-graph-detail");clear(det);det.appendChild(h("ul","",edgeLi(e)));});
+eg.appendChild(g);
+});
+svg.appendChild(eg);
+m.ids.forEach(function(id){
+var p=at(id),u=use[id]||{all:0,on:0},gone=pin&&!u.on,sel=id===via;
+var g=sv("g","node k-"+((D.gi.node[id]||{}).kind||"other")+(sel?" sel":"")+(gone?" off":""),{transform:"translate("+p.x+" "+p.y+")",tabindex:0,role:"button"});
+g.setAttribute("aria-pressed",String(sel));
+g.setAttribute("aria-label",id+": "+plural(u.all,"path","paths")+(gone?", all removed by the simulated pin":"")+". "+(sel?"Showing only paths through it; press Enter to clear.":"Press Enter to show only paths through it."));
+g.appendChild(sv("rect","",{width:NW,height:NH,rx:4}));
+var t=sv("text","",{x:6,y:17});t.appendChild(document.createTextNode(GOP.short(id)));g.appendChild(t);
+tip(g,id);
+g.addEventListener("click",function(){choose(id);});
+g.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();choose(id);}});
+g.addEventListener("focus",function(){nodeDetail(id,m,use);});
+g.addEventListener("mouseenter",function(){nodeDetail(id,m,use);});
+nodeEls[id]=g;svg.appendChild(g);
+});
+box.appendChild(svg);
+ps.slice(0,LIMIT).forEach(function(p){
+var li=h("li","",pathBadge(p)," ",code(p.from)),gone=!!rm[GOP.pathIndex(D,p)];
+p.hops.forEach(function(x){li.appendChild(document.createTextNode(" → "));li.appendChild(code(x.to));li.appendChild(h("span","src"," ("+x.kind+", "+(GOP.edgeKey(x) in D.gi.edge?D.gi.edge[GOP.edgeKey(x)].ev:x.ev)+(x.rev?", reversed":"")+")"));});
+if(gone){li.appendChild(h("strong",""," Removed by the simulated pin."));}
+li.setAttribute("data-i",GOP.pathIndex(D,p));
+tx.appendChild(li);
+});
+if(ps.length>LIMIT){tx.appendChild(h("li","note","and "+(ps.length-LIMIT)+" more: narrow the filters to list them."));}
+}
+function section(title,note){var s=h("section","");s.appendChild(h("h3","",title));if(note){s.appendChild(h("p","note",note));}return s;}
+function grouped(box,ps){
+var by={},order=[];
+ps.forEach(function(p){if(!by[p.from]){by[p.from]=[];order.push(p.from);}by[p.from].push(p);});
+order.forEach(function(k){
+var c=counts(by[k]);
+box.appendChild(h("h4","",code(k)," ",h("span","note",plural(by[k].length,"path","paths")+" ("+c.conf+" confirmed)")));
+pathList(box,by[k]);
+});
+if(!order.length){box.appendChild(h("p","note","None in the embedded paths."));}
+}
+function renderOrg(name){
+var v=$("gop-orgview");clear(v);
+var org=null;
+D.orgs.forEach(function(o){if(o.name===name){org=o;}});
+var back=h("a","","← Back to the full report");back.href="#";
+v.appendChild(h("p","",back));
+var hd=h("h2","","Org ",code(name));hd.tabIndex=-1;v.appendChild(hd);
+var st=section("Settings","A setting gop could not see reads unknown, never off.");
+if(org){
+var tb=h("tbody");
+org.settings.forEach(function(a){tb.appendChild(h("tr","",h("td","",a.title),h("td","",a.known?a.value:badge("nv","?",a.value)),h("td","",evBadge(a.evidence))));});
+st.appendChild(table("Settings of "+name,["Setting","Value","Evidence"],tb));
+}else{st.appendChild(h("p","note","gop has no org node for this name: every setting is unknown."));}
+v.appendChild(st);
+var inb=GOP.inbound(D,name),s1=section("Inbound reach","Principals from other orgs that reach this org's repos and their impact.");
+grouped(s1,inb);v.appendChild(s1);
+var out=GOP.outbound(D,name),s2=section("Outbound reach","What this org's members reach in other orgs.");
+grouped(s2,out);v.appendChild(s2);
+var s3=section("Fixes that touch this org");fixTable(s3,GOP.fixesFor(D,[name]),"No suggested fix touches this org.");v.appendChild(s3);
+var cov=GOP.coverageFor(D,name),s4=section("Coverage gaps");
+if(cov.length){
+var cb=h("tbody");
+cov.forEach(function(x){cb.appendChild(h("tr","",h("td","",code(x.scope)),h("td","",badge("nv","?",x.fact)),h("td","",x.reason),h("td","",x.needs_fix)));});
+s4.appendChild(table("Coverage gaps of "+name,["Scope","Not visible","Why","Access that fixes it"],cb));
+}else{s4.appendChild(h("p","note","No coverage gap recorded for this org."));}
+v.appendChild(s4);
+return hd;
+}
+function focusOn(e){if(e&&e.focus){e.focus();}}
+function route(moved){
+var s=GOP.parseHash(location.hash),isOrg=s.route==="org";
+$("gop-static").hidden=isOrg;$("gop-explore").hidden=isOrg;$("gop-orgview").hidden=!isOrg;
+if(isOrg){var hd=renderOrg(s.org);window.scrollTo(0,0);if(moved){focusOn(hd);}return;}
+writeForm(s.f);renderExplore(s.f);
+if(moved&&location.hash.indexOf("=")>0){focusOn($("gop-explore-h"));}
+}
+function onInput(){
+var f=readForm(),hs=GOP.toHash(f);
+history.replaceState(null,"",hs?"#"+hs:location.pathname+location.search);
+renderExplore(f);
+}
+form.addEventListener("input",onInput);
+form.addEventListener("change",onInput);
+form.addEventListener("submit",function(e){e.preventDefault();});
+$("gop-reset").addEventListener("click",function(){var b=GOP.blank();b.view=view;writeForm(b);onInput();});
+["gop-tab-list","gop-tab-graph"].forEach(function(id,i){
+var t=$(id);
+t.addEventListener("click",function(){setView(i?"graph":"");onInput();});
+t.addEventListener("keydown",function(ev){
+var k=ev.key,to=k==="ArrowRight"||k==="End"?1:k==="ArrowLeft"||k==="Home"?0:-1;
+if(to<0){return;}
+ev.preventDefault();setView(to?"graph":"");onInput();focusOn($(to?"gop-tab-graph":"gop-tab-list"));
+});
+});
+window.addEventListener("hashchange",function(){route(true);});
+route();
+})();}
+</script>
+</body>
+</html>

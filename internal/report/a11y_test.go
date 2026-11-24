@@ -28,6 +28,8 @@ func a11yPages(t *testing.T) map[string]string {
 		"acme":   render(t, loadAcme(t), "html"),
 		"banner": renderWith(t, cur, "html", &rep),
 		"demo":   render(t, demo.Generate(demo.Options{Seed: 1, Size: demo.SizeSmall}), "html"),
+		// the AI approve + self-merge section
+		"botmerge": render(t, loadGraph(t, "../../testdata/botmerge-script/graph.json"), "html"),
 	}
 }
 

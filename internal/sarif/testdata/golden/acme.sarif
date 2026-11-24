@@ -113,6 +113,34 @@
                   "ai-agent"
                 ]
               }
+            },
+            {
+              "id": "GOP005",
+              "name": "review-bypass-bot-self-merge",
+              "shortDescription": {
+                "text": "A pull request's author can get code onto the default branch through a bot approval and a bot merge, with no human review"
+              },
+              "fullDescription": {
+                "text": "A workflow approves pull requests with a bot token, often an AI reviewer the author's text can steer, and a workflow the author can start merges with a bot token that the default branch's rules let through (a bypass App, an admin token, bot approvals that meet the required reviews, or no rule at all). Anyone who can open a pull request lands code on the default branch with no human review: gop treats it like push access."
+              },
+              "help": {
+                "text": "Require a CODEOWNERS review with human owners on the default branch, remove the merging App from the bypass actors, stop pull request authors from starting the merge, and do not let the AI reviewer approve. When the merge rules live in a script, count only approvals of the head commit. The block_bot_merge fix in properties.fix has the full checklist (the MCP fix_plan tool renders it). See docs/agents-in-ci.md.",
+                "markdown": "## Fix: put a human back between the pull request and the default branch\n\nA bot approves a pull request its author can steer, and a workflow the author can start merges it with a bot token the default branch's rules let through. Anyone who can open a pull request lands code with no human review.\n\n- Require a CODEOWNERS review on the default branch with human owners (or a team): a bot approval never satisfies it.\n- Remove the merging GitHub App from the bypass actors of the default branch rules, and drop `--admin` from merge steps.\n- Do not let pull request authors start the merge: require a maintainer and an environment with required reviewers.\n- Let the AI reviewer comment, not approve; turn off \"Allow GitHub Actions to create and approve pull requests\" when the approval uses `GITHUB_TOKEN`.\n- When the merge rules live in a script, count only `APPROVED` reviews of the head commit, never `DISMISSED` ones (a suspected, heuristic finding: confirm by hand).\n\n`properties.bot_merge_fixes` lists the changes for this repo; `properties.fix` is the `block_bot_merge` fix, whose checklist the MCP `fix_plan` tool gives. See docs/agents-in-ci.md. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions",
+                  "ai-agent",
+                  "code-review"
+                ]
+              }
             }
           ]
         }

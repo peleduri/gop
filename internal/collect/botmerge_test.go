@@ -35,7 +35,7 @@ func TestParseBotFacts(t *testing.T) {
 		}},
 		{"author comment merges with the App", readBotFixture(t, "ai-merge.yml"), &botFacts{
 			MergeJobs: []string{"merge"}, MergeTokens: []string{graph.BotTokenApp}, MergeStarter: graph.StarterPROpeners,
-			MergeGate: graph.BotGateAuthor, MergeTriggers: []string{"issue_comment"}, MergeLine: 22, MergeKeys: []string{"REVIEW_APP_KEY"},
+			MergeGate: graph.BotGateAuthor, MergeTriggers: []string{"issue_comment"}, MergeLine: 22, MergeKeys: []string{"REVIEW_APP_KEY"}, MergeApps: []string{"77"},
 		}},
 		{"author_association admits members", `on: issue_comment
 jobs:

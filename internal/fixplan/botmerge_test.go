@@ -22,7 +22,7 @@ func TestBuildBlockBotMerge(t *testing.T) {
 	}
 	want := []struct{ kind, file, change string }{
 		{KindChangeSetting, "", "Require a human approval that bots cannot give"},
-		{KindChangeSetting, "", "Remove the GitHub App from the bypass actors"},
+		{KindChangeSetting, "", "Remove the GitHub App `77` from the bypass actors"},
 		{KindEditWorkflow, ".github/workflows/ai-merge.yml", "Do not let PR authors trigger the merge"},
 		{KindEditWorkflow, ".github/workflows/ai-review.yml", "Do not give the reviewer write or approve rights"},
 	}
@@ -57,7 +57,7 @@ func TestBuildBlockBotMergeScript(t *testing.T) {
 		t.Fatalf("steps = %+v", p.Steps)
 	}
 	want := []struct{ kind, file, change string }{
-		{KindEditWorkflow, "tools/merge.py", "Count only approvals of the head commit"},
+		{KindEditWorkflow, "tools/merge.py", "Stop counting DISMISSED reviews"},
 		{KindEditWorkflow, ".github/workflows/ai-review.yml", "Re-run the AI review on every push"},
 		{KindEditWorkflow, ".github/workflows/ai-review.yml", "Keep the merge key out of the AI step"},
 	}

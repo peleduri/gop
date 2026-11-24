@@ -53,17 +53,18 @@ A bot approves a pull request its author can steer, and a workflow the author ca
 
 ### acme-app/web
 
-- a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+- a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
 - Who: external:anyone
 - Why no human review: app\_bypass
+- Merging App: 77, a bypass actor of the default branch rules
 - Merge rules in a script: \`tools/merge.py\` (read from the default branch, not run)
-- Stale approvals (suspected, heuristic): the merge seems to count approvals not tied to the head commit; confirm by hand
+- Stale approvals (suspected, heuristic): the script re-counts approvals GitHub dismissed: the rules dismiss stale reviews on push, and the merge counts DISMISSED reviews; confirm by hand
 - The AI step holds the merge key: .github/workflows/ai-review.yml
   1. Require a human approval that bots cannot give: require CODEOWNERS review on \`main\` with human owners (or a team), so a bot approval never satisfies the rule.
-  2. Remove the GitHub App from the bypass actors of the rules on \`main\`: the merging workflow uses its token, so the merge skips every rule.
+  2. Remove the GitHub App \`77\` from the bypass actors of the rules on \`main\`: the merging workflow uses its token, so the merge skips every rule.
   3. Do not let PR authors trigger the merge: drop the author check from \`ai-merge.yml\`, or require a maintainer (author\_association OWNER, or a write-permission check) and an environment with required reviewers.
   4. Do not give the reviewer write or approve rights: let the AI reviewer comment (pull-requests: write without approving, or a read-only token) and keep approve and merge with people.
-  5. Count only approvals of the head commit in \`tools/merge.py\` (suspected, heuristic: confirm by hand): skip reviews whose commit\_id is not the head SHA and never count DISMISSED reviews.
+  5. Stop counting DISMISSED reviews in \`tools/merge.py\` (suspected, heuristic: confirm by hand): the rules already dismiss stale reviews on push, but the script re-counts approvals GitHub dismissed. Count only APPROVED reviews whose commit\_id is the head SHA.
   6. Re-run the AI review on every push: add synchronize to the pull\_request types of \`ai-review.yml\`, so an approval always covers the code that is merged.
   7. Keep the merge key out of the AI step: the agent in \`ai-review.yml\` holds the secret the merge uses, so a prompt injection can merge by itself. Give the merge its own App and key, outside the agent's env.
 
@@ -148,7 +149,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
   4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
-     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
   5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
   6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
@@ -175,7 +176,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
   4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
-     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
   5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
   6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
@@ -198,7 +199,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 - **confirmed** to secret:acme-app/web
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
   1. identity:bob → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
-     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
   2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
   3. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 - **possible: a hop is not visible** to repo:acme-secure/vault-proxy
@@ -231,7 +232,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
   4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
-     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
   5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
   6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 

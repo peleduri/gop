@@ -1,0 +1,969 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "gop",
+          "version": "vTEST",
+          "informationUri": "https://github.com/peleduri/gop",
+          "rules": [
+            {
+              "id": "GOP001",
+              "name": "mutable-action-ref-reachable",
+              "shortDescription": {
+                "text": "A workflow uses a mutable action ref whose host repo principals outside the consuming org can change"
+              },
+              "fullDescription": {
+                "text": "The workflow uses an action by branch or tag. Principals outside the consuming org can push to the repo that hosts the action, so they can change the code the workflow runs and reach its secrets, OIDC tokens and runners."
+              },
+              "help": {
+                "text": "Pin the action to a full commit SHA in this uses: line (keep the ref as a comment). Run gop fix-plan --pin <action> for every line to change, or gop pin --action <owner/repo@ref> --graph graph.json for a git apply diff. Keep pins current with Dependabot or Renovate.",
+                "markdown": "## Fix: pin the action to a commit SHA\n\nThe `uses:` line names a branch or tag. Whoever can push to the action's host repo can change what this workflow runs, and with it reach the workflow's secrets, OIDC tokens and runners.\n\nReplace the ref with the full commit SHA and keep the ref as a comment:\n\n```diff\n-uses: acme-actions/deploy@main\n+uses: acme-actions/deploy@<40-hex-sha> # main\n```\n\n- `gop fix-plan --graph graph.json --pin action:<owner>/<repo>@<ref>` lists every line to change, with a one-line diff when the graph has line numbers.\n- `gop pin --action <owner>/<repo>@<ref> --graph graph.json` resolves the SHA with read-only calls and prints a `git apply` diff.\n- Pinning the outer ref does not close paths through mutable refs the action uses itself; fix-plan lists those.\n- Keep pins current with Dependabot or Renovate.\n\ngop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions"
+                ]
+              }
+            },
+            {
+              "id": "GOP002",
+              "name": "default-permission-grants-push",
+              "shortDescription": {
+                "text": "The org's default repository permission gives every member push access"
+              },
+              "fullDescription": {
+                "text": "The org's base permission is write or admin, so every member can push to repos where nothing else grants them push, and through those repos reach the workflows, actions and terminals they control."
+              },
+              "help": {
+                "text": "Lower the org's base permission to read (Organization settings > Member privileges > Base permissions) after giving teams push where members need it. Run gop fix-plan --lower-default-perm org:<org> for the repos where members lose push.",
+                "markdown": "## Fix: lower the org's default repository permission\n\nThe base permission gives every org member push to repos where no team, direct or owner grant does, and with push, control of the workflows and actions in those repos.\n\n1. Run `gop fix-plan --graph graph.json --lower-default-perm org:<org>` to list the repos where members lose push.\n2. Give a team push on the repos members still need.\n3. An org owner sets Organization settings > Member privileges > Base permissions to **Read** (`PATCH /orgs/<org> {\"default_repository_permission\": \"read\"}`).\n\nThis result has no file: it is an org setting. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions"
+                ]
+              }
+            },
+            {
+              "id": "GOP003",
+              "name": "action-with-known-advisory-reachable",
+              "shortDescription": {
+                "text": "A workflow runs an action version with a known compromise or vulnerability advisory"
+              },
+              "fullDescription": {
+                "text": "The uses: line names an action version that an OSV GitHub Actions advisory lists as affected, for example a hijacked tag that shipped code stealing secrets. The workflow runs that code with its secrets, OIDC tokens and runners."
+              },
+              "help": {
+                "text": "Move the action to the first fixed version the advisory names, or a commit SHA after it. Run gop fix-plan --pin <action> for every line to change. When the advisory is a compromise, also rotate the secrets and cloud credentials the workflow could reach while it ran the affected version.",
+                "markdown": "## Fix: move off the affected version\n\nAn [OSV](https://osv.dev) advisory lists this action version as affected. A compromised action runs the attacker's code with the workflow's secrets, OIDC tokens and runners.\n\n- Move the `uses:` line to the first fixed version (`advisory_fixed` on the action node) or a commit SHA after it; `gop fix-plan --graph graph.json --pin action:<owner>/<repo>@<ref>` lists every line with a diff.\n- With no fixed version, remove or replace the action.\n- For a compromise, rotate the secrets and cloud credentials the workflow reached while it ran the affected version, and check its run logs.\n\nSee docs/advisories.md for where the data comes from. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions"
+                ]
+              }
+            },
+            {
+              "id": "GOP004",
+              "name": "agent-workflow-exposed",
+              "shortDescription": {
+                "text": "People without push access can start an AI coding agent that runs with the repo's token and secrets"
+              },
+              "fullDescription": {
+                "text": "The workflow runs an AI coding agent (a known agent action or CLI) on a trigger that people without push access can cause, and the agent's own actor check does not stop them. The agent reads their text (a comment, an issue, a pull request) and acts with the job's GITHUB_TOKEN, secrets, OIDC token and tools, so a prompt injection uses all of them."
+              },
+              "help": {
+                "text": "Restrict who can start the agent (keep the action's write-access check, drop allowed_non_write_users or allow-users, or require approval for outside contributors), give the agent job a read-only token and do writes in a separate job, pin the agent action to a commit SHA, drop --dangerously-skip-permissions and similar flags, and scope the allowed tools. See docs/agents-in-ci.md.",
+                "markdown": "## Fix: close the agent to outsiders and shrink what it holds\n\nAn AI coding agent reads the text of whoever triggered it. When that can be anyone without push access, a prompt injection acts with the job's token, secrets, OIDC token and tools.\n\n- Restrict who can start it: keep the action's write-access check (remove `allowed_non_write_users` / `allow-users`), move it off `pull_request_target`, `issue_comment` and `issues`, or require approval for outside contributors.\n- Give the agent job `permissions: contents: read` and make changes in a separate job that takes the agent's output.\n- Pin the agent action to a full commit SHA.\n- Drop `--dangerously-skip-permissions`, `--yolo`, `bypassPermissions`, `safety-strategy: unsafe` and similar flags.\n- Scope the allowed tools, for example `--allowedTools \"Bash(gh pr comment:*)\"`.\n\n`properties.agent_fixes` lists the changes for this workflow. See docs/agents-in-ci.md. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions",
+                  "ai-agent"
+                ]
+              }
+            },
+            {
+              "id": "GOP005",
+              "name": "review-bypass-bot-self-merge",
+              "shortDescription": {
+                "text": "A pull request's author can get code onto the default branch through a bot approval and a bot merge, with no human review"
+              },
+              "fullDescription": {
+                "text": "A workflow approves pull requests with a bot token, often an AI reviewer the author's text can steer, and a workflow the author can start merges with a bot token that the default branch's rules let through (a bypass App, an admin token, bot approvals that meet the required reviews, or no rule at all). Anyone who can open a pull request lands code on the default branch with no human review: gop treats it like push access."
+              },
+              "help": {
+                "text": "Require a CODEOWNERS review with human owners on the default branch, remove the merging App from the bypass actors, stop pull request authors from starting the merge, and do not let the AI reviewer approve. When the merge rules live in a script, count only approvals of the head commit. The block_bot_merge fix in properties.fix has the full checklist (the MCP fix_plan tool renders it). See docs/agents-in-ci.md.",
+                "markdown": "## Fix: put a human back between the pull request and the default branch\n\nA bot approves a pull request its author can steer, and a workflow the author can start merges it with a bot token the default branch's rules let through. Anyone who can open a pull request lands code with no human review.\n\n- Require a CODEOWNERS review on the default branch with human owners (or a team): a bot approval never satisfies it.\n- Remove the merging GitHub App from the bypass actors of the default branch rules, and drop `--admin` from merge steps.\n- Do not let pull request authors start the merge: require a maintainer and an environment with required reviewers.\n- Let the AI reviewer comment, not approve; turn off \"Allow GitHub Actions to create and approve pull requests\" when the approval uses `GITHUB_TOKEN`.\n- When the merge rules live in a script, count only `APPROVED` reviews of the head commit, never `DISMISSED` ones (a suspected, heuristic finding: confirm by hand).\n\n`properties.bot_merge_fixes` lists the changes for this repo; `properties.fix` is the `block_bot_merge` fix, whose checklist the MCP `fix_plan` tool gives. See docs/agents-in-ci.md. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions",
+                  "ai-agent",
+                  "code-review"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "GOP004",
+          "ruleIndex": 3,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/ai-review.yml runs claude-cli, which external:anyone can start on issue_comment; the agent job holds secrets and reaches 1 secrets scope. Restrict who can start it: the agent has no actor check of its own, so move it off issue_comment or pull_request_target, check the actor's repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ai-review.yml"
+                },
+                "region": {
+                  "startLine": 27
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/web/.github/workflows/ai-review.yml",
+                  "fullyQualifiedName": "workflow:acme-app/web/.github/workflows/ai-review.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "721b2d975a26ed5de27573ed85384a1c778149ba737f5854f6d05ee1fb9a1e5d"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/web",
+            "edge": "external:anyone CAN_TRIGGER workflow:acme-app/web/.github/workflows/ai-review.yml",
+            "evidence": "live",
+            "confirmed_principals": [
+              "external:anyone"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 1,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "harden_trigger",
+              "workflow": "workflow:acme-app/web/.github/workflows/ai-review.yml"
+            },
+            "reach_removed_pct": 0,
+            "agent": "claude-cli",
+            "agent_fixes": [
+              "Restrict who can start it: the agent has no actor check of its own, so move it off issue_comment or pull_request_target, check the actor's repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers)."
+            ]
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/deploy.yml uses acme-actions/deploy@main, a mutable ref that identity:erin, members:acme-actions, team:acme-actions/platform and 1 more can change; this reaches 1 OIDC token. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/deploy.yml"
+                },
+                "region": {
+                  "startLine": 10,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/billing/.github/workflows/deploy.yml",
+                  "fullyQualifiedName": "workflow:acme-app/billing/.github/workflows/deploy.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "da7a38fdb5c664eb410973d34c3e384dca2c8522cd1cecbc4172b714b904a7e3"
+          },
+          "properties": {
+            "severity": "critical",
+            "repository": "acme-app/billing",
+            "edge": "workflow:acme-app/billing/.github/workflows/deploy.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:erin",
+              "members:acme-actions",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 1,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 32.2
+          }
+        },
+        {
+          "ruleId": "GOP002",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "The default repository permission of acme-actions is write. Lowering it to read removes reach to 9 repos (1 OIDC token, 2 secrets scopes, 1 self-hosted runner pool) for members:acme-actions."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "name": "acme-actions",
+                  "fullyQualifiedName": "org:acme-actions",
+                  "kind": "organization"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "1092545f2c10e5c82a4465d7690d85f78cdb4310b547c379de3d4dfc8065f725"
+          },
+          "properties": {
+            "severity": "critical",
+            "org": "acme-actions",
+            "edge": "members:acme-actions CAN_PUSH repo:acme-actions/deploy (+1 more)",
+            "evidence": "live",
+            "confirmed_principals": [
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 1,
+              "secrets": 2,
+              "runners": 1,
+              "cloud_targets": 0,
+              "repos": 9
+            },
+            "fix": {
+              "type": "lower_default_perm",
+              "org": "org:acme-actions",
+              "to": "read"
+            },
+            "reach_removed_pct": 15.3
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/index.yaml uses acme-actions/setup@main, a mutable ref that members:acme-actions can change; this reaches 1 OIDC token. Pin acme-actions/setup@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/index.yaml"
+                },
+                "region": {
+                  "startLine": 12,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/search/.github/workflows/index.yaml",
+                  "fullyQualifiedName": "workflow:acme-app/search/.github/workflows/index.yaml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "31301032466289a1bcb92b3f5bf5d4675f3a79ceb0bc0348aaba40c88de3eab0"
+          },
+          "properties": {
+            "severity": "critical",
+            "repository": "acme-app/search",
+            "edge": "workflow:acme-app/search/.github/workflows/index.yaml USES action:acme-actions/setup@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 1,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/setup@main"
+            },
+            "reach_removed_pct": 5.1
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/apply.yml uses acme-actions/deploy@main, a mutable ref that identity:erin, members:acme-actions, team:acme-actions/platform and 1 more can change; this reaches 1 self-hosted runner pool. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/apply.yml"
+                },
+                "region": {
+                  "startLine": 7,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/infra/.github/workflows/apply.yml",
+                  "fullyQualifiedName": "workflow:acme-app/infra/.github/workflows/apply.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "cd483313b5c63988fa3b57bc67576d1bb1e7a0471c2eecec1c6285804e404713"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/infra",
+            "edge": "workflow:acme-app/infra/.github/workflows/apply.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:erin",
+              "members:acme-actions",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 1,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 32.2
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/release.yml uses acme-actions/deploy@main, a mutable ref that identity:erin, members:acme-actions, team:acme-actions/platform and 1 more can change; this reaches 1 secrets scope. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/release.yml"
+                },
+                "region": {
+                  "startLine": 7,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/mobile/.github/workflows/release.yml",
+                  "fullyQualifiedName": "workflow:acme-app/mobile/.github/workflows/release.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "5d34145b54cb4b0c73e8224702c8f45245edd1ca051652fbe75b384c46f60563"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/mobile",
+            "edge": "workflow:acme-app/mobile/.github/workflows/release.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:erin",
+              "members:acme-actions",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 1,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 32.2
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/deploy@main, a mutable ref that identity:erin, members:acme-actions, team:acme-actions/platform and 1 more can change; this reaches 1 secrets scope. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 8,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/web/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-app/web/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "bc80c56048d6c14c67154850a294c1875d4d0d3b83c965d4831ab669201751b1"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/web",
+            "edge": "workflow:acme-app/web/.github/workflows/ci.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:erin",
+              "members:acme-actions",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 1,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 32.2
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/build.yml uses acme-actions/setup/.github/workflows/build.yml@main, a mutable ref that identity:erin, members:acme-actions, team:acme-actions/platform and 1 more can change; this reaches 1 secrets scope. Pin acme-actions/setup/.github/workflows/build.yml@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/build.yml"
+                },
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 11
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/docs/.github/workflows/build.yml",
+                  "fullyQualifiedName": "workflow:acme-app/docs/.github/workflows/build.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "5fad54fd34f251dfd60a8f18c7424d421640327b1b7d49ea0d8edeccb3161f17"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/docs",
+            "edge": "workflow:acme-app/docs/.github/workflows/build.yml USES action:acme-actions/setup/.github/workflows/build.yml@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:erin",
+              "members:acme-actions",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 1,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/setup/.github/workflows/build.yml@main"
+            },
+            "reach_removed_pct": 0
+          }
+        },
+        {
+          "ruleId": "GOP005",
+          "ruleIndex": 4,
+          "level": "error",
+          "message": {
+            "text": ".github/workflows/ai-merge.yml: a PR author can get code onto `main` without human review: `ai-review.yml` + `ai-merge.yml` (merges in `tools/merge.py`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews). external:anyone can use it and reach 1 secrets scope. Require a human approval that bots cannot give: require CODEOWNERS review on `main` with human owners (or a team), so a bot approval never satisfies the rule."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ai-merge.yml"
+                },
+                "region": {
+                  "startLine": 24
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/web",
+                  "fullyQualifiedName": "repo:acme-app/web",
+                  "kind": "repo"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "abc087b74d8d3df03ea83de37c762afd47640553a24969de1bf021bfa4915967"
+          },
+          "properties": {
+            "severity": "high",
+            "repository": "acme-app/web",
+            "edge": "external:anyone CAN_MERGE_VIA_BOT repo:acme-app/web",
+            "evidence": "live",
+            "confirmed_principals": [
+              "external:anyone"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 1,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "block_bot_merge",
+              "repo": "repo:acme-app/web"
+            },
+            "reach_removed_pct": 0,
+            "bot_merge_fixes": [
+              "Require a human approval that bots cannot give: require CODEOWNERS review on `main` with human owners (or a team), so a bot approval never satisfies the rule.",
+              "Remove the GitHub App `77` from the bypass actors of the rules on `main`: the merging workflow uses its token, so the merge skips every rule.",
+              "Do not let PR authors trigger the merge: drop the author check from `ai-merge.yml`, or require a maintainer (author_association OWNER, or a write-permission check) and an environment with required reviewers.",
+              "Do not give the reviewer write or approve rights: let the AI reviewer comment (pull-requests: write without approving, or a read-only token) and keep approve and merge with people.",
+              "Stop counting DISMISSED reviews in `tools/merge.py` (suspected, heuristic: confirm by hand): the rules already dismiss stale reviews on push, but the script re-counts approvals GitHub dismissed. Count only APPROVED reviews whose commit_id is the head SHA.",
+              "Re-run the AI review on every push: add synchronize to the pull_request types of `ai-review.yml`, so an approval always covers the code that is merged.",
+              "Keep the merge key out of the AI step: the agent in `ai-review.yml` holds the secret the merge uses, so a prompt injection can merge by itself. Give the merge its own App and key, outside the agent's env."
+            ]
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/build.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, identity:erin, team:acme-actions/platform and 1 more can change; this reaches repo CI. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/build.yml"
+                },
+                "region": {
+                  "startLine": 8,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-actions/setup/.github/workflows/build.yml",
+                  "fullyQualifiedName": "workflow:acme-actions/setup/.github/workflows/build.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "66b9468e4b9f8d255be3c3c3b4256b8b087ef794b854091c5277fd7db556b10a"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-actions/setup",
+            "edge": "workflow:acme-actions/setup/.github/workflows/build.yml USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "identity:erin",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 32.2
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/deploy.yml uses acme-actions/deploy@v1, a mutable ref that identity:erin, members:acme-actions, team:acme-actions/platform and 1 more can change; this reaches repo CI. Pin acme-actions/deploy@v1 to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/deploy.yml"
+                },
+                "region": {
+                  "startLine": 7,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-app/worker/.github/workflows/deploy.yml",
+                  "fullyQualifiedName": "workflow:acme-app/worker/.github/workflows/deploy.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "0992c6af530119bf92b42dff122606942787269d266feaba517766068675fecd"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-app/worker",
+            "edge": "workflow:acme-app/worker/.github/workflows/deploy.yml USES action:acme-actions/deploy@v1",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:erin",
+              "members:acme-actions",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@v1"
+            },
+            "reach_removed_pct": 6.8
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-actions/setup@main, a mutable ref that identity:alice, members:acme-actions can change; this reaches repo CI. Pin acme-actions/setup@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 7,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-legacy/old-site/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-legacy/old-site/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "b067b976065b592b863805b332b50e3e0842049ed5de7932ca7886e70ddd59e3"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-legacy/old-site",
+            "edge": "workflow:acme-legacy/old-site/.github/workflows/ci.yml USES action:acme-actions/setup@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:alice",
+              "members:acme-actions"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/setup@main"
+            },
+            "reach_removed_pct": 5.1
+          }
+        },
+        {
+          "ruleId": "GOP002",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "The default repository permission of acme-legacy is write. Lowering it to read removes reach to 2 repos (repo CI) for identity:bob, members:acme-legacy."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "name": "acme-legacy",
+                  "fullyQualifiedName": "org:acme-legacy",
+                  "kind": "organization"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "991fc145a2b1821c8eb35a8f2b19d902b8585628d60307a17b7295965e89bf2c"
+          },
+          "properties": {
+            "severity": "medium",
+            "org": "acme-legacy",
+            "edge": "members:acme-legacy CAN_PUSH repo:acme-legacy/hidden-tool (+1 more)",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-legacy"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 2
+            },
+            "fix": {
+              "type": "lower_default_perm",
+              "org": "org:acme-legacy",
+              "to": "read"
+            },
+            "reach_removed_pct": 3.4
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "warning",
+          "message": {
+            "text": ".github/workflows/ci.yml uses acme-legacy/hidden-tool@v2, a mutable ref that identity:bob, members:acme-legacy can change; this reaches repo CI. Pin acme-legacy/hidden-tool@v2 to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/ci.yml"
+                },
+                "region": {
+                  "startLine": 8,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-secure/vault-proxy/.github/workflows/ci.yml",
+                  "fullyQualifiedName": "workflow:acme-secure/vault-proxy/.github/workflows/ci.yml",
+                  "kind": "workflow"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "fb48c2b3eeee1c48dbc7d9312f648bd05c310c4ee77e9bf2ebb83416863641bb"
+          },
+          "properties": {
+            "severity": "medium",
+            "repository": "acme-secure/vault-proxy",
+            "edge": "workflow:acme-secure/vault-proxy/.github/workflows/ci.yml USES action:acme-legacy/hidden-tool@v2",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "members:acme-legacy"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 1
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-legacy/hidden-tool@v2"
+            },
+            "reach_removed_pct": 0
+          }
+        },
+        {
+          "ruleId": "GOP001",
+          "ruleIndex": 0,
+          "level": "note",
+          "message": {
+            "text": ".github/workflows/build.yml uses acme-actions/deploy@main, a mutable ref that identity:bob, identity:erin, team:acme-actions/platform and 1 more can change; this reaches no terminal. Pin acme-actions/deploy@main to a commit SHA."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": ".github/workflows/build.yml"
+                },
+                "region": {
+                  "startLine": 8,
+                  "startColumn": 15
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "acme-actions/setup/.github/workflows/build.yml@main",
+                  "fullyQualifiedName": "action:acme-actions/setup/.github/workflows/build.yml@main",
+                  "kind": "action_ref"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "gopFixableEdge/v1": "66b9468e4b9f8d255be3c3c3b4256b8b087ef794b854091c5277fd7db556b10a"
+          },
+          "properties": {
+            "severity": "low",
+            "repository": "acme-actions/setup",
+            "edge": "action:acme-actions/setup/.github/workflows/build.yml@main USES action:acme-actions/deploy@main",
+            "evidence": "live",
+            "confirmed_principals": [
+              "identity:bob",
+              "identity:erin",
+              "team:acme-actions/platform",
+              "team:acme-actions/platform-oncall"
+            ],
+            "possible_principals": [],
+            "terminals": {
+              "oidc": 0,
+              "secrets": 0,
+              "runners": 0,
+              "cloud_targets": 0,
+              "repos": 0
+            },
+            "fix": {
+              "type": "pin_ref",
+              "action": "action:acme-actions/deploy@main"
+            },
+            "reach_removed_pct": 32.2
+          }
+        }
+      ]
+    }
+  ]
+}

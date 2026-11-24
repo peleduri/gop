@@ -107,6 +107,12 @@ type botFacts struct {
 	Scripts                    []string
 	MergeSource, ApproveSource string
 	MergeStale                 bool
+	// MergeDismissed is set when that merge script counts DISMISSED
+	// reviews (a form of MergeStale); MergeApps are the Apps the merging
+	// steps' App tokens come from (app ids or slugs, unknown when the
+	// workflow does not name one).
+	MergeDismissed bool
+	MergeApps      []string
 	// MergeKeys are the secrets the merging jobs' token comes from (App
 	// token step inputs and the merging steps' env); AgentKeys the secrets
 	// in the env and with: of the workflow's AI agent steps; ReReviews is
@@ -139,6 +145,7 @@ func parseBotFacts(data []byte, triggers []string, scripts map[string]*scriptFac
 	bf := &botFacts{ReReviews: rereviews(w, root)}
 	approveTok, mergeTok, mergeTrig := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	scriptSet, mergeKeys, agentKeys := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	mergeApps := map[string]bool{}
 	gateRank := map[string]int{"": -1, graph.BotGateListed: 0, graph.BotGateAssociation: 1, graph.BotGateAuthor: 2, graph.BotGateNone: 3}
 	ids := append([]string(nil), jobs.keys...)
 	sort.Strings(ids)
@@ -152,7 +159,8 @@ func parseBotFacts(data []byte, triggers []string, scripts map[string]*scriptFac
 		jobEnv := mergeEnv(wfEnv, envMap(w, field(job, "env")))
 		steps, _ := w.sequence(field(job, "steps"), "steps")
 		appIDs := map[string]bool{}
-		var appKeys []string // secrets the job's App token steps read
+		appRefs := map[string]string{} // App token step id -> app id, slug or unknown
+		var appKeys []string           // secrets the job's App token steps read
 		approves, merges := false, false
 		approveIf, mergeIf := jobIf, jobIf
 		approveLimit, mergeLimit := "", ""
@@ -168,10 +176,11 @@ func parseBotFacts(data []byte, triggers []string, scripts map[string]*scriptFac
 			if isUse {
 				name = strings.ToLower(u.Owner + "/" + u.Repo)
 				if appTokenActions[name] {
+					with, _ := w.mapping(field(step, "with"), "with")
 					if sid := strings.TrimSpace(scalarOf(w, field(step, "id"))); sid != "" {
 						appIDs[sid] = true
+						appRefs[sid] = appStepRef(w, with, env)
 					}
-					with, _ := w.mapping(field(step, "with"), "with")
 					appKeys = append(appKeys, secretRefNames(withValues(w, with)...)...)
 					continue
 				}
@@ -208,6 +217,13 @@ func parseBotFacts(data []byte, triggers []string, scripts map[string]*scriptFac
 					bf.MergeSource = bs.mergeSrc
 				}
 				bf.MergeStale = bf.MergeStale || bs.stale
+				bf.MergeDismissed = bf.MergeDismissed || bs.dismissed
+				if bs.token == graph.BotTokenApp {
+					with, _ := w.mapping(field(step, "with"), "with")
+					for _, r := range mergeAppRefs(append(mapValues(env), withValues(w, with)...), env, appRefs) {
+						mergeApps[r] = true
+					}
+				}
 				for _, s := range append(appKeys, secretRefNames(mapValues(env)...)...) {
 					mergeKeys[s] = true
 				}
@@ -236,6 +252,7 @@ func parseBotFacts(data []byte, triggers []string, scripts map[string]*scriptFac
 		}
 	}
 	bf.Scripts, bf.MergeKeys, bf.AgentKeys = sortedSet(scriptSet), sortedSet(mergeKeys), sortedSet(agentKeys)
+	bf.MergeApps = sortedSet(mergeApps)
 	if len(bf.Scripts) > botScriptsPerWorkflow {
 		bf.Scripts = bf.Scripts[:botScriptsPerWorkflow]
 	}
@@ -275,7 +292,7 @@ type botStepFacts struct {
 	// matched the stale-approval heuristic.
 	scripts              []string
 	approveSrc, mergeSrc string
-	stale                bool
+	stale, dismissed     bool
 }
 
 // botStep reads one step.
@@ -355,7 +372,7 @@ func botStep(w *yamlWalk, step *yamlMap, u ActionUse, isUse bool, name string, e
 				viaScript = sf
 			}
 			if sf.merge && !bs.merge {
-				bs.merge, bs.mergeSrc, bs.stale = true, graph.BotScriptPrefix+p, sf.stale
+				bs.merge, bs.mergeSrc, bs.stale, bs.dismissed = true, graph.BotScriptPrefix+p, sf.stale, sf.dismissed
 				viaScript = sf
 			}
 		}
@@ -573,6 +590,9 @@ func (k *collector) addBotFacts(wn *graph.Node, bf *botFacts) {
 		if len(bf.MergeTriggers) > 0 {
 			setAttr(wn, graph.AttrBotMergeTriggers, strings.Join(bf.MergeTriggers, ","), graph.Live)
 		}
+		if len(bf.MergeApps) > 0 {
+			setAttr(wn, graph.AttrBotMergeApps, strings.Join(bf.MergeApps, ","), graph.Live)
+		}
 		if bf.MergeLine > 0 {
 			if k.botLines == nil {
 				k.botLines = map[string]int{}
@@ -592,6 +612,7 @@ type botOutcome struct {
 	ev       graph.Evidence
 	starter  string
 	why, fix string // the coverage entry when ev is not_visible
+	appMatch string // review_bypass_app_match of an app_bypass outcome
 }
 
 // better orders outcomes: confirmed first, then the wider population, then
@@ -692,6 +713,11 @@ func botBest(repo *graph.Node, wfs []*graph.Node) *botOutcome {
 			case "true":
 				o := base
 				o.reason, o.ev = graph.ReviewBypassApp, graph.Live
+				o.appMatch = appMatch(a[graph.AttrBranchBypassApps], m.Attrs[graph.AttrBotMergeApps])
+				if o.appMatch != graph.AppMatched {
+					o.ev = graph.NotVisible
+					o.why, o.fix = appMatchWhy(m, a[graph.AttrBranchBypassApps], o.appMatch), "check which GitHub App "+m.Name+" mints its token for, and the bypass actors of the default branch rules on "+full
+				}
 				consider(o)
 			case "unknown":
 				o := base
@@ -747,20 +773,31 @@ func botApprovals(repo *graph.Node, base botOutcome, usable func(string) []*grap
 		o.reason, o.ev, o.approve = graph.ReviewBypassApprovals, graph.Live, nil
 		return o, true
 	}
+	// GITHUB_TOKEN approves only when the repo allows GitHub Actions to
+	// approve pull requests (actions_can_approve_prs, botapprove.go).
+	canApprove := a[graph.AttrActionsCanApprove]
 	// Widest population first: each step down may add approvers.
 	for _, p := range []string{graph.StarterPROpeners, graph.StarterMembers, graph.StarterPushers} {
 		if starterWidth[p] > starterWidth[base.starter] {
 			continue
 		}
-		aps := usable(p)
+		var aps []*graph.Node
 		classes := map[string]bool{}
 		hidden := map[string]bool{}
-		for _, n := range aps {
+		for _, n := range usable(p) {
+			counts := false
 			for _, t := range splitList(n.Attrs[graph.AttrBotApproveToken]) {
+				if t == graph.BotTokenGitHub && canApprove == "false" {
+					continue // the setting is off: its approval is refused
+				}
+				counts = true
 				classes[t] = true
-				if t == graph.BotTokenGitHub || t == graph.BotTokenUnknown {
+				if t == graph.BotTokenUnknown || (t == graph.BotTokenGitHub && canApprove != "true") {
 					hidden[t] = true
 				}
+			}
+			if counts {
+				aps = append(aps, n)
 			}
 		}
 		if len(classes) < need {
@@ -769,11 +806,14 @@ func botApprovals(repo *graph.Node, base botOutcome, usable func(string) []*grap
 		o := base
 		o.starter, o.approve, o.reason, o.ev = p, aps, graph.ReviewBypassApprovals, graph.Live
 		if len(classes)-len(hidden) < need {
-			// GITHUB_TOKEN approvals need the repo's "allow GitHub Actions
-			// to approve pull requests" setting, which gop does not read.
 			o.ev = graph.NotVisible
-			o.why = "bot approvals from " + names(aps) + " satisfy the required reviews only if their token can approve pull requests (GITHUB_TOKEN needs \"Allow GitHub Actions to create and approve pull requests\")"
-			o.fix = "check Settings > Actions > General > Workflow permissions on " + full
+			if hidden[graph.BotTokenGitHub] {
+				o.why = "bot approvals from " + names(aps) + " satisfy the required reviews only if their token can approve pull requests (GITHUB_TOKEN needs \"Allow GitHub Actions to create and approve pull requests\", which gop could not read)"
+				o.fix = "check Settings > Actions > General > Workflow permissions on " + full
+			} else {
+				o.why = "bot approvals from " + names(aps) + " satisfy the required reviews only if their token can approve pull requests (gop could not tell which token the approving step uses)"
+				o.fix = "check the token of the approving step in " + full
+			}
 		}
 		return o, true
 	}
@@ -805,6 +845,16 @@ func (k *collector) applyBotOutcome(o *orgState, repo *graph.Node, b *botOutcome
 		setAttr(repo, graph.AttrReviewBypassApprove, strings.Join(approveFiles, ","), graph.Live)
 	}
 	k.applyBotScriptFacts(repo, b)
+	if b.reason == graph.ReviewBypassApp && b.appMatch != "" {
+		ev := graph.Live
+		if b.appMatch != graph.AppMatched {
+			ev = graph.NotVisible
+		}
+		setAttr(repo, graph.AttrReviewBypassAppMatch, b.appMatch, ev)
+		if v := b.merge.Attrs[graph.AttrBotMergeApps]; v != "" {
+			setAttr(repo, graph.AttrBotMergeApps, v, graph.Live)
+		}
+	}
 	if b.ev == graph.NotVisible {
 		k.cover(repo.ID, graph.FactReviewBypass, b.why, b.fix)
 	}
@@ -859,6 +909,11 @@ func (k *collector) applyBotScriptFacts(repo *graph.Node, b *botOutcome) {
 	}
 	setAttr(repo, graph.AttrBotMergeStale, graph.StaleSuspected, graph.NotVisible)
 	setAttr(repo, graph.AttrBotMergeStaleConf, graph.StaleHeuristic, graph.Live)
+	// The rules dismiss stale reviews on push, and the script counts
+	// DISMISSED reviews: it re-counts approvals GitHub dismissed.
+	if bf := k.botFacts[b.merge.ID]; bf != nil && bf.MergeDismissed && repo.Attrs[graph.AttrBranchDismissStale] == "true" {
+		setAttr(repo, graph.AttrReviewBypassRecount, graph.StaleSuspected, graph.NotVisible)
+	}
 	for _, a := range b.approve {
 		if bf := k.botFacts[a.ID]; bf != nil && !bf.ReReviews {
 			setAttr(repo, graph.AttrReviewBypassStale, graph.StaleSuspected, graph.NotVisible)
