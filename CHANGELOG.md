@@ -7,6 +7,31 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- AI approve + self-merge (#146). `gop collect` marks workflows whose jobs
+  submit an approving review (`gh pr review --approve`, a reviews API call
+  with `APPROVE`, an approve action, or an agent allowed to run
+  `gh pr review`) or merge a pull request (`gh pr merge`, the merge API, an
+  automerge action) with `bot_approves` / `bot_merges`, the token source
+  (`app`, `pat`, `github_token`), who can make the job run (`pr_openers`,
+  `org_members`, `pushers`, `maintainers`) and the merge job's actor check
+  (`pr_author`, `author_association`, ...). After branch protection is read,
+  a repo where a PR author can start a bot merge that needs no human review
+  (the merging App is a bypass actor, `--admin` with an admin bypass, bot
+  approvals cover the required reviews with no CODEOWNERS review, or no
+  protection) gets `review_bypass=bot_self_merge`, and the people who can
+  open a pull request get a new `CAN_MERGE_VIA_BOT` edge to it, which the
+  engine treats like push: `live` when both workflows and the bypass list
+  were read, `not_visible` when the bypass list or required reviews are
+  unknown. `top_risks` and the report's risks table mark
+  `[bot_self_merge]`, the `CAN_MERGE_VIA_BOT` hop and `CAN_PUSH` hops into
+  the repo carry the note "a PR author can get code onto `main` without
+  human review: <approve workflow> + <merge workflow>", the report gains an
+  "AI approve + self-merge" section, and a new `block_bot_merge` fix
+  (`what_if`, `suggest_fixes`, `fix-plan`) lists the four changes: require a
+  human CODEOWNERS approval, remove the App from the bypass actors, stop PR
+  authors from triggering the merge, and keep approve rights from the
+  reviewer. Scores of principals without the edge are unchanged. See
+  `docs/agents-in-ci.md` "AI approve + self-merge".
 - First-run onboarding (#142). The README opens with the story (AI agents in
   CI and cross-org reach), the redesigned report as the hero image, "Try it in
   60 seconds" (`gop report --demo` with no token, then `doctor`, `collect` and

@@ -128,6 +128,90 @@ In the order the report lists them:
 6. Stop interpolating `${{ github.event.* }}` into the prompt; pass the text
    through `env:` or a file and still treat it as untrusted.
 
+## AI approve + self-merge
+
+Branch protection that says "1 approval required" is wrong in practice when
+the approval comes from a bot the pull request's author can steer and the
+merge comes from a bot that the rules let through. A common shape:
+
+1. An AI reviewer workflow reads the pull request and posts an **APPROVE**
+   review with a GitHub App token.
+2. A second workflow on `issue_comment` lets the pull request's author
+   comment a keyword (for example `#ai-merge`) and merges with a token of a
+   GitHub App that is a bypass actor of the default branch's rules.
+
+Anyone who can open a pull request (and convince the reviewer) then lands
+code on the default branch with no human review. gop models this as push.
+
+**What gop detects.** `gop collect` marks a workflow node:
+
+| Attr | Meaning |
+|---|---|
+| `bot_approves`, `bot_approve_jobs` | A job submits an approving review: `gh pr review --approve`, a `pulls/{n}/reviews` call with `APPROVE` (`gh api`, `curl`, `actions/github-script`), an approve action (`hmarr/auto-approve-action`, ...), or an agent action whose inputs let it run `gh pr review` |
+| `bot_merges`, `bot_merge_jobs`, `bot_merge_admin` | A job merges: `gh pr merge` (`--admin` sets `bot_merge_admin`), a `pulls/{n}/merge` call, a GraphQL `mergePullRequest` or `enablePullRequestAutoMerge`, an automerge action (`peter-evans/enable-pull-request-automerge`, `pascalgn/automerge-action`, ...) |
+| `bot_approve_token`, `bot_merge_token` | The token the step uses: `app` (the output of `actions/create-github-app-token` or a similar step, or an agent action's own app), `pat` (another secret), `github_token`, or `unknown` |
+| `bot_approve_starter`, `bot_merge_starter` | Who can make the job run: `pr_openers` (`issue_comment`, `pull_request_target`, `workflow_run`: the base repo's context), `org_members` (an `author_association` check that admits `MEMBER`), `pushers` (`pull_request`, `pull_request_review`: a fork's run gets no secrets and a read-only token), `maintainers` (`push`, `schedule`, `workflow_dispatch`, a named-actor check, or an agent whose actor check needs write access) |
+| `bot_merge_gate`, `bot_merge_triggers` | The merging job's actor check (`pr_author`: the commenter must be the pull request's author; `author_association`; `listed_users`; `none`) and its triggers |
+
+**The join.** After branch protection is read, each repo's merging workflows
+are joined with its approving workflows and its default-branch rules. The
+bot merge needs no human review when:
+
+- the merge uses an App token and an app bypasses every rule of the default
+  branch (`branch_app_bypass=true`): `review_bypass_reason=app_bypass`;
+- the merge passes `--admin` with a personal token and admins bypass the
+  rules: `admin_bypass`, always possible only (gop cannot see whose token it
+  is);
+- the required approvals are no more than the distinct bot approvals the
+  same people can trigger, and no CODEOWNERS review is required:
+  `bot_approvals` (approvals with `GITHUB_TOKEN` count as possible only: they
+  need the repo's "Allow GitHub Actions to create and approve pull requests"
+  setting, which gop does not read);
+- the default branch is not protected: `unprotected`.
+
+The repo then gets `review_bypass=bot_self_merge` with
+`review_bypass_reason`, `review_bypass_merge` and `review_bypass_approve`.
+When the merge job's starter is `pr_openers` or `org_members`, the people who
+can open a pull request on the repo (as for a fork trigger: anyone on the
+internet for a public repo, every org's members for an internal one, the
+org's members for a private one when forking is allowed) get
+`principal -CAN_MERGE_VIA_BOT-> repo` with `approve_workflows`,
+`merge_workflow`, `review_bypass_reason`, `trigger`, `file` and `line`.
+The edge and `review_bypass` are `live` when both workflows and the bypass
+list were read, and `not_visible` (with a `review_bypass` coverage entry)
+when a deciding fact is unknown, such as a bypass list only admins can read.
+A CODEOWNERS review with no bypass is never flagged.
+
+**Ranking and context.** The engine treats `CAN_MERGE_VIA_BOT` like
+`CAN_PUSH`: the repo is controlled, so its workflows' secrets, OIDC and
+runners are reached. `bot_self_merge` on a score counts the repos a principal
+lands code on this way (confirmed only); it marks the principal in
+`top_risks` (`[bot_self_merge]`) and the report's risks table, and is not a
+separate rank factor. A `CAN_MERGE_VIA_BOT` hop, and a `CAN_PUSH` hop into
+the repo that would otherwise say "push needs N approvals", carry the note
+"a PR author can get code onto `main` without human review:
+`ai-review.yml` + `ai-merge.yml`" ("may", with the unknown fact, when it is
+possible only). The report has an "AI approve + self-merge" section.
+
+**Fixes** (`block_bot_merge` in `what_if`, `suggest_fixes` and `fix-plan`
+removes every `CAN_MERGE_VIA_BOT` edge into the repo; any one of the first
+three closes the path):
+
+1. Require a human approval that bots cannot give: CODEOWNERS review with
+   human owners.
+2. Remove the App from the bypass actors of the default branch's rules (or
+   drop `--admin`).
+3. Do not let PR authors trigger the merge: require a maintainer
+   (`author_association` `OWNER`, or a write-permission check) and an
+   environment with required reviewers.
+4. Do not give the reviewer write or approve rights: let it comment only.
+
+**Limits.** gop does not know which App a token belongs to, so any app
+bypass actor counts for any App token; it does not read the "allow GitHub
+Actions to approve" setting; it does not follow a merge done in a script
+file or a called reusable workflow; and a scheduled job that merges approved
+pull requests is not modeled.
+
 ## Limits
 
 - gop reads workflow files, not runs: it does not see agents started from a

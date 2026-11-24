@@ -159,8 +159,8 @@ func nodeOrg(id string) string { return orgLogin(id) }
 
 // ownerOrg is the org whose collection produced an edge (lower-case login):
 //
-//   - CAN_PUSH, MEMBER_OF, CAN_TRIGGER: the org of the target repo, org, team
-//     or workflow; the facts were read from that org.
+//   - CAN_PUSH, MEMBER_OF, CAN_TRIGGER, CAN_MERGE_VIA_BOT: the org of the
+//     target repo, org, team or workflow; the facts were read from that org.
 //   - USES, DEFINED_IN, EXECUTES_WITH: the org of the workflow or action that
 //     From names; the facts were read from that repo's files.
 //   - RESOLVES_TO: "", derived: Merge rebuilds it from the USES edges that
@@ -170,7 +170,7 @@ func nodeOrg(id string) string { return orgLogin(id) }
 //   - Any other kind: the org of From.
 func ownerOrg(e graph.Edge) string {
 	switch e.Kind {
-	case graph.CanPush, graph.MemberOf, graph.CanTrigger:
+	case graph.CanPush, graph.MemberOf, graph.CanTrigger, graph.CanMergeViaBot:
 		return orgLogin(e.To)
 	case graph.Uses, graph.DefinedIn, graph.ExecutesWith:
 		return orgLogin(e.From)

@@ -199,6 +199,9 @@ type collector struct {
 	ghesVersion string
 	// locks holds each repo's parsed actions.lock, by repo node ID (actionslock.go).
 	locks map[string]*actionsLock
+	// botLines holds the line of each bot merge workflow's merging step, by
+	// workflow node ID (botmerge.go).
+	botLines map[string]int
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -366,6 +369,7 @@ func (k *collector) run(ctx context.Context) error {
 	if err := k.collectBranchProtection(ctx); err != nil {
 		return err
 	}
+	k.addBotMergePaths()
 	return k.collectRefProtection(ctx)
 }
 
@@ -1383,6 +1387,7 @@ func (k *collector) processWorkflowFile(o *orgState, repo *graph.Node, path stri
 	pending = k.addTokenFacts(wid, wn, repo, facts, pending)
 	k.addTriggerFacts(o, repo, wid, wn, facts)
 	addAgentFacts(wn, facts)
+	k.addBotFacts(wn, parseBotFacts(data, facts.Triggers))
 	return pending
 }
 

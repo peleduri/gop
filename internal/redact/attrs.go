@@ -48,6 +48,11 @@ func init() {
 		graph.AttrAgent, graph.AttrAgentSource, graph.AttrAgentConfidence, graph.AttrAgentJobs, graph.AttrAgentGate,
 		graph.AttrAgentExposure, graph.AttrAgentPrompt, graph.AttrAgentPerms, graph.AttrAgentSecrets, graph.AttrAgentRunner,
 		graph.AttrAgentTools, graph.AttrAgentRefKind, graph.AttrUntrustedCheckout,
+		graph.AttrBotApproves, graph.AttrBotApproveToken, graph.AttrBotApproveJobs, graph.AttrBotApproveStart,
+		graph.AttrBotMerges, graph.AttrBotMergeToken, graph.AttrBotMergeJobs, graph.AttrBotMergeStart, graph.AttrBotMergeGate,
+		graph.AttrBotMergeAdmin, graph.AttrBotMergeTriggers,
+		graph.AttrReviewBypass, graph.AttrReviewBypassReason, graph.AttrReviewBypassApprove, graph.AttrReviewBypassMerge,
+		graph.AttrApproveWorkflows, graph.AttrMergeWorkflow,
 		graph.AttrLockAdvisories, graph.AttrLockAdvisorySeverity, graph.AttrLockAdvisoryFixed,
 		graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview, graph.AttrBranchDismissStale,
 		graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits, graph.AttrBranchForcePush,
@@ -403,6 +408,31 @@ func init() {
 	policies[graph.AttrAgentRefKind] = enum("sha", "tag", "branch")
 	policies[graph.AttrUntrustedCheckout] = enum("exec", "read_only")
 	policies["author_association"] = enumList("OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER", "MANNEQUIN", "NONE")
+}
+
+// Bot approve and merge attrs (docs/agents-in-ci.md "AI approve +
+// self-merge"): gop's vocabulary, except job ids, files and workflow IDs.
+func init() {
+	jobs := list(func(r *redactor, s string) string { return r.job(s) })
+	tokens := enumList(graph.BotTokenGitHub, graph.BotTokenApp, graph.BotTokenPAT, graph.BotTokenUnknown)
+	starter := enum(graph.StarterPROpeners, graph.StarterMembers, graph.StarterPushers, graph.StarterMaintainers)
+	policies[graph.AttrBotApproves] = enum("true")
+	policies[graph.AttrBotApproveToken] = tokens
+	policies[graph.AttrBotApproveJobs] = jobs
+	policies[graph.AttrBotApproveStart] = starter
+	policies[graph.AttrBotMerges] = enum("true")
+	policies[graph.AttrBotMergeToken] = tokens
+	policies[graph.AttrBotMergeJobs] = jobs
+	policies[graph.AttrBotMergeStart] = starter
+	policies[graph.AttrBotMergeGate] = enum(graph.BotGateAuthor, graph.BotGateAssociation, graph.BotGateListed, graph.BotGateNone)
+	policies[graph.AttrBotMergeAdmin] = enum("true")
+	policies[graph.AttrBotMergeTriggers] = words
+	policies[graph.AttrReviewBypass] = enum(graph.ReviewBypassBotSelfMerge)
+	policies[graph.AttrReviewBypassReason] = enum(graph.ReviewBypassApp, graph.ReviewBypassAdmin, graph.ReviewBypassApprovals, graph.ReviewBypassUnprotected)
+	policies[graph.AttrReviewBypassApprove] = list(func(r *redactor, s string) string { return r.path(s) })
+	policies[graph.AttrReviewBypassMerge] = pathAttr
+	policies[graph.AttrApproveWorkflows] = list(func(r *redactor, s string) string { return r.id(s) })
+	policies[graph.AttrMergeWorkflow] = idAttr
 }
 
 var (

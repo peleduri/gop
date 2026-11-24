@@ -162,20 +162,32 @@ const (
 // not protected, needs no approval, allows force pushes, or lets admins
 // bypass and the pusher is an admin. It is "" for other hops, for bypass
 // grants (via=ref_bypass), and whenever a deciding value is unknown: gop
-// never reads unknown as unprotected. Notes are context only; they change no
-// evidence, count or score.
+// never reads unknown as unprotected. A CAN_MERGE_VIA_BOT hop, and a
+// CAN_PUSH hop that does not reach the branch directly, into a repo with a
+// review bypass get BotMergeNote instead: a PR author can get code onto the
+// branch without human review, whatever the approval count says. Notes are
+// context only; they change no evidence, count or score.
 func (ix *Index) HopNote(h Hop) string {
-	if h.Kind != CanPush || h.Reverse {
+	if h.Reverse || (h.Kind != CanPush && h.Kind != CanMergeViaBot) {
 		return ""
 	}
 	n, ok := ix.nodes[h.To]
 	if !ok || n.Kind != KindRepo {
 		return ""
 	}
-	hd, ok := RepoHardening(n)
-	if !ok || hd.Protected == "" || hd.Protected == "unknown" {
-		return ""
+	if h.Kind == CanMergeViaBot {
+		return BotMergeNote(n)
 	}
+	note, bypass := ix.pushNote(h, n)
+	if !bypass && note != NoteDirect && ReviewBypassed(n) {
+		return BotMergeNote(n)
+	}
+	return note
+}
+
+// pushNote is HopNote for a CAN_PUSH hop into repo n; bypass is true for a
+// via=ref_bypass grant.
+func (ix *Index) pushNote(h Hop, n Node) (note string, bypass bool) {
 	var e *Edge
 	for i, ed := range ix.out[h.From] {
 		if ed.To == h.To && ed.Kind == CanPush {
@@ -184,29 +196,33 @@ func (ix *Index) HopNote(h Hop) string {
 		}
 	}
 	if e != nil && e.Attrs[AttrVia] == ViaRefBypass {
-		return ""
+		return "", true
+	}
+	hd, ok := RepoHardening(n)
+	if !ok || hd.Protected == "" || hd.Protected == "unknown" {
+		return "", false
 	}
 	if hd.Protected == "false" || hd.ForcePush == "true" {
-		return NoteDirect
+		return NoteDirect, false
 	}
 	if hd.AdminBypass == "true" && e != nil &&
 		(strings.EqualFold(e.Attrs["permission"], "admin") || e.Attrs[AttrVia] == ViaOrgOwner) {
-		return NoteDirect
+		return NoteDirect, false
 	}
 	switch hd.Reviews {
 	case "", "unknown":
-		return ""
+		return "", false
 	case "0":
 		if hd.PushRestrict == "false" {
-			return NoteDirect
+			return NoteDirect, false
 		}
-		return ""
+		return "", false
 	}
-	note := fmt.Sprintf("push needs %s to reach %s", approvals(hd.Reviews), hd.branch())
+	note = fmt.Sprintf("push needs %s to reach %s", approvals(hd.Reviews), hd.branch())
 	if hd.CodeOwner == "true" && hd.CodeownersWF == "true" {
 		note += " + CODEOWNERS on workflows"
 	}
-	return note
+	return note, false
 }
 
 // Annotate returns a copy of p with Hop.Note set from HopNote. The path's

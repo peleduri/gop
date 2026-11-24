@@ -19,6 +19,7 @@ type fixSet struct {
 	restricted map[string]bool // workflow IDs whose via=token_write CAN_PUSH edges are removed
 	hardened   map[string]bool // workflow IDs whose incoming CAN_TRIGGER edges are removed
 	unowned    map[string]bool // ownerKey(principal, org) pairs whose via=org_owner CAN_PUSH edges are removed
+	botBlocked map[string]bool // repo IDs whose incoming CAN_MERGE_VIA_BOT edges are removed
 }
 
 func (fs *fixSet) removesPush(e Edge) bool {
@@ -34,6 +35,8 @@ func (fs *fixSet) removesPush(e Edge) bool {
 }
 
 func (fs *fixSet) removesTrigger(e Edge) bool { return fs.hardened[e.To] }
+
+func (fs *fixSet) removesBotMerge(e Edge) bool { return fs.botBlocked[e.To] }
 
 func setFlag(m *map[string]bool, id string) {
 	if *m == nil {
@@ -232,7 +235,8 @@ type FixSuggestion struct {
 // bypass actors there is no candidate), LowerDefaultPerm{To:"read"} for each
 // org with default_perm write/admin or default-perm CAN_PUSH edges, a
 // RestrictToken for each workflow with a via=token_write CAN_PUSH edge, and a
-// HardenTrigger for each workflow with a CAN_TRIGGER edge into it, and one
+// HardenTrigger for each workflow with a CAN_TRIGGER edge into it, a
+// BlockBotMerge for each repo with a CAN_MERGE_VIA_BOT edge into it, and one
 // ReduceOwners at DefaultOwnerThreshold when it cuts an ownership. No PinRef
 // is proposed for an action that every use of is pinned by an actions.lock
 // (LockCovered). A
@@ -279,6 +283,8 @@ func (ix *Index) candidates(ownerThreshold int) []Fix {
 			}
 		case CanTrigger:
 			push(HardenTrigger{Workflow: e.To})
+		case CanMergeViaBot:
+			push(BlockBotMerge{Repo: e.To})
 		}
 	}
 	for _, n := range ix.g.Nodes {

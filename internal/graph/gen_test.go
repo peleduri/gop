@@ -260,6 +260,13 @@ func genGraph(r *rand.Rand, size int) *Graph {
 				AttrFile: w[strings.Index(w, ".github/"):], AttrLine: fmt.Sprint(5 + r.IntN(40))})
 		}
 	}
+	// AI approve + self-merge: a population or anyone on the internet can
+	// get code onto a repo through a bot merge (BlockBotMerge removes it).
+	popTriggerers := append([]string{"external:anyone"}, members...)
+	for k := r.IntN(3) - 1; k > 0; k-- {
+		edge(pick(popTriggerers), pick(repos), CanMergeViaBot, map[string]string{
+			AttrMergeWorkflow: pick(workflows), AttrReviewBypassReason: ReviewBypassApp})
+	}
 	// Nested USES, cycles allowed (a -> b -> a, self loops).
 	for k := r.IntN(len(actions) + 1); k > 0; k-- {
 		a, b := pick(actions), pick(actions)

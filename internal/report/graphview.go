@@ -350,6 +350,8 @@ func fixTarget(f graph.Fix) (kind, node string) {
 		return "restrict_token", v.Workflow
 	case graph.HardenTrigger:
 		return "harden_trigger", v.Workflow
+	case graph.BlockBotMerge:
+		return "block_bot_merge", v.Repo
 	}
 	return "other", ""
 }

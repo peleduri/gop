@@ -276,6 +276,10 @@ func ReachSentence(s graph.Score) string {
 		out += fmt.Sprintf("; can start %s without push access [agent_exposed]",
 			plural(s.AgentExposed, "AI agent workflow that holds write, secrets or OIDC", "AI agent workflows that hold write, secrets or OIDC"))
 	}
+	if s.BotSelfMerge > 0 {
+		out += fmt.Sprintf("; can get code onto the default branch of %s without human review [bot_self_merge]",
+			plural(s.BotSelfMerge, "repo", "repos"))
+	}
 	out += fmt.Sprintf("; %d more possible", s.Possible.Repos)
 	return out + advisoryClause(s)
 }
@@ -482,7 +486,7 @@ func (e *Engine) toFix(i int, f FixSpec) (graph.Fix, error) {
 			return nil, fmt.Errorf("fixes[%d].threshold: want a positive number of owned orgs, got %d", i, f.Threshold)
 		}
 		return e.ix.ReduceOwners(f.Threshold), nil
-	case "require_reviews", "enable_push_protection":
+	case "require_reviews", "enable_push_protection", "block_bot_merge":
 		r, err := e.resolve(fmt.Sprintf("fixes[%d].repo", i), f.Repo)
 		if err != nil {
 			return nil, err
@@ -490,8 +494,11 @@ func (e *Engine) toFix(i int, f FixSpec) (graph.Fix, error) {
 		if e.ix.Kind(r) != graph.KindRepo {
 			return nil, fmt.Errorf("fixes[%d].repo: %s is not a repo", i, r)
 		}
-		if f.Type == "require_reviews" {
+		switch f.Type {
+		case "require_reviews":
 			return graph.RequireReviews{Repo: r}, nil
+		case "block_bot_merge":
+			return graph.BlockBotMerge{Repo: r}, nil
 		}
 		return graph.EnablePushProtection{Repo: r}, nil
 	}
@@ -575,8 +582,8 @@ func DescribeFix(f graph.Fix) (FixSpec, string) { return fixplan.Spec(f) }
 
 // fixTypes and fixShapes name the fix types in error messages.
 const (
-	fixTypes  = "pin_ref, lower_default_perm, restrict_token, harden_trigger, reduce_owners, require_reviews or enable_push_protection"
-	fixShapes = `{type:"pin_ref",action}, {type:"lower_default_perm",org,to}, {type:"restrict_token",workflow}, {type:"harden_trigger",workflow}, {type:"reduce_owners",threshold}, {type:"require_reviews",repo} or {type:"enable_push_protection",repo}`
+	fixTypes  = "pin_ref, lower_default_perm, restrict_token, harden_trigger, block_bot_merge, reduce_owners, require_reviews or enable_push_protection"
+	fixShapes = `{type:"pin_ref",action}, {type:"lower_default_perm",org,to}, {type:"restrict_token",workflow}, {type:"harden_trigger",workflow}, {type:"block_bot_merge",repo}, {type:"reduce_owners",threshold}, {type:"require_reviews",repo} or {type:"enable_push_protection",repo}`
 )
 
 // SuggestFixes runs the budgeted greedy.
@@ -852,6 +859,11 @@ func (e *Engine) explainHardening(out *ExplainOutput, from, to string, kind grap
 	}
 	if out.Note != "" {
 		out.Summary += "; note: " + out.Note
+	}
+	if kind == graph.CanMergeViaBot {
+		for i, f := range graph.BotMergeFixes(n) {
+			out.Summary += fmt.Sprintf("; fix %d: %s", i+1, f)
+		}
 	}
 }
 

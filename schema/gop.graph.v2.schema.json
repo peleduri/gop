@@ -53,7 +53,7 @@
     },
     "EdgeKind": {
       "type": "string",
-      "enum": ["CAN_PUSH", "USES", "RESOLVES_TO", "DEFINED_IN", "EXECUTES_WITH", "MEMBER_OF", "CAN_TRIGGER", "CAN_ASSUME"]
+      "enum": ["CAN_PUSH", "USES", "RESOLVES_TO", "DEFINED_IN", "EXECUTES_WITH", "MEMBER_OF", "CAN_TRIGGER", "CAN_ASSUME", "CAN_MERGE_VIA_BOT"]
     },
     "Attrs": {
       "description": "Flat string attributes. Unknown keys are allowed.",
@@ -165,7 +165,22 @@
         "codeowners_workflows": {"description": "repo: the CODEOWNERS rule matching .github/workflows/ files names an owner.", "type": "string", "enum": ["true", "false", "unknown"]},
         "secret_scanning": {"description": "repo: secret scanning, from security_and_analysis (shown to repo admins, org owners and security managers).", "type": "string", "enum": ["on", "off", "unknown"]},
         "secret_scanning_push_protection": {"description": "repo: secret scanning push protection.", "type": "string", "enum": ["on", "off", "unknown"]},
-        "secret_scanning_validity_checks": {"description": "repo: secret scanning validity checks.", "type": "string", "enum": ["on", "off", "unknown"]}
+        "secret_scanning_validity_checks": {"description": "repo: secret scanning validity checks.", "type": "string", "enum": ["on", "off", "unknown"]},
+        "bot_approves": {"description": "workflow: a job submits an approving pull request review (gh pr review --approve, the reviews API with event APPROVE, an approve action, or an agent allowed to run gh pr review). See docs/agents-in-ci.md.", "type": "string", "enum": ["true"]},
+        "bot_approve_token": {"description": "workflow: sorted comma list of the approving steps' token sources: app, pat, github_token, unknown.", "type": "string", "minLength": 1},
+        "bot_approve_jobs": {"description": "workflow: sorted comma list of the approving job ids.", "type": "string", "minLength": 1},
+        "bot_approve_starter": {"description": "workflow: the widest population that can make an approving job run.", "type": "string", "enum": ["pr_openers", "org_members", "pushers", "maintainers"]},
+        "bot_merges": {"description": "workflow: a job merges a pull request (gh pr merge, the merge API, an automerge action).", "type": "string", "enum": ["true"]},
+        "bot_merge_token": {"description": "workflow: sorted comma list of the merging steps' token sources: app, pat, github_token, unknown.", "type": "string", "minLength": 1},
+        "bot_merge_jobs": {"description": "workflow: sorted comma list of the merging job ids.", "type": "string", "minLength": 1},
+        "bot_merge_starter": {"description": "workflow: the widest population that can make a merging job run.", "type": "string", "enum": ["pr_openers", "org_members", "pushers", "maintainers"]},
+        "bot_merge_gate": {"description": "workflow: the merging job's actor check.", "type": "string", "enum": ["pr_author", "author_association", "listed_users", "none"]},
+        "bot_merge_admin": {"description": "workflow: a merge step passes --admin.", "type": "string", "enum": ["true"]},
+        "bot_merge_triggers": {"description": "workflow: sorted comma list of the triggers that start a merging job.", "type": "string", "minLength": 1},
+        "review_bypass": {"description": "repo: bot_self_merge when a pull request's author can get it approved and merged by bots with no human review (not_visible when possible only).", "type": "string", "enum": ["bot_self_merge"]},
+        "review_bypass_reason": {"description": "repo: why the bot merge needs no human review.", "type": "string", "enum": ["app_bypass", "admin_bypass", "bot_approvals", "unprotected"]},
+        "review_bypass_approve": {"description": "repo: sorted comma list of the approving workflow files.", "type": "string", "minLength": 1},
+        "review_bypass_merge": {"description": "repo: the merging workflow file.", "type": "string", "minLength": 1}
       }
     },
     "EdgeAttrs": {
@@ -185,7 +200,10 @@
         "file_ref": {"description": "Commit or branch the file was read at, when known.", "type": "string"},
         "line": {"description": "1-based line, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
         "col": {"description": "1-based column, integer as string.", "type": "string", "pattern": "^[1-9][0-9]*$"},
-        "trigger": {"description": "CAN_TRIGGER: the risky trigger the principal can cause, e.g. pull_request_target.", "type": "string", "minLength": 1},
+        "trigger": {"description": "CAN_TRIGGER: the risky trigger the principal can cause, e.g. pull_request_target. CAN_MERGE_VIA_BOT: the trigger that starts the merge.", "type": "string", "minLength": 1},
+        "approve_workflows": {"description": "CAN_MERGE_VIA_BOT: sorted comma list of the approving workflow node IDs; absent when no approval is needed.", "type": "string", "minLength": 1},
+        "merge_workflow": {"description": "CAN_MERGE_VIA_BOT: the merging workflow node ID.", "type": "string", "minLength": 1},
+        "review_bypass_reason": {"description": "CAN_MERGE_VIA_BOT: why the bot merge needs no human review.", "type": "string", "enum": ["app_bypass", "admin_bypass", "bot_approvals", "unprotected"]},
         "exec": {"description": "CAN_TRIGGER: how the workflow runs attacker input: checkout, injection, or agent (an AI coding agent reads attacker text and acts with the job's token, secrets and tools).", "type": "string", "enum": ["checkout", "injection", "agent"]},
         "author_association": {"description": "CAN_TRIGGER: comma list of the author_association values the job's if: allows on a comment or review trigger. MEMBER narrows who can trigger to the org's members; CONTRIBUTOR includes outside contributors.", "type": "string", "pattern": "^(OWNER|MEMBER|COLLABORATOR|CONTRIBUTOR|FIRST_TIME_CONTRIBUTOR|FIRST_TIMER|MANNEQUIN|NONE)(,(OWNER|MEMBER|COLLABORATOR|CONTRIBUTOR|FIRST_TIME_CONTRIBUTOR|FIRST_TIMER|MANNEQUIN|NONE))*$"},
         "actions_lock": {"description": "USES edge from a workflow in a repo with an actions.lock: locked when the lockfile pins it (and every nested ref gop saw), stale when it does not (counts as unpinned).", "type": "string", "enum": ["locked", "stale"]},

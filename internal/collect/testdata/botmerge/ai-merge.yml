@@ -1,0 +1,22 @@
+# Synthetic: the pull request's author comments #ai-merge and the same App merges.
+name: AI merge
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+jobs:
+  merge:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '#ai-merge') && github.event.comment.user.login == github.event.issue.user.login
+    runs-on: ubuntu-latest
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.REVIEW_APP_ID }}
+          private-key: ${{ secrets.REVIEW_APP_KEY }}
+      - name: Merge
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: gh pr merge "$PR_NUMBER" --squash --delete-branch

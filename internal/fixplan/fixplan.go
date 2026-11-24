@@ -30,12 +30,12 @@ const ConfirmFirst = "not visible to the token: confirm this exists first"
 
 // FixSpec describes one fix in the shape the MCP tools take.
 type FixSpec struct {
-	Type     string `json:"type" jsonschema:"pin_ref, lower_default_perm, restrict_token, harden_trigger, reduce_owners, or the advisory require_reviews and enable_push_protection"`
+	Type     string `json:"type" jsonschema:"pin_ref, lower_default_perm, restrict_token, harden_trigger, block_bot_merge, reduce_owners, or the advisory require_reviews and enable_push_protection"`
 	Action   string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
 	Org      string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
 	To       string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
 	Workflow string `json:"workflow,omitempty" jsonschema:"for restrict_token and harden_trigger: the workflow node ID, e.g. workflow:acme-app/web/.github/workflows/ci.yml"`
-	Repo     string `json:"repo,omitempty" jsonschema:"for the advisory require_reviews and enable_push_protection: the repo node ID, e.g. repo:acme-app/web"`
+	Repo     string `json:"repo,omitempty" jsonschema:"for block_bot_merge and the advisory require_reviews and enable_push_protection: the repo node ID, e.g. repo:acme-app/web"`
 	// Threshold is for reduce_owners: accounts that own this many orgs or
 	// more lose standing ownership (0: graph.DefaultOwnerThreshold).
 	Threshold int `json:"threshold,omitempty" jsonschema:"for reduce_owners: remove standing org ownership from accounts that own this many orgs or more (default 5); at least 2 owners stay in every org"`
@@ -89,6 +89,9 @@ func Spec(f graph.Fix) (FixSpec, string) {
 	case graph.HardenTrigger:
 		return FixSpec{Type: "harden_trigger", Workflow: v.Workflow},
 			"Stop " + strings.TrimPrefix(v.Workflow, "workflow:") + " from running attacker-controlled code on its risky triggers"
+	case graph.BlockBotMerge:
+		return FixSpec{Type: "block_bot_merge", Repo: v.Repo},
+			"Stop PR authors from getting code onto the default branch of " + strings.TrimPrefix(v.Repo, "repo:") + " through a bot approve and merge"
 	case graph.ReduceOwners:
 		return FixSpec{Type: "reduce_owners", Threshold: v.Threshold}, ReduceOwnersDescription(len(v.Accounts()), v.Threshold)
 	case graph.RequireReviews:
@@ -121,6 +124,8 @@ func Build(ix *graph.Index, f graph.Fix) Plan {
 		buildRestrict(ix, v, &p)
 	case graph.HardenTrigger:
 		buildHarden(ix, v, &p)
+	case graph.BlockBotMerge:
+		buildBotMerge(ix, v, &p)
 	case graph.ReduceOwners:
 		buildReduceOwners(ix, v, &p)
 	case graph.RequireReviews, graph.EnablePushProtection:
