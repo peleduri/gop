@@ -513,7 +513,8 @@ type LockUse struct {
 	Missing string `json:"lock_missing,omitempty"`
 	// Advisories lists the advisories that name the locked commit as
 	// affected (lock_advisories); Fixed is the ref to move to before the
-	// lock is refreshed, "" when an advisory names no fixed version.
+	// lock is refreshed (lock_advisory_fixed), "" when an advisory names no
+	// fixed version.
 	Advisories string `json:"lock_advisories,omitempty"`
 	Fixed      string `json:"advisory_fixed,omitempty"`
 	// Edge is the USES edge, for callers that report the line (SARIF).
@@ -559,9 +560,8 @@ func LockGoverned(ix *graph.Index, action string) []LockUse {
 			SHA: e.Attrs[graph.AttrLockedSHA], Entry: e.Attrs[graph.AttrLockEntry], Missing: e.Attrs[graph.AttrLockMissing],
 			Advisories: e.Attrs[graph.AttrLockAdvisories], Edge: e}
 		if u.Advisories != "" && st == graph.LockLocked {
-			n, _ := ix.Node(action)
 			_, ref := splitRef(strings.TrimPrefix(action, "action:"))
-			u.Fixed = FixedRef(n, ref)
+			u.Fixed = withV(e.Attrs[graph.AttrLockAdvisoryFixed], ref)
 		}
 		out = append(out, u)
 	}
@@ -582,7 +582,12 @@ func LockGoverned(ix *graph.Index, action string) []LockUse {
 // advisory_fixed version, written with a leading v when the current ref has
 // one and the version does not. "" when no fixed version is known.
 func FixedRef(n graph.Node, ref string) string {
-	f := n.Attrs[graph.AttrAdvisoryFixed]
+	return withV(n.Attrs[graph.AttrAdvisoryFixed], ref)
+}
+
+// withV writes a fixed version f with a leading v when ref has one and f
+// does not. "" stays "".
+func withV(f, ref string) string {
 	if f == "" {
 		return ""
 	}

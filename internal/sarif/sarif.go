@@ -638,7 +638,9 @@ func (en *engine) pinResults(f graph.PinRef) []Result {
 }
 
 // advisoryResults makes one GOP003 result per uses: line of an action with
-// a known advisory. Severity is the higher of the terminal impact and the
+// a known advisory on its ref, and per uses: line an actions.lock pins to a
+// commit an advisory lists as affected (only those lines: the others run
+// the ref). Severity is the higher of the terminal impact and the
 // advisory's own (high when the advisory gives none).
 func (en *engine) advisoryResults(action string) []Result {
 	n, _ := en.ix.Node(action)
@@ -665,7 +667,9 @@ func (en *engine) advisoryResults(action string) []Result {
 	}
 	var lines []line
 	for _, s := range plan.Steps {
-		if s.Kind != fixplan.KindEditWorkflow {
+		// An edit line runs the ref: report it only when the advisory names
+		// the ref, not when only a lock elsewhere pins an affected commit.
+		if s.Kind != fixplan.KindEditWorkflow || !graph.HasAdvisory(n) {
 			continue
 		}
 		from, _, _ := strings.Cut(s.Edge, " "+string(graph.Uses)+" ")
@@ -689,8 +693,15 @@ func (en *engine) advisoryResults(action string) []Result {
 		}
 		t := count(reached)
 		sev := severityOf(t)
-		if severityRank(advSev) > severityRank(sev) {
-			sev = advSev
+		lineSev := advSev
+		if s.lock != nil {
+			lineSev = s.lock.Edge.Attrs[graph.AttrLockAdvisorySeverity]
+			if severityRank(lineSev) < 0 {
+				lineSev = SeverityHigh
+			}
+		}
+		if severityRank(lineSev) > severityRank(sev) {
+			sev = lineSev
 		}
 		ev := s.ev
 		if s.possible {

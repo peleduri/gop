@@ -343,8 +343,12 @@ func headline(ix *graph.Index, g graph.RiskGroup) string {
 	out := fmt.Sprintf("%s can push code that runs in %s across %s (confirmed)", who,
 		plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
 	if len(s.Advisories) > 0 && s.Advisories[0] == s.Principal {
-		out = fmt.Sprintf("%s, a version with a known advisory (%s), runs in %s across %s (confirmed)",
-			strings.TrimPrefix(s.Principal, "action:"), advisoryLabel(ix, s.Principal), plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
+		what := "a version with a known advisory"
+		if n, _ := ix.Node(s.Principal); !graph.HasAdvisory(n) {
+			what = "as an actions.lock pins it (a commit with a known advisory)"
+		}
+		out = fmt.Sprintf("%s, %s (%s), runs in %s across %s (confirmed)",
+			strings.TrimPrefix(s.Principal, "action:"), what, advisoryLabel(ix, s.Principal), plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
 	}
 	var term []string
 	if c.CloudTargets > 0 {
@@ -385,15 +389,50 @@ func headline(ix *graph.Index, g graph.RiskGroup) string {
 }
 
 // advisoryLabel is "GHSA-a, GHSA-b; severity critical; fixed in 2.0.1" for
-// an action with advisories.
+// an action with advisories on its ref. Advisories on commits an
+// actions.lock pins it to follow as "actions.lock pins an affected commit in
+// N uses: ..." with the same fields, read from those edges.
 func advisoryLabel(ix *graph.Index, action string) string {
 	n, _ := ix.Node(action)
-	out := strings.Join(graph.AdvisoryIDs(n), ", ")
-	if sev := n.Attrs[graph.AttrAdvisorySeverity]; sev != "" {
+	var parts []string
+	if graph.HasAdvisory(n) {
+		parts = append(parts, labelOf(graph.AdvisoryIDs(n), n.Attrs[graph.AttrAdvisorySeverity], n.Attrs[graph.AttrAdvisoryFixed]))
+	}
+	if lock := ix.LockAffectedUses(action); len(lock) > 0 {
+		ids, fixed := map[string]bool{}, map[string]bool{}
+		sev, noFix := "", false
+		for _, e := range lock {
+			for _, id := range strings.Split(e.Attrs[graph.AttrLockAdvisories], ",") {
+				ids[id] = true
+			}
+			if v := e.Attrs[graph.AttrLockAdvisorySeverity]; sev == "" || sevRank[v] > sevRank[sev] {
+				sev = v
+			}
+			if f := e.Attrs[graph.AttrLockAdvisoryFixed]; f != "" {
+				fixed[f] = true
+			} else {
+				noFix = true
+			}
+		}
+		f := ""
+		if !noFix {
+			f = strings.Join(sortedSet(fixed), ", ")
+		}
+		parts = append(parts, fmt.Sprintf("actions.lock pins an affected commit in %s: %s",
+			plural(len(lock), "uses: line", "uses: lines"), labelOf(sortedSet(ids), sev, f)))
+	}
+	return strings.Join(parts, "; ")
+}
+
+var sevRank = map[string]int{"low": 1, "medium": 2, "high": 3, "critical": 4}
+
+func labelOf(ids []string, sev, fixed string) string {
+	out := strings.Join(ids, ", ")
+	if sev != "" {
 		out += "; severity " + sev
 	}
-	if f := n.Attrs[graph.AttrAdvisoryFixed]; f != "" {
-		out += "; fixed in " + f
+	if fixed != "" {
+		out += "; fixed in " + fixed
 	} else {
 		out += "; no fixed version"
 	}
@@ -518,6 +557,10 @@ const footer = "This file maps attack paths in your organization. Treat it as se
 // lockLine is the coverage note that splits workflow uses: lines by how they
 // are pinned. A stale actions.lock entry is never counted as pinned.
 func lockLine(st graph.PinStats) string {
-	return fmt.Sprintf("Action pins (workflow uses: lines): %d pinned in the workflow file, %d pinned by actions.lock (%s), %d with a stale actions.lock entry (counted as unpinned, listed below), %d unpinned.",
-		st.InWorkflow, st.ByLock, plural(st.Locks, "repo has a lockfile", "repos have a lockfile"), st.Stale, st.Unpinned)
+	affected := ""
+	if st.LockAffected > 0 {
+		affected = fmt.Sprintf(", %d pinned by actions.lock to a commit with a known advisory (listed under risks)", st.LockAffected)
+	}
+	return fmt.Sprintf("Action pins (workflow uses: lines): %d pinned in the workflow file, %d pinned by actions.lock (%s)%s, %d with a stale actions.lock entry (counted as unpinned, listed below), %d unpinned.",
+		st.InWorkflow, st.ByLock, plural(st.Locks, "repo has a lockfile", "repos have a lockfile"), affected, st.Stale, st.Unpinned)
 }

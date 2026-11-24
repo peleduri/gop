@@ -100,7 +100,7 @@ type Summary struct {
 	EdgesByKind   map[string]int         `json:"edges_by_kind"`
 	Evidence      map[string]EvidenceMix `json:"evidence" jsonschema:"evidence mix of nodes and of edges"`
 	CoverageGaps  int                    `json:"coverage_gaps" jsonschema:"facts the token could not see; read gop://graph/coverage"`
-	ActionPins    *graph.PinStats        `json:"action_pins,omitempty" jsonschema:"workflow uses: lines by how they are pinned: in the workflow file, by actions.lock, stale actions.lock entry (not pinned), unpinned; only when the graph has an actions.lock fact"`
+	ActionPins    *graph.PinStats        `json:"action_pins,omitempty" jsonschema:"workflow uses: lines by how they are pinned: in the workflow file, by actions.lock, by actions.lock to a commit with a known advisory, stale actions.lock entry (not pinned), unpinned; only when the graph has an actions.lock fact"`
 	Orgs          []OrgSummary           `json:"orgs"`
 	TopPrincipals []graph.Score          `json:"top_principals" jsonschema:"top 5 principals by confirmed score"`
 	Note          string                 `json:"note"`

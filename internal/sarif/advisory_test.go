@@ -67,10 +67,13 @@ func lockedCheckoutIsh(t *testing.T, sha string) (*graph.Graph, advisory.Stats) 
 
 func TestLockedAffectedCommit(t *testing.T) {
 	g, st := lockedCheckoutIsh(t, "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a")
-	if st.LockAffected != 1 || st.Affected != 1 {
+	if st.LockAffected != 1 || st.Affected != 0 {
 		t.Fatalf("stats %+v", st)
 	}
 	ix := graph.NewIndex(g)
+	if ps := ix.PinStats(); ps.LockAffected != 1 || ps.ByLock != 0 {
+		t.Errorf("pin stats %+v", ps)
+	}
 	if top := ix.TopPaths(1); len(top) != 1 || top[0].Principal != demo.CheckoutIsh {
 		t.Errorf("top path %+v, want the locked affected action first", top)
 	}
@@ -123,5 +126,75 @@ func TestLockedFixedCommitIsNotAffected(t *testing.T) {
 		if c.Fact == graph.CoverageAdvisories {
 			t.Errorf("coverage %+v", c)
 		}
+	}
+}
+
+// Repo A (acme-app/docs) locks checkout-ish@v2 to an affected commit; repo
+// B (acme-app/site) uses the same ref unlocked, and the ref itself is not
+// affected. Only A's line gets the advisory.
+func TestLockedAffectedCommitOnlyFlagsLockedLine(t *testing.T) {
+	dir := t.TempDir()
+	rec := `{"id": "GHSA-acme-lock-0001", "modified": "2026-01-01T00:00:00Z",
+  "affected": [{"package": {"ecosystem": "GitHub Actions", "name": "acme-oss/checkout-ish"},
+    "ranges": [{"type": "ECOSYSTEM", "events": [{"introduced": "3.0.0"}, {"fixed": "3.1.0"}]}],
+    "versions": ["0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"]}],
+  "database_specific": {"severity": "CRITICAL"}}`
+	if err := os.WriteFile(filepath.Join(dir, "GHSA-acme-lock-0001.json"), []byte(rec), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	db, err := advisory.Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := demo.Generate(demo.Options{Seed: 1})
+	for i := range g.Edges {
+		if e := &g.Edges[i]; e.Kind == graph.Uses && e.To == demo.CheckoutIsh {
+			e.Attrs[graph.AttrActionsLock] = graph.LockLocked
+			e.Attrs[graph.AttrLockedSHA] = "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"
+			e.Attrs[graph.AttrLine] = "12"
+		}
+	}
+	const siteRepo, siteWF = "repo:acme-app/site", "workflow:acme-app/site/.github/workflows/build.yml"
+	g.Nodes = append(g.Nodes,
+		graph.Node{ID: siteRepo, Kind: graph.KindRepo, Name: "acme-app/site", Evidence: graph.Live},
+		graph.Node{ID: siteWF, Kind: graph.KindWorkflow, Name: "acme-app/site/.github/workflows/build.yml", Evidence: graph.Live},
+		graph.Node{ID: "secret:acme-app/site", Kind: graph.KindSecret, Name: "acme-app/site", Evidence: graph.Live})
+	g.Edges = append(g.Edges,
+		graph.Edge{From: siteWF, Kind: graph.DefinedIn, To: siteRepo, Evidence: graph.Live},
+		graph.Edge{From: siteWF, Kind: graph.Uses, To: demo.CheckoutIsh, Evidence: graph.Live,
+			Attrs: map[string]string{graph.AttrLine: "7", graph.AttrRefKind: "tag"}},
+		graph.Edge{From: siteWF, Kind: graph.ExecutesWith, To: "secret:acme-app/site", Evidence: graph.Live})
+	advisory.Annotate(g, db)
+
+	ix := graph.NewIndex(g)
+	top := ix.TopPaths(1)
+	if len(top) != 1 || top[0].Principal != demo.CheckoutIsh {
+		t.Fatalf("top path %+v, want the locked affected action first", top)
+	}
+	if top[0].Confirmed.Workflows != 1 || top[0].Confirmed.Secrets != 1 {
+		t.Errorf("advisory reach %+v: want only the locked workflow and its secret", top[0].Confirmed)
+	}
+	adv := byRule(build(t, g, Options{}), RuleAdvisory)
+	if len(adv) != 1 || adv[0].Properties.Repository != "acme-app/docs" {
+		t.Fatalf("GOP003 results %+v, want only acme-app/docs", adv)
+	}
+	p := fixplan.Build(ix, graph.PinRef{Action: demo.CheckoutIsh})
+	var lockCaveats []string
+	for _, c := range p.Caveats {
+		if strings.Contains(c, "affected") || strings.Contains(c, "advisory") {
+			lockCaveats = append(lockCaveats, c)
+		}
+	}
+	if len(lockCaveats) != 1 || !strings.HasPrefix(lockCaveats[0], "acme-app/docs ") ||
+		!strings.Contains(lockCaveats[0], "actions.lock pins an affected commit: rerun gh actions-lock after moving to v3.1.0") {
+		t.Errorf("advisory caveats %v, want one for acme-app/docs", lockCaveats)
+	}
+	for _, s := range p.Steps {
+		if s.Repo == "acme-app/site" && strings.Contains(s.Diff, "3.1.0") {
+			t.Errorf("acme-app/site step moves to the fixed version: %+v", s)
+		}
+	}
+	if strings.Contains(p.Description, "known advisory") {
+		t.Errorf("plan description %q claims the ref has an advisory", p.Description)
 	}
 }

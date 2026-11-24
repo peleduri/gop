@@ -333,10 +333,13 @@ const (
 	AttrLockedSHA   = "locked_sha"   // USES edge with actions_lock=locked: the commit the lockfile pins the action to
 	AttrLockEntry   = "lock_entry"   // USES edge with actions_lock=stale: comma list of the lockfile's pin keys (owner/repo@ref) for the same action repo; absent when there is none
 	AttrLockMissing = "lock_missing" // USES edge with actions_lock=stale: comma list of the nested refs (owner/repo@ref) the lockfile does not pin for this workflow
-	// USES edge with actions_lock=locked: comma list of the advisory IDs that
-	// list locked_sha as affected (set by the advisory check). The lock then
-	// pins compromised code, so the engine keeps the edge's control hop.
-	AttrLockAdvisories = "lock_advisories"
+	// USES edge with actions_lock=locked whose locked_sha an advisory lists
+	// as affected (set by the advisory check, see docs/advisories.md). They
+	// describe the locked commit only, never the ref: the action node's
+	// advisories attrs stay the ref-level match.
+	AttrLockAdvisories       = "lock_advisories"        // comma list of the advisory IDs
+	AttrLockAdvisorySeverity = "lock_advisory_severity" // highest severity: critical | high | medium | low | unknown
+	AttrLockAdvisoryFixed    = "lock_advisory_fixed"    // first fixed version to move to before rerunning gh actions-lock; absent when one has no fix
 )
 
 // Values of actions_lock on USES edges.
@@ -344,8 +347,8 @@ const (
 	// LockLocked: the lockfile lists this uses: for the workflow, with a
 	// commit, and pins every nested ref gop saw under it. The engine drops the
 	// edge's control hop: changing the action cannot change what the
-	// workflow runs. Not when lock_advisories lists the locked commit as
-	// affected (see LockPins).
+	// workflow runs. A locked commit an advisory lists as affected
+	// (lock_advisories) is ranked as a known advisory of its own.
 	LockLocked = "locked"
 	// LockStale: the repo has a lockfile, but it does not pin this uses: as
 	// written (another ref, the workflow is missing, or a nested ref is

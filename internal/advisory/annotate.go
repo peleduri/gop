@@ -11,7 +11,7 @@ import (
 // Stats summarizes one Annotate run.
 type Stats struct {
 	Actions  int // action_ref nodes checked
-	Affected int // nodes that got advisories
+	Affected int // nodes whose ref got advisories
 	Unknown  int // nodes with an advisory gop could not decide (coverage entries)
 	// LockAffected counts USES edges whose actions.lock commit (locked_sha)
 	// an advisory lists as affected.
@@ -46,8 +46,9 @@ func RefOf(n graph.Node) (Ref, bool) {
 // advisories, advisory_severity and (when known) advisory_fixed; a node gop
 // cannot place gets a coverage entry. A USES edge that an actions.lock pins
 // (actions_lock=locked) is matched on its locked_sha too: an affected commit
-// sets lock_advisories on the edge and adds the advisories to the node, and
-// a commit the advisory does not list gets a coverage entry. Advisory attrs
+// sets lock_advisories, lock_advisory_severity and lock_advisory_fixed on
+// the edge (never on the node, whose attrs stay the ref-level match), and a
+// commit the advisory does not list gets a coverage entry. Advisory attrs
 // and coverage from an earlier run are replaced, so annotating twice gives
 // the same graph.
 func Annotate(g *graph.Graph, db *DB) Stats {
@@ -94,10 +95,14 @@ func Annotate(g *graph.Graph, db *DB) Stats {
 			lm := db.Match(ref.Owner, ref.Repo, ref.Path, sha)
 			if len(lm.Affected) > 0 {
 				for _, ei := range edges {
-					g.Edges[ei].Attrs[graph.AttrLockAdvisories] = strings.Join(lm.Affected, ",")
+					a := g.Edges[ei].Attrs
+					a[graph.AttrLockAdvisories] = strings.Join(lm.Affected, ",")
+					a[graph.AttrLockAdvisorySeverity] = lm.Severity
+					if lm.Fixed != "" {
+						a[graph.AttrLockAdvisoryFixed] = lm.Fixed
+					}
 				}
 				st.LockAffected += len(edges)
-				m = merge(m, lm)
 			}
 			if len(lm.Unknown) > 0 {
 				unknown = true
@@ -127,41 +132,6 @@ func Annotate(g *graph.Graph, db *DB) Stats {
 	return st
 }
 
-// merge adds the affected advisories of b (a locked commit) to a (the
-// node's ref): IDs unioned, the higher severity, and the higher fixed
-// version, or none when either side has an affecting advisory without one.
-func merge(a, b Match) Match {
-	aNoFix := len(a.Affected) > 0 && a.Fixed == ""
-	bNoFix := len(b.Affected) > 0 && b.Fixed == ""
-	seen := map[string]bool{}
-	var ids []string
-	for _, id := range append(append([]string{}, a.Affected...), b.Affected...) {
-		if !seen[id] {
-			seen[id] = true
-			ids = append(ids, id)
-		}
-	}
-	sort.Strings(ids)
-	out := a
-	out.Affected = ids
-	if out.Severity == "" || SeverityRank(b.Severity) > SeverityRank(out.Severity) {
-		out.Severity = b.Severity
-	}
-	switch {
-	case aNoFix || bNoFix:
-		out.Fixed = ""
-	case a.Fixed == "":
-		out.Fixed = b.Fixed
-	default:
-		va, okA := parseVersion(a.Fixed)
-		vb, okB := parseVersion(b.Fixed)
-		if okA && okB && vb.cmp(va) > 0 {
-			out.Fixed = b.Fixed
-		}
-	}
-	return out
-}
-
 // Skip records that no advisory check ran: one enterprise coverage entry
 // saying why. Advisory attrs from an earlier run are removed, since gop can
 // no longer vouch for them.
@@ -184,6 +154,8 @@ func clearAdvisories(g *graph.Graph) {
 	}
 	for i := range g.Edges {
 		delete(g.Edges[i].Attrs, graph.AttrLockAdvisories)
+		delete(g.Edges[i].Attrs, graph.AttrLockAdvisorySeverity)
+		delete(g.Edges[i].Attrs, graph.AttrLockAdvisoryFixed)
 	}
 	kept := g.Coverage[:0]
 	for _, c := range g.Coverage {

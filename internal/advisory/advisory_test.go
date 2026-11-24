@@ -175,19 +175,20 @@ func TestAnnotateLockedSHA(t *testing.T) {
 	}, Edges: []graph.Edge{{From: "workflow:acme-app/web/.github/workflows/ci.yml", Kind: graph.Uses, To: action, Evidence: graph.Live,
 		Attrs: map[string]string{graph.AttrActionsLock: graph.LockLocked, graph.AttrLockedSHA: "2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c"}}}}
 	st := Annotate(g, loadFixture(t))
-	if st != (Stats{Actions: 1, Affected: 1, LockAffected: 1}) {
+	if st != (Stats{Actions: 1, LockAffected: 1}) {
 		t.Errorf("stats %+v", st)
 	}
-	a := g.Nodes[0].Attrs
-	if a[graph.AttrAdvisories] != "GHSA-acme-test-0001" || a[graph.AttrAdvisorySeverity] != "critical" || a[graph.AttrAdvisoryFixed] != "2.4.1" {
-		t.Errorf("node attrs %v: the v3 tag is fixed, the locked commit is not", a)
+	if a := g.Nodes[0].Attrs; a[graph.AttrAdvisories] != "" {
+		t.Errorf("node attrs %v: the v3 tag is fixed, only the locked commit is affected", a)
 	}
-	if g.Edges[0].Attrs[graph.AttrLockAdvisories] != "GHSA-acme-test-0001" {
-		t.Errorf("edge attrs %v", g.Edges[0].Attrs)
+	if a := g.Edges[0].Attrs; a[graph.AttrLockAdvisories] != "GHSA-acme-test-0001" ||
+		a[graph.AttrLockAdvisorySeverity] != "critical" || a[graph.AttrLockAdvisoryFixed] != "2.4.1" {
+		t.Errorf("edge attrs %v", a)
 	}
 	g.Edges[0].Attrs[graph.AttrLockedSHA] = "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
 	if st := Annotate(g, loadFixture(t)); st != (Stats{Actions: 1}) || g.Nodes[0].Attrs[graph.AttrAdvisories] != "" ||
-		g.Edges[0].Attrs[graph.AttrLockAdvisories] != "" || len(g.Coverage) != 0 {
+		g.Edges[0].Attrs[graph.AttrLockAdvisories] != "" || g.Edges[0].Attrs[graph.AttrLockAdvisorySeverity] != "" ||
+		g.Edges[0].Attrs[graph.AttrLockAdvisoryFixed] != "" || len(g.Coverage) != 0 {
 		t.Errorf("after relocking on the fixed commit: stats %+v node %v edge %v coverage %+v", st, g.Nodes[0].Attrs, g.Edges[0].Attrs, g.Coverage)
 	}
 }
