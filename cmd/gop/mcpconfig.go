@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,7 +13,13 @@ import (
 )
 
 // mcpClients lists the clients gop mcp-config knows, in help order.
-var mcpClients = []string{"claude", "cursor", "vscode"}
+//
+//	claude       a `claude mcp add` command (Claude Code)
+//	codex        a `codex mcp add` command (Codex CLI and IDE extension)
+//	cursor       .cursor/mcp.json
+//	cursor-link  a Cursor MCP install link (cursor://anysphere.cursor-deeplink/mcp/install)
+//	vscode       .vscode/mcp.json
+var mcpClients = []string{"claude", "codex", "cursor", "cursor-link", "vscode"}
 
 // cmdMCPConfig prints the MCP client config that starts gop serve with an
 // absolute graph path. It only prints; it never writes or edits a file.
@@ -64,6 +72,12 @@ func writeMCPConfig(w io.Writer, client, graphPath string) error {
 	case "claude":
 		_, err := fmt.Fprintf(w, "claude mcp add gop -- gop %s\n", shellJoin(args))
 		return err
+	case "codex":
+		_, err := fmt.Fprintf(w, "codex mcp add gop -- gop %s\n", shellJoin(args))
+		return err
+	case "cursor-link":
+		_, err := fmt.Fprintln(w, cursorInstallLink("gop", mcpServer{Command: "gop", Args: args}))
+		return err
 	case "cursor":
 		return writeJSON(w, map[string]map[string]mcpServer{
 			"mcpServers": {"gop": {Command: "gop", Args: args}},
@@ -74,6 +88,18 @@ func writeMCPConfig(w io.Writer, client, graphPath string) error {
 		})
 	}
 	return fmt.Errorf("unknown client %q", client)
+}
+
+// cursorInstallLink returns Cursor's MCP install deeplink for one server:
+// the server entry (without its name) as compact JSON, base64 encoded, in the
+// config query parameter. See docs/mcp-clients.md for the format's source.
+func cursorInstallLink(name string, s mcpServer) string {
+	b, err := json.Marshal(s)
+	if err != nil {
+		panic(err) // a struct of strings always marshals
+	}
+	return "cursor://anysphere.cursor-deeplink/mcp/install?name=" + url.QueryEscape(name) +
+		"&config=" + url.QueryEscape(base64.StdEncoding.EncodeToString(b))
 }
 
 func writeJSON(w io.Writer, v any) error {

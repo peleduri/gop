@@ -21,7 +21,8 @@ import (
 const repoURL = "https://github.com/peleduri/gop"
 
 // builtFiles are the paths site/build.sh writes next to index.html.
-var builtFiles = map[string]bool{"favicon.svg": true, "demo/": true, "demo/report.md": true}
+var builtFiles = map[string]bool{"favicon.svg": true, "demo/": true, "demo/report.md": true,
+	"llms.txt": true, "llms-full.txt": true}
 
 // pendingDocs are repo files the page links to that land in a parallel
 // change. The link check skips them while they are missing; once they exist
@@ -185,6 +186,8 @@ func TestLinks(t *testing.T) {
 				}
 				t.Errorf("link %q: %s does not exist in the repo", ref, p)
 			}
+		case strings.HasPrefix(ref, cursorLink):
+			checkCursorLink(t, ref)
 		case isExternal(ref):
 			t.Errorf("link %q: only links into %s are expected", ref, repoURL)
 		default:

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.peleduri/gop",
+  "title": "gop: who can make code run where",
+  "description": "Read-only evidence graph of who can make code run where in a GitHub Enterprise.",
+  "repository": {
+    "url": "https://github.com/peleduri/gop",
+    "source": "github",
+    "id": "1469058963"
+  },
+  "websiteUrl": "https://peleduri.github.io/gop/",
+  "version": "0.6.0",
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/peleduri/gop:0.6.0",
+      "runtimeHint": "docker",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--mount",
+          "description": "Mount the folder that holds your graph.json read-only at /data in the container",
+          "value": "type=bind,src={graph_dir},dst=/data,readonly",
+          "isRequired": true,
+          "variables": {
+            "graph_dir": {
+              "description": "Absolute path of the folder that holds graph.json (written by gop collect). Keep it out of shared or synced folders.",
+              "format": "filepath",
+              "isRequired": true
+            }
+          }
+        }
+      ],
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "serve"
+        },
+        {
+          "type": "named",
+          "name": "--graph",
+          "description": "The graph file inside the mounted folder",
+          "value": "/data/{graph_file}",
+          "isRequired": true,
+          "variables": {
+            "graph_file": {
+              "description": "File name of the graph in that folder",
+              "default": "graph.json",
+              "isRequired": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

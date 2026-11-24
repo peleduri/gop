@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 flags may change in minor releases.
 
 ## [Unreleased]
+### Added
+- One-step installs in AI assistants (#163). The repository is a Claude Code
+  plugin marketplace: `/plugin marketplace add peleduri/gop` and
+  `/plugin install gop@gop` add the MCP server (asking for the graph.json
+  path) and the gop skill. Every release attaches a Claude Desktop extension
+  per platform, `gop_<version>_<os>_<arch>.mcpb` (MCPB manifest 0.3 with the
+  binary bundled; in `checksums.txt`, so covered by its cosign signature and
+  provenance). New `server.json`: stable releases are published to the
+  official MCP Registry as `io.github.peleduri/gop` by a new `mcp-registry`
+  release job that logs in with GitHub OIDC (no stored secret), listing the
+  GHCR image (now labelled `io.modelcontextprotocol.server.name`) and the
+  `.mcpb` bundles. Cursor install links (README, site,
+  `gop mcp-config --client cursor-link`), Cursor and Codex plugin manifests
+  that carry the skill, and `gop mcp-config --client codex` (a
+  `codex mcp add` command). The site has `llms.txt`, `llms-full.txt` and a
+  FAQ. docs/mcp-clients.md cites the client docs each format was checked
+  against; docs/maintainers.md has the registry and directory steps. New
+  `scripts/dist` builds the bundles and the registry `server.json`; its tests
+  check them against copies of the published schemas.
+
 ### Fixed
 - Consistency fixes (#166). `gop fix-plan --format text` escapes names the
   way the markdown checklist does (control, bidi and zero-width characters
@@ -23,6 +43,8 @@ flags may change in minor releases.
   merge) next to the hop. `--advisories-live` follows `next_page_token` in
   OSV `querybatch` results, so a package with many advisories is no longer
   cut at the first page.
+- skills/gop/README.md installed the skill for Codex into `~/.codex/skills`;
+  Codex loads user skills from `~/.agents/skills`.
 
 ## [0.6.0] - 2026-11-24
 ### Added

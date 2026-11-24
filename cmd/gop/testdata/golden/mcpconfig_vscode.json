@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "gop": {
+      "type": "stdio",
+      "command": "gop",
+      "args": [
+        "serve",
+        "--graph",
+        "/abs/graph.json"
+      ]
+    }
+  }
+}

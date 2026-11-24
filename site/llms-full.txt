@@ -1,0 +1,128 @@
+# gop: who can make code run where in a GitHub Enterprise
+
+Site: https://peleduri.github.io/gop/
+Source: https://github.com/peleduri/gop (Apache-2.0)
+MCP Registry: io.github.peleduri/gop
+
+## What gop is
+
+gop (GitHub Enterprise Org Posture) is an open-source, read-only tool for
+security engineers. It reads a whole GitHub Enterprise with a read-only token
+and writes one evidence graph, graph.json. From that graph it answers, in an
+HTML report, on the command line, or to an AI assistant over the Model Context
+Protocol (MCP):
+
+- Who can make code run in this repo, workflow, Action, secret, OIDC cloud
+  trust or self-hosted runner pool, and through which hops?
+- What can this person, team, app or org's members make code run in, across
+  every org?
+- Which AI coding agents in GitHub Actions can people without push access
+  start (for example with an issue comment), and what token, secrets and tools
+  do they run with?
+- Which Actions can members of one org push to that run in other orgs'
+  workflows, including Actions nested inside composite Actions and SHA pins
+  that still run a mutable ref?
+- Which few changes remove the most confirmed reach: pin an action to a SHA,
+  lower an org's default repository permission, restrict a workflow's
+  GITHUB_TOKEN, harden a risky trigger, or remove standing org ownership?
+- What could the token not see, and which access would make it visible?
+
+gop never writes to GitHub: its API client refuses every non-GET REST request
+and every GraphQL mutation before sending it. It has no telemetry and no
+server; graph.json and reports stay on your disk with file mode 0600.
+
+## Install
+
+    go install github.com/peleduri/gop/cmd/gop@latest
+
+Also: signed release archives for Linux, macOS and Windows
+(https://github.com/peleduri/gop/releases, cosign-signed checksums, SBOMs,
+SLSA provenance), the container image ghcr.io/peleduri/gop, and a GitHub
+Action (peleduri/gop/action). Details:
+https://github.com/peleduri/gop/blob/main/docs/install.md
+
+## First run
+
+Try it with no token on synthetic data:
+
+    gop report --demo --out report.html
+
+On your enterprise, with a read-only token (classic token of an enterprise
+owner with read:enterprise, read:org and repo, or a GitHub App):
+
+    gop doctor  --enterprise acme
+    gop collect --enterprise acme --out graph.json
+    gop report  --graph graph.json --out report.html
+
+GitHub Enterprise Server works with --github-url pointing at your server.
+
+## Use it from an AI assistant
+
+gop serve --graph graph.json is an MCP server over stdio. Every tool is
+read-only.
+
+- Claude Code: /plugin marketplace add peleduri/gop, then
+  /plugin install gop@gop (adds the MCP server and the gop skill, asks for the
+  graph path). Or: claude mcp add gop -- gop serve --graph /path/to/graph.json
+- Claude Desktop: open the gop_<version>_<os>_<arch>.mcpb extension from a
+  release (it bundles gop and asks for graph.json).
+- Cursor: the "Add gop to Cursor" install link in the README, or
+  gop mcp-config --client cursor-link --graph graph.json
+- Codex: codex mcp add gop -- gop serve --graph /path/to/graph.json; the skill
+  installs with codex plugin marketplace add peleduri/gop and
+  codex plugin add gop@gop
+- VS Code: gop mcp-config --client vscode --graph graph.json
+- Other MCP clients: io.github.peleduri/gop in the official MCP Registry
+  (container image or .mcpb bundles)
+
+Use an absolute graph path. graph.json is sensitive (a map of who can run code
+where); keep it out of synced folders and only connect it to a model provider
+your organization allows for this data. Details:
+https://github.com/peleduri/gop/blob/main/docs/mcp-clients.md
+
+## MCP tools
+
+- who_can_reach: principals that can make code run in a target, with one
+  shortest path each
+- blast_radius: everything one principal can make code run in, with a score
+- paths: the concrete hops from a principal, optionally to one target
+- top_risks: principals ranked by confirmed blast radius
+- what_if: reach before and after hypothetical fixes
+- suggest_fixes: the fixes that remove the most confirmed reach
+- fix_plan: concrete change steps for one fix (gop never runs them)
+- explain: why one edge exists, with its evidence and API source
+- coverage: what the token could not see, and the access that fixes it
+- check_answerable: whether gop could see the facts an answer depends on
+  (yes, partial or no); agents call it before giving a conclusion
+- diff: what changed since a baseline snapshot
+
+Resources: gop://graph/summary, gop://graph/coverage, gop://graph/schema,
+gop://node/{+id}. Prompts: triage_enterprise, review_action, explain_path.
+
+## Evidence levels
+
+Every node and edge carries an evidence level:
+
+- live: read from current state through the GitHub API
+- inferred: derived from observed facts by a documented rule (for example
+  members' push access from an org's default permission)
+- audit: read from the enterprise audit log (may be stale)
+- supplied: read from a file you supplied, such as a cloud OIDC trust policy
+- not_visible: the token could not read it; unknown, not absent
+
+A path whose every hop is live, inferred, recent audit or supplied is
+confirmed reach. A path with any not_visible hop is possible reach: it is never
+counted in headline numbers, scores or fix suggestions, and gop never reports
+"could not see" as "off".
+
+## Links
+
+- README: https://github.com/peleduri/gop/blob/main/README.md
+- Quick start: https://github.com/peleduri/gop/blob/main/docs/quickstart.md
+- MCP clients: https://github.com/peleduri/gop/blob/main/docs/mcp-clients.md
+- Agent skill: https://github.com/peleduri/gop/blob/main/skills/gop/README.md
+- AI agents in CI: https://github.com/peleduri/gop/blob/main/docs/agents-in-ci.md
+- Graph schema: https://github.com/peleduri/gop/blob/main/docs/schema.md
+- Threat model: https://github.com/peleduri/gop/blob/main/docs/threat-model.md
+- How gop compares: https://github.com/peleduri/gop/blob/main/docs/compare.md
+- Demo report: https://peleduri.github.io/gop/demo/

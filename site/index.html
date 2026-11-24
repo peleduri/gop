@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-HIzlVn8tDHtQrhelfrVcYwqxeRgs8Q4zd8v2uFaBqf0='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-GZg67HAM5zncshqXFrW0robs9Tzzw8AyQWo3NJ486f8='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>gop: who can make code run where in your GitHub Enterprise</title>
 <meta name="description" content="gop maps a GitHub Enterprise as an evidence graph: which AI agents and people can make code run where, across orgs and nested Actions, and the fewest changes that remove the most reach. Read-only, local, open source.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate" type="text/plain" href="llms.txt" title="gop for language models">
 <style>
 :root{--bg:#f6f8fa;--card:#ffffff;--fg:#1f2328;--muted:#59636e;--line:#d1d9e0;--line2:#e8ecf0;--accent:#0969da;--accent-bg:#ddf4ff;--btn:#0969da;
 --live:#1a7f37;--live-bg:#dafbe1;--nv:#59636e;--nv-bg:#eff2f5;
@@ -144,6 +145,10 @@ tr.us>*{background:var(--accent-bg)}
 .agents h3{font-size:1.05rem;margin:0 0 6px}
 .agents p{color:var(--muted);font-size:.93rem;margin:0 0 12px}
 .agents .links{display:flex;flex-wrap:wrap;gap:6px 16px;margin:12px 0 0;padding:0;list-style:none;font-size:.9rem;font-weight:600}
+.faq{display:grid;gap:12px;max-width:80ch}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2) var(--s3)}
+.faq summary{cursor:pointer;font-weight:650}
+.faq details p{color:var(--muted);margin:12px 0 0}
 .asks{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
 .asks li{padding:8px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line2);font-size:.9rem}
 .asks li:before{content:"\201C";color:var(--muted)}.asks li:after{content:"\201D";color:var(--muted)}
@@ -169,6 +174,7 @@ th,td{padding:10px 12px}}
 <li class="opt"><a href="#demo">Demo</a></li>
 <li class="opt"><a href="#install">Install</a></li>
 <li class="opt"><a href="#agents">Agents</a></li>
+<li class="opt"><a href="#faq">FAQ</a></li>
 <li><a class="gh" href="https://github.com/peleduri/gop">GitHub</a></li>
 </ul>
 </nav>
@@ -357,15 +363,55 @@ th,td{padding:10px 12px}}
 </ul>
 </div>
 <div class="card">
-<h3>MCP, skill and the agents guide</h3>
-<p>Connect Claude Code, Cursor or VS Code, add the triage skill, and read how gop finds AI coding agents in GitHub Actions.</p>
+<h3>Install in your assistant</h3>
+<p>Claude Code: <code>/plugin marketplace add peleduri/gop</code>, then <code>/plugin install gop@gop</code> for the server and the skill. Claude Desktop: open the <code>.mcpb</code> extension from a release. Codex: <code>codex mcp add gop -- gop serve --graph graph.json</code>. Others: <code>io.github.peleduri/gop</code> in the MCP Registry.</p>
 <ul class="links">
-<li><a href="https://github.com/peleduri/gop/blob/main/docs/mcp-clients.md">MCP clients</a></li>
+<li><a href="https://cursor.com/link/mcp/install?name=gop&amp;config=eyJjb21tYW5kIjoiZ29wIiwiYXJncyI6WyJzZXJ2ZSIsIi0tZ3JhcGgiLCIke3VzZXJIb21lfS9nb3AvZ3JhcGguanNvbiJdfQ%3D%3D">Add gop to Cursor</a></li>
+<li><a href="https://cursor.com/link/mcp/install?name=gop-demo&amp;config=eyJjb21tYW5kIjoiZ29wIiwiYXJncyI6WyJzZXJ2ZSIsIi0tZGVtbyJdfQ%3D%3D">Try the demo in Cursor</a></li>
+<li><a href="https://github.com/peleduri/gop/blob/main/docs/mcp-clients.md">All MCP clients</a></li>
 <li><a href="https://github.com/peleduri/gop/blob/main/skills/gop/README.md">Agent skill</a></li>
 <li><a href="https://github.com/peleduri/gop/blob/main/docs/agents-in-ci.md">AI agents in CI guide</a></li>
 </ul>
 </div>
 </div>
+</div>
+</section>
+
+<section id="faq" aria-labelledby="faq-h">
+<div class="wrap">
+<p class="kicker">Questions</p>
+<h2 id="faq-h">Frequently asked</h2>
+<div class="faq">
+<details>
+<summary>How do I find out who can make code run across all my GitHub orgs?</summary>
+<p>Run <code>gop collect --enterprise acme --out graph.json</code> with a read-only token, then <code>gop report --graph graph.json --out report.html</code>, or ask your AI assistant through the gop MCP server. gop follows push access, workflows, nested Actions, secrets, OIDC trusts and self-hosted runners across every org, and shows each path hop by hop.</p>
+</details>
+<details>
+<summary>Which AI coding agents in GitHub Actions can outsiders start?</summary>
+<p>gop finds workflows that run a coding agent, who can trigger each one (including people without push access, for example through an issue comment), what untrusted text reaches its prompt, and what its token, secrets and tools let it do. See the <a href="https://github.com/peleduri/gop/blob/main/docs/agents-in-ci.md">AI agents in CI guide</a>.</p>
+</details>
+<details>
+<summary>Is it safe to run with a token that can see the whole enterprise?</summary>
+<p>gop is read-only: its API client refuses every non-GET request and every GraphQL mutation before sending it, and every MCP tool is annotated read-only. It has no telemetry and sends nothing anywhere except read requests to the GitHub API. The graph and reports are written with file mode 0600. See the <a href="https://github.com/peleduri/gop/blob/main/docs/threat-model.md">threat model</a>.</p>
+</details>
+<details>
+<summary>How do I add gop to Claude Code, Claude Desktop, Cursor, Codex or VS Code?</summary>
+<p>Claude Code: <code>/plugin marketplace add peleduri/gop</code> then <code>/plugin install gop@gop</code>. Claude Desktop: open the <code>.mcpb</code> extension attached to each release. Cursor: the install link above. Codex: <code>codex mcp add gop -- gop serve --graph /path/to/graph.json</code>. VS Code: <code>gop mcp-config --client vscode --graph graph.json</code>. Other clients find <code>io.github.peleduri/gop</code> in the official MCP Registry. Step by step: <a href="https://github.com/peleduri/gop/blob/main/docs/mcp-clients.md">MCP clients</a>.</p>
+</details>
+<details>
+<summary>What is the difference between confirmed and possible reach?</summary>
+<p>A path is confirmed when every hop was observed (live, inferred by a documented rule, recent audit or a file you supplied). A path with any hop the token could not see is possible: unknown, not absent. Possible reach is never added to headline numbers, scores or fix suggestions, and gop never reports what it could not see as off.</p>
+</details>
+<details>
+<summary>Does gop work with GitHub Enterprise Server?</summary>
+<p>Yes. Pass <code>--github-url https://HOST</code> to <code>gop collect</code>; APIs your server version lacks are reported as not visible. See <a href="https://github.com/peleduri/gop/blob/main/docs/ghes.md">GitHub Enterprise Server</a>.</p>
+</details>
+<details>
+<summary>How is gop different from OpenSSF Scorecard or a workflow linter?</summary>
+<p>Scorecard checks how one repo is configured and a workflow linter checks one workflow file. gop joins them across the enterprise: it shows that members of another org can change what a workflow runs, through which hops, and which change removes most of that. Use them together; see <a href="https://github.com/peleduri/gop/blob/main/docs/compare.md">how gop compares</a>.</p>
+</details>
+</div>
+<p class="more">For language models: <a href="llms.txt">llms.txt</a> &middot; <a href="llms-full.txt">llms-full.txt</a></p>
 </div>
 </section>
 </main>

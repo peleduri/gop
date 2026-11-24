@@ -146,17 +146,22 @@ No enterprise handy? Every read command works on the fixture: `--graph testdata/
 
 `gop report --demo --out report.html` builds the HTML report from the synthetic demo graph: the verdict, the fixes that remove the most confirmed reach, the top risks, what gop could not see and every path hop by hop ([docs/report.md](docs/report.md)).
 
-### Connect your agent (MCP over stdio)
+### Install in your AI assistant
 
-Claude Code:
+gop is an MCP server (`gop serve --graph graph.json`, stdio, every tool read-only) plus an agent skill. Collect a graph first, then:
 
-```sh
-claude mcp add gop -- gop serve --graph /path/to/graph.json
-```
+| Assistant | One step |
+|---|---|
+| **Claude Code** | `/plugin marketplace add peleduri/gop` then `/plugin install gop@gop`: the server and the skill; it asks for your graph.json path |
+| **Claude Desktop** | Download `gop_<version>_<os>_<arch>.mcpb` (releases after v0.6.0) from the [latest release](https://github.com/peleduri/gop/releases/latest) and open it; it bundles gop and asks for your graph.json |
+| **Cursor** | [Add gop to Cursor](https://cursor.com/link/mcp/install?name=gop&config=eyJjb21tYW5kIjoiZ29wIiwiYXJncyI6WyJzZXJ2ZSIsIi0tZ3JhcGgiLCIke3VzZXJIb21lfS9nb3AvZ3JhcGguanNvbiJdfQ%3D%3D) (reads `~/gop/graph.json`) or [try it on the demo graph](https://cursor.com/link/mcp/install?name=gop-demo&config=eyJjb21tYW5kIjoiZ29wIiwiYXJncyI6WyJzZXJ2ZSIsIi0tZGVtbyJdfQ%3D%3D) |
+| **Codex** | `codex mcp add gop -- gop serve --graph /path/to/graph.json`; skill: `codex plugin marketplace add peleduri/gop` then `codex plugin add gop@gop` |
+| **VS Code** | `gop mcp-config --client vscode --graph graph.json` prints `.vscode/mcp.json` |
+| **Other MCP clients** | `io.github.peleduri/gop` in the [official MCP Registry](https://registry.modelcontextprotocol.io) (container image or `.mcpb`), published on each stable release after v0.6.0 |
 
-Cursor, VS Code and other clients: [docs/mcp-clients.md](docs/mcp-clients.md). `gop mcp-config --client claude|cursor|vscode --graph graph.json` prints the config with the absolute path filled in. Use an absolute path, and keep the graph out of shared or synced folders.
+Claude Code without the plugin: `claude mcp add gop -- gop serve --graph /path/to/graph.json`. `gop mcp-config --client claude|codex|cursor|cursor-link|vscode --graph graph.json` prints each client's config with the absolute path filled in. Every client except Claude Desktop and the container needs `gop` on its `PATH`. Use an absolute path, and keep the graph out of shared or synced folders. Details, the skill on its own and the sources for each format: [docs/mcp-clients.md](docs/mcp-clients.md).
 
-Agent skill: [skills/gop](skills/gop/README.md) gives Claude Code, Codex and other skill-aware agents the triage flow (coverage and `check_answerable` before any claim) and reports every finding as confirmed, needs validation or rejected.
+Agent skill: [skills/gop](skills/gop/README.md) gives Claude Code, Codex, Cursor and other skill-aware agents the triage flow (coverage and `check_answerable` before any claim) and reports every finding as confirmed, needs validation or rejected.
 
 Then ask: "Who can make code run in acme-app/web?", "What happens if we pin acme-actions/deploy@main to a SHA?", or "What couldn't the token see?"
 
@@ -211,7 +216,7 @@ gop sarif   --graph graph.json --out gop.sarif | --split-by-repo DIR [--top N] [
 gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]] [--github-url URL] [--format diff|text|json]
 gop export  --format cypher graph.json [--out gop.cypher] [--github-url URL]
 gop export  --format sql graph.json [graph2.json ...] [--out gop.sql]
-gop mcp-config --client claude|cursor|vscode --graph graph.json
+gop mcp-config --client claude|codex|cursor|cursor-link|vscode --graph graph.json
 gop version
 ```
 

@@ -1,0 +1,32 @@
+# gop
+
+> gop (GitHub Enterprise Org Posture) is an open-source, read-only tool that answers "who can make code run where" in a GitHub Enterprise. It reads every org with a read-only token, writes one evidence graph (graph.json), and answers from it in an HTML report, on the command line, or to an AI assistant over MCP. Every answer keeps confirmed reach (every hop observed) apart from possible reach (a hop the token could not see).
+
+gop finds, across all orgs and nested GitHub Actions: AI coding agents in CI that outsiders can start while they hold a write token or secrets; Actions that members of one org can push to and that run in another org's workflows with its secrets, OIDC cloud trust or self-hosted runners; and the fewest changes (pin an action, lower a default permission, restrict a token, harden a trigger, reduce standing org owners) that remove the most confirmed reach. It never writes to GitHub and sends nothing anywhere else. Apache-2.0, one static Go binary.
+
+## Start
+
+- [Full plain-text overview](https://peleduri.github.io/gop/llms-full.txt): what gop answers, install, MCP tools, evidence levels
+- [README](https://github.com/peleduri/gop/blob/main/README.md): overview, quick start, MCP tools and CLI
+- [Quick start](https://github.com/peleduri/gop/blob/main/docs/quickstart.md): token or GitHub App, first collect, first questions
+- [Install](https://github.com/peleduri/gop/blob/main/docs/install.md): Homebrew, signed release archives, go install, container, with verification steps
+- [Live demo report](https://peleduri.github.io/gop/demo/): the HTML report on a synthetic enterprise
+
+## AI assistants
+
+- [Connect an MCP client](https://github.com/peleduri/gop/blob/main/docs/mcp-clients.md): Claude Code plugin, Claude Desktop extension (.mcpb), Cursor install link, Codex, VS Code, and the MCP Registry entry io.github.peleduri/gop
+- [Agent skill](https://github.com/peleduri/gop/blob/main/skills/gop/README.md): the triage flow for Claude Code, Codex, Cursor and other skill-aware agents
+- [AI agents in CI guide](https://github.com/peleduri/gop/blob/main/docs/agents-in-ci.md): how gop finds coding agents in GitHub Actions and who can start them
+
+## Reference
+
+- [Graph schema](https://github.com/peleduri/gop/blob/main/docs/schema.md): node IDs, edge kinds, evidence levels
+- [Threat model](https://github.com/peleduri/gop/blob/main/docs/threat-model.md): what gop trusts, what it protects, why it is read-only
+- [How gop compares](https://github.com/peleduri/gop/blob/main/docs/compare.md): with posture checklists, workflow linters and offensive tooling
+- [GitHub Enterprise Server](https://github.com/peleduri/gop/blob/main/docs/ghes.md): running against GHES
+
+## Optional
+
+- [Architecture](https://github.com/peleduri/gop/blob/main/docs/architecture.md)
+- [Changelog](https://github.com/peleduri/gop/blob/main/CHANGELOG.md)
+- [Security policy](https://github.com/peleduri/gop/blob/main/SECURITY.md)

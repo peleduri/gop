@@ -1,0 +1,12 @@
+{
+  "name": "gop",
+  "description": "The gop triage skill: how an agent answers who can make code run where in a GitHub Enterprise with the gop MCP server, keeping confirmed and possible reach apart. Add the server with the install link in the README.",
+  "author": {
+    "name": "gop contributors"
+  },
+  "homepage": "https://peleduri.github.io/gop/",
+  "repository": "https://github.com/peleduri/gop",
+  "license": "Apache-2.0",
+  "keywords": ["github", "github-enterprise", "github-actions", "security", "supply-chain", "mcp"],
+  "skills": "./skills/"
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds the GitHub Pages site into a directory (default _site):
 #   index.html, favicon.svg  copied from site/
+#   llms.txt, llms-full.txt  copied from site/ (plain-text overview for language models)
 #   demo/index.html          gop report --demo, built from the current source
 #   demo/report.md           the same report as Markdown
 # The demo report uses only the synthetic acme demo graph. Run from anywhere:
@@ -19,7 +20,7 @@ trap 'rm -rf "$tmp"' EXIT
 
 rm -rf "$out"
 mkdir -p "$out/demo"
-cp "$root/site/index.html" "$root/site/favicon.svg" "$out/"
+cp "$root/site/index.html" "$root/site/favicon.svg" "$root/site/llms.txt" "$root/site/llms-full.txt" "$out/"
 "$tmp/gop" report --demo --out "$out/demo/index.html"
 "$tmp/gop" report --demo --out "$out/demo/report.md" --format md
 
@@ -27,7 +28,7 @@ cp "$root/site/index.html" "$root/site/favicon.svg" "$out/"
 # demo is synthetic and Pages needs world-readable files.
 chmod -R u+rwX,go+rX "$out"
 
-for f in index.html favicon.svg demo/index.html demo/report.md; do
+for f in index.html favicon.svg llms.txt llms-full.txt demo/index.html demo/report.md; do
 	if [ ! -s "$out/$f" ]; then
 		echo "build: $out/$f is missing or empty" >&2
 		exit 1

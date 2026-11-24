@@ -72,7 +72,7 @@ Usage:
               [--github-url URL] [--format diff|text|json]
   gop export  --format cypher graph.json | --graph graph.json | --demo  [--out gop.cypher] [--github-url URL]
   gop export  --format sql graph.json [graph2.json ...] | --graph graph.json | --demo  [--out gop.sql]
-  gop mcp-config --client claude|cursor|vscode --graph graph.json
+  gop mcp-config --client claude|codex|cursor|cursor-link|vscode --graph graph.json
   gop version
 
 collect reads the token from GITHUB_TOKEN (or GH_TOKEN). It only reads.

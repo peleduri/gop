@@ -1,0 +1,27 @@
+{
+  "name": "gop",
+  "displayName": "gop: who can make code run where",
+  "description": "Ask who can make code run where in your GitHub Enterprise: the gop MCP server over your graph.json, plus the gop triage skill. Read-only.",
+  "author": {
+    "name": "gop contributors",
+    "url": "https://github.com/peleduri/gop"
+  },
+  "homepage": "https://peleduri.github.io/gop/",
+  "repository": "https://github.com/peleduri/gop",
+  "license": "Apache-2.0",
+  "keywords": ["github", "github-enterprise", "github-actions", "security", "supply-chain", "mcp"],
+  "mcpServers": {
+    "gop": {
+      "command": "gop",
+      "args": ["serve", "--graph", "${user_config.graph}"]
+    }
+  },
+  "userConfig": {
+    "graph": {
+      "type": "file",
+      "title": "gop graph file",
+      "description": "Absolute path to the graph.json written by gop collect (or gop demo). Keep it out of shared or synced folders. gop must be on your PATH.",
+      "required": true
+    }
+  }
+}

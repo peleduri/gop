@@ -1,0 +1,1 @@
+cursor://anysphere.cursor-deeplink/mcp/install?name=gop&config=eyJjb21tYW5kIjoiZ29wIiwiYXJncyI6WyJzZXJ2ZSIsIi0tZ3JhcGgiLCIvYWJzL2dyYXBoLmpzb24iXX0%3D
