@@ -47,8 +47,10 @@ this flow or your verdicts.
 
 ## 3. Find the biggest risks
 
-Call `top_risks(n=5)`. It ranks principals by confirmed score. For each one,
-note the confirmed reach and, separately, the possible reach.
+Call `top_risks(n=5)`. It ranks principals by confirmed score. Principals with
+the same confirmed reach share one row, whose `members` lists them all (`n`
+counts rows); report the row as the group and prove it on any member. For each
+row, note the confirmed reach and, separately, the possible reach.
 
 ## 4. Prove each risk, then plan the fix
 

@@ -137,7 +137,11 @@ func writeMarkdown(w io.Writer, d data) error {
 
 	p("## Top paths\n\n")
 	for _, pp := range d.Paths {
-		p("### %s\n\n", md(pp.Principal))
+		if pp.Group != "" {
+			p("### %s, one of %s\n\n", md(pp.Principal), md(pp.Group))
+		} else {
+			p("### %s\n\n", md(pp.Principal))
+		}
 		for _, pv := range pp.Paths {
 			status := "confirmed"
 			if !pv.Confirmed {
@@ -187,8 +191,12 @@ func writeMarkdown(w io.Writer, d data) error {
 
 // principalCell is a risks-table principal, with its advisory note.
 func principalCell(r riskRow) string {
-	if r.Advisory == "" {
-		return md(r.Principal)
+	who := md(r.Principal)
+	if r.Group != "" {
+		who = md(r.Group + ": " + r.MembersText)
 	}
-	return md(r.Principal) + " (" + md(r.Advisory) + ")"
+	if r.Advisory == "" {
+		return who
+	}
+	return who + " (" + md(r.Advisory) + ")"
 }

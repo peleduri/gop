@@ -147,3 +147,36 @@ func TestRenderDemo(t *testing.T) {
 		}
 	}
 }
+
+// Owners with identical reach share one row and the headline names the
+// group, not one owner picked by tie-break.
+func TestRenderGroupsIdenticalReach(t *testing.T) {
+	g, err := graph.LoadFile("../../testdata/owners/graph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	md := render(t, g, "md")
+	for _, want := range []string{
+		"> The 14 owners of acme-security can push code that runs in 3 repos across 1 org (confirmed)",
+		"| 14 principals (org owners of acme-security): identity:owner01, identity:owner02, identity:owner03 and 11 more | 3 | 1 | 1 | 1 | 0 |",
+		"| identity:alice | 3 | 2 |", "| identity:bob | 2 | 1 |", "| identity:carol | 2 | 1 |",
+		"### identity:owner01, one of 14 principals (org owners of acme-security)",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("markdown lacks %q", want)
+		}
+	}
+	if strings.Contains(md, "identity:owner04") {
+		t.Error("markdown should truncate the member list")
+	}
+	h := render(t, g, "html")
+	for _, want := range []string{
+		"The 14 owners of acme-security can push code",
+		"<td>14 principals (org owners of acme-security): <code>identity:owner01, identity:owner02, identity:owner03 and 11 more</code></td>",
+		`<h3><code>identity:owner01</code><span class="src">, one of 14 principals (org owners of acme-security)</span></h3>`,
+	} {
+		if !strings.Contains(h, want) {
+			t.Errorf("html lacks %q", want)
+		}
+	}
+}

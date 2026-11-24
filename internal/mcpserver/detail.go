@@ -175,12 +175,12 @@ func briefBlast(o BlastRadiusOutput, t *trimmer) BlastRadiusOutput {
 	return o
 }
 
-// briefTop reports every ranked principal in total, so truncated is also
-// true when n alone left principals out.
+// briefTop reports every ranked row in total (principals with identical
+// reach share a row), so truncated is also true when n alone left rows out.
 func (e *Engine) briefTop(o TopRisksOutput, t *trimmer) TopRisksOutput {
 	o.Risks = trimList(t, "risks", o.Risks)
-	if all := len(e.ix.ScoringPrincipals()); all > len(o.Risks) {
-		t.b.Total["risks"] = all
+	if o.rows > len(o.Risks) {
+		t.b.Total["risks"] = o.rows
 		t.b.Truncated = true
 	}
 	o.Brief = t.brief()

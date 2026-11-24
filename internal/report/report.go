@@ -140,7 +140,13 @@ func addEmbedded(d *data, g *graph.Graph) error {
 }
 
 type riskRow struct {
-	Principal                    string
+	Principal string
+	// Group is set for a row of two or more principals with identical
+	// confirmed reach: "14 principals (org owners of acme)". Members lists
+	// every member; MembersText is the truncated list the row shows.
+	Group                        string
+	Members                      []string
+	MembersText                  string
 	Repos, Orgs                  int
 	Cloud                        int
 	OIDC, Secrets, Runners       int
@@ -171,6 +177,7 @@ type pinnedRow struct {
 
 type principalPaths struct {
 	Principal string
+	Group     string // the row's group label when Principal stands for a group
 	Paths     []pathView
 }
 
@@ -219,23 +226,29 @@ func build(g *graph.Graph, opts Options) data {
 	if !g.CollectedAt.IsZero() {
 		d.CollectedAt = g.CollectedAt.UTC().Format(time.RFC3339)
 	}
-	top := ix.TopPaths(opts.Top)
+	top := ix.TopGroups(opts.Top)
 	var pick *graph.Score
 	if len(top) > 0 && (top[0].Confirmed.Repos > 0 || top[0].Score > 0) {
-		s := headlinePick(ix, top)
-		pick = &s
-		d.Headline = headline(ix, s)
+		g := headlinePick(ix, top)
+		pick = &g.GroupScore
+		d.Headline = headline(ix, g)
 	} else {
 		d.Headline = "No principal has confirmed reach into any repository in this graph."
 	}
-	for _, s := range top {
+	for _, g := range top {
+		s := g.GroupScore
 		c, p := s.Confirmed, s.Possible
-		d.Risks = append(d.Risks, riskRow{Principal: s.Principal, Repos: c.Repos, Orgs: c.Orgs,
+		row := riskRow{Principal: s.Principal, Repos: c.Repos, Orgs: c.Orgs,
 			Cloud: c.CloudTargets, OIDC: c.OIDC, Secrets: c.Secrets, Runners: c.Runners,
 			PossibleRepos: p.Repos, PossibleOther: p.CloudTargets + p.OIDC + p.Secrets + p.Runners,
-			Score: fmt.Sprintf("%.1f", s.Score), Advisory: advisoryNote(ix, s)})
+			Score: fmt.Sprintf("%.1f", s.Score), Advisory: advisoryNote(ix, s)}
+		if g.Size() > 1 {
+			row.Group, row.Members = mcpserver.GroupKind(g), g.Members
+			row.MembersText = mcpserver.MembersText(g.Members, mcpserver.MaxGroupMembersText)
+		}
+		d.Risks = append(d.Risks, row)
 		if pp := pickPaths(ix, s.Principal); len(pp) > 0 {
-			d.Paths = append(d.Paths, principalPaths{Principal: s.Principal, Paths: pp})
+			d.Paths = append(d.Paths, principalPaths{Principal: s.Principal, Group: row.Group, Paths: pp})
 		}
 	}
 	d.sugg, d.budget = ix.SuggestFixes(opts.FixBudget), opts.FixBudget
@@ -301,26 +314,31 @@ func orgCell(n graph.Node, key string) cell {
 	return cell{Value: v}
 }
 
-// headlinePick is the top-ranked principal; among equal ranks an org's
-// members (a whole population) win over a single identity.
-func headlinePick(ix *graph.Index, top []graph.Score) graph.Score {
+// headlinePick is the top-ranked row; among equal ranks a population wins
+// over a single identity: an org's members, or a group of principals with
+// identical reach.
+func headlinePick(ix *graph.Index, top []graph.RiskGroup) graph.RiskGroup {
+	population := func(g graph.RiskGroup) bool {
+		return g.Size() > 1 || ix.Kind(g.Principal) == graph.KindOrgMembers
+	}
 	best := top[0]
-	for _, s := range top[1:] {
-		if s.Score != best.Score || s.PoutineInjectable != best.PoutineInjectable || (len(s.Advisories) > 0) != (len(best.Advisories) > 0) {
+	for _, g := range top[1:] {
+		if g.Score != best.Score || g.PoutineInjectable != best.PoutineInjectable || (len(g.Advisories) > 0) != (len(best.Advisories) > 0) {
 			break
 		}
-		if ix.Kind(s.Principal) == graph.KindOrgMembers && ix.Kind(best.Principal) != graph.KindOrgMembers {
-			best = s
+		if population(g) && !population(best) {
+			best = g
 		}
 	}
 	return best
 }
 
-func headline(ix *graph.Index, s graph.Score) string {
+func headline(ix *graph.Index, g graph.RiskGroup) string {
+	s := g.GroupScore
 	c := s.Confirmed
-	who := mcpserver.Display(ix, s.Principal)
-	if strings.HasPrefix(who, "members of ") {
-		who = "M" + who[1:]
+	who := mcpserver.GroupWho(ix, g)
+	if strings.HasPrefix(who, "members of ") || strings.HasPrefix(who, "the ") {
+		who = strings.ToUpper(who[:1]) + who[1:]
 	}
 	out := fmt.Sprintf("%s can push code that runs in %s across %s (confirmed)", who,
 		plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))

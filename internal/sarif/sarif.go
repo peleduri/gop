@@ -20,6 +20,7 @@ import (
 
 	"github.com/peleduri/gop/internal/fixplan"
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/mcpserver"
 )
 
 // Version is the SARIF version gop writes.
@@ -508,6 +509,39 @@ func terminalPhrase(t Terminals) string {
 	return strings.Join(parts, ", ")
 }
 
+// whoPhrase is listPhrase over principals, with every set of principals
+// whose confirmed reach is identical (graph.GroupKey) folded into one item
+// that names the group ("the 14 owners of acme"), at its first member's
+// place. A set of max or fewer is listed by name: the names fit.
+// The result's principal lists stay complete; only the message folds.
+func (en *engine) whoPhrase(ps []string, max int) string {
+	bucket := map[string][]string{}
+	keys := make([]string, len(ps))
+	for i, p := range ps {
+		keys[i] = en.ix.GroupKey(en.reachOf(p))
+		if keys[i] != "" {
+			bucket[keys[i]] = append(bucket[keys[i]], p)
+		}
+	}
+	items := make([]string, 0, len(ps))
+	done := map[string]bool{}
+	for i, p := range ps {
+		b := bucket[keys[i]]
+		if len(b) <= max {
+			items = append(items, p)
+			continue
+		}
+		if done[keys[i]] {
+			continue
+		}
+		done[keys[i]] = true
+		g := graph.RiskGroup{GroupScore: graph.Score{Principal: b[0]}, Members: b}
+		g.Via, g.ViaScope = en.ix.SharedVia(b)
+		items = append(items, mcpserver.GroupWho(en.ix, g))
+	}
+	return listPhrase(items, max)
+}
+
 func listPhrase(ps []string, max int) string {
 	if len(ps) <= max {
 		return strings.Join(ps, ", ")
@@ -570,9 +604,9 @@ func (en *engine) pinResults(f graph.PinRef) []Result {
 		if possible {
 			ev = graph.NotVisible
 		}
-		who := listPhrase(c, 3)
+		who := en.whoPhrase(c, 3)
 		if possible {
-			who = listPhrase(p, 3) + " (possible: a hop is not visible to the token)"
+			who = en.whoPhrase(p, 3) + " (possible: a hop is not visible to the token)"
 		}
 		where := s.File
 		if where == "" {
@@ -745,9 +779,9 @@ func (en *engine) lowerResult(f graph.LowerDefaultPerm) (Result, bool) {
 	if cur == "" {
 		cur = "write"
 	}
-	who := listPhrase(c, 3)
+	who := en.whoPhrase(c, 3)
 	if possible {
-		who = listPhrase(p, 3) + " (possible: a hop is not visible to the token)"
+		who = en.whoPhrase(p, 3) + " (possible: a hop is not visible to the token)"
 	}
 	msg := fmt.Sprintf("The default repository permission of %s is %s. Lowering it to read removes reach to %d repos (%s) for %s.",
 		org, cur, t.Repos, terminalPhrase(t), who)
