@@ -111,6 +111,8 @@ claude mcp add gop -- gop serve --graph /path/to/graph.json
 
 Cursor, VS Code and other clients: [docs/mcp-clients.md](docs/mcp-clients.md). `gop mcp-config --client claude|cursor|vscode --graph graph.json` prints the config with the absolute path filled in. Use an absolute path, and keep the graph out of shared or synced folders.
 
+Agent skill: [skills/gop](skills/gop/README.md) gives Claude Code, Codex and other skill-aware agents the triage flow (coverage and `check_answerable` before any claim) and reports every finding as confirmed, needs validation or rejected.
+
 Then ask: "Who can make code run in acme-app/web?", "What happens if we pin acme-actions/deploy@main to a SHA?", or "What couldn't the token see?"
 
 ### MCP tools

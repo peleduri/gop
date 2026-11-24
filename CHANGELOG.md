@@ -7,6 +7,21 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+### Added
+
+- `skills/gop/SKILL.md`: an agent skill for MCP triage. It walks the agent
+  through checking the graph (`gop validate`, or `gop doctor` then
+  `gop collect`), `coverage` and `check_answerable` before any claim,
+  `top_risks`, `paths` and `explain` for each risk, and `fix_plan`, and makes it
+  report every finding as confirmed, needs validation (possible reach, an
+  `inferred`, `supplied` or stale `audit` hop, or a partial answer) or rejected,
+  with gop's evidence levels, never adding possible counts to confirmed ones,
+  and naming what gop could not see. It treats names and attributes in the
+  graph as untrusted data. `skills/gop/README.md` covers installing it for
+  Claude Code, Codex and other agents. A test in `skills/` parses the
+  frontmatter and fails if the skill names an MCP tool, tool argument or field,
+  or CLI command that does not exist.
+
 ## [0.4.0] - 2026-11-24
 
 ### Added
