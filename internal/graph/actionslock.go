@@ -11,12 +11,20 @@ func (ix *Index) LockCovered(action string) bool {
 		if e.Kind != Uses {
 			continue
 		}
-		if e.Attrs[AttrActionsLock] != LockLocked {
+		if !LockPins(e) {
 			return false
 		}
 		n++
 	}
 	return n > 0
+}
+
+// LockPins reports whether an actions.lock pins a USES edge to a commit no
+// advisory lists as affected: actions_lock=locked and no lock_advisories. A
+// lock on an affected commit runs the compromised code, so it protects
+// nothing until gh actions-lock is rerun on a fixed version.
+func LockPins(e Edge) bool {
+	return e.Attrs[AttrActionsLock] == LockLocked && e.Attrs[AttrLockAdvisories] == ""
 }
 
 // PinStats counts the USES edges from workflows (one per workflow and

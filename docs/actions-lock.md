@@ -89,6 +89,13 @@ the repo's refs count as locked: gop does not assume a pin it could not read.
 - Reach: the engine drops the control hop of a `locked` edge. Whoever can
   change the action, or anything nested under it, no longer reaches that
   workflow through it. Other workflows using the same action are unaffected.
+  Not when an advisory lists the locked commit as affected
+  (`lock_advisories`, see [advisories.md](advisories.md#matching)): the
+  lock then pins compromised code, so the edge keeps its control hop, the
+  action ranks first under the advisory factor, SARIF GOP003 reports the line,
+  and `fix_plan` says to rerun `gh actions-lock` after moving to the fixed
+  version. A locked commit the advisory does not list gets an `advisories`
+  coverage entry; it is never read as safe.
 - Pinned counts: the report's Coverage section and the MCP summary
   (`action_pins`) split workflow `uses:` lines into pinned in the workflow
   file (a commit SHA), pinned by actions.lock, stale actions.lock entry and

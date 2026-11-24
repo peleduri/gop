@@ -55,6 +55,15 @@ advisories whose package is `owner/repo/path` or `owner/repo`:
   is a fixed commit. Any other SHA is **unknown**: gop does not walk git history.
 - **A branch** (`main`) or an abbreviated SHA is **unknown**.
 
+- **A `uses:` an actions.lock pins** (`actions_lock=locked`, see
+  [actions-lock.md](actions-lock.md)) runs the lockfile's commit, not the ref,
+  so its `locked_sha` is matched too, with the same rules as a full commit SHA.
+  An affected commit sets `lock_advisories` on the `USES` edge and adds the
+  advisories to the action's node, even when the ref itself is not affected
+  (the lock was refreshed during the compromise window). A locked commit the
+  advisory does not list is **unknown** and gets its own coverage entry
+  ("actions.lock pins it to ..."); a fixed commit is not affected.
+
 Unknown is never read as safe. Each unknown ref gets a coverage entry
 (`scope: action:<ref>`, `fact: advisories`) naming the advisories and why it
 could not be placed.
@@ -90,7 +99,10 @@ A known compromise outranks everything else:
   moves each `uses:` line to the first fixed version (`advisory_fixed`, with a
   `v` when the current ref has one) or a commit SHA after it, instead of pinning
   the affected version. With no fixed version, the plan says to remove or
-  replace the action.
+  replace the action. A `uses:` line whose actions.lock pins an affected
+  commit is not edited: the plan's caveat says "actions.lock pins an affected
+  commit: rerun gh actions-lock after moving to `<advisory_fixed>`", and
+  GOP003 reports the line with the locked commit.
 
 For a compromise, moving off the version is not the end: rotate the secrets and
 cloud credentials the workflows could reach while they ran it.

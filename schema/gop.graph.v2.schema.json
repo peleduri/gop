@@ -156,6 +156,7 @@
         "locked_sha": {"description": "USES edge with actions_lock=locked: the commit the lockfile pins.", "type": "string", "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"},
         "lock_entry": {"description": "USES edge with actions_lock=stale: comma list of the lockfile's pin keys (owner/repo@ref) for the same action repo.", "type": "string", "minLength": 1},
         "lock_missing": {"description": "USES edge with actions_lock=stale: comma list of the nested refs (owner/repo@ref) the lockfile does not pin for this workflow.", "type": "string", "minLength": 1},
+        "lock_advisories": {"description": "USES edge with actions_lock=locked: comma list of the advisory IDs that list locked_sha as affected. The lock then pins compromised code and the engine keeps the edge's control hop.", "type": "string", "minLength": 1},
         "consumer_org": {"description": "USES edge into an enterprise-hosted action: org of the using workflow or action.", "type": "string", "minLength": 1},
         "matched_sub": {"description": "CAN_ASSUME: comma list of the trust's sub patterns that matched.", "type": "string", "minLength": 1},
         "claims": {"description": "CAN_ASSUME: comma list of the claims the trust checks.", "type": "string", "minLength": 1},

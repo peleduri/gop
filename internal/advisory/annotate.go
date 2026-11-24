@@ -2,6 +2,7 @@ package advisory
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/peleduri/gop/internal/graph"
@@ -12,6 +13,9 @@ type Stats struct {
 	Actions  int // action_ref nodes checked
 	Affected int // nodes that got advisories
 	Unknown  int // nodes with an advisory gop could not decide (coverage entries)
+	// LockAffected counts USES edges whose actions.lock commit (locked_sha)
+	// an advisory lists as affected.
+	LockAffected int
 }
 
 // Ref is the parsed reference of an action_ref node.
@@ -40,10 +44,25 @@ func RefOf(n graph.Node) (Ref, bool) {
 
 // Annotate matches every action_ref node of g against db. Affected nodes get
 // advisories, advisory_severity and (when known) advisory_fixed; a node gop
-// cannot place gets a coverage entry. Advisory attrs and coverage from an
-// earlier run are replaced, so annotating twice gives the same graph.
+// cannot place gets a coverage entry. A USES edge that an actions.lock pins
+// (actions_lock=locked) is matched on its locked_sha too: an affected commit
+// sets lock_advisories on the edge and adds the advisories to the node, and
+// a commit the advisory does not list gets a coverage entry. Advisory attrs
+// and coverage from an earlier run are replaced, so annotating twice gives
+// the same graph.
 func Annotate(g *graph.Graph, db *DB) Stats {
 	clearAdvisories(g)
+	locked := map[string]map[string][]int{} // action -> locked_sha -> edge indexes
+	for i, e := range g.Edges {
+		sha := e.Attrs[graph.AttrLockedSHA]
+		if e.Kind != graph.Uses || e.Attrs[graph.AttrActionsLock] != graph.LockLocked || sha == "" {
+			continue
+		}
+		if locked[e.To] == nil {
+			locked[e.To] = map[string][]int{}
+		}
+		locked[e.To][sha] = append(locked[e.To][sha], i)
+	}
 	var st Stats
 	for i := range g.Nodes {
 		n := &g.Nodes[i]
@@ -56,6 +75,43 @@ func Annotate(g *graph.Graph, db *DB) Stats {
 		}
 		st.Actions++
 		m := db.Match(ref.Owner, ref.Repo, ref.Path, ref.Ref)
+		unknown := len(m.Unknown) > 0
+		if unknown {
+			g.Coverage = append(g.Coverage, graph.Coverage{
+				Scope:    n.ID,
+				Fact:     graph.CoverageAdvisories,
+				Reason:   fmt.Sprintf("unknown, not safe: %s: %s", strings.Join(m.Unknown, ", "), m.Why),
+				NeedsFix: "pin to a tag or commit SHA the advisory lists as fixed, or check the advisory by hand",
+			})
+		}
+		shas := make([]string, 0, len(locked[n.ID]))
+		for sha := range locked[n.ID] {
+			shas = append(shas, sha)
+		}
+		sort.Strings(shas)
+		for _, sha := range shas {
+			edges := locked[n.ID][sha]
+			lm := db.Match(ref.Owner, ref.Repo, ref.Path, sha)
+			if len(lm.Affected) > 0 {
+				for _, ei := range edges {
+					g.Edges[ei].Attrs[graph.AttrLockAdvisories] = strings.Join(lm.Affected, ",")
+				}
+				st.LockAffected += len(edges)
+				m = merge(m, lm)
+			}
+			if len(lm.Unknown) > 0 {
+				unknown = true
+				g.Coverage = append(g.Coverage, graph.Coverage{
+					Scope:    n.ID,
+					Fact:     graph.CoverageAdvisories,
+					Reason:   fmt.Sprintf("unknown, not safe: actions.lock pins it to %s (%d uses): %s: %s", sha, len(edges), strings.Join(lm.Unknown, ", "), lm.Why),
+					NeedsFix: "check the locked commit against the advisory by hand, or move to a version the advisory lists as fixed and rerun gh actions-lock",
+				})
+			}
+		}
+		if unknown {
+			st.Unknown++
+		}
 		if len(m.Affected) > 0 {
 			st.Affected++
 			if n.Attrs == nil {
@@ -67,17 +123,43 @@ func Annotate(g *graph.Graph, db *DB) Stats {
 				n.Attrs[graph.AttrAdvisoryFixed] = m.Fixed
 			}
 		}
-		if len(m.Unknown) > 0 {
-			st.Unknown++
-			g.Coverage = append(g.Coverage, graph.Coverage{
-				Scope:    n.ID,
-				Fact:     graph.CoverageAdvisories,
-				Reason:   fmt.Sprintf("unknown, not safe: %s: %s", strings.Join(m.Unknown, ", "), m.Why),
-				NeedsFix: "pin to a tag or commit SHA the advisory lists as fixed, or check the advisory by hand",
-			})
-		}
 	}
 	return st
+}
+
+// merge adds the affected advisories of b (a locked commit) to a (the
+// node's ref): IDs unioned, the higher severity, and the higher fixed
+// version, or none when either side has an affecting advisory without one.
+func merge(a, b Match) Match {
+	aNoFix := len(a.Affected) > 0 && a.Fixed == ""
+	bNoFix := len(b.Affected) > 0 && b.Fixed == ""
+	seen := map[string]bool{}
+	var ids []string
+	for _, id := range append(append([]string{}, a.Affected...), b.Affected...) {
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	sort.Strings(ids)
+	out := a
+	out.Affected = ids
+	if out.Severity == "" || SeverityRank(b.Severity) > SeverityRank(out.Severity) {
+		out.Severity = b.Severity
+	}
+	switch {
+	case aNoFix || bNoFix:
+		out.Fixed = ""
+	case a.Fixed == "":
+		out.Fixed = b.Fixed
+	default:
+		va, okA := parseVersion(a.Fixed)
+		vb, okB := parseVersion(b.Fixed)
+		if okA && okB && vb.cmp(va) > 0 {
+			out.Fixed = b.Fixed
+		}
+	}
+	return out
 }
 
 // Skip records that no advisory check ran: one enterprise coverage entry
@@ -99,6 +181,9 @@ func clearAdvisories(g *graph.Graph) {
 		delete(a, graph.AttrAdvisories)
 		delete(a, graph.AttrAdvisorySeverity)
 		delete(a, graph.AttrAdvisoryFixed)
+	}
+	for i := range g.Edges {
+		delete(g.Edges[i].Attrs, graph.AttrLockAdvisories)
 	}
 	kept := g.Coverage[:0]
 	for _, c := range g.Coverage {

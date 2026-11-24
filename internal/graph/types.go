@@ -333,6 +333,10 @@ const (
 	AttrLockedSHA   = "locked_sha"   // USES edge with actions_lock=locked: the commit the lockfile pins the action to
 	AttrLockEntry   = "lock_entry"   // USES edge with actions_lock=stale: comma list of the lockfile's pin keys (owner/repo@ref) for the same action repo; absent when there is none
 	AttrLockMissing = "lock_missing" // USES edge with actions_lock=stale: comma list of the nested refs (owner/repo@ref) the lockfile does not pin for this workflow
+	// USES edge with actions_lock=locked: comma list of the advisory IDs that
+	// list locked_sha as affected (set by the advisory check). The lock then
+	// pins compromised code, so the engine keeps the edge's control hop.
+	AttrLockAdvisories = "lock_advisories"
 )
 
 // Values of actions_lock on USES edges.
@@ -340,7 +344,8 @@ const (
 	// LockLocked: the lockfile lists this uses: for the workflow, with a
 	// commit, and pins every nested ref gop saw under it. The engine drops the
 	// edge's control hop: changing the action cannot change what the
-	// workflow runs.
+	// workflow runs. Not when lock_advisories lists the locked commit as
+	// affected (see LockPins).
 	LockLocked = "locked"
 	// LockStale: the repo has a lockfile, but it does not pin this uses: as
 	// written (another ref, the workflow is missing, or a nested ref is

@@ -448,7 +448,7 @@ func (ix *Index) buildControlRec(fixes []Fix, maxAuditAge time.Duration, rec fun
 				ix.addResolves(e, add)
 			}
 		case Uses:
-			if e.Attrs[AttrActionsLock] == LockLocked {
+			if LockPins(e) {
 				continue
 			}
 			if ix.gates != nil {
@@ -713,7 +713,7 @@ func (ix *Index) PinnedExposures() []PinnedExposure {
 			pe.ViaNote = ix.MutabilityNote(pe.Via)
 		}
 		for _, e := range ix.in[a] {
-			if e.Kind == Uses && ix.Kind(e.From) == KindWorkflow && e.Attrs[AttrActionsLock] != LockLocked {
+			if e.Kind == Uses && ix.Kind(e.From) == KindWorkflow && !LockPins(e) {
 				pe.Consumers++
 			}
 		}
