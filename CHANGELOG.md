@@ -77,6 +77,24 @@ flags may change in minor releases.
   `Reserve` and `Priority`; `Collect` returns the partial graph with a
   `*collect.PartialError`.
 
+- Incremental collection (#175). `gop collect --cache-dir DIR --incremental`
+  re-reads only what changed since the previous incremental run with the
+  same directory. Org-level reads are always repeated; every per-repository
+  answer (REST `/repos/{owner}/{repo}/...` and each repository's alias of
+  the batched GraphQL queries) is recorded with the repository's stamp
+  (`id`, `pushed_at`, `updated_at`, default branch, visibility, archived)
+  and answered from the record, without a request, while the stamp is
+  unchanged. A changed repository's workflow files whose blob SHA did not
+  change are not downloaded again either. The collector runs on those
+  answers exactly as in a full run, so the graph equals a full collection's
+  and deleted repositories and workflows drop out. Reused facts keep their
+  original `observed_at`. gop logs `N repos re-read, M reused`. A full run
+  happens every `--full-every` days (default 7) and whenever the schema,
+  enterprise, host, `--orgs` or token change. Settings GitHub does not
+  reflect in `updated_at` (a new direct collaborator, a branch protection or
+  org ruleset edit) are picked up by the next full run. The records live in
+  `DIR/replay`, with `DIR/incremental.json` and `DIR/incremental-graph.json`
+  (docs/threat-model.md).
 - Plugin icon and Cursor logo, and a `version` in every plugin manifest (Claude Code, Cursor, Codex) so `claude plugin validate --strict` passes for directory submission. A test keeps the versions in step; bump them with each release.
 
 - One-step installs in AI assistants (#163). The repository is a Claude Code

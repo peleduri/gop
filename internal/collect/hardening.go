@@ -768,7 +768,7 @@ func (k *collector) fetchProtection(ctx context.Context, c *Client, repos []hard
 	q, vars := buildProtectionQuery(repos, !noRules)
 	var data map[string]json.RawMessage
 	k.batch.queries++
-	gqlErrs, err := c.GraphQL(ctx, q, vars, &data)
+	gqlErrs, err := c.GraphQL(withAliasPlan(ctx, protectionPlan(repos, !noRules)), q, vars, &data)
 	split := func() ([]*protFacts, error) {
 		if len(repos) <= 1 {
 			return out, nil

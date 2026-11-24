@@ -196,7 +196,7 @@ func (k *collector) fetchObjects(ctx context.Context, c *Client, reqs []objReq) 
 	q, vars := buildObjectQuery(reqs)
 	var data map[string]json.RawMessage
 	k.batch.queries++
-	gqlErrs, err := c.GraphQL(ctx, q, vars, &data)
+	gqlErrs, err := c.GraphQL(withAliasPlan(ctx, objectsPlan(reqs)), q, vars, &data)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()

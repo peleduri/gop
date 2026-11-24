@@ -168,6 +168,20 @@ type fakeGitHub struct {
 	// gqlRepoTotals overrides the repositories totalCount gop doctor's
 	// enterprise query returns per org (default: the fixture's repo count).
 	gqlRepoTotals map[string]int
+
+	// pushedAt overrides a listed repo's pushed_at and updated_at per
+	// "owner/repo" (default fakeStamp); gqlAll records every GraphQL request
+	// body (incremental_test.go).
+	pushedAt map[string]string
+	gqlAll   []string
+}
+
+// fakeStamp is the pushed_at and updated_at of every listed fixture repo.
+const fakeStamp = "2026-01-01T00:00:00Z"
+
+// fakeBlobSHA is the blob SHA the fake reports for a file's content.
+func fakeBlobSHA(data []byte) string {
+	return fmt.Sprintf("%x", sha256.Sum256(data))[:40]
 }
 
 func newFakeGitHub(t *testing.T) *fakeGitHub {
@@ -231,6 +245,13 @@ func (f *fakeGitHub) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method != http.MethodGet {
+		if r.URL.Path == "/graphql" {
+			body, _ := io.ReadAll(r.Body)
+			r.Body = io.NopCloser(strings.NewReader(string(body)))
+			f.mu.Lock()
+			f.gqlAll = append(f.gqlAll, string(body))
+			f.mu.Unlock()
+		}
 		f.serve(w, r)
 		return
 	}
@@ -411,6 +432,15 @@ func (f *fakeGitHub) repos(w http.ResponseWriter, r *http.Request, org string) {
 			if _, ok := m["archived"]; !ok {
 				m["archived"] = false
 			}
+			full := org + "/" + m["name"].(string)
+			stamp := fakeStamp
+			f.mu.Lock()
+			if v, ok := f.pushedAt[full]; ok {
+				stamp = v
+			}
+			f.mu.Unlock()
+			m["id"] = int64(len(full)*1000) + int64(full[len(full)-1])
+			m["pushed_at"], m["updated_at"] = stamp, stamp
 			// security_and_analysis: shown to org owners only; default on,
 			// push protection and validity checks off.
 			f.mu.Lock()
@@ -687,7 +717,7 @@ func fileEntry(path string, data []byte) map[string]any {
 	}
 	lines = append(lines, enc)
 	return map[string]any{
-		"type": "file", "name": filepath.Base(path), "path": path,
+		"type": "file", "name": filepath.Base(path), "path": path, "sha": fakeBlobSHA(data),
 		"encoding": "base64", "content": strings.Join(lines, "\n") + "\n",
 	}
 }
@@ -715,7 +745,8 @@ func (f *fakeGitHub) contents(w http.ResponseWriter, r *http.Request) {
 		}
 		var out []map[string]any
 		for _, name := range names {
-			out = append(out, map[string]any{"type": "file", "name": name, "path": ".github/workflows/" + name})
+			data, _ := f.file(owner, repo, ".github/workflows/"+name)
+			out = append(out, map[string]any{"type": "file", "name": name, "path": ".github/workflows/" + name, "sha": fakeBlobSHA(data)})
 		}
 		writeJSON(w, 200, out)
 		return

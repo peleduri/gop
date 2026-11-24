@@ -83,6 +83,19 @@ func refBatchQuery(n int) string {
 	return b.String()
 }
 
+// refBatchVars returns the variables of refBatchQuery(len(ts)) for ts.
+func refBatchVars(ts []*refTarget) map[string]any {
+	vars := make(map[string]any, 4*len(ts))
+	for i, t := range ts {
+		owner, repo, _ := strings.Cut(strings.TrimPrefix(t.repoID, "repo:"), "/")
+		vars["o"+strconv.Itoa(i)] = owner
+		vars["n"+strconv.Itoa(i)] = repo
+		vars["t"+strconv.Itoa(i)] = "refs/tags/" + t.ref
+		vars["h"+strconv.Itoa(i)] = "refs/heads/" + t.ref
+	}
+	return vars
+}
+
 type gqlRef struct {
 	Target struct {
 		OID string `json:"oid"`
@@ -164,17 +177,12 @@ func (k *collector) resolveRefs(ctx context.Context) error {
 	}
 	for start := 0; start < len(order); start += refBatchSize {
 		chunk := order[start:min(start+refBatchSize, len(order))]
-		vars := make(map[string]any, 4*len(chunk))
+		ts := make([]*refTarget, len(chunk))
 		for i, key := range chunk {
-			t := targets[key]
-			owner, repo, _ := strings.Cut(strings.TrimPrefix(t.repoID, "repo:"), "/")
-			vars["o"+strconv.Itoa(i)] = owner
-			vars["n"+strconv.Itoa(i)] = repo
-			vars["t"+strconv.Itoa(i)] = "refs/tags/" + t.ref
-			vars["h"+strconv.Itoa(i)] = "refs/heads/" + t.ref
+			ts[i] = targets[key]
 		}
 		var data map[string]*gqlRefAlias
-		gerrs, err := k.c.GraphQL(ctx, refBatchQuery(len(chunk)), vars, &data)
+		gerrs, err := k.c.GraphQL(withAliasPlan(ctx, refsPlan(ts)), refBatchQuery(len(ts)), refBatchVars(ts), &data)
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
