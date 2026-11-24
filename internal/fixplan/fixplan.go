@@ -30,12 +30,15 @@ const ConfirmFirst = "not visible to the token: confirm this exists first"
 
 // FixSpec describes one fix in the shape the MCP tools take.
 type FixSpec struct {
-	Type     string `json:"type" jsonschema:"pin_ref, lower_default_perm, restrict_token, harden_trigger, or the advisory require_reviews and enable_push_protection"`
+	Type     string `json:"type" jsonschema:"pin_ref, lower_default_perm, restrict_token, harden_trigger, reduce_owners, or the advisory require_reviews and enable_push_protection"`
 	Action   string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
 	Org      string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
 	To       string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
 	Workflow string `json:"workflow,omitempty" jsonschema:"for restrict_token and harden_trigger: the workflow node ID, e.g. workflow:acme-app/web/.github/workflows/ci.yml"`
 	Repo     string `json:"repo,omitempty" jsonschema:"for the advisory require_reviews and enable_push_protection: the repo node ID, e.g. repo:acme-app/web"`
+	// Threshold is for reduce_owners: accounts that own this many orgs or
+	// more lose standing ownership (0: graph.DefaultOwnerThreshold).
+	Threshold int `json:"threshold,omitempty" jsonschema:"for reduce_owners: remove standing org ownership from accounts that own this many orgs or more (default 5); at least 2 owners stay in every org"`
 }
 
 // Step is one change a person or agent makes outside gop.
@@ -86,6 +89,8 @@ func Spec(f graph.Fix) (FixSpec, string) {
 	case graph.HardenTrigger:
 		return FixSpec{Type: "harden_trigger", Workflow: v.Workflow},
 			"Stop " + strings.TrimPrefix(v.Workflow, "workflow:") + " from running attacker-controlled code on its risky triggers"
+	case graph.ReduceOwners:
+		return FixSpec{Type: "reduce_owners", Threshold: v.Threshold}, ReduceOwnersDescription(len(v.Accounts()), v.Threshold)
 	case graph.RequireReviews:
 		return FixSpec{Type: "require_reviews", Repo: v.Repo},
 			"Require at least one approving review on the default branch of " + strings.TrimPrefix(v.Repo, "repo:")
@@ -94,6 +99,13 @@ func Spec(f graph.Fix) (FixSpec, string) {
 			"Enable secret scanning push protection on " + strings.TrimPrefix(v.Repo, "repo:")
 	}
 	return FixSpec{}, f.ID()
+}
+
+// ReduceOwnersDescription is the sentence for a reduce_owners fix that
+// removes ownership from n accounts at threshold.
+func ReduceOwnersDescription(n, threshold int) string {
+	return fmt.Sprintf("Remove standing org ownership from %s that own %d or more orgs (keep at least %d owners per org)",
+		plural(n, "account", "accounts"), threshold, graph.MinOwnersPerOrg)
 }
 
 // Build turns a fix into change steps. It only reads ix.
@@ -109,6 +121,8 @@ func Build(ix *graph.Index, f graph.Fix) Plan {
 		buildRestrict(ix, v, &p)
 	case graph.HardenTrigger:
 		buildHarden(ix, v, &p)
+	case graph.ReduceOwners:
+		buildReduceOwners(ix, v, &p)
 	case graph.RequireReviews, graph.EnablePushProtection:
 		buildHardening(ix, f, &p)
 	}
@@ -637,4 +651,93 @@ func buildHardening(ix *graph.Index, f graph.Fix, p *Plan) {
 		}
 	}
 	p.Steps = append(p.Steps, s)
+}
+
+// buildReduceOwners lists one role change per account, in every org where
+// the fix removes its ownership (the weakest evidence of those grants), and names the ownerships it keeps so no
+// org drops under graph.MinOwnersPerOrg owners.
+func buildReduceOwners(ix *graph.Index, f graph.ReduceOwners, p *Plan) {
+	p.Caveats = append(p.Caveats, "Prefer just-in-time ownership: grant owner access on demand for the task and remove it after, instead of standing ownership. "+
+		"The kept owners, and anyone given owner access later, still hold this reach.")
+	if len(f.Cuts) == 0 {
+		p.Caveats = append(p.Caveats, fmt.Sprintf("no account owns %d or more orgs: there is nothing to change", f.Threshold))
+		return
+	}
+	ev := map[string]graph.Evidence{}
+	for _, e := range graph.FixEdges(ix, f) {
+		k := e.From + "\x00" + graph.OrgOf(e.To)
+		if old, ok := ev[k]; !ok || (!graph.Verified(old) && graph.Verified(e.Evidence)) {
+			ev[k] = e.Evidence
+		}
+	}
+	// One step per account: the same role change in each org it loses.
+	var accounts []string
+	orgsOf := map[string][]string{}
+	for _, c := range f.Cuts {
+		if orgsOf[c.Principal] == nil {
+			accounts = append(accounts, c.Principal)
+		}
+		orgsOf[c.Principal] = append(orgsOf[c.Principal], c.Org)
+	}
+	for _, a := range accounts {
+		user := login(a)
+		orgs := orgsOf[a]
+		names := make([]string, len(orgs))
+		s := Step{Kind: KindChangeSetting, Evidence: graph.Live}
+		for i, o := range orgs {
+			names[i] = login(o)
+			if e := ev[a+"\x00"+o]; evRank(e) < evRank(s.Evidence) {
+				s.Evidence = e
+			}
+		}
+		if len(orgs) == 1 {
+			s.Owner = names[0]
+		}
+		s.Setting = fmt.Sprintf("Organization settings > People > %s > Change role: Member", user)
+		if len(orgs) > 1 {
+			s.Setting = fmt.Sprintf("in %s (%s): Organization settings > People > %s > Change role: Member",
+				plural(len(orgs), "org", "orgs"), strings.Join(names, ", "), user)
+		}
+		s.API = fmt.Sprintf(`PUT /orgs/{org}/memberships/%s {"role": "member"}, once per org`, user)
+		s.Edge = a + " " + string(graph.CanPush) + " repos of " + strings.Join(orgs, ", ") + " (via org_owner)"
+		s.Note = fmt.Sprintf("%s owns %d orgs and keeps %d; another owner of each org makes the change and grants owner access again only when a task needs it; the API call is shown as text only, gop never calls it",
+			user, len(ix.OwnedOrgs(a)), len(ix.OwnedOrgs(a))-len(orgs))
+		if !graph.Verified(s.Evidence) {
+			s.Unconfirmed = true
+			s.Note += "; " + ConfirmFirst
+		}
+		p.Steps = append(p.Steps, s)
+	}
+	if len(f.Kept) > 0 {
+		by := map[string][]string{}
+		var orgs []string
+		for _, k := range f.Kept {
+			if by[k.Org] == nil {
+				orgs = append(orgs, k.Org)
+			}
+			by[k.Org] = append(by[k.Org], login(k.Principal))
+		}
+		sort.Strings(orgs)
+		parts := make([]string, 0, len(orgs))
+		for _, o := range orgs {
+			parts = append(parts, login(o)+" ("+strings.Join(by[o], ", ")+")")
+		}
+		p.Caveats = append(p.Caveats, fmt.Sprintf("kept so that every org has at least %d owners, the accounts that own the most orgs first: %s",
+			graph.MinOwnersPerOrg, strings.Join(parts, "; ")))
+	}
+}
+
+// evRank orders evidence for picking a step's weakest: not visible lowest.
+func evRank(e graph.Evidence) int {
+	switch e {
+	case graph.Live:
+		return 4
+	case graph.Inferred:
+		return 3
+	case graph.Audit:
+		return 2
+	case graph.Supplied:
+		return 1
+	}
+	return 0
 }

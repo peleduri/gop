@@ -93,18 +93,35 @@ func writeMarkdown(w io.Writer, d data) error {
 		} else {
 			p("| Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |\n|---|---:|---:|---:|---:|---:|---:|---:|\n")
 		}
+		ranged := false
 		for _, r := range d.Risks {
 			poss := plural(r.PossibleRepos, "repo", "repos")
 			if r.PossibleOther > 0 {
 				poss += fmt.Sprintf(" + %d impact", r.PossibleOther)
 			}
+			repos, orgs := fmt.Sprint(r.Repos), fmt.Sprint(r.Orgs)
+			if r.ReposRange != "" {
+				repos, orgs = r.ReposRange, r.OrgsRange
+				ranged = true
+			}
 			if d.HasCloud {
-				p("| %s | %d | %d | %d | %d | %d | %d | %s | %s |\n", principalCell(r), r.Repos, r.Orgs, r.Cloud, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
+				p("| %s | %s | %s | %d | %d | %d | %d | %s | %s |\n", principalCell(r), repos, orgs, r.Cloud, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
 			} else {
-				p("| %s | %d | %d | %d | %d | %d | %s | %s |\n", principalCell(r), r.Repos, r.Orgs, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
+				p("| %s | %s | %s | %d | %d | %d | %s | %s |\n", principalCell(r), repos, orgs, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
 			}
 		}
-		p("\nScore counts confirmed reach only.\n\n")
+		p("\nScore counts confirmed reach only.")
+		if ranged {
+			p(" A row grouped by cause shows the range of its members' confirmed repos and orgs; its other columns are its first member's. The JSON (`top_risks`) lists each member's own figures.")
+		}
+		p("\n\n")
+	}
+	if o := d.Ownership; o != nil {
+		p("## Org ownership\n\n%s\n\n| Orgs owned | Accounts |\n|---|---:|\n", md(o.Line))
+		for _, b := range o.Buckets {
+			p("| %s | %d |\n", b.Label, b.Accounts)
+		}
+		p("\n%s\n\n", md(o.Note))
 	}
 
 	p("## Suggested fixes\n\n")

@@ -179,6 +179,19 @@ func briefBlast(o BlastRadiusOutput, t *trimmer) BlastRadiusOutput {
 // reach share a row), so truncated is also true when n alone left rows out.
 func (e *Engine) briefTop(o TopRisksOutput, t *trimmer) TopRisksOutput {
 	o.Risks = trimList(t, "risks", o.Risks)
+	// A cause group's per-member scores are bulky: brief keeps the members
+	// and the range, detail full has each member's own score.
+	risks := make([]graph.RiskGroup, len(o.Risks))
+	for i, g := range o.Risks {
+		if len(g.MemberScores) > 0 {
+			t.b.Total["member_scores"] += len(g.MemberScores)
+			t.b.Truncated = true
+			t.omit("member_scores")
+			g.MemberScores = nil
+		}
+		risks[i] = g
+	}
+	o.Risks = risks
 	if len(o.TargetOrgHardening) > 0 {
 		o.TargetOrgHardening = trimList(t, "target_org_hardening", o.TargetOrgHardening)
 	}

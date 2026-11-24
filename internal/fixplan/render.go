@@ -93,6 +93,9 @@ func title(s Step, code func(string) string) string {
 		}
 		return out
 	case KindChangeSetting:
+		if s.Owner == "" {
+			return "Change setting: " + s.Setting // spans several orgs, named in Setting
+		}
 		return "Change setting in org " + s.Owner + ": " + s.Setting
 	}
 	if s.Repo != "" {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/peleduri/gop/internal/demo"
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/testutil"
 )
 
 func loadAcme(t *testing.T) *graph.Graph {
@@ -178,5 +179,53 @@ func TestRenderGroupsIdenticalReach(t *testing.T) {
 		if !strings.Contains(h, want) {
 			t.Errorf("html lacks %q", want)
 		}
+	}
+}
+
+// Owners of many orgs with slightly different org sets share one cause row
+// with the range of their reach, and the headline names the cause, never
+// one owner; the ownership block counts accounts by orgs owned.
+func TestRenderGroupsByCause(t *testing.T) {
+	g, err := graph.LoadFile("../../testdata/causes/graph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	md := render(t, g, "md")
+	testutil.Golden(t, "causes.md", []byte(md), "dev")
+	for _, want := range []string{
+		"> 4 accounts that own 18 or more orgs can each push code that runs in 54 to 56 repos across 18 to 20 orgs (confirmed)",
+		"The cause is standing org ownership",
+		"| 4 owners of 18 to 20 orgs: identity:admin-a, identity:admin-b, identity:admin-c and 1 more | 54 to 56 | 18 to 20 |",
+		"| identity:bob | 51 | 17 |",
+		"| 5–9 orgs | 9 |", "| 10+ orgs | 4 |", "| 1 org | 2 |", "| 2–4 orgs | 10 |",
+		"| 1 | Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) |",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("markdown lacks %q", want)
+		}
+	}
+	if strings.Contains(md, "> identity:admin-a") {
+		t.Error("the headline names one owner")
+	}
+	h := render(t, g, "html")
+	for _, want := range []string{
+		`<span class="grp">4 owners of 18 to 20 orgs</span>`,
+		`<summary>Each member's own reach</summary>`,
+		`<code>identity:admin-d</code>: 54 repos across 18 orgs; owns 18 orgs; score`,
+		`>54 to 56</td>`,
+		`<h2 id="org-ownership">Org ownership</h2>`,
+		"Widest confirmed reach: <strong>4 owners of 18 to 20 orgs</strong>",
+	} {
+		if !strings.Contains(h, want) {
+			t.Errorf("html lacks %q", want)
+		}
+	}
+	// A higher threshold changes the suggested fix.
+	var buf bytes.Buffer
+	if err := Render(&buf, g, Options{Format: "md", OwnerThreshold: 19}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "from 3 accounts that own 19 or more orgs") {
+		t.Error("OwnerThreshold 19 should suggest cutting the 3 admins that own 19 or more orgs")
 	}
 }

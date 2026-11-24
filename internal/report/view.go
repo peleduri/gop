@@ -96,6 +96,13 @@ func decorate(d *data, g *graph.Graph) {
 	top, who := widest(d)
 	d.PickWho = who
 	d.KPIs = kpis(d, top, len(allOrgs), len(gapOrgs), len(g.Coverage))
+	// A cause group's tiles are its first member's figures: say so, and
+	// give the group's range.
+	for _, r := range d.Risks {
+		if top != nil && r.Principal == top.Principal && r.ReposRange != "" && len(d.KPIs) > 0 && d.KPIs[0].Label == "Confirmed reach" {
+			d.KPIs[0].Sub = fmt.Sprintf("across %s for its widest member; %s repos across the %d members", plural(top.Confirmed.Orgs, "org", "orgs"), r.ReposRange, len(r.Members))
+		}
+	}
 }
 
 func decorateRisks(d *data) {
@@ -176,6 +183,8 @@ func fixWhy(ix *graph.Index, f graph.Fix) string {
 		return "The workflow's GITHUB_TOKEN can write, so code it runs can push to the repo."
 	case graph.HardenTrigger:
 		return "The workflow runs code an outsider controls on a trigger that holds the repo's credentials."
+	case graph.ReduceOwners:
+		return "An org owner is admin on every repo of the org, so an account that owns many orgs can push code that runs across all of them; standing ownership of many orgs makes one account an enterprise-wide push key."
 	}
 	return ""
 }

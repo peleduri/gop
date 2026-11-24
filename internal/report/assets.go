@@ -117,6 +117,11 @@ tbody tr:hover>*{background:var(--bg)}
 .rank{color:var(--muted);width:1%}
 .strong{font-weight:700}
 .who code{font-size:.85em}.grp{display:block;font-weight:600;font-size:.85rem}
+.mem{margin-top:4px;font-size:.8rem}.mem summary{cursor:pointer;color:var(--accent)}.mem ul{margin:4px 0 0;padding-left:18px;color:var(--muted)}.mem li{margin:2px 0}
+.ownh{list-style:none;margin:0;padding:var(--s2);display:grid;gap:10px}
+.ownh li{display:grid;grid-template-columns:7em 1fr 4em;align-items:center;gap:12px;font-size:.88rem}
+.ownh .on{text-align:right;font-weight:700}.ownh .track{height:10px}
+.ownh .t-high .seg.cur{background:var(--high)}.ownh .t-crit .seg.cur{background:var(--crit)}
 .adv{display:block;width:fit-content;max-width:320px;margin-top:4px;padding:1px 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit-fg);font-size:.75rem;font-weight:600;white-space:normal}.adv.inj{background:var(--high-bg);color:var(--high-fg)}
 .sev{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.72rem;font-weight:700;white-space:nowrap}.sev:first-letter{text-transform:uppercase}
 .s-critical{background:var(--crit-bg);color:var(--crit-fg)}.s-high{background:var(--high-bg);color:var(--high-fg)}

@@ -8,7 +8,7 @@ import (
 )
 
 // fixFlags names the fix-plan fix flags in usage errors.
-const fixFlags = "--pin, --lower-default-perm, --restrict-token or --harden-trigger"
+const fixFlags = "--pin, --lower-default-perm, --restrict-token, --harden-trigger or --reduce-owners"
 
 // cmdFixPlan prints the change steps for one fix. It never runs them.
 func (a *app) cmdFixPlan(args []string) error {
@@ -20,6 +20,7 @@ func (a *app) cmdFixPlan(args []string) error {
 	to := fs.String("to", "read", "with --lower-default-perm: read or none")
 	restrict := fs.String("restrict-token", "", "workflow whose GITHUB_TOKEN to set to contents: read, e.g. workflow:acme-app/web/.github/workflows/ci.yml")
 	harden := fs.String("harden-trigger", "", "workflow to stop running attacker-controlled code on its risky triggers, e.g. workflow:acme-app/docs/.github/workflows/preview.yml")
+	owners := fs.Int("reduce-owners", 0, "remove standing org ownership from accounts that own this many orgs or more (5 is the suggested threshold); at least 2 owners stay in every org")
 	format := fs.String("format", "text", "text, markdown or json")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -36,6 +37,12 @@ func (a *app) cmdFixPlan(args []string) error {
 	}
 	if *harden != "" {
 		specs = append(specs, mcpserver.FixSpec{Type: "harden_trigger", Workflow: *harden})
+	}
+	if *owners < 0 {
+		return usagef("fix-plan: --reduce-owners must be positive, got %d", *owners)
+	}
+	if *owners > 0 {
+		specs = append(specs, mcpserver.FixSpec{Type: "reduce_owners", Threshold: *owners})
 	}
 	switch len(specs) {
 	case 0:

@@ -55,7 +55,7 @@ Usage:
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
   gop serve   --graph graph.json | --demo  [--baseline old.json]
   gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
-              [--previous old.json]
+              [--previous old.json] [--owner-threshold N]
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
   gop validate --graph graph.json [--format text|json]
@@ -64,7 +64,8 @@ Usage:
   gop diff    OLD.json NEW.json [--format text|json|markdown] [--only paths,settings,edges,scores,coverage]
               [--fail-on confirmed-increase|any-new-path] [--force]
   gop fix-plan --graph graph.json | --demo  --pin <action> | --lower-default-perm <org> [--to read|none]
-              | --restrict-token <workflow> | --harden-trigger <workflow> [--format text|markdown|json]
+              | --restrict-token <workflow> | --harden-trigger <workflow> | --reduce-owners N
+              [--format text|markdown|json]
   gop sarif   --graph graph.json | --demo  --out gop.sarif | --split-by-repo DIR [--top N]
               [--min-severity low|medium|high|critical] [--include-possible]
   gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
@@ -494,6 +495,7 @@ func (a *app) cmdReport(args []string) error {
 	format := fs.String("format", "", "html or md (default html, or md when --out ends in .md)")
 	top := fs.Int("top", 10, "principals in the risks table and paths section")
 	prev := fs.String("previous", "", "older graph.json: open the report with what changed since it (gop diff)")
+	ownerT := fs.Int("owner-threshold", graph.DefaultOwnerThreshold, "the suggested reduce_owners fix removes standing ownership from accounts that own this many orgs or more")
 	useDemo := demoFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err
@@ -514,11 +516,14 @@ func (a *app) cmdReport(args []string) error {
 	if *top <= 0 {
 		return usagef("report: --top must be positive, got %d", *top)
 	}
+	if *ownerT <= 0 {
+		return usagef("report: --owner-threshold must be positive, got %d", *ownerT)
+	}
 	g, err := a.loadGraph("report", *gp, *useDemo)
 	if err != nil {
 		return err
 	}
-	opts := report.Options{Format: f, Top: *top, Version: version}
+	opts := report.Options{Format: f, Top: *top, Version: version, OwnerThreshold: *ownerT}
 	if strings.TrimSpace(*prev) != "" {
 		old, err := graph.LoadFile(*prev)
 		if err != nil {

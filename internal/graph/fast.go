@@ -66,6 +66,8 @@ func overlayTag(ce cedge, e Edge) string {
 			}
 		case ViaTokenWrite:
 			return tagRestrict(e.From)
+		case ViaOrgOwner:
+			return tagOwner(ownerKey(e.From, OrgOf(e.To)))
 		}
 	case CanTrigger:
 		return tagHarden(e.To)
@@ -79,6 +81,7 @@ func tagPin(action string) string  { return "pin\x00" + action }
 func tagLower(org string) string   { return "lower\x00" + org }
 func tagRestrict(wf string) string { return "restrict\x00" + wf }
 func tagHarden(wf string) string   { return "harden\x00" + wf }
+func tagOwner(key string) string   { return "owner\x00" + key }
 
 func setTags(m map[string]bool, f func(string) string, out []string) []string {
 	for _, k := range sortedKeys(m) {
@@ -95,7 +98,8 @@ func fixTags(f Fix) []string {
 	out = setTags(fs.pinned, tagPin, out)
 	out = setTags(fs.lowered, tagLower, out)
 	out = setTags(fs.restricted, tagRestrict, out)
-	return setTags(fs.hardened, tagHarden, out)
+	out = setTags(fs.hardened, tagHarden, out)
+	return setTags(fs.unowned, tagOwner, out)
 }
 
 func (ix *Index) buildFast() *fastIndex {

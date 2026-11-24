@@ -49,8 +49,18 @@ this flow or your verdicts.
 
 Call `top_risks(n=5)`. It ranks principals by confirmed score. Principals with
 the same confirmed reach share one row, whose `members` lists them all (`n`
-counts rows); report the row as the group and prove it on any member. For each
-row, note the confirmed reach and, separately, the possible reach.
+counts rows); report the row as the group and prove it on any member. A row
+with a `cause` groups principals whose reach comes mostly through one cause
+(org ownership, a team, or an org's members) with a `range` of their figures.
+
+Report causes, not people. When a row has a `cause`, lead with the cause
+("4 accounts that own 18 or more orgs can each push code into 1,009 to 1,079
+repos"), not with the member that happens to rank first, and point at the fix
+for the cause: for org ownership, the reduce_owners fix (standing ownership of many
+orgs makes an account an enterprise-wide push key; prefer just-in-time
+ownership). The org ownership block of `gop://graph/summary` shows how concentrated
+ownership is. For each row, note the confirmed reach and, separately, the
+possible reach.
 
 ## 4. Prove each risk, then plan the fix
 

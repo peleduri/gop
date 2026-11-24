@@ -4,7 +4,7 @@ import "sort"
 
 // Fix is a hypothetical remediation. Each Fix is one grouped change (a set of
 // edges) with cost 1. Implementations: PinRef, LowerDefaultPerm, RestrictToken,
-// HardenTrigger.
+// HardenTrigger, ReduceOwners.
 type Fix interface {
 	// ID is stable and unique, e.g. "pin:action:acme-actions/deploy@main".
 	ID() string
@@ -18,6 +18,7 @@ type fixSet struct {
 	lowered    map[string]bool // org IDs whose default-perm CAN_PUSH edges are removed
 	restricted map[string]bool // workflow IDs whose via=token_write CAN_PUSH edges are removed
 	hardened   map[string]bool // workflow IDs whose incoming CAN_TRIGGER edges are removed
+	unowned    map[string]bool // ownerKey(principal, org) pairs whose via=org_owner CAN_PUSH edges are removed
 }
 
 func (fs *fixSet) removesPush(e Edge) bool {
@@ -26,6 +27,8 @@ func (fs *fixSet) removesPush(e Edge) bool {
 		return fs.lowered[OrgOf(e.From)] && KindFromID(e.From) == KindOrgMembers
 	case ViaTokenWrite:
 		return fs.restricted[e.From]
+	case ViaOrgOwner:
+		return fs.unowned[ownerKey(e.From, OrgOf(e.To))]
 	}
 	return false
 }
@@ -222,13 +225,17 @@ type FixSuggestion struct {
 // bypass actors there is no candidate), LowerDefaultPerm{To:"read"} for each
 // org with default_perm write/admin or default-perm CAN_PUSH edges, a
 // RestrictToken for each workflow with a via=token_write CAN_PUSH edge, and a
-// HardenTrigger for each workflow with a CAN_TRIGGER edge into it. No PinRef
+// HardenTrigger for each workflow with a CAN_TRIGGER edge into it, and one
+// ReduceOwners at DefaultOwnerThreshold when it cuts an ownership. No PinRef
 // is proposed for an action that every use of is pinned by an actions.lock
 // (LockCovered). A
 // candidate whose changed edges are all not_visible or stale audit facts (or
 // that changes nothing) is dropped: gop does not recommend a fix for an edge
 // it cannot confirm exists.
-func (ix *Index) Candidates() []Fix {
+func (ix *Index) Candidates() []Fix { return ix.candidates(DefaultOwnerThreshold) }
+
+// candidates is Candidates with ReduceOwners at ownerThreshold.
+func (ix *Index) candidates(ownerThreshold int) []Fix {
 	var cands []Fix
 	seen := map[string]bool{}
 	push := func(f Fix) {
@@ -272,6 +279,9 @@ func (ix *Index) Candidates() []Fix {
 			push(LowerDefaultPerm{Org: n.ID, To: "read"})
 		}
 	}
+	if ro := ix.ReduceOwners(ownerThreshold); len(ro.Cuts) > 0 {
+		push(ro)
+	}
 	sort.Slice(cands, func(i, j int) bool { return cands[i].ID() < cands[j].ID() })
 	return cands
 }
@@ -286,7 +296,18 @@ func SuggestFixes(g *Graph, budget int) []FixSuggestion { return NewIndex(g).Sug
 
 // SuggestFixes on a prebuilt index. The control graph is built once and each
 // candidate is scored as an overlay on it (see suggestFixes in suggest.go).
-func (ix *Index) SuggestFixes(budget int) []FixSuggestion { return ix.suggestFixes(budget) }
+func (ix *Index) SuggestFixes(budget int) []FixSuggestion {
+	return ix.suggestFixes(budget, ix.Candidates())
+}
+
+// SuggestFixesOwners is SuggestFixes with the ReduceOwners candidate at
+// ownerThreshold (DefaultOwnerThreshold when <= 0) instead of the default.
+func (ix *Index) SuggestFixesOwners(budget, ownerThreshold int) []FixSuggestion {
+	if ownerThreshold <= 0 {
+		ownerThreshold = DefaultOwnerThreshold
+	}
+	return ix.suggestFixes(budget, ix.candidates(ownerThreshold))
+}
 
 // TotalsOf sums a set of scores (see Totals).
 func TotalsOf(scores []Score) Totals { return totalsOf(scores) }
@@ -297,8 +318,9 @@ func (ix *Index) Scores() []Score { return ix.allScores(ix.base) }
 
 // FixEdges returns the evidence edges a fix changes: the RESOLVES_TO edge of a
 // PinRef's action, the via=default_perm CAN_PUSH edges a LowerDefaultPerm
-// removes, the via=token_write CAN_PUSH edges a RestrictToken removes, or the
-// CAN_TRIGGER edges a HardenTrigger removes.
+// removes, the via=token_write CAN_PUSH edges a RestrictToken removes, the
+// CAN_TRIGGER edges a HardenTrigger removes, or the via=org_owner CAN_PUSH
+// edges a ReduceOwners removes.
 func FixEdges(ix *Index, f Fix) []Edge { return f.edges(ix) }
 
 // MutableRef reports whether an action ref can change without a new pin: its
