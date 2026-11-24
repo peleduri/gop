@@ -35,6 +35,10 @@ type UntrustedExec struct {
 	Kind    string // ExecCheckout | ExecInjection
 	Detail  string // the matched value, e.g. "ref: ${{ github.event.pull_request.head.sha }}" or a context name
 	Line    int    // 1-based line of the matched with.ref/with.repository, run: or script: key (0 if unknown)
+	// File is the repo-relative file that holds Line when it is not the
+	// workflow itself: a local composite action or a called reusable
+	// workflow of the same repo (indirect.go). "" for the workflow.
+	File string
 	// Unverified is set when gop cannot tell whether the step lets these
 	// principals in (an agent action with an unknown actor check): the
 	// CAN_TRIGGER edge is not_visible, so it gives possible reach only.
@@ -112,7 +116,7 @@ var exprRe = regexp.MustCompile(`\$\{\{(.*?)\}\}`)
 //
 // readOnly lists the checkouts of the pull request's code that no later step
 // runs (untrusted input, not execution), once per job and checkout.
-func triggerFacts(doc *yaml.Node) (triggers []string, execs, readOnly []UntrustedExec) {
+func triggerFacts(doc *yaml.Node, ind *Indirect) (triggers []string, execs, readOnly []UntrustedExec) {
 	w := &yamlWalk{}
 	root, err := w.mapping(rootMap(doc), "workflow")
 	if err != nil {
@@ -141,11 +145,11 @@ func triggerFacts(doc *yaml.Node) (triggers []string, execs, readOnly []Untruste
 		if err != nil {
 			continue
 		}
-		found, ro := jobPatterns(w, job)
+		found, ro := jobPatterns(w, job, ind)
 		for _, t := range risky {
 			assoc := assocGate(w, job, t)
 			for _, x := range found {
-				execs = append(execs, UntrustedExec{Job: id, Trigger: t, Kind: x.Kind, Detail: x.Detail, Line: x.Line, Assoc: assoc})
+				execs = append(execs, UntrustedExec{Job: id, Trigger: t, Kind: x.Kind, Detail: x.Detail, Line: x.Line, File: x.File, Assoc: assoc})
 			}
 		}
 		for _, x := range ro {
@@ -186,31 +190,78 @@ func parseOn(w *yamlWalk, n *yaml.Node) []string {
 }
 
 // jobPatterns returns the untrusted execution patterns in one job's steps, in
-// step order, at most one per (kind, detail) with the line of its first match,
-// and the checkouts of the pull request's code that no later step runs.
-func jobPatterns(w *yamlWalk, job *yamlMap) (out, readOnly []UntrustedExec) {
+// step order, at most one per (kind, detail, file) with the line of its first
+// match, and the checkouts of the pull request's code that no later step
+// runs. With ind it also reads the steps one level down: a followed local
+// composite action a step loads, and the jobs of a followed reusable
+// workflow the job calls.
+func jobPatterns(w *yamlWalk, job *yamlMap, ind *Indirect) (out, readOnly []UntrustedExec) {
+	p := &patterns{seen: map[patKey]bool{}, roSeen: map[patKey]bool{}}
+	if cf, ok := ind.called(w, job); ok {
+		anchor, _ := job.get("uses")
+		ids, jobs := calledJobs(w, cf.Data)
+		for _, id := range ids {
+			cj, err := w.mapping(field(jobs, id), "job")
+			if err != nil {
+				continue
+			}
+			steps, _ := w.sequence(field(cj, "steps"), "steps")
+			p.scan(w, cj, steps, cf, anchor, nil)
+		}
+	}
 	steps, err := w.sequence(field(job, "steps"), "steps")
 	if err != nil {
-		return nil, nil
+		return p.out, p.readOnly
 	}
+	p.scan(w, job, steps, IndirectFile{}, nil, ind)
+	return p.out, p.readOnly
+}
+
+type patKey struct{ kind, detail, file string }
+
+// patterns collects the untrusted execution patterns of one job.
+type patterns struct {
+	out, readOnly []UntrustedExec
+	seen, roSeen  map[patKey]bool
+}
+
+// record adds one pattern. at is the matched node in file (the workflow
+// when file is zero); a file in another repo is reported at anchor, the
+// caller's uses: key, with the file named in the detail.
+func (p *patterns) record(ro bool, kind, detail string, at *yaml.Node, file IndirectFile, anchor *yaml.Node) {
+	detail = truncate(detail, 200)
+	if file.Where != "" {
+		detail = truncate(detail+" (in "+file.Where+")", 300)
+		at = anchor
+	}
+	k := patKey{kind, detail, file.Path}
+	seen := p.seen
+	if ro {
+		seen = p.roSeen
+	}
+	if seen[k] {
+		return
+	}
+	seen[k] = true
+	x := UntrustedExec{Kind: kind, Detail: detail, File: file.Path}
+	if at != nil {
+		x.Line = at.Line
+	}
+	if ro {
+		p.readOnly = append(p.readOnly, x)
+	} else {
+		p.out = append(p.out, x)
+	}
+}
+
+// scan reads one list of steps. job holds them (for defaults.run), file is
+// where they are (zero for the workflow), and ind, when set, follows a local
+// composite action a step loads (one level only: its steps get no ind).
+func (p *patterns) scan(w *yamlWalk, job *yamlMap, steps []*yaml.Node, file IndirectFile, anchor *yaml.Node, ind *Indirect) {
 	checkouts := map[int][]prCheckout{}
 	for _, c := range prCheckouts(w, steps) {
 		checkouts[c.step] = append(checkouts[c.step], c)
 	}
-	type key struct{ kind, detail string }
-	seen := map[key]bool{}
-	add := func(kind, detail string, at *yaml.Node) {
-		k := key{kind, truncate(detail, 200)}
-		if !seen[k] {
-			seen[k] = true
-			x := UntrustedExec{Kind: k.kind, Detail: k.detail}
-			if at != nil {
-				x.Line = at.Line
-			}
-			out = append(out, x)
-		}
-	}
-	roSeen := map[string]bool{}
 	for i, sn := range steps {
 		step, err := w.mapping(sn, "step")
 		if err != nil {
@@ -219,24 +270,13 @@ func jobPatterns(w *yamlWalk, job *yamlMap) (out, readOnly []UntrustedExec) {
 		uses := strings.ToLower(scalarOf(w, field(step, "uses")))
 		with, _ := w.mapping(field(step, "with"), "with")
 		for _, c := range checkouts[i] {
-			if checkoutRuns(w, job, steps, c) {
-				add(ExecCheckout, c.detail, c.at)
-				continue
-			}
-			if d := truncate(c.detail, 200); !roSeen[d] {
-				roSeen[d] = true
-				x := UntrustedExec{Kind: ExecCheckout, Detail: d}
-				if c.at != nil {
-					x.Line = c.at.Line
-				}
-				readOnly = append(readOnly, x)
-			}
+			p.record(!checkoutRuns(w, job, steps, c), ExecCheckout, c.detail, c.at, file, anchor)
 		}
 		run := scalarOf(w, field(step, "run"))
 		runKey, _ := step.get("run")
 		for _, cmd := range untrustedFetch {
 			if strings.Contains(run, cmd) {
-				add(ExecCheckout, cmd, runKey)
+				p.record(!fetchRuns(w, job, step, steps, i, run, cmd), ExecCheckout, cmd, runKey, file, anchor)
 			}
 		}
 		type script struct {
@@ -250,11 +290,13 @@ func jobPatterns(w *yamlWalk, job *yamlMap) (out, readOnly []UntrustedExec) {
 		}
 		for _, s := range scripts {
 			for _, ctx := range injectedContexts(s.src) {
-				add(ExecInjection, ctx, s.at)
+				p.record(false, ExecInjection, ctx, s.at, file, anchor)
 			}
 		}
+		if af, ok := ind.action(w, step); ok {
+			p.scan(w, &yamlMap{}, compositeSteps(w, af.Data), af, nil, nil)
+		}
 	}
-	return out, readOnly
 }
 
 // injectedContexts returns the attacker-controlled contexts used inside ${{ }} in s.
@@ -350,7 +392,11 @@ func (k *collector) addTriggerFacts(o *orgState, repo *graph.Node, wid string, w
 		if len(t.exec.Assoc) > 0 {
 			attrs[attrAssoc] = strings.Join(t.exec.Assoc, ",")
 		}
-		locate(attrs, f.File, f.FileRef, t.exec.Line, 0)
+		file := f.File
+		if t.exec.File != "" {
+			file = t.exec.File // a local composite action or reusable workflow on the same branch
+		}
+		locate(attrs, file, f.FileRef, t.exec.Line, 0)
 		k.edge(p, wid, graph.CanTrigger, t.ev, srcWorkflow, attrs)
 	}
 }

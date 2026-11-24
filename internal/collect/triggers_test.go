@@ -312,7 +312,7 @@ func TestUntrustedTriggers(t *testing.T) {
 
 	t.Run("private repo: the org's members by default permission", func(t *testing.T) {
 		const comment = "on: issue_comment\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo \"${{ github.event.comment.body }}\"\n"
-		const target = "on: pull_request_target\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: gh pr checkout 1\n"
+		const target = "on: pull_request_target\njobs:\n  x:\n    runs-on: ubuntu-latest\n    steps:\n      - run: gh pr checkout 1 && make test\n"
 		const (
 			webComment   = "workflow:acme-app/web/.github/workflows/comment.yml"
 			webTarget    = "workflow:acme-app/web/.github/workflows/target.yml"

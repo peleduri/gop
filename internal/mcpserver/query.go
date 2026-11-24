@@ -577,8 +577,9 @@ type HardeningOut struct {
 // HardeningLimit caps the advisory suggestions suggest_fixes lists.
 const HardeningLimit = 5
 
-// DescribeFix returns the FixSpec and a sentence for a graph fix.
-func DescribeFix(f graph.Fix) (FixSpec, string) { return fixplan.Spec(f) }
+// DescribeFix returns the FixSpec and a sentence for a graph fix (ix, when
+// set, makes a harden_trigger sentence say what the workflow lets in).
+func DescribeFix(ix *graph.Index, f graph.Fix) (FixSpec, string) { return fixplan.Describe(ix, f) }
 
 // fixTypes and fixShapes name the fix types in error messages.
 const (
@@ -601,7 +602,7 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 	}
 	out := SuggestFixesOutput{Fixes: []FixOut{}}
 	for _, s := range e.ix.SuggestFixesOwners(b, in.OwnerThreshold) {
-		spec, desc := DescribeFix(s.Fix)
+		spec, desc := DescribeFix(e.ix, s.Fix)
 		es := s.Edges
 		if es == nil {
 			es = []string{}
@@ -611,7 +612,7 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 			Caveat: s.Caveat})
 	}
 	for _, h := range e.ix.SuggestHardening(DefaultTopN, HardeningLimit) {
-		spec, desc := DescribeFix(h.Fix)
+		spec, desc := DescribeFix(e.ix, h.Fix)
 		out.Hardening = append(out.Hardening, HardeningOut{FixID: h.FixID, Fix: spec, Description: desc, Reason: h.Reason})
 	}
 	if len(out.Fixes) == 0 {
@@ -619,7 +620,7 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 	} else {
 		last := out.Fixes[len(out.Fixes)-1]
 		out.Summary = fmt.Sprintf("%s remove %.0f%% of confirmed (principal, repo) pairs; first: %s",
-			plural(len(out.Fixes), "fix", "fixes"), last.CumulativePct, quotedDescription(out.Fixes[0].Fix))
+			plural(len(out.Fixes), "fix", "fixes"), last.CumulativePct, quotedDescription(e.ix, out.Fixes[0].Fix))
 	}
 	if n := len(out.Hardening); n > 0 {
 		out.Summary += fmt.Sprintf("; plus %s (advisory, not counted as removing reach)",

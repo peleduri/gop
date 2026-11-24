@@ -44,7 +44,7 @@
     {
       "name": "rate limit",
       "status": "pass",
-      "detail": "collect needs about 60 REST requests and 4990 of 5000 remain"
+      "detail": "collect needs about 62 REST requests and 4990 of 5000 remain"
     }
   ],
   "orgs": [
@@ -82,7 +82,7 @@
     "repos": 6,
     "repos_rest_orgs": 2,
     "assumed_workflows_per_repo": 3,
-    "requests": 60,
+    "requests": 62,
     "minutes": 1,
     "rate_limit_waits": 0
   },

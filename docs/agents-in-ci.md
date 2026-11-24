@@ -42,6 +42,41 @@ or `npm install -g @openai/codex` is not an agent run, and neither is
 `ollama pull`, `ollama serve` or an `ollama run MODEL` with no prompt
 argument, `--ask` or redirected or piped stdin.
 
+### One level down
+
+An agent is often one step removed from the workflow file. For a workflow
+with a risky trigger or `pull_request`, gop follows one level of
+indirection (never two):
+
+| Where the agent is | How gop reads it | `agent_source` adds |
+|---|---|---|
+| A local composite action a step loads (`uses: ./.github/actions/review`) | its `action.yml` (or `action.yaml`) from the default branch; the step's `with:` and `env:` values count as the agent's input | `composite` |
+| A reusable workflow the job calls in the same repo (`uses: ./.github/workflows/x.yml`) or in another repo of the same org (`uses: acme/repo/.github/workflows/x.yml@ref`) | the called file (one the nested expansion already read is not read again); it runs with the caller's event, so who can start the caller starts it, and the caller's `with:` values count as input | `reusable` |
+| A repo script a `run:` step invokes while holding a secret or model API key (`bash ci/ai.sh`, `python3 tools/review.py`) | the script from the default branch, scanned for a known agent CLI (as in a `run:` step) and for model API calls (provider API hosts, a local model server, SDK `messages.create`, `chat.completions.create`, `generate_content` and similar) | `script` |
+
+A script that only calls a model API is `llm-script` with
+`agent_confidence=heuristic` and `not_visible` edges, and counts only when
+attacker text reaches it: a checkout of the pull request's head the step
+reads, `gh pr diff` or `gh pr view` in the script, the event payload
+(`GITHUB_EVENT_PATH`), or attacker contexts in the step. The same follow
+finds `checkout` and `injection` patterns inside composite actions and
+reusable workflows ([Triggers](schema.md#triggers)).
+
+Each file is one read-only contents `GET` per repo, path and ref, through
+the response cache, at most 10 files per workflow and 256 KiB per file; gop
+never runs what it reads, and `gop doctor` counts these reads in its
+request estimate. A file gop cannot read gets a `follow:<path>` coverage
+entry on the workflow, which keeps the facts gop read without it. The
+`CAN_TRIGGER` edge's `file` and `line` point at the agent step in the
+composite action or same-repo reusable workflow, at the caller's `uses:`
+line for a reusable workflow in another repo, and at the `run:` step for a
+script.
+
+A known agent step that reads a checkout of the pull request's head (the
+workspace root, a directory input or working directory in it, or a path
+into it such as `pr/` in its prompt) gets `pr_content` in
+`agent_prompt_injection`. A bare word like "pr" in prose is not a path.
+
 The action inputs and actor checks were read from each action's public README
 and `action.yml`:
 
@@ -64,7 +99,7 @@ and `action.yml`:
 | `agent_jobs` | The agent job ids |
 | `agent_gate` | The weakest actor check of the agent steps: `write_access`, `listed_users`, `anyone`, `none`, `unknown` |
 | `agent_exposure` | Who can start an agent job with the base repo's token and secrets: `outsiders` (a risky trigger such as `pull_request_target`, `issue_comment`, `issues`, `discussion*` or `workflow_run`, and a gate that lets them in), `listed_users`, `fork_readonly` (only a fork's `pull_request`, which gets a read-only token and no secrets) or `maintainers` |
-| `agent_prompt_injection` | Attacker-controlled contexts (`${{ github.event.issue.title }}`, ...) interpolated into the agent step's `with:`, `env:` or `run:`, found by the same patterns as gop's injection heuristic; `pr_content` when a heuristic match reads the pull request's files, diff or text, or a CLI step's script reads its diff or text (`gh pr diff`, `gh pr view`) |
+| `agent_prompt_injection` | Attacker-controlled contexts (`${{ github.event.issue.title }}`, ...) interpolated into the agent step's `with:`, `env:` or `run:`, found by the same patterns as gop's injection heuristic; `pr_content` when a heuristic match reads the pull request's files, diff or text, a CLI step's script reads its diff or text (`gh pr diff`, `gh pr view`), or a known agent reads a checkout of its head |
 | `agent_permissions` | The agent jobs' token write scopes: `contents:write`, `pull-requests:write`, `id-token:write`, `write-all`, ..., or `default` when a job takes the repo default |
 | `agent_secrets` | How many secrets the agent jobs reference (`GITHUB_TOKEN` excluded) |
 | `agent_runner` | `hosted`, `self_hosted` or `unknown` |
@@ -110,7 +145,9 @@ workflow's repo is not counted: it controls the workflow anyway.
   workflow(s) ... without push access [agent_exposed]"; `explain` on an edge
   into an agent workflow adds an `agent` note.
 - **fix-plan:** `harden_trigger` on an agent workflow suggests closing the
-  agent to outsiders.
+  agent to outsiders. Its title says the kind: "untrusted text reaches an
+  AI step on ..." for an agent, "untrusted code runs on ..." for a checkout
+  or injection.
 
 ## Fixes
 

@@ -321,7 +321,7 @@ func whatIfPaths(ix *graph.Index, paths []embPath, fixes []graph.FixSuggestion) 
 	}
 	for _, f := range fixes {
 		kind, node := fixTarget(f.Fix)
-		_, desc := mcpserver.DescribeFix(f.Fix)
+		_, desc := mcpserver.DescribeFix(ix, f.Fix)
 		w := embWhatIf{Fix: f.FixID, Kind: kind, Node: node, Desc: desc, Removed: []int{}}
 		for _, pr := range order {
 			after := ix.Reach(pr, graph.Options{Fixes: []graph.Fix{f.Fix}})

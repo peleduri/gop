@@ -381,18 +381,49 @@ func (k *collector) followBotScripts(ctx context.Context) error {
 // getScript reads one file of the default branch for scanning: a read-only
 // contents GET (cached like every REST GET), refused above botScriptMaxBytes.
 func (k *collector) getScript(ctx context.Context, owner, repo, p string) ([]byte, error) {
+	return k.readScanned(ctx, owner, repo, p, "", botScriptMaxBytes)
+}
+
+// readScanned is getFileCapped read once per run: the bot script and the
+// indirection followers (indirect.go) share what they read.
+func (k *collector) readScanned(ctx context.Context, owner, repo, p, ref string, limit int64) ([]byte, error) {
+	key := fmt.Sprintf("%s/%s/%s@%s#%d", strings.ToLower(owner), strings.ToLower(repo), p, ref, limit)
+	if r, ok := k.scanned[key]; ok {
+		return r.data, r.err
+	}
+	data, err := k.getFileCapped(ctx, owner, repo, p, ref, limit)
+	if ctx.Err() != nil {
+		return data, err // not remembered: the run is over
+	}
+	if k.scanned == nil {
+		k.scanned = map[string]scannedFile{}
+	}
+	k.scanned[key] = scannedFile{data, err}
+	return data, err
+}
+
+// scannedFile is one file readScanned read, or the error it got.
+type scannedFile struct {
+	data []byte
+	err  error
+}
+
+// getFileCapped reads one file at ref ("" for the default branch) for
+// scanning: a read-only contents GET (cached like every REST GET), refused
+// above limit bytes.
+func (k *collector) getFileCapped(ctx context.Context, owner, repo, p, ref string, limit int64) ([]byte, error) {
 	var f struct {
 		contentEntry
 		Size int64 `json:"size"`
 	}
-	if err := k.cl(owner).GetJSON(ctx, contentsPath(owner, repo, p, ""), &f); err != nil {
+	if err := k.cl(owner).GetJSON(ctx, contentsPath(owner, repo, p, ref), &f); err != nil {
 		return nil, err
 	}
 	if f.Type != "" && f.Type != "file" {
 		return nil, fmt.Errorf("%s is a %s, not a file", p, f.Type)
 	}
-	if f.Size > botScriptMaxBytes {
-		return nil, fmt.Errorf("%s is %d bytes, over the %d byte scan limit", p, f.Size, botScriptMaxBytes)
+	if f.Size > limit {
+		return nil, fmt.Errorf("%s is %d bytes, over the %d byte scan limit", p, f.Size, limit)
 	}
 	if f.Encoding != "base64" {
 		return nil, fmt.Errorf("%s: unsupported content encoding %q (file too large?)", p, f.Encoding)
@@ -401,8 +432,8 @@ func (k *collector) getScript(ctx context.Context, owner, repo, p string) ([]byt
 	if err != nil {
 		return nil, fmt.Errorf("%s: decoding base64: %w", p, err)
 	}
-	if len(data) > botScriptMaxBytes {
-		return nil, fmt.Errorf("%s is over the %d byte scan limit", p, botScriptMaxBytes)
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("%s is over the %d byte scan limit", p, limit)
 	}
 	return data, nil
 }

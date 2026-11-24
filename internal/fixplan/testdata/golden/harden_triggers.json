@@ -1,12 +1,12 @@
 {
-  "summary": "Stop acme-app/docs/.github/workflows/preview.yml from running attacker-controlled code on its risky triggers: 2 lines to edit across 1 repo; removes 2 of 2 confirmed (principal, repo) pairs (100%)",
+  "summary": "Harden acme-app/docs/.github/workflows/preview.yml (untrusted code runs on pull_request_target): 2 lines to edit across 1 repo; removes 2 of 2 confirmed (principal, repo) pairs (100%)",
   "plan": {
     "fix_id": "harden_trigger:workflow:acme-app/docs/.github/workflows/preview.yml",
     "fix": {
       "type": "harden_trigger",
       "workflow": "workflow:acme-app/docs/.github/workflows/preview.yml"
     },
-    "description": "Stop acme-app/docs/.github/workflows/preview.yml from running attacker-controlled code on its risky triggers",
+    "description": "Harden acme-app/docs/.github/workflows/preview.yml (untrusted code runs on pull_request_target)",
     "removes": {
       "fixes": [
         "harden_trigger:workflow:acme-app/docs/.github/workflows/preview.yml"

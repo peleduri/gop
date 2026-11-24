@@ -1,0 +1,12 @@
+# Synthetic fixture: an issue_comment job calls a reusable workflow of the
+# same org that runs an agent CLI; the comment body is passed as an input.
+name: Triage
+on:
+  issue_comment:
+    types: [created]
+jobs:
+  triage:
+    uses: acme-app/web/.github/workflows/ai-triage.yml@main
+    with:
+      comment: ${{ github.event.comment.body }}
+    secrets: inherit

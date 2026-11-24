@@ -47,6 +47,33 @@ flags may change in minor releases.
   merge script counts `DISMISSED` reviews, the path note says "the script
   re-counts approvals GitHub dismissed" (`review_bypass_recounts_dismissed`,
   still heuristic). Scores of unrelated principals are unchanged.
+
+- Agent and exec detection one level down (#165). For workflows with a
+  risky trigger or `pull_request`, `gop collect` now follows one level of
+  indirection: a local composite action a step loads (its `action.yml`
+  from the default branch), a reusable workflow the job calls in the same
+  repo or org (it runs with the caller's event, so who can start the
+  caller starts it; one the nested expansion already read is reused), and
+  a repo script a `run:` step invokes while holding a secret or model API
+  key (scanned for agent CLIs and model API calls; a model API call alone
+  is `llm-script`, possible reach only, and needs attacker text to reach
+  it). Agents found there add `composite`, `reusable` or `script` to
+  `agent_source`; checkout and injection patterns inside composite actions
+  and reusable workflows count too, with the edge's `file` and `line` at
+  the step (or the caller's `uses:` line for another repo's workflow). Each
+  file is one read-only contents GET through the response cache (at most
+  10 per workflow, 256 KiB each, shared with the bot script reader); an
+  unreadable file is a `follow:<path>` coverage entry. `gop doctor`'s
+  request estimate counts these reads. A known agent step that reads a
+  checkout of the pull request's head (directory input, working directory
+  or a path such as `pr/` in its prompt) now gets `pr_content` in
+  `agent_prompt_injection`. `gh pr checkout` and `git fetch origin pull/`
+  count as `exec=checkout` only when a later command or step runs code
+  from them (else `untrusted_checkout=read_only`), matching the rule for
+  `actions/checkout`. `harden_trigger` titles now say the kind: "Harden
+  <workflow> (untrusted code runs on <triggers>)" or "(untrusted text
+  reaches an AI step on <triggers>)", in fix-plan, the report and MCP.
+
 ### Fixed
 - Consistency fixes (#166). `gop fix-plan --format text` escapes names the
   way the markdown checklist does (control, bidi and zero-width characters

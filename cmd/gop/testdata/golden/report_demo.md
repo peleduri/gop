@@ -55,7 +55,7 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 | 1 | Lower the default repository permission of acme-actions to read | 34 | 50% |
 | 2 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 16 | 74% |
 | 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 79% |
-| 4 | Stop acme-app/docs/.github/workflows/claude.yml from running attacker-controlled code on its risky triggers | 1 | 81% |
+| 4 | Harden acme-app/docs/.github/workflows/claude.yml (untrusted text reaches an AI step on issue\_comment) | 1 | 81% |
 
 ## Pinned, still reachable
 

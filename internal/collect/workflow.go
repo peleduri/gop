@@ -91,6 +91,10 @@ type WorkflowFacts struct {
 	Agents   []AgentJob
 	Name     string
 	JobNames map[string]string
+
+	// Follow lists the files one level down the collector reads to find
+	// agents and untrusted execution hidden in them (indirect.go).
+	Follow FollowRefs
 }
 
 // IDTokenJob is one job that can mint an OIDC token, with the inputs of the
@@ -578,6 +582,12 @@ func scopeLevel(perms map[string]string, scope string) string {
 
 // ParseWorkflow extracts uses references, OIDC, secrets and runner facts.
 func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
+	return parseWorkflow(data, nil)
+}
+
+// parseWorkflow is ParseWorkflow with the followed files one level down
+// (indirect.go); ind may be nil.
+func parseWorkflow(data []byte, ind *Indirect) (*WorkflowFacts, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		return nil, fmt.Errorf("parse workflow: %w", err)
@@ -586,8 +596,9 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse workflow: %w", err)
 	}
-	f.Triggers, f.UntrustedExec, f.ReadOnlyCheckouts = triggerFacts(&doc)
-	f.readAgents(&doc)
+	f.Triggers, f.UntrustedExec, f.ReadOnlyCheckouts = triggerFacts(&doc, ind)
+	f.readAgents(&doc, ind)
+	f.Follow = followRefs(&doc, f.Triggers)
 	return f, nil
 }
 

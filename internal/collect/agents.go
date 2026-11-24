@@ -39,6 +39,10 @@ type AgentJob struct {
 	Tools    []string // agent_tools values, sorted
 	RefKind  string   // the least pinned ref of its agent actions: sha | tag | branch; "" for CLIs only
 	Line     int      // 1-based line of its first agent step's uses:/run: key
+	// File is the repo-relative file that holds Line when it is not the
+	// workflow itself (an agent in a local composite action or a called
+	// reusable workflow of the same repo); "" for the workflow.
+	File string
 }
 
 // gateOpenness orders gates from closed to open: a job with several agent
@@ -58,7 +62,7 @@ var scopeRe = regexp.MustCompile(`^[a-z][a-z-]*$`)
 // start on a risky trigger, and records the names the weak name-only match
 // reads (f.Name, f.JobNames). f.Triggers must be set. It is lenient like
 // triggerFacts: a shape it does not understand yields nothing.
-func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
+func (f *WorkflowFacts) readAgents(doc *yaml.Node, ind *Indirect) {
 	w := &yamlWalk{}
 	root, err := w.mapping(rootMap(doc), "workflow")
 	if err != nil {
@@ -101,7 +105,7 @@ func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
 			}
 			f.JobNames[id] = name
 		}
-		aj, ok := agentJob(w, id, job, len(risky) > 0, wfEnv)
+		aj, ok := agentJob(w, id, job, len(risky) > 0, wfEnv, ind)
 		if !ok {
 			continue
 		}
@@ -118,11 +122,12 @@ func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
 		case len(risky) > 0 && open:
 			aj.Exposure = graph.ExposureOutsiders
 			// A heuristic match (no known agent, only a model API key next to
-			// the pull request's content) gives possible reach only.
-			heuristic := len(aj.Sources) == 1 && aj.Sources[0] == "heuristic"
+			// the pull request's content, or a model API call in a script)
+			// gives possible reach only.
+			heuristic := agentConfidence(aj.Sources) == graph.AgentHeuristic
 			for _, t := range risky {
 				f.UntrustedExec = append(f.UntrustedExec, UntrustedExec{Job: id, Trigger: t, Kind: ExecAgent, Detail: strings.Join(aj.Kinds, ","),
-					Line: aj.Line, Unverified: aj.Gate == graph.GateUnknown || heuristic, Assoc: assocGate(w, job, t)})
+					Line: aj.Line, File: aj.File, Unverified: aj.Gate == graph.GateUnknown || heuristic, Assoc: assocGate(w, job, t)})
 			}
 		case len(risky) > 0 && aj.Gate == graph.GateListed:
 			aj.Exposure = graph.ExposureListed
@@ -138,110 +143,265 @@ func (f *WorkflowFacts) readAgents(doc *yaml.Node) {
 	sort.SliceStable(f.UntrustedExec, func(i, j int) bool { return f.UntrustedExec[i].Job < f.UntrustedExec[j].Job })
 }
 
+// agentConfidence is the strongest signal of a set of agent sources.
+func agentConfidence(sources []string) string {
+	switch {
+	case containsStr(sources, "uses") || containsStr(sources, "setup"):
+		return graph.AgentAction
+	case containsStr(sources, "run"):
+		return graph.AgentCLI
+	}
+	return graph.AgentHeuristic
+}
+
+// agentAcc accumulates one job's agent facts.
+type agentAcc struct {
+	aj                            AgentJob
+	kinds, sources, prompt, tools map[string]bool
+	gate                          int
+}
+
+func (a *agentAcc) setGate(g string) {
+	if gateOpenness[g] > a.gate {
+		a.gate = gateOpenness[g]
+		a.aj.Gate = g
+	}
+}
+
+// at records an agent step's position: the first one, preferring the
+// workflow's own file (file "") over a followed file.
+func (a *agentAcc) at(file string, n *yaml.Node) {
+	if n == nil {
+		return
+	}
+	if a.aj.Line == 0 || (file == a.aj.File && n.Line < a.aj.Line) || (file == "" && a.aj.File != "") {
+		a.aj.Line, a.aj.File = n.Line, file
+	}
+}
+
 // agentJob reads one job's agent steps. ok is false when it has none.
 // risky says the workflow has a risky trigger: only then does a job with no
-// known agent get the heuristic match (llmSteps).
-func agentJob(w *yamlWalk, id string, job *yamlMap, risky bool, wfEnv *yamlMap) (AgentJob, bool) {
-	aj := AgentJob{Job: id}
-	kinds, sources, prompt, tools := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
-	gate := -1
-	setGate := func(g string) {
-		if gateOpenness[g] > gate {
-			gate = gateOpenness[g]
-			aj.Gate = g
-		}
-	}
-	at := func(n *yaml.Node) {
-		if n != nil && (aj.Line == 0 || n.Line < aj.Line) {
-			aj.Line = n.Line
-		}
-	}
+// known agent get the heuristic match (llmSteps). ind, when set, holds the
+// followed files one level down (indirect.go).
+func agentJob(w *yamlWalk, id string, job *yamlMap, risky bool, wfEnv *yamlMap, ind *Indirect) (AgentJob, bool) {
+	a := &agentAcc{aj: AgentJob{Job: id}, kinds: map[string]bool{}, sources: map[string]bool{}, prompt: map[string]bool{}, tools: map[string]bool{}, gate: -1}
 	if id == copilotSetupJob {
-		kinds[copilotAgentKind], sources["setup"] = true, true
-		setGate(graph.GateWriteAccess)
+		a.kinds[copilotAgentKind], a.sources["setup"] = true, true
+		a.setGate(graph.GateWriteAccess)
 		k, _ := job.get("steps")
 		if k == nil {
 			k, _ = job.get("runs-on")
 		}
-		at(k)
+		a.at("", k)
+	}
+	// A called reusable workflow runs with this job's event: its agents are
+	// this job's.
+	if cf, ok := ind.called(w, job); ok {
+		anchor, _ := job.get("uses")
+		ids, jobs := calledJobs(w, cf.Data)
+		with, _ := w.mapping(field(job, "with"), "with")
+		for _, cid := range ids {
+			cj, err := w.mapping(field(jobs, cid), "job")
+			if err != nil {
+				continue
+			}
+			steps, _ := w.sequence(field(cj, "steps"), "steps")
+			if a.scan(w, cj, steps, cf, anchor, SourceReusable, false, nil, nil, nil) {
+				a.injected(withValues(w, with)) // the caller's inputs reach the agent
+			}
+		}
 	}
 	steps, _ := w.sequence(field(job, "steps"), "steps")
-	for _, sn := range steps {
+	jobEnv, _ := w.mapping(field(job, "env"), "env")
+	a.scan(w, job, steps, IndirectFile{}, nil, "", false, ind, jobEnv, wfEnv)
+	if len(a.kinds) == 0 && risky {
+		for _, l := range llmSteps(w, steps, jobEnv, wfEnv) {
+			a.kinds[LLMScriptKind], a.sources["heuristic"] = true, true
+			a.setGate(graph.GateNone)
+			a.at("", l.at)
+			for _, p := range l.prompt {
+				a.prompt[p] = true
+			}
+		}
+	}
+	if len(a.kinds) == 0 {
+		return AgentJob{}, false
+	}
+	aj := a.aj
+	aj.Kinds, aj.Sources, aj.Prompt, aj.Tools = sortedSet(a.kinds), sortedSet(a.sources), sortedSet(a.prompt), sortedSet(a.tools)
+	return aj, true
+}
+
+// injected adds the attacker contexts interpolated into vals to the prompt.
+func (a *agentAcc) injected(vals []string) {
+	for _, v := range vals {
+		for _, c := range injectedContexts(v) {
+			a.prompt[c] = true
+		}
+	}
+}
+
+// scan finds the known agent actions and CLIs among steps and reports
+// whether it found one. job holds the steps; file is where they are (zero
+// for the workflow); a file in another repo is reported at anchor, the
+// caller's uses: key. via is the indirection ("" for the workflow's own
+// steps, else a Source* value). prIn says a checkout of the pull request's
+// head made before these steps is in their workspace and read by them. ind,
+// set for the workflow's own steps only, follows the local composite
+// actions and repo scripts they load (one level).
+func (a *agentAcc) scan(w *yamlWalk, job *yamlMap, steps []*yaml.Node, file IndirectFile, anchor *yaml.Node, via string, prIn bool, ind *Indirect, jobEnv, wfEnv *yamlMap) bool {
+	at := func(n *yaml.Node) {
+		if file.Where != "" {
+			n = anchor
+		}
+		a.at(file.Path, n)
+	}
+	hit := false
+	checkouts := prCheckouts(w, steps)
+	for i, sn := range steps {
 		step, err := w.mapping(sn, "step")
 		if err != nil {
 			continue
 		}
+		readsPR := prIn
+		for _, c := range checkouts {
+			if c.step < i && agentReadsDir(w, step, c.dir) {
+				readsPR = true
+			}
+		}
 		found := false
 		usesKey, _ := step.get("uses")
 		if u, ok := ParseUses(scalarOf(w, field(step, "uses"))); ok {
-			if a, ok := matchAgentAction(u); ok {
+			if ag, ok := matchAgentAction(u); ok {
 				found = true
-				kinds[a.kind], sources["uses"] = true, true
+				a.kinds[ag.kind], a.sources["uses"] = true, true
 				at(usesKey)
 				with, _ := w.mapping(field(step, "with"), "with")
-				setGate(actionGate(w, a, with))
-				for _, name := range a.args {
-					addToolFlags(tools, scalarOf(w, field(with, name)))
+				a.setGate(actionGate(w, ag, with))
+				for _, name := range ag.args {
+					addToolFlags(a.tools, scalarOf(w, field(with, name)))
 				}
-				if a.kind == "claude-code-action" || a.kind == "claude-code-base-action" {
+				if ag.kind == "claude-code-action" || ag.kind == "claude-code-base-action" {
 					if scalarOf(w, field(with, "allowed_tools")) != "" {
-						tools["allowed_tools"] = true
+						a.tools["allowed_tools"] = true
 					}
 				}
-				for _, v := range withValues(w, with) {
-					for _, c := range injectedContexts(v) {
-						prompt[c] = true
-					}
-				}
-				if aj.RefKind == "" || refPin[u.RefKind] > refPin[aj.RefKind] {
-					aj.RefKind = u.RefKind
+				a.injected(withValues(w, with))
+				if a.aj.RefKind == "" || refPin[u.RefKind] > refPin[a.aj.RefKind] {
+					a.aj.RefKind = u.RefKind
 				}
 			}
 		}
 		run := scalarOf(w, field(step, "run"))
+		runKey, _ := step.get("run")
 		if c, args, ok := matchAgentCLI(run); ok {
 			found = true
-			kinds[c.kind], sources["run"] = true, true
-			runKey, _ := step.get("run")
+			a.kinds[c.kind], a.sources["run"] = true, true
 			at(runKey)
-			setGate(graph.GateNone)
-			addToolFlags(tools, args)
-			for _, ctx := range injectedContexts(run) {
-				prompt[ctx] = true
-			}
+			a.setGate(graph.GateNone)
+			addToolFlags(a.tools, args)
+			a.injected([]string{run})
 			// The pull request's diff or text read in the same script (gh
 			// pr diff | ollama run ...) is a prompt too.
 			for _, cmd := range prTextCmds {
 				if strings.Contains(run, cmd) {
-					prompt[graph.PromptPRContent] = true
+					a.prompt[graph.PromptPRContent] = true
 				}
+			}
+		}
+		env, _ := w.mapping(field(step, "env"), "env")
+		if found {
+			a.injected(withValues(w, env))
+			if readsPR {
+				a.prompt[graph.PromptPRContent] = true
+			}
+		}
+		if ind != nil {
+			if a.followAction(w, steps, checkouts, i, step, ind) {
+				found = true
+			}
+			if a.followScripts(w, job, step, runKey, readsPR, ind, jobEnv, wfEnv) {
+				found = true
 			}
 		}
 		if found {
-			env, _ := w.mapping(field(step, "env"), "env")
-			for _, v := range withValues(w, env) {
-				for _, c := range injectedContexts(v) {
-					prompt[c] = true
-				}
+			hit = true
+			if via != "" {
+				a.sources[via] = true
 			}
 		}
 	}
-	if len(kinds) == 0 && risky {
-		jobEnv, _ := w.mapping(field(job, "env"), "env")
-		for _, l := range llmSteps(w, steps, jobEnv, wfEnv) {
-			kinds[LLMScriptKind], sources["heuristic"] = true, true
-			setGate(graph.GateNone)
-			at(l.at)
-			for _, p := range l.prompt {
-				prompt[p] = true
-			}
+	return hit
+}
+
+// followAction scans the followed local composite action step i loads.
+func (a *agentAcc) followAction(w *yamlWalk, steps []*yaml.Node, checkouts []prCheckout, i int, step *yamlMap, ind *Indirect) bool {
+	af, ok := ind.action(w, step)
+	if !ok {
+		return false
+	}
+	prIn := false
+	for _, c := range checkouts {
+		if c.step < i && agentReadsDir(w, step, c.dir) {
+			prIn = true
 		}
 	}
-	if len(kinds) == 0 {
-		return AgentJob{}, false
+	if !a.scan(w, &yamlMap{}, compositeSteps(w, af.Data), af, nil, SourceComposite, prIn, nil, nil, nil) {
+		return false
 	}
-	aj.Kinds, aj.Sources, aj.Prompt, aj.Tools = sortedSet(kinds), sortedSet(sources), sortedSet(prompt), sortedSet(tools)
-	return aj, true
+	with, _ := w.mapping(field(step, "with"), "with")
+	env, _ := w.mapping(field(step, "env"), "env")
+	a.injected(withValues(w, with)) // the action's inputs reach the agent
+	a.injected(withValues(w, env))
+	return true
+}
+
+// followScripts scans the followed repo scripts a run: step invokes: a known
+// agent CLI counts like one in the step (gate none); a model API call
+// counts as an AI step (kind llm-script, possible reach only) when
+// attacker text reaches it: the pull request's head checkout, its diff or
+// text, the event payload, or contexts in the step.
+func (a *agentAcc) followScripts(w *yamlWalk, job, step *yamlMap, runKey *yaml.Node, readsPR bool, ind *Indirect, jobEnv, wfEnv *yamlMap) bool {
+	run := scalarOf(w, field(step, "run"))
+	if run == "" || len(ind.Scripts) == 0 {
+		return false
+	}
+	env, _ := w.mapping(field(step, "env"), "env")
+	stepText := append([]string{run}, withValues(w, env)...)
+	found := false
+	for _, p := range scriptCalls(run, stepWD(w, job, step)) {
+		data, ok := ind.Scripts[p]
+		if !ok {
+			continue
+		}
+		s := scanScriptAgent(data)
+		prompt := map[string]bool{}
+		for _, v := range stepText {
+			for _, c := range injectedContexts(v) {
+				prompt[c] = true
+			}
+		}
+		if readsPR || s.prText || s.payload {
+			prompt[graph.PromptPRContent] = true
+		}
+		switch {
+		case s.hasCLI:
+			a.kinds[s.cli.kind], a.sources["run"] = true, true
+			addToolFlags(a.tools, s.args)
+		case s.api && len(prompt) > 0 && stepHoldsKey(w, step, jobEnv, wfEnv):
+			a.kinds[LLMScriptKind] = true
+		default:
+			continue
+		}
+		found = true
+		a.sources[SourceScript] = true
+		a.setGate(graph.GateNone)
+		a.at("", runKey)
+		for c := range prompt {
+			a.prompt[c] = true
+		}
+	}
+	return found
 }
 
 // llmStep is one step found by heuristic: it holds a model API key and
@@ -636,13 +796,7 @@ func addAgentFacts(wn *graph.Node, f *WorkflowFacts) {
 			refKind = a.RefKind
 		}
 		runner = widerRunner(runner, a.Runner)
-		c := graph.AgentHeuristic
-		switch {
-		case containsStr(a.Sources, "uses") || containsStr(a.Sources, "setup"):
-			c = graph.AgentAction
-		case containsStr(a.Sources, "run"):
-			c = graph.AgentCLI
-		}
+		c := agentConfidence(a.Sources)
 		if confRank[c] > confRank[conf] {
 			conf = c
 		}

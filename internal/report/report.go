@@ -394,7 +394,7 @@ func build(g *graph.Graph, opts Options) data {
 	}
 	d.sugg, d.budget, d.ownerThreshold = ix.SuggestFixesOwners(opts.FixBudget, opts.OwnerThreshold), opts.FixBudget, opts.OwnerThreshold
 	for i, f := range d.sugg {
-		_, desc := mcpserver.DescribeFix(f.Fix)
+		_, desc := mcpserver.DescribeFix(ix, f.Fix)
 		d.Fixes = append(d.Fixes, fixRow{N: i + 1, Description: desc, FixID: f.FixID, Removed: f.Removed,
 			CumulativePct: fmt.Sprintf("%.0f%%", f.CumulativePct)})
 	}
@@ -794,7 +794,7 @@ func addHardening(d *data, ix *graph.Index, top int) {
 		d.HardenRepos = append(d.HardenRepos, hardenRepoRow{Repo: strings.TrimPrefix(repo, "repo:"), State: h.Summary()})
 	}
 	for _, s := range ix.SuggestHardening(top, hardeningFixes) {
-		_, desc := mcpserver.DescribeFix(s.Fix)
+		_, desc := mcpserver.DescribeFix(ix, s.Fix)
 		d.HardenFixes = append(d.HardenFixes, hardenFixRow{Description: desc, Reason: s.Reason})
 	}
 }
