@@ -7,3 +7,5 @@
 /gop-cache/
 .DS_Store
 /_site/
+/evals/out/
+__pycache__/

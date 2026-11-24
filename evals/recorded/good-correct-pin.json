@@ -1,0 +1,29 @@
+{
+  "case": "correct-pin-deploy-main",
+  "note": "Partial answer presented as a lower bound, possible pairs on their own line.",
+  "tool_calls": [
+    {
+      "name": "coverage",
+      "arguments": {}
+    },
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "what_if"
+      }
+    },
+    {
+      "name": "what_if",
+      "arguments": {
+        "fixes": [
+          {
+            "type": "pin_ref",
+            "action": "action:acme-actions/deploy@main"
+          }
+        ]
+      }
+    }
+  ],
+  "answer": "Pinning `acme-actions/deploy@main` to a commit SHA cuts confirmed (principal, repo) pairs from 24 to 6, a 75% reduction.\n\nPossible pairs: 1 before and 1 after (not counted above).\n\ncheck_answerable(what_if) says partial, so these figures are a lower bound: gop could not see the repositories of `org:acme-legacy` or the default permission of `repo:acme-legacy/old-api`. Org owner access on acme-legacy would make them visible.",
+  "expect_failed": []
+}

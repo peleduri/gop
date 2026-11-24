@@ -1,0 +1,104 @@
+name: evals
+
+# Agent-behaviour eval of the gop MCP server and skill (docs/evals.md). It
+# asks a model the cases in evals/cases.yaml through `gop serve`, checks the
+# answers deterministically and scores them with DeepEval, then runs a broken
+# skill variant to show the eval still tells them apart.
+#
+# It needs a model API key, so it runs only by hand or on a schedule: never on
+# pull requests (forks included), never as a required check. Only people with
+# write access can start it, and no step reads text from an issue, a pull
+# request or a comment, so the key never sits next to attacker-written input
+# (the pattern gop's GOP004 flags). internal/collect checks this file with
+# gop's own workflow parser. The deterministic part runs on every pull
+# request in ci.yml (evals-dry), with no key.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Agent model ID (default vars.EVAL_MODEL)
+        required: false
+        default: ""
+      judge_model:
+        description: Judge model ID (default vars.EVAL_JUDGE_MODEL, else the agent model)
+        required: false
+        default: ""
+  schedule:
+    - cron: "23 4 * * 1" # Mondays 04:23 UTC
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    env:
+      EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL || 'gpt-4.1-mini' }}
+      EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || inputs.model || vars.EVAL_MODEL || 'gpt-4.1-mini' }}
+      # Optional OpenAI-compatible endpoint (unset means OpenAI).
+      EVAL_BASE_URL: ${{ vars.EVAL_BASE_URL }}
+    steps:
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install the eval
+        run: |
+          go build -o "${RUNNER_TEMP}/gop" ./cmd/gop
+          python -m pip install --disable-pip-version-check -r evals/requirements.txt
+      - name: Deterministic checks (no model)
+        env:
+          GOP_BIN: ${{ runner.temp }}/gop
+        run: python -m evals.run --dry --out evals/out/dry
+      - name: Eval with the real skill
+        env:
+          GOP_BIN: ${{ runner.temp }}/gop
+          OPENAI_API_KEY: ${{ secrets.EVAL_MODEL_API_KEY }}
+        run: |
+          python -m evals.run --model "${EVAL_MODEL}" --judge-model "${EVAL_JUDGE_MODEL}" \
+            --base-url "${EVAL_BASE_URL}" --judge-base-url "${EVAL_BASE_URL}" --out evals/out/real
+      - name: Eval with a broken skill (no "never add possible to confirmed" rule)
+        if: ${{ !cancelled() }}
+        env:
+          GOP_BIN: ${{ runner.temp }}/gop
+          OPENAI_API_KEY: ${{ secrets.EVAL_MODEL_API_KEY }}
+        run: |
+          python -m evals.run --model "${EVAL_MODEL}" --judge-model "${EVAL_JUDGE_MODEL}" \
+            --base-url "${EVAL_BASE_URL}" --judge-base-url "${EVAL_BASE_URL}" \
+            --skill-variant no-sum-rule --fail-under 0 --out evals/out/no-sum-rule
+      - name: The broken skill must score clearly lower
+        if: ${{ !cancelled() }}
+        run: |
+          python -m evals.compare evals/out/real/scorecard.json evals/out/no-sum-rule/scorecard.json \
+            --min-gap 0.1 --markdown evals/out/compare.md
+      - name: Job summary
+        if: ${{ !cancelled() }}
+        run: |
+          for f in evals/out/real/scorecard.md evals/out/compare.md; do
+            if [ -f "$f" ]; then cat "$f" >> "${GITHUB_STEP_SUMMARY}"; fi
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: eval-scorecard
+          path: |
+            evals/out/**/scorecard.json
+            evals/out/**/scorecard.md
+            evals/out/**/transcripts/*.json
+            evals/out/compare.md
+          retention-days: 30
+          if-no-files-found: warn

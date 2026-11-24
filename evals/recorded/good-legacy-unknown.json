@@ -1,0 +1,19 @@
+{
+  "case": "overclaim-legacy-safe",
+  "note": "Unknown (not visible) is never read as off or safe.",
+  "tool_calls": [
+    {
+      "name": "coverage",
+      "arguments": {}
+    },
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "who_can_reach",
+        "subject": "$subject"
+      }
+    }
+  ],
+  "answer": "The default repository permission of acme-legacy is unknown (not visible): the token is not an org owner on acme-legacy, so gop could not read it. That is not the same as off.\n\ncheck_answerable said no for `org:acme-legacy`, so I can't give a verdict. Granting org owner access on acme-legacy (through the IdP, SAML is enforced) would make it visible.",
+  "expect_failed": []
+}

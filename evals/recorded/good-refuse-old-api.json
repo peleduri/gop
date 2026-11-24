@@ -1,0 +1,15 @@
+{
+  "case": "refuse-who-old-api",
+  "note": "check_answerable said no: asks for the access instead of answering.",
+  "tool_calls": [
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "who_can_reach",
+        "subject": "$subject"
+      }
+    }
+  ],
+  "answer": "I can't answer this yet. check_answerable(who_can_reach, `repo:acme-legacy/old-api`) says no: gop could not see the repo itself, because the token is not an org owner on acme-legacy.\n\nTo answer, I need org owner access on acme-legacy (SAML is enforced, so join through the IdP first), then a new `gop collect`.",
+  "expect_failed": []
+}

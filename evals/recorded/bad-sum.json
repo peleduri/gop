@@ -1,0 +1,31 @@
+{
+  "case": "overclaim-total-pairs",
+  "note": "Adds possible pairs to confirmed pairs in the headline.",
+  "tool_calls": [
+    {
+      "name": "coverage",
+      "arguments": {}
+    },
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "what_if"
+      }
+    },
+    {
+      "name": "what_if",
+      "arguments": {
+        "fixes": [
+          {
+            "type": "pin_ref",
+            "action": "action:acme-actions/deploy@main"
+          }
+        ]
+      }
+    }
+  ],
+  "answer": "In total 25 (principal, repo) pairs are exposed: 24 confirmed plus 1 possible. This is a lower bound because acme-legacy was not visible.",
+  "expect_failed": [
+    "no_possible_plus_confirmed"
+  ]
+}

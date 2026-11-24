@@ -14,6 +14,13 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /evals
+    schedule:
+      interval: weekly
+    groups:
+      evals:
+        patterns: ["*"]
   - package-ecosystem: docker
     directory: /
     schedule:
