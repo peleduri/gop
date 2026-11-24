@@ -96,6 +96,21 @@ flags may change in minor releases.
   `DIR/replay`, with `DIR/incremental.json` and `DIR/incremental-graph.json`
   (docs/threat-model.md).
 - Plugin icon and Cursor logo, and a `version` in every plugin manifest (Claude Code, Cursor, Codex) so `claude plugin validate --strict` passes for directory submission. A test keeps the versions in step; bump them with each release.
+- Parallel org collection in GitHub App mode (#174). Each org installation
+  has its own hourly rate-limit budget, so `gop collect` now reads several
+  orgs at once, each on its own installation token: `--parallel N` (default
+  4, at most 16; `1` is sequential). Workers prefetch one org each and the
+  graph is built by the usual sequential pass from their responses, so the
+  output is identical byte for byte at any `--parallel`. Rate limits are
+  tracked per installation: a 403 or 429 rate limit (honoring `Retry-After`)
+  pauses only that installation's requests, and progress lines show the
+  remaining budget of the installations closest to running out (new
+  `Progress.Installations`). `gop doctor` estimates App mode with
+  per-installation budgets and `--parallel`, and in token mode, when the
+  estimate is above 3 hours or 2 rate-limit resets, prints a recommendation
+  to use App mode with its expected time and a link to
+  docs/github-app-token.md (`recommendation` in `--format json`).
+  docs/github-app-token.md explains the speed-up for large enterprises.
 
 - One-step installs in AI assistants (#163). The repository is a Claude Code
   plugin marketplace: `/plugin marketplace add peleduri/gop` and

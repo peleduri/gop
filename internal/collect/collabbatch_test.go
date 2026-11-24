@@ -130,9 +130,9 @@ func TestCollabBatchRequestCount(t *testing.T) {
 	}
 	rb, ra := restRequests(before.f), restRequests(after.f)
 	t.Logf("acme fixture REST requests: %d before, %d after (collaborator listings %d -> %d)",
-		rb, ra, sum(bh), sum(ah))
-	if rb-ra != sum(bh)-sum(ah) {
-		t.Errorf("REST requests dropped by %d, want %d (the collaborator listings saved)", rb-ra, sum(bh)-sum(ah))
+		rb, ra, sumCounts(bh), sumCounts(ah))
+	if rb-ra != sumCounts(bh)-sumCounts(ah) {
+		t.Errorf("REST requests dropped by %d, want %d (the collaborator listings saved)", rb-ra, sumCounts(bh)-sumCounts(ah))
 	}
 	// The custom role's base role still comes from the REST role list.
 	e := newIndex(after.g).mustEdge(t, "identity:frank", "repo:acme-app/api", graph.CanPush)
@@ -141,7 +141,7 @@ func TestCollabBatchRequestCount(t *testing.T) {
 	}
 }
 
-func sum(m map[string]int) int {
+func sumCounts(m map[string]int) int {
 	n := 0
 	for _, v := range m {
 		n += v

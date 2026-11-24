@@ -610,3 +610,102 @@ func TestDoctorNotMemberNothingVisibleIsUnknown(t *testing.T) {
 		}
 	}
 }
+
+// estimateFor runs doctor's estimate over orgs with the given repository
+// counts and a full REST budget that resets in 30 minutes.
+func estimateFor(kind string, repos ...int) *DoctorReport {
+	r := &DoctorReport{Mode: ModePerOrg, Token: DoctorToken{Kind: kind},
+		REST: &RateBucket{Limit: 5000, Remaining: 5000, Reset: doctorNow.Add(30 * time.Minute).Format(time.RFC3339), reset: doctorNow.Add(30 * time.Minute)}}
+	for i, n := range repos {
+		r.Orgs = append(r.Orgs, DoctorOrg{Login: "acme-" + string(rune('a'+i)), Status: "ok", Repos: &n, ReposSource: ReposREST})
+	}
+	d := &doctor{r: r, now: doctorNow}
+	d.estimate()
+	return r
+}
+
+func TestDoctorRecommendsAppModeAboveThreshold(t *testing.T) {
+	var above, below int
+	for _, repos := range [][]int{{10}, {300, 300}, {900, 900, 900}, {950, 950, 950}, {900, 900, 900, 900}, {2000, 30, 4000}} {
+		r := estimateFor(KindClassicPAT, repos...)
+		e := r.Estimate
+		want := e.Minutes > recommendAppMinutes || e.RateLimitWaits > recommendAppWaits
+		if got := r.Recommendation != nil; got != want {
+			t.Errorf("repos %v: %d minutes, %d waits: recommendation %v, want %v", repos, e.Minutes, e.RateLimitWaits, got, want)
+		}
+		var buf bytes.Buffer
+		if err := WriteDoctor(&buf, r); err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(buf.String(), "Recommendation: use GitHub App mode") != want {
+			t.Errorf("repos %v: text recommendation shown = %v, want %v", repos, !want, want)
+		}
+		if !want {
+			below++
+			continue
+		}
+		above++
+		rec := r.Recommendation
+		if rec.Mode != KindApp || rec.Doc != AppModeDoc || rec.Parallel != DefaultParallel || rec.AppMinutes >= rec.Minutes {
+			t.Errorf("repos %v: recommendation %+v", repos, rec)
+		}
+	}
+	if above == 0 || below == 0 {
+		t.Fatalf("cases above the threshold %d, below %d: want both", above, below)
+	}
+	// App mode never recommends itself.
+	if r := estimateFor(KindApp, 900, 900, 900, 900); r.Recommendation != nil {
+		t.Errorf("App mode recommendation: %+v", r.Recommendation)
+	}
+}
+
+func TestDoctorAppEstimatePerInstallation(t *testing.T) {
+	tok := estimateFor(KindClassicPAT, 900, 900, 900, 900)
+	app := estimateFor(KindApp, 900, 900, 900, 900)
+	if app.Estimate.Requests != tok.Estimate.Requests {
+		t.Errorf("requests: App %d, token %d", app.Estimate.Requests, tok.Estimate.Requests)
+	}
+	e := app.Estimate
+	if !e.PerInstallation || e.Parallel != DefaultParallel || e.RateLimitWaits != 0 || e.MaxOrgRequests != estOrgRequests(900) {
+		t.Errorf("App estimate = %+v", e)
+	}
+	if e.Minutes*4 > tok.Estimate.Minutes {
+		t.Errorf("App mode %d minutes, token mode %d: want at least 4x faster", e.Minutes, tok.Estimate.Minutes)
+	}
+	if c := findCheck(app, "rate limit"); c == nil || c.Status != StatusPass || !strings.Contains(c.Detail, "its own budget") {
+		t.Errorf("rate limit check: %+v", c)
+	}
+	// One org over its installation's budget waits; the others do not hold it up.
+	big := estimateFor(KindApp, 3000, 10, 10)
+	if big.Estimate.RateLimitWaits != 2 {
+		t.Errorf("waits = %d, want 2 for the 3000-repo org", big.Estimate.RateLimitWaits)
+	}
+	if c := findCheck(big, "rate limit"); c == nil || c.Status != StatusWarn || !strings.Contains(c.Detail, "largest org") {
+		t.Errorf("rate limit check: %+v", c)
+	}
+	// --parallel 1 adds the orgs up.
+	seq := &doctor{r: &DoctorReport{Mode: ModePerOrg, Token: DoctorToken{Kind: KindApp}, Orgs: app.Orgs, REST: app.REST},
+		now: doctorNow, cfg: DoctorConfig{Parallel: 1}}
+	seq.estimate()
+	if seq.r.Estimate.Minutes < 3*e.Minutes {
+		t.Errorf("--parallel 1: %d minutes, --parallel 4: %d", seq.r.Estimate.Minutes, e.Minutes)
+	}
+}
+
+func TestAppSchedule(t *testing.T) {
+	// 6000 requests at 300ms is 30 minutes; 4 equal orgs on 2 workers take two rounds.
+	m, w := appSchedule([]int{6000, 6000, 6000, 6000}, 0, 10000, 10000, time.Hour, 2)
+	if m != 60 || w != 0 {
+		t.Errorf("minutes %v waits %d, want 60 and 0", m, w)
+	}
+	// Largest first: 30+10 on one worker, 20+20 on the other.
+	m, _ = appSchedule([]int{2000, 4000, 4000, 6000}, 0, 10000, 10000, time.Hour, 2)
+	if m != 40 {
+		t.Errorf("minutes %v, want 40", m)
+	}
+	// 12000 requests on a 5000 budget: two waits, the first after 15 minutes.
+	m, w = appSchedule([]int{12000}, 0, 5000, 5000, 15*time.Minute, 4)
+	if w != 2 || m != 60+15+60 {
+		t.Errorf("minutes %v waits %d", m, w)
+	}
+}

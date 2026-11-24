@@ -24,6 +24,7 @@ func (a *app) cmdDoctor(args []string) error {
 	orgs := fs.String("orgs", "", "comma-separated org logins, as for collect --orgs")
 	format := fs.String("format", "text", "text or json")
 	af := addAppFlags(fs)
+	parallel := addParallelFlag(fs)
 	uf := addURLFlags(fs, "doctor")
 	if err := parse(fs, args); err != nil {
 		return err
@@ -34,6 +35,9 @@ func (a *app) cmdDoctor(args []string) error {
 	f := strings.ToLower(*format)
 	if f != "text" && f != "json" {
 		return usagef("doctor: --format must be text or json, got %q", *format)
+	}
+	if err := checkParallel("doctor", *parallel); err != nil {
+		return err
 	}
 	ep, err := uf.resolve(a.getenv)
 	if err != nil {
@@ -58,6 +62,7 @@ func (a *app) cmdDoctor(args []string) error {
 		BaseURL:          ep.rest,
 		GraphQLURL:       ep.graphql,
 		Now:              now,
+		Parallel:         *parallel,
 	})
 	if err != nil {
 		return errors.New(cr.redact(err.Error()))

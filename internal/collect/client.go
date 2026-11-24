@@ -49,7 +49,9 @@ type ClientOptions struct {
 	Logf func(format string, args ...any)
 }
 
-// Client is a small, sequential GitHub API client.
+// Client is a small GitHub API client. It sends one request at a time per
+// call; in GitHub App mode org workers share installation clients from
+// several goroutines (parallel.go).
 type Client struct {
 	base        *url.URL
 	graphqlURL  string
@@ -81,6 +83,10 @@ type Client struct {
 	// replay, when set, answers per-repository requests of an incremental
 	// run from the previous run's records (incremental.go); copies share it.
 	replay *replayStore
+	// memo, when set, records responses during a parallel prefetch and
+	// replays them in the sequential pass (parallel.go). Only GitHub App
+	// installation clients have one.
+	memo *responseMemo
 }
 
 // RateState is the last rate-limit budget the client saw. A remaining count
@@ -100,6 +106,11 @@ type RateState struct {
 type rateTracker struct {
 	mu sync.Mutex
 	s  RateState
+	// gate is set for a GitHub App installation's tracker: a rate limit seen
+	// by one request then pauses every request of that installation until
+	// pausedUntil, so parallel workers back off together (parallel.go).
+	gate        bool
+	pausedUntil time.Time
 }
 
 func newRateTracker() *rateTracker {
@@ -406,6 +417,9 @@ type response struct {
 	status int
 	header http.Header
 	body   []byte
+	// servedAt is the fetch time of a body served from the cache of an
+	// interrupted run without a request; zero otherwise.
+	servedAt time.Time
 }
 
 // do sends one logical request with retries for 5xx, network errors and rate limits.
@@ -424,6 +438,9 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 	if c.replay != nil && method == http.MethodGet && !replayBypassed(ctx) {
 		return c.replay.get(ctx, c, u, accept)
 	}
+	if c.memo != nil {
+		return c.memoDo(ctx, method, u, body, accept)
+	}
 	var lastErr error
 	lastLimited := false // lastErr is a rate limit
 	backoff := time.Second
@@ -434,6 +451,11 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 	for attempt := 1; attempt <= c.maxAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
+		}
+		if attempt == 1 {
+			if err := c.waitPaused(ctx); err != nil {
+				return nil, err
+			}
 		}
 		tok, err := c.authToken(ctx)
 		if err != nil {
@@ -446,7 +468,9 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 				if ent != nil && c.cache.resumable(ent) {
 					c.cache.count(func(s *CacheStats) { s.Resumed++ })
 					c.observed.set(ent.FetchedAt)
-					return ent.response(), nil
+					r := ent.response()
+					r.servedAt = ent.FetchedAt
+					return r, nil
 				}
 			}
 		}
@@ -520,6 +544,7 @@ func (c *Client) doAccept(ctx context.Context, method string, u *url.URL, body [
 				}
 				return nil, err
 			}
+			c.pauseFor(wait)
 			if attempt < c.maxAttempts {
 				c.logf("collect: rate limited on %s, waiting %s", redactedPath(u), wait.Round(time.Second))
 				if err := c.sleep(ctx, wait); err != nil {
@@ -827,6 +852,7 @@ func (c *Client) GraphQL(ctx context.Context, query string, vars map[string]any,
 				}
 				return nil, err
 			}
+			c.pauseFor(wait)
 			if err := c.sleep(ctx, wait); err != nil {
 				return nil, err
 			}
