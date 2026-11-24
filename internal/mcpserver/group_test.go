@@ -41,7 +41,7 @@ func TestTopRisksGroupsIdenticalReach(t *testing.T) {
 			t.Errorf("row %d = %s %v, want %s alone", i+1, r.Principal, r.Members, want)
 		}
 	}
-	want := "top risk: the 14 owners of acme-security (identity:owner01, identity:owner02, identity:owner03 and 11 more) can control 3 repos"
+	want := "top risk: `the 14 owners of acme-security (identity:owner01, identity:owner02, identity:owner03 and 11 more)` can control 3 repos"
 	if !strings.HasPrefix(tr.Summary, want) || !strings.HasPrefix(text(res), want) {
 		t.Errorf("summary = %q, want prefix %q", tr.Summary, want)
 	}
