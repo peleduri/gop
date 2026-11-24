@@ -275,10 +275,13 @@ func Write(w io.Writer, g *graph.Graph, opts Options) error {
 
 	// Computed reach: one GOP_REACHES edge per (principal, impact) with the
 	// shortest path, confirmed when every hop is live, inferred, fresh audit
-	// or supplied.
+	// or supplied. Reach follows gop's pair model (graph.Index.PairReach),
+	// like the SQL reach table: what an identity reaches only through an
+	// org_members population is on that population's edges, not repeated
+	// for every member.
 	var reach []row
 	for _, p := range ix.ScoringPrincipals() {
-		res := ix.Reach(p, graph.Options{})
+		res := ix.PairReach(p)
 		for _, id := range sortedKeys(res.Paths) {
 			if !reachKinds[ix.Kind(id)] {
 				continue

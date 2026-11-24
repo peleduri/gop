@@ -246,6 +246,7 @@ type harnessOut struct {
 		Count        string
 		Summaries    []string
 		Paths        [][4]string
+		Text         string
 	} `json:"filtered"`
 	OrgFilter      [][2]json.RawMessage `json:"orgFilter"`
 	OrgFixes       []string             `json:"orgFixes"`
@@ -340,6 +341,37 @@ func TestInlineScriptInNode(t *testing.T) {
 	}
 	if len(h.Filtered.Summaries) != len(want) || h.Filtered.FormEv != "confirmed" || h.Filtered.FormKind != "oidc" || h.Filtered.StaticHidden {
 		t.Errorf("filtered view: %+v", h.Filtered)
+	}
+	// Each hop's note (protection, hardening, bot merge) shows next to the hop.
+	var emb struct {
+		Paths []struct {
+			Ev     string `json:"ev"`
+			ToKind string `json:"to_kind"`
+			Hops   []struct {
+				Note string `json:"note"`
+			} `json:"hops"`
+		} `json:"paths"`
+	}
+	if err := json.Unmarshal([]byte(embeddedJSON(t, out)), &emb); err != nil {
+		t.Fatal(err)
+	}
+	notes := 0
+	for _, p := range emb.Paths {
+		if p.Ev != "confirmed" || p.ToKind != "oidc" {
+			continue
+		}
+		for _, x := range p.Hops {
+			if x.Note == "" {
+				continue
+			}
+			notes++
+			if !strings.Contains(h.Filtered.Text, "("+x.Note+")") {
+				t.Errorf("hop note %q not shown in the Explore view", x.Note)
+			}
+		}
+	}
+	if notes == 0 {
+		t.Error("fixture: no confirmed OIDC path has a hop note")
 	}
 	for _, s := range h.Filtered.Summaries {
 		if !strings.HasPrefix(s, "✓ confirmed ") || !strings.HasSuffix(s, " oidc") {

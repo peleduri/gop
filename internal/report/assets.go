@@ -401,7 +401,7 @@ function pathEl(p){
 var ol=h("ol");
 p.hops.forEach(function(x){
 ol.appendChild(h("li","",code(x.from)," → ",code(x.to)," ",h("span","src",x.kind+(x.rev?" (reversed)":""))," ",evBadge(x.ev),
-x.api?" ":null,x.api?h("span","src",x.api):null,x.why?h("span","src"," undecided: "+x.why):null));
+x.api?" ":null,x.api?h("span","src",x.api):null,x.why?h("span","src"," undecided: "+x.why):null,x.note?h("span","src"," ("+x.note+")"):null));
 });
 return h("details","path",h("summary","",pathBadge(p)," ",code(p.from)," to ",code(p.to)," ",h("span","src",p.to_kind)),p.note?h("div","note",p.note):null,ol);
 }

@@ -147,6 +147,22 @@ func TestNoLinks(t *testing.T) {
 		{"ftp://example.invalid", `ftp\://example.invalid`},
 		{"a-www.b", `a-www\.b`},
 		{"acme-app/w" + ch(0x0435) + "b", "acme-app/w" + ch(0x0435) + "b"},
+		// email autolinks, bare and after mailto:
+		{"alice@example.invalid", `alice\@example.invalid`},
+		{"mailto:bob.b+x@sub.example.invalid", `mailto:bob.b+x\@sub.example.invalid`},
+		{"acme-actions/deploy@main", "acme-actions/deploy@main"},
+		{"@alice", "@alice"},
+		{"alice@example.", "alice@example."},
+		// angle-bracket autolinks
+		{"<gop://graph/summary>", `\<gop://graph/summary>`},
+		{"<HTTPS://example.invalid>", `\<HTTPS\://example.invalid>`},
+		{"<alice@example.invalid>", `\<alice\@example.invalid>`},
+		{"<irc:x>", `\<irc:x>`},
+		// placeholders and comparisons stay readable
+		{"replace <sha-of-main> with the SHA", "replace <sha-of-main> with the SHA"},
+		{"<sha>", "<sha>"},
+		{"a < b: c", "a < b: c"},
+		{"<x:y>", "<x:y>"},
 	} {
 		if got := NoLinks(tc.in); got != tc.want {
 			t.Errorf("NoLinks(%q) = %q, want %q", tc.in, got, tc.want)

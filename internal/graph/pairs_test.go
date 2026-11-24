@@ -1,6 +1,9 @@
 package graph
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 // acmeDoubleCount: org acme-big has default_perm=write and three repos. Four
 // members; alice, bob and carol also belong to a team in acme-other that grants
@@ -81,6 +84,24 @@ func TestPopulationReachScoresAndSuggest(t *testing.T) {
 	for _, pd := range d.PerPrincipal {
 		if pd.Principal == "identity:bob" && (pd.Before.Confirmed.Repos != 3 || pd.After.Confirmed.Repos != 1) {
 			t.Errorf("bob per principal: %d -> %d repos, want 3 -> 1 (full reach)", pd.Before.Confirmed.Repos, pd.After.Confirmed.Repos)
+		}
+	}
+}
+
+// ScoresAndTotals walks the graph once and returns exactly what Scores and
+// Totals return separately.
+func TestScoresAndTotalsMatchesSeparateCalls(t *testing.T) {
+	for _, daveInTeam := range []bool{false, true} {
+		ix := NewIndex(acmeDoubleCount(daveInTeam))
+		scores, totals := ix.ScoresAndTotals()
+		if !reflect.DeepEqual(scores, ix.Scores()) {
+			t.Errorf("daveInTeam=%v: scores differ from Scores()", daveInTeam)
+		}
+		if !reflect.DeepEqual(totals, ix.Totals()) {
+			t.Errorf("daveInTeam=%v: totals %+v, Totals() %+v", daveInTeam, totals, ix.Totals())
+		}
+		if totals.ConfirmedPairs != 3 {
+			t.Errorf("daveInTeam=%v: confirmed pairs %d, want 3", daveInTeam, totals.ConfirmedPairs)
 		}
 	}
 }

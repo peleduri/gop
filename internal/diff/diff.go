@@ -638,8 +638,9 @@ func compareEdges(old, new *graph.Graph, ovis, nvis visibility) EdgeChanges {
 }
 
 func compareScores(oix, nix *graph.Index) ([]ScoreDelta, TotalsDelta) {
-	oldScores, newScores := oix.Scores(), nix.Scores()
-	t := TotalsDelta{Old: oix.Totals(), New: nix.Totals()}
+	oldScores, oldTotals := oix.ScoresAndTotals()
+	newScores, newTotals := nix.ScoresAndTotals()
+	t := TotalsDelta{Old: oldTotals, New: newTotals}
 	om, nm := map[string]graph.Score{}, map[string]graph.Score{}
 	for _, s := range oldScores {
 		om[s.Principal] = s

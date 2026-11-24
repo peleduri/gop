@@ -10,7 +10,8 @@
 // delimiter text summaries use around every value. Line cleans and caps a
 // whole summary line. JSON escapes the same characters inside marshaled JSON
 // so the decoded values stay exactly as they were. NoLinks and NoAutolink
-// keep a name from turning into a live link in Markdown.
+// keep a name from turning into a live link in Markdown, including bare and
+// angle-bracket autolinks and email addresses.
 package sanitize
 
 import (
@@ -188,32 +189,94 @@ func HTML(b []byte) []byte {
 // a code span.
 func NoLinks(s string) string { return NoAutolink(strings.ReplaceAll(s, "](", `\](`)) }
 
-// NoAutolink breaks the GitHub-flavored Markdown autolinks a bare URL in a
-// name would make: a backslash goes before the colon of http://, https://
-// and ftp:// and before the dot of www. (any letter case). The text still
-// renders the same, without the link.
+// NoAutolink breaks the GitHub-flavored Markdown autolinks a name could
+// make: a backslash goes before the colon of a bare http://, https:// and
+// ftp:// and before the dot of www. (any letter case), before the @ of an
+// email address (alice@example.invalid, also after mailto:), and before the
+// < of an angle-bracket autolink (<scheme:...> or <alice@example.invalid>).
+// The text still renders the same, without the link. A < that does not open
+// an autolink, such as the <sha-of-main> placeholder, stays as it is.
 func NoAutolink(s string) string {
 	var b strings.Builder
-	last := 0
+	last, changed := 0, false
 	for i := 0; i < len(s); i++ {
-		switch {
-		case s[i] == ':' && strings.HasPrefix(s[i:], "://") &&
-			(foldSuffix(s[:i], "http") || foldSuffix(s[:i], "https") || foldSuffix(s[:i], "ftp")):
+		esc := false
+		switch s[i] {
+		case ':':
+			esc = strings.HasPrefix(s[i:], "://") &&
+				(foldSuffix(s[:i], "http") || foldSuffix(s[:i], "https") || foldSuffix(s[:i], "ftp"))
+		case '.':
+			esc = foldSuffix(s[:i], "www")
+		case '@':
+			esc = i > 0 && emailLocal(s[i-1]) && emailDomain(s[i+1:])
+		case '<':
+			esc = angleAutolink(s[i+1:])
+		}
+		if esc {
 			b.WriteString(s[last:i])
 			b.WriteString(`\`)
-			last = i
-		case s[i] == '.' && foldSuffix(s[:i], "www"):
-			b.WriteString(s[last:i])
-			b.WriteString(`\`)
-			last = i
+			last, changed = i, true
 		}
 	}
-	if last == 0 {
+	if !changed {
 		return s
 	}
 	b.WriteString(s[last:])
 	return b.String()
 }
+
+// emailLocal reports whether c can end the local part of a GFM email
+// autolink (letters, digits, '.', '-', '_', '+').
+func emailLocal(c byte) bool {
+	return isAlnum(c) || c == '.' || c == '-' || c == '_' || c == '+'
+}
+
+// emailDomain reports whether s starts with what GFM accepts after the @ of
+// an email autolink: labels of letters, digits, '-' and '_', with at least
+// one '.' followed by another label character.
+func emailDomain(s string) bool {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case isAlnum(c) || c == '-' || c == '_':
+		case c == '.' && i > 0 && i+1 < len(s) && (isAlnum(s[i+1]) || s[i+1] == '-' || s[i+1] == '_'):
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// angleAutolink reports whether s, the text after a '<', opens a CommonMark
+// autolink: a scheme (a letter, then 1 to 31 letters, digits, '+', '.' or
+// '-') and a colon, or an email local part and an @. The closing '>' is not
+// required: escaping a '<' that turns out not to open a link is harmless.
+func angleAutolink(s string) bool {
+	if s != "" && isAlpha(s[0]) {
+		i := 1
+		for i < len(s) && i <= 32 && (isAlnum(s[i]) || s[i] == '+' || s[i] == '.' || s[i] == '-') {
+			i++
+		}
+		if i >= 2 && i <= 32 && i < len(s) && s[i] == ':' {
+			return true
+		}
+	}
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; {
+		case c == '@':
+			return i > 0
+		case isAlnum(c) || strings.IndexByte(".!#$%&'*+/=?^_`{|}~-", c) >= 0:
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+func isAlpha(c byte) bool { return c|0x20 >= 'a' && c|0x20 <= 'z' }
+
+func isAlnum(c byte) bool { return isAlpha(c) || c >= '0' && c <= '9' }
 
 // foldSuffix reports whether s ends with the lowercase ASCII word w, in any
 // letter case.

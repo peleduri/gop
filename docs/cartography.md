@@ -74,7 +74,7 @@ of the GitHub URLs when Cartography loaded a GitHub Enterprise Server.
 |---|---|
 | `:GopNode` plus a kind label: `:GopEnterprise`, `:GopOrg`, `:GopOrgMembers`, `:GopIdentity`, `:GopRepo`, `:GopWorkflow`, `:GopActionRef`, `:GopSecret`, `:GopOIDC`, `:GopRunner`, `:GopCloudRole`, `:GopExternal` | Every node. Properties: `id` (the gop node ID, e.g. `repo:acme-app/web`), `kind`, `name`, `evidence`, `confirmed`, `gop_enterprise`, `gop_run`, and each attribute as `attr_<key>` (e.g. `attr_default_perm`, `attr_via`). An edge endpoint the graph does not declare gets `declared: false`. |
 | `CAN_PUSH`, `CAN_TRIGGER`, `USES`, `RESOLVES_TO`, `DEFINED_IN`, `EXECUTES_WITH`, `MEMBER_OF`, `CAN_ASSUME` | Every gop edge, in the direction it has in `graph.json`. Properties: `kind`, `evidence`, `confirmed`, `source_api`, `observed_at`, `gop_key`, `gop_run`, and `attr_<key>`. |
-| `GOP_REACHES` | Computed reach: one edge from each principal gop scores (org members, outside collaborators, teams, anyone on the internet, ...) to each secret, OIDC token, runner and cloud role it can control. Properties: `confirmed` (every hop `live`, `audit` or `supplied`), `evidence` (the weakest hop), `supplied`, `hops`, `path` (node IDs in control order) and `path_kinds` (the edge kind of each hop). |
+| `GOP_REACHES` | Computed reach: one edge from each principal gop scores (org members, outside collaborators, teams, anyone on the internet, ...) to each secret, OIDC token, runner and cloud role it can control. Like the SQL `reach` table, it follows gop's pair model: an identity's edges leave out what it reaches only through its org membership, which is on the `members:X` edges (see [schema.md](schema.md#principals-and-scoring)); follow `MEMBER_OF` to `members:X` for a person's full reach (sample below). Properties: `confirmed` (every hop `live`, `audit` or `supplied`), `evidence` (the weakest hop), `supplied`, `hops`, `path` (node IDs in control order) and `path_kinds` (the edge kind of each hop). |
 | `SAME_AS` | Links to Cartography nodes, see below. |
 
 Use `GOP_REACHES` for "who can reach what". The raw edges are evidence, not
@@ -156,6 +156,18 @@ MATCH (a:AWSAccount {id: '111111111111'})-[:RESOURCE]->(aws:AWSRole)<-[:SAME_AS]
 MATCH (p:GopNode)-[r:GOP_REACHES {confirmed: true}]->(role)
 RETURN aws.arn, p.id, r.hops
 ORDER BY aws.arn, r.hops
+```
+
+A person's full reach: their own `GOP_REACHES` edges plus those of the
+org member populations they belong to:
+
+```cypher
+MATCH (i:GopIdentity {id: 'identity:alice'})
+OPTIONAL MATCH (i)-[:MEMBER_OF]->(o:GopOrg)
+WITH i, [x IN collect(o.id) | 'members:' + substring(x, 4)] AS pops
+MATCH (p:GopNode)-[r:GOP_REACHES]->(t)
+WHERE p = i OR p.id IN pops
+RETURN t.id, t.kind, r.confirmed, p.id AS via
 ```
 
 Possible reach only (at least one hop gop could not see), to close coverage

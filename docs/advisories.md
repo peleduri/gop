@@ -28,7 +28,7 @@ job) to pick up new advisories. Every run prints the source and its date
 |------|-----|---------|
 | Offline (default) | `gop advisories update` downloads `https://osv-vulnerabilities.storage.googleapis.com/GitHub%20Actions/all.zip` to `<user cache dir>/gop/osv-github-actions.zip` (`--out` writes elsewhere). `gop collect` uses that copy when it exists. | only the download |
 | A copy you supply | `--advisories PATH` on `gop collect` or `gop enrich`: the zip, or a directory of OSV JSON records (a mirror, or records you wrote) | none |
-| Live (opt-in) | `--advisories-live` on `gop collect` or `gop enrich`: `POST https://api.osv.dev/v1/querybatch` with the graph's action package names, then `GET /v1/vulns/{id}` for each advisory it names | OSV API |
+| Live (opt-in) | `--advisories-live` on `gop collect` or `gop enrich`: `POST https://api.osv.dev/v1/querybatch` with the graph's action package names (repeating a query with its `page_token` while the result has a `next_page_token`), then `GET /v1/vulns/{id}` for each advisory it names | OSV API |
 
 Live mode sends only package names (`owner/repo[/path]` of the actions your
 workflows use), never refs, repo names, workflow names or anything else from

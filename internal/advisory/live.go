@@ -29,6 +29,7 @@ const (
 const (
 	maxBatch         = 1000    // queries per querybatch request (the API's limit)
 	maxResponseBytes = 8 << 20 // one API response
+	maxPages         = 100     // querybatch pages per package, a guard against a token loop
 )
 
 // Packages lists the distinct owner/repo[/path] names of the action refs in
@@ -56,8 +57,8 @@ func Packages(g *graph.Graph) []string {
 	return out
 }
 
-// Live queries the OSV API (POST /v1/querybatch by package name, then GET
-// /v1/vulns/{id} for each advisory it names) and returns the advisories of
+// Live queries the OSV API (POST /v1/querybatch by package name, following
+// next_page_token, then GET /v1/vulns/{id} for each advisory it names) and returns the advisories of
 // the given packages. Only package names leave the machine, never refs,
 // workflow names or anything else from the graph.
 func Live(ctx context.Context, client *http.Client, apiURL string, packages []string, now time.Time) (*DB, error) {
@@ -68,35 +69,9 @@ func Live(ctx context.Context, client *http.Client, apiURL string, packages []st
 		apiURL = DefaultAPIURL
 	}
 	apiURL = strings.TrimRight(apiURL, "/")
-	ids := map[string]bool{}
-	for start := 0; start < len(packages); start += maxBatch {
-		end := min(start+maxBatch, len(packages))
-		type q struct {
-			Package Package `json:"package"`
-		}
-		body := struct {
-			Queries []q `json:"queries"`
-		}{}
-		for _, p := range packages[start:end] {
-			body.Queries = append(body.Queries, q{Package{Ecosystem: Ecosystem, Name: p}})
-		}
-		var res struct {
-			Results []struct {
-				Vulns []struct {
-					ID string `json:"id"`
-				} `json:"vulns"`
-			} `json:"results"`
-		}
-		if err := doJSON(ctx, client, http.MethodPost, apiURL+"/v1/querybatch", body, &res); err != nil {
-			return nil, err
-		}
-		for _, r := range res.Results {
-			for _, v := range r.Vulns {
-				if v.ID != "" {
-					ids[v.ID] = true
-				}
-			}
-		}
+	ids, err := queryBatch(ctx, client, apiURL, packages)
+	if err != nil {
+		return nil, err
 	}
 	sorted := make([]string, 0, len(ids))
 	for id := range ids {
@@ -112,6 +87,75 @@ func Live(ctx context.Context, client *http.Client, apiURL string, packages []st
 		recs = append(recs, rec)
 	}
 	return NewDB(apiURL, now.UTC(), recs), nil
+}
+
+// queryBatch asks POST /v1/querybatch for the advisory IDs of packages, at
+// most maxBatch queries per request. A result with a next_page_token has more
+// IDs: its query goes out again, with that page_token, in the next request,
+// until no token is left. A package that still has a token after maxPages
+// pages, or that returns the same token twice, is an error: the advisory
+// list would be incomplete.
+func queryBatch(ctx context.Context, client *http.Client, apiURL string, packages []string) (map[string]bool, error) {
+	type pending struct {
+		name, token string
+		pages       int
+		seen        map[string]bool
+	}
+	type query struct {
+		Package   Package `json:"package"`
+		PageToken string  `json:"page_token,omitempty"`
+	}
+	todo := make([]*pending, 0, len(packages))
+	for _, p := range packages {
+		todo = append(todo, &pending{name: p})
+	}
+	ids := map[string]bool{}
+	for len(todo) > 0 {
+		batch := todo[:min(maxBatch, len(todo))]
+		todo = todo[len(batch):]
+		body := struct {
+			Queries []query `json:"queries"`
+		}{}
+		for _, p := range batch {
+			body.Queries = append(body.Queries, query{Package{Ecosystem: Ecosystem, Name: p.name}, p.token})
+		}
+		var res struct {
+			Results []struct {
+				Vulns []struct {
+					ID string `json:"id"`
+				} `json:"vulns"`
+				NextPageToken string `json:"next_page_token"`
+			} `json:"results"`
+		}
+		if err := doJSON(ctx, client, http.MethodPost, apiURL+"/v1/querybatch", body, &res); err != nil {
+			return nil, err
+		}
+		if len(res.Results) != len(batch) {
+			return nil, fmt.Errorf("osv: querybatch: %d results for %d queries", len(res.Results), len(batch))
+		}
+		for i, r := range res.Results {
+			for _, v := range r.Vulns {
+				if v.ID != "" {
+					ids[v.ID] = true
+				}
+			}
+			if r.NextPageToken == "" {
+				continue
+			}
+			p := batch[i]
+			if p.seen == nil {
+				p.seen = map[string]bool{}
+			}
+			p.pages++
+			if p.pages >= maxPages || p.seen[r.NextPageToken] {
+				return nil, fmt.Errorf("osv: querybatch: %s: results do not end after %d pages", p.name, p.pages)
+			}
+			p.seen[r.NextPageToken] = true
+			p.token = r.NextPageToken
+			todo = append(todo, p)
+		}
+	}
+	return ids, nil
 }
 
 func doJSON(ctx context.Context, client *http.Client, method, u string, in, out any) error {
