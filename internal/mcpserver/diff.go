@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -35,7 +36,7 @@ func NewServer(g *graph.Graph, version string) *mcp.Server {
 
 // ServeWith is Serve with options.
 func ServeWith(ctx context.Context, g *graph.Graph, version string, opts ServerOptions) error {
-	return NewServerWith(g, version, opts).Run(ctx, &mcp.StdioTransport{})
+	return serveStream(ctx, NewServerWith(g, version, opts), os.Stdin, os.Stdout)
 }
 
 const diffDescription = "Compare the served graph with the baseline snapshot passed to gop serve --baseline: " +

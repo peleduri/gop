@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 flags may change in minor releases.
 
 ## [Unreleased]
+### Fixed
+- `gop serve` now answers requests that arrive just before its input closes.
+  A client that wrote its requests and closed stdin at once
+  (`echo '...' | gop serve`, scripts, CI) got no replies and exit 0, because
+  the session ended on EOF while replies were still being computed. The
+  server now holds the end of input until every request read has a reply
+  (at most 30 seconds).
+
 ### Added
 - Project governance and community files, following the CNCF project
   template: `GOVERNANCE.md` (maintainer-led: decision making, adding and
