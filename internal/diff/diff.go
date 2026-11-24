@@ -269,6 +269,7 @@ var settingKeys = map[string]bool{
 	graph.AttrSSO: true, graph.AttrTwoFactor: true, graph.AttrDefaultPerm: true,
 	graph.AttrMembersCreate: true, graph.AttrChangeVisiblity: true, graph.AttrDeleteRepos: true,
 	graph.AttrPrivateForks: true, graph.AttrIPAllowList: true, graph.AttrIPAllowEntries: true,
+	graph.AttrIPAllowListEntries: true, graph.AttrIPAllowListApps: true,
 	graph.AttrMembers: true, graph.AttrArchived: true, graph.AttrVisibility: true,
 }
 

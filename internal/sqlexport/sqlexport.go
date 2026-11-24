@@ -165,6 +165,7 @@ func Write(w io.Writer, graphs []*graph.Graph) error {
 			x.line("CREATE INDEX IF NOT EXISTS " + t.name + "_" + strings.Join(ix, "_") + " ON " + t.name + " (" + strings.Join(ix, ", ") + ");")
 		}
 	}
+	x.line(orgSettingsView())
 	for _, d := range dumps {
 		for i := len(tables) - 1; i >= 0; i-- {
 			x.line("DELETE FROM " + tables[i].name + " WHERE run_id = " + Quote(d.runID) + ";")
@@ -417,6 +418,28 @@ func edgeSortKey(e graph.Edge) string {
 		parts = append(parts, k, e.Attrs[k])
 	}
 	return strings.Join(parts, "\x00")
+}
+
+// orgSettingCols are the org_settings view's setting columns, each an org
+// node attribute of the same name, in the order of the report's Org settings.
+var orgSettingCols = []string{
+	graph.AttrSSO, graph.AttrTwoFactor, graph.AttrIPAllowList, graph.AttrIPAllowListEntries, graph.AttrIPAllowListApps,
+	graph.AttrDefaultPerm, graph.AttrMembersCreate, graph.AttrChangeVisiblity, graph.AttrDeleteRepos,
+	graph.AttrPrivateForks, graph.AttrMembers,
+}
+
+// orgSettingsView is the CREATE VIEW statement of org_settings: one row per
+// run and declared org with its settings. A setting that is not_visible,
+// "unknown" or not collected reads 'unknown', never off or NULL.
+func orgSettingsView() string {
+	cols := make([]string, len(orgSettingCols))
+	for i, k := range orgSettingCols {
+		cols[i] = "COALESCE(MAX(CASE WHEN a.key = " + Quote(k) + " THEN CASE WHEN a.evidence = 'not_visible' OR a.value IN ('', 'unknown') " +
+			"THEN 'unknown' ELSE a.value END END), 'unknown') AS " + k
+	}
+	return "CREATE VIEW IF NOT EXISTS org_settings AS SELECT n.run_id AS run_id, n.id AS org, " + strings.Join(cols, ", ") +
+		" FROM nodes n LEFT JOIN node_attrs a ON a.run_id = n.run_id AND a.node_id = n.id" +
+		" WHERE n.kind = 'org' AND n.declared = 1 GROUP BY n.run_id, n.id;"
 }
 
 // orgOf is the org node ID a node belongs to ("org:acme-app"), or "".

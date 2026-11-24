@@ -26,13 +26,17 @@ const testToken = "test-token-synthetic"
 type fixture struct {
 	Enterprise string `json:"enterprise"`
 	Orgs       []struct {
-		Login       string            `json:"login"`
-		Owner       bool              `json:"owner"`
-		ArchivedAt  string            `json:"archived_at"`
-		IPAllowList string            `json:"ip_allow_list"`
-		IPEntries   int               `json:"ip_entries"`
-		Settings    map[string]string `json:"settings"`
-		Repos       []json.RawMessage `json:"repos"`
+		Login       string `json:"login"`
+		Owner       bool   `json:"owner"`
+		ArchivedAt  string `json:"archived_at"`
+		IPAllowList string `json:"ip_allow_list"`
+		IPEntries   int    `json:"ip_entries"`
+		// IPActive is how many of IPEntries are active (default all);
+		// IPApps is ENABLED or DISABLED, absent when the field is not returned.
+		IPActive *int              `json:"ip_active"`
+		IPApps   string            `json:"ip_apps"`
+		Settings map[string]string `json:"settings"`
+		Repos    []json.RawMessage `json:"repos"`
 		// Outside collaborators (logins) and custom repository roles of the org.
 		OutsideCollaborators []string          `json:"outside_collaborators"`
 		CustomRoles          []json.RawMessage `json:"custom_roles"`
@@ -895,6 +899,10 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 			if o.Login != login {
 				continue
 			}
+			if strings.Contains(q, "ipAllowListForInstalledAppsEnabledSetting") {
+				f.ipAllowDetails(w, o.Owner, o.IPEntries, o.IPActive, o.IPApps, req.Variables["after"])
+				return
+			}
 			if !o.Owner {
 				writeJSON(w, 200, map[string]any{
 					"data": map[string]any{"organization": map[string]any{
@@ -918,6 +926,38 @@ func (f *fakeGitHub) graphql(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, 200, map[string]any{"errors": []map[string]any{{"message": "unsupported query"}}})
 	}
+}
+
+// ipAllowDetails answers the owner-only IP allow list details query: entry
+// isActive flags (the first active entries are active) and the installed
+// apps setting. A non-owner gets FORBIDDEN, as GitHub answers.
+func (f *fakeGitHub) ipAllowDetails(w http.ResponseWriter, owner bool, entries int, active *int, apps string, after any) {
+	if !owner {
+		writeJSON(w, 200, map[string]any{
+			"data": map[string]any{"organization": map[string]any{
+				"ipAllowListForInstalledAppsEnabledSetting": nil, "ipAllowListEntries": nil,
+			}},
+			"errors": []map[string]any{
+				{"type": "FORBIDDEN", "path": []string{"organization", "ipAllowListEntries"}, "message": "admin access required"},
+			},
+		})
+		return
+	}
+	n := entries
+	if active != nil {
+		n = *active
+	}
+	nodes := make([]map[string]any, 0, entries)
+	for i := 0; i < entries; i++ {
+		nodes = append(nodes, map[string]any{"isActive": i < n})
+	}
+	org := map[string]any{"ipAllowListEntries": f.gqlPage(nodes, after)}
+	if apps != "" {
+		org["ipAllowListForInstalledAppsEnabledSetting"] = apps
+	} else {
+		org["ipAllowListForInstalledAppsEnabledSetting"] = nil
+	}
+	writeJSON(w, 200, map[string]any{"data": map[string]any{"organization": org}})
 }
 
 // doctorEnterprise answers gop doctor's enterprise query: ownerInfo is

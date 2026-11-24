@@ -854,6 +854,9 @@ func (k *collector) collectOwnerView(ctx context.Context, o *orgState) error {
 		o.ownerVisible = false
 		setAttr(o.node, graph.AttrIPAllowList, "unknown", graph.NotVisible)
 		setAttr(o.node, graph.AttrIPAllowEntries, "unknown", graph.NotVisible)
+		// The ip_allow_list coverage entry covers the details too.
+		setAttr(o.node, graph.AttrIPAllowListEntries, "unknown", graph.NotVisible)
+		setAttr(o.node, graph.AttrIPAllowListApps, "unknown", graph.NotVisible)
 		k.cover(o.node.ID, "ip_allow_list", reason, k.ownerFix(o))
 		return nil
 	}
@@ -868,6 +871,87 @@ func (k *collector) collectOwnerView(ctx context.Context, o *orgState) error {
 	} else {
 		setAttr(o.node, graph.AttrIPAllowEntries, "unknown", graph.NotVisible)
 	}
+	return k.collectIPAllowDetails(ctx, o)
+}
+
+// ipAllowDetailsQuery reads, for an org owner, whether the IP allow list also
+// applies to installed GitHub Apps and which entries are active. Only
+// isActive is read: entry values (IP ranges) never enter the graph. It is a
+// separate query so a server without these fields keeps ip_allow_list.
+const ipAllowDetailsQuery = `query($login: String!, $after: String) {
+  organization(login: $login) {
+    ipAllowListForInstalledAppsEnabledSetting
+    ipAllowListEntries(first: 100, after: $after) {
+      nodes { isActive }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+}`
+
+// collectIPAllowDetails sets ip_allow_list_apps and ip_allow_list_entries
+// (the active entry count) for an org whose owner view is visible.
+func (k *collector) collectIPAllowDetails(ctx context.Context, o *orgState) error {
+	apps, active := "", 0
+	var after any
+	var reason string
+	for reason == "" {
+		var data struct {
+			Organization *struct {
+				Apps    *string `json:"ipAllowListForInstalledAppsEnabledSetting"`
+				Entries *struct {
+					Nodes []struct {
+						IsActive bool `json:"isActive"`
+					} `json:"nodes"`
+					PageInfo pageInfo `json:"pageInfo"`
+				} `json:"ipAllowListEntries"`
+			} `json:"organization"`
+		}
+		gqlErrs, err := k.cl(o.login).GraphQL(ctx, ipAllowDetailsQuery, map[string]any{"login": o.login, "after": after}, &data)
+		if err != nil && ctx.Err() != nil {
+			return ctx.Err()
+		}
+		switch {
+		case err != nil:
+			reason = "could not read IP allow list details: " + err.Error()
+		case data.Organization == nil || data.Organization.Entries == nil:
+			reason = "IP allow list details not returned"
+			if len(gqlErrs) > 0 {
+				reason += ": " + gqlErrs.Error()
+			}
+		}
+		if reason != "" {
+			break
+		}
+		if after == nil && data.Organization.Apps != nil {
+			apps = "off"
+			if *data.Organization.Apps == "ENABLED" {
+				apps = "on"
+			}
+		}
+		for _, n := range data.Organization.Entries.Nodes {
+			if n.IsActive {
+				active++
+			}
+		}
+		pi := data.Organization.Entries.PageInfo
+		if !pi.HasNextPage || pi.EndCursor == "" {
+			break
+		}
+		after = pi.EndCursor
+	}
+	if reason != "" {
+		setAttr(o.node, graph.AttrIPAllowListEntries, "unknown", graph.NotVisible)
+		setAttr(o.node, graph.AttrIPAllowListApps, "unknown", graph.NotVisible)
+		k.cover(o.node.ID, graph.AttrIPAllowListEntries, reason, k.ownerFix(o))
+		return nil
+	}
+	setAttr(o.node, graph.AttrIPAllowListEntries, strconv.Itoa(active), graph.Live)
+	if apps == "" {
+		setAttr(o.node, graph.AttrIPAllowListApps, "unknown", graph.NotVisible)
+		k.cover(o.node.ID, graph.AttrIPAllowListApps, "ipAllowListForInstalledAppsEnabledSetting not returned", k.ownerFix(o))
+		return nil
+	}
+	setAttr(o.node, graph.AttrIPAllowListApps, apps, graph.Live)
 	return nil
 }
 

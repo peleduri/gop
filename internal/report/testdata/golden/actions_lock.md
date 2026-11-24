@@ -28,11 +28,13 @@ Score counts confirmed reach only.
 ### members:acme-actions
 
 - **confirmed** to secret:acme-app/api
+  _Context, not part of the score: target org acme-app: SSO unknown, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
   3. action:acme-actions/deploy@main → workflow:acme-app/api/.github/workflows/deploy.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
   4. workflow:acme-app/api/.github/workflows/deploy.yml → secret:acme-app/api, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 - **confirmed** to secret:acme-app/docs
+  _Context, not part of the score: target org acme-app: SSO unknown, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
   3. action:acme-actions/deploy@main → workflow:acme-app/docs/.github/workflows/build.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
@@ -40,10 +42,17 @@ Score counts confirmed reach only.
 
 ## Org settings
 
-| Org | Default permission | 2FA | SSO | IP allow list | Members |
-|---|---|---|---|---|---|
-| acme-actions | write | _unknown_ | _unknown_ | _unknown_ | _unknown_ |
-| acme-app | read | _unknown_ | _unknown_ | _unknown_ | _unknown_ |
+| Org | SSO | 2FA | IP allow list | Default permission | Members can create repos | Members can change visibility | Members can delete repos | Members can fork private repos | Members |
+|---|---|---|---|---|---|---|---|---|---|
+| acme-actions | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) |
+| acme-app | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) |
+
+### Why unknown
+
+- **acme-actions**
+  - SSO, 2FA, IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
+- **acme-app**
+  - SSO, 2FA, IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
 
 ## Coverage
 

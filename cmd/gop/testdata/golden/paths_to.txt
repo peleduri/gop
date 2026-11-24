@@ -2,6 +2,7 @@ paths: `members:acme-actions` can reach `oidc:acme-app/web` in 4 hops (confirmed
 
 Confirmed (every hop live, inferred, audit or supplied) (1):
   members:acme-actions -> oidc:acme-app/web  [confirmed]
+      context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows

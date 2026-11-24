@@ -77,7 +77,9 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `delete_repos` | org | `true`, `false` |
 | `private_forks` | org | `true`, `false` |
 | `ip_allow_list` | org | `on`, `off`, `unknown` |
-| `ip_allow_entries` | org | integer as string |
+| `ip_allow_entries` | org | integer as string: every IP allow list entry, active or not |
+| `ip_allow_list_entries` | org | Active IP allow list entries (`ipAllowListEntries`, counting `isActive` only), integer as string; `unknown` (`not_visible`) when the token is not an org owner. Entry values (IP ranges) are never collected. |
+| `ip_allow_list_apps` | org | `on`, `off`: whether the IP allow list also applies to installed GitHub Apps (`ipAllowListForInstalledAppsEnabledSetting`); `unknown` (`not_visible`) when the token is not an org owner. The `ip_allow_list` coverage entry of an org covers `ip_allow_entries`, `ip_allow_list_entries` and `ip_allow_list_apps` too. |
 | `members` | org | integer as string |
 | `archived` | org, repo | `true`, `false` (`unknown`, `not_visible` for an org the token can't read) |
 | `orgs` | enterprise | Number of enterprise orgs, integer as string; `unknown` (`not_visible`) when the token cannot read the enterprise |

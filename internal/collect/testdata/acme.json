@@ -2,7 +2,7 @@
   "enterprise": "acme",
   "orgs": [
     {
-      "login": "acme-actions", "actions_workflow_permissions": "read", "org_rest": {"default_repository_permission": "write", "two_factor_requirement_enabled": false, "members_can_create_repositories": true, "members_can_create_public_repositories": true, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": true, "members_can_fork_private_repositories": true}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "login": "acme-actions", "actions_workflow_permissions": "read", "org_rest": {"default_repository_permission": "write", "two_factor_requirement_enabled": false, "members_can_create_repositories": true, "members_can_create_public_repositories": true, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": true, "members_can_fork_private_repositories": true}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0, "ip_apps": "DISABLED",
       "settings": {
         "samlIdentityProviderSettingOrganizations": "CONFIGURED",
         "twoFactorRequiredSettingOrganizations": "false",
@@ -56,7 +56,7 @@
       ]
     },
     {
-      "login": "acme-app", "actions_workflow_permissions": "write", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true, "members_can_create_repositories": true, "members_can_create_public_repositories": false, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": false, "members_can_fork_private_repositories": false}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0,
+      "login": "acme-app", "actions_workflow_permissions": "write", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true, "members_can_create_repositories": true, "members_can_create_public_repositories": false, "members_can_create_private_repositories": true, "members_can_create_internal_repositories": false, "members_can_fork_private_repositories": false}, "owner": true, "ip_allow_list": "DISABLED", "ip_entries": 0, "ip_apps": "DISABLED",
       "settings": {
         "samlIdentityProviderSettingOrganizations": "CONFIGURED",
         "twoFactorRequiredSettingOrganizations": "true",
@@ -115,7 +115,7 @@
       ]
     },
     {
-      "login": "acme-secure", "actions_workflow_permissions": "read", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true}, "owner": true, "ip_allow_list": "ENABLED", "ip_entries": 3,
+      "login": "acme-secure", "actions_workflow_permissions": "read", "org_rest": {"default_repository_permission": "read", "two_factor_requirement_enabled": true}, "owner": true, "ip_allow_list": "ENABLED", "ip_entries": 5, "ip_active": 4, "ip_apps": "ENABLED",
       "settings": {
         "samlIdentityProviderSettingOrganizations": "ENFORCED",
         "twoFactorRequiredSettingOrganizations": "true",

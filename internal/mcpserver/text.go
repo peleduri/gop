@@ -23,6 +23,9 @@ func WritePath(w io.Writer, p graph.Path) {
 	if n := p.SuppliedNote(); n != "" {
 		fmt.Fprintf(w, "      note: %s\n", c(n))
 	}
+	if h := p.TargetOrgHardening; h != nil {
+		fmt.Fprintf(w, "      context: %s (not part of the score)\n", c(h.Line()))
+	}
 	for _, h := range p.Hops {
 		kind := string(h.Kind)
 		if h.Reverse {

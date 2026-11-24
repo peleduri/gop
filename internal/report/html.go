@@ -23,7 +23,7 @@ func evIcon(class string) string {
 // content section is server-rendered, so the report reads the same with
 // JavaScript off; the script only adds filtering and per-org views.
 // html/template escapes every value.
-var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon": evIcon}).Parse(`<!doctype html>
+var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon": evIcon, "settingTitles": settingTitles}).Parse(`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -98,16 +98,21 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <div>{{if .Confirmed}}<span class="badge live"><span aria-hidden="true">✓</span> confirmed</span>{{else}}<span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span>{{end}} to <code>{{.To}}</code></div>
 {{- if .Note}}
 <div class="note">{{.Note}}</div>{{end}}
+{{- if .Hardening}}
+<div class="note">Context, not part of the score: {{.Hardening}}</div>{{end}}
 <ol>{{range .Hops}}<li><code>{{.From}}</code> → <code>{{.To}}</code> <span class="src">{{.Kind}}{{if .Reverse}} (reversed){{end}}</span> <span class="badge {{.Class}}"><span aria-hidden="true">{{icon .Class}}</span> {{.Evidence}}</span>{{if .SourceAPI}} <span class="src">{{.SourceAPI}}</span>{{end}}{{if .Reason}} <span class="src">undecided: {{.Reason}}</span>{{end}}</li>
 {{end}}</ol></div>
 {{end}}{{else}}<p class="note">No paths.</p>{{end}}
 
 {{if .Orgs}}<h2 id="org-settings">Org settings</h2>
 <div class="scroll"><table>
-<caption class="vh">Org settings; a setting gop could not see reads not visible or unknown</caption>
-<thead><tr><th scope="col">Org</th><th scope="col">Default permission</th><th scope="col">2FA</th><th scope="col">SSO</th><th scope="col">IP allow list</th><th scope="col">Members</th></tr></thead>
-<tbody>{{range .Orgs}}<tr><td><code>{{.Org}}</code></td>{{range .Cells}}<td>{{if .NV}}<span class="badge nv"><span aria-hidden="true">?</span> {{.Value}}</span>{{else}}{{.Value}}{{end}}</td>{{end}}</tr>
-{{end}}</tbody></table></div>{{end}}
+<caption class="vh">Org settings; a setting gop could not see reads unknown, linked to why</caption>
+<thead><tr><th scope="col">Org</th>{{range settingTitles}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
+<tbody>{{range .Orgs}}<tr><td><code>{{.Org}}</code></td>{{range .Cells}}<td>{{if .NV}}<a class="badge nv" href="#{{.Ref}}"><span aria-hidden="true">?</span> {{.Value}}</a>{{else}}{{.Value}}{{end}}</td>{{end}}</tr>
+{{end}}</tbody></table></div>
+{{if .OrgWhy}}<h3 id="why-unknown">Why unknown</h3>
+<ul>{{range .OrgWhy}}<li id="{{.Anchor}}"><code>{{.Org}}</code>{{range .Items}}<br>{{.Settings}}: {{.Reason}}{{if .Fix}}. Access that fixes it: {{.Fix}}{{end}}{{end}}</li>
+{{end}}</ul>{{end}}{{end}}
 
 <h2 id="coverage">Coverage</h2>
 {{if .LockLine}}<p class="note">{{.LockLine}}</p>

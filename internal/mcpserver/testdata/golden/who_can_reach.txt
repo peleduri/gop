@@ -40,7 +40,12 @@
         }
       ],
       "evidence": "live",
-      "unverified": false
+      "unverified": false,
+      "target_org_hardening": {
+        "org": "org:acme-app",
+        "sso": "enforced",
+        "ip_allow_list": "unknown"
+      }
     },
     {
       "from": "members:acme-actions",
@@ -78,7 +83,12 @@
         }
       ],
       "evidence": "inferred",
-      "unverified": false
+      "unverified": false,
+      "target_org_hardening": {
+        "org": "org:acme-app",
+        "sso": "enforced",
+        "ip_allow_list": "unknown"
+      }
     }
   ],
   "possible": []

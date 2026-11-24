@@ -118,6 +118,7 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 <h3><code>identity:bob</code></h3>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>oidc:acme-app/web</code></div>
+<div class="note">Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</div>
 <ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
@@ -125,6 +126,7 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 </ol></div>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>secret:acme-app/billing</code></div>
+<div class="note">Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</div>
 <ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
@@ -132,6 +134,7 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 </ol></div>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>runner:acme-app/worker</code></div>
+<div class="note">Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</div>
 <ol><li><code>identity:bob</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
@@ -140,6 +143,7 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 <h3><code>members:acme-actions</code></h3>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>oidc:acme-app/web</code></div>
+<div class="note">Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</div>
 <ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> <span class="src">rest:/orgs/{org}</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/web/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
@@ -147,6 +151,7 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 </ol></div>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>secret:acme-app/billing</code></div>
+<div class="note">Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</div>
 <ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> <span class="src">rest:/orgs/{org}</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/billing/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
@@ -154,6 +159,7 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 </ol></div>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>runner:acme-app/worker</code></div>
+<div class="note">Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</div>
 <ol><li><code>members:acme-actions</code> → <code>repo:acme-actions/deploy</code> <span class="src">CAN_PUSH</span> <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> <span class="src">rest:/orgs/{org}</span></li>
 <li><code>repo:acme-actions/deploy</code> → <code>action:acme-actions/deploy@main</code> <span class="src">RESOLVES_TO (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
 <li><code>action:acme-actions/deploy@main</code> → <code>workflow:acme-app/worker/.github/workflows/ci.yml</code> <span class="src">USES (reversed)</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">contents:.github/workflows</span></li>
@@ -162,11 +168,13 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 <h3><code>identity:alice</code></h3>
 <div class="path">
 <div><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> to <code>repo:acme-app/infra</code></div>
+<div class="note">Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown</div>
 <ol><li><code>identity:alice</code> → <code>repo:acme-app/infra</code> <span class="src">CAN_PUSH</span> <span class="badge live"><span aria-hidden="true">✓</span> live</span> <span class="src">rest:/repos/{owner}/{repo}/collaborators</span></li>
 </ol></div>
 <h3><code>members:acme-legacy</code></h3>
 <div class="path">
 <div><span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span> to <code>secret:acme-legacy/old-api</code></div>
+<div class="note">Context, not part of the score: target org acme-legacy: SSO not enforced (none), IP allow list unknown</div>
 <ol><li><code>members:acme-legacy</code> → <code>repo:acme-legacy/old-api</code> <span class="src">CAN_PUSH</span> <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> <span class="src">rest:/orgs/{org}</span></li>
 <li><code>repo:acme-legacy/old-api</code> → <code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> <span class="src">DEFINED_IN (reversed)</span> <span class="badge audit"><span aria-hidden="true">✓</span> audit</span> <span class="src">rest:/repos/{owner}/{repo}/actions/workflows</span></li>
 <li><code>workflow:acme-legacy/old-api/.github/workflows/ci.yml</code> → <code>secret:acme-legacy/old-api</code> <span class="src">EXECUTES_WITH</span> <span class="badge audit"><span aria-hidden="true">✓</span> audit</span> <span class="src">contents:.github/workflows</span></li>
@@ -175,13 +183,19 @@ footer{margin-top:40px;padding-top:12px;padding-bottom:48px;border-top:1px solid
 
 <h2 id="org-settings">Org settings</h2>
 <div class="scroll"><table>
-<caption class="vh">Org settings; a setting gop could not see reads not visible or unknown</caption>
-<thead><tr><th scope="col">Org</th><th scope="col">Default permission</th><th scope="col">2FA</th><th scope="col">SSO</th><th scope="col">IP allow list</th><th scope="col">Members</th></tr></thead>
-<tbody><tr><td><code>acme-actions</code></td><td>write</td><td>not_required</td><td>configured</td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td><td>40</td></tr>
-<tr><td><code>acme-app</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td><td>120</td></tr>
-<tr><td><code>acme-legacy</code></td><td>write</td><td>not_required</td><td>none</td><td><span class="badge nv"><span aria-hidden="true">?</span> not visible</span></td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td></tr>
-<tr><td><code>acme-secure</code></td><td>read</td><td>required</td><td>enforced</td><td><span class="badge nv"><span aria-hidden="true">?</span> unknown</span></td><td>8</td></tr>
+<caption class="vh">Org settings; a setting gop could not see reads unknown, linked to why</caption>
+<thead><tr><th scope="col">Org</th><th scope="col">SSO</th><th scope="col">2FA</th><th scope="col">IP allow list</th><th scope="col">Default permission</th><th scope="col">Members can create repos</th><th scope="col">Members can change visibility</th><th scope="col">Members can delete repos</th><th scope="col">Members can fork private repos</th><th scope="col">Members</th></tr></thead>
+<tbody><tr><td><code>acme-actions</code></td><td>configured</td><td>not_required</td><td><a class="badge nv" href="#why-acme-actions"><span aria-hidden="true">?</span> unknown</a></td><td>write</td><td><a class="badge nv" href="#why-acme-actions"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-actions"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-actions"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-actions"><span aria-hidden="true">?</span> unknown</a></td><td>40</td></tr>
+<tr><td><code>acme-app</code></td><td>enforced</td><td>required</td><td><a class="badge nv" href="#why-acme-app"><span aria-hidden="true">?</span> unknown</a></td><td>read</td><td><a class="badge nv" href="#why-acme-app"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-app"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-app"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-app"><span aria-hidden="true">?</span> unknown</a></td><td>120</td></tr>
+<tr><td><code>acme-legacy</code></td><td>none</td><td>not_required</td><td><a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a></td><td>write</td><td><a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a></td></tr>
+<tr><td><code>acme-secure</code></td><td>enforced</td><td>required</td><td><a class="badge nv" href="#why-acme-secure"><span aria-hidden="true">?</span> unknown</a></td><td>read</td><td><a class="badge nv" href="#why-acme-secure"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-secure"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-secure"><span aria-hidden="true">?</span> unknown</a></td><td><a class="badge nv" href="#why-acme-secure"><span aria-hidden="true">?</span> unknown</a></td><td>8</td></tr>
 </tbody></table></div>
+<h3 id="why-unknown">Why unknown</h3>
+<ul><li id="why-acme-actions"><code>acme-actions</code><br>IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph</li>
+<li id="why-acme-app"><code>acme-app</code><br>IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph</li>
+<li id="why-acme-legacy"><code>acme-legacy</code><br>IP allow list: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy<br>Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph</li>
+<li id="why-acme-secure"><code>acme-secure</code><br>IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph</li>
+</ul>
 
 <h2 id="coverage">Coverage</h2>
 <div class="scroll"><table>

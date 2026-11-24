@@ -121,6 +121,20 @@ func TestCollectAcme(t *testing.T) {
 			t.Errorf("acme-legacy ip_allow_list = %q (%q), want unknown/not_visible",
 				legacy.Attrs[graph.AttrIPAllowList], legacy.AttrEvidence[graph.AttrIPAllowList])
 		}
+		// A non-owner org records no IP allow list details, only unknown
+		// with the ip_allow_list coverage entry.
+		for _, k := range []string{graph.AttrIPAllowListEntries, graph.AttrIPAllowListApps} {
+			if legacy.Attrs[k] != "unknown" || legacy.AttrEvidence[k] != graph.NotVisible {
+				t.Errorf("acme-legacy %s = %q (%q), want unknown/not_visible", k, legacy.Attrs[k], legacy.AttrEvidence[k])
+			}
+		}
+		covered := false
+		for _, c := range g.Coverage {
+			covered = covered || (c.Scope == "org:acme-legacy" && c.Fact == graph.AttrIPAllowList)
+		}
+		if !covered {
+			t.Error("acme-legacy has no ip_allow_list coverage entry")
+		}
 		if legacy.AttrEvidence["repositories"] != graph.NotVisible {
 			t.Errorf("acme-legacy repositories evidence = %q, want not_visible", legacy.AttrEvidence["repositories"])
 		}
@@ -160,7 +174,8 @@ func TestCollectAcme(t *testing.T) {
 				graph.AttrChangeVisiblity: "true", graph.AttrMembers: "3", "repositories": "10"},
 			"org:acme-legacy": {graph.AttrSSO: "enforced", graph.AttrDefaultPerm: "write", graph.AttrDeleteRepos: "true", graph.AttrMembers: "1"},
 			"org:acme-secure": {graph.AttrSSO: "enforced", graph.AttrTwoFactor: "required", graph.AttrDefaultPerm: "read",
-				graph.AttrIPAllowList: "on", graph.AttrIPAllowEntries: "3", graph.AttrMembers: "1"},
+				graph.AttrIPAllowList: "on", graph.AttrIPAllowEntries: "5", graph.AttrMembers: "1",
+				graph.AttrIPAllowListEntries: "4", graph.AttrIPAllowListApps: "on"},
 			"org:acme-archive": {graph.AttrArchived: "true", graph.AttrSSO: "none", graph.AttrDefaultPerm: "none"},
 		}
 		for id, attrs := range want {
@@ -1206,7 +1221,7 @@ func TestCoverageLog(t *testing.T) {
 			cov = append(cov, l)
 		}
 	}
-	want := "collect: coverage acme-legacy: 1 not_visible nodes, 2 edges, 6 attrs, 10 entries"
+	want := "collect: coverage acme-legacy: 1 not_visible nodes, 2 edges, 8 attrs, 10 entries"
 	if !slices.Contains(cov, want) {
 		t.Errorf("coverage log lines = %q, want %q", cov, want)
 	}

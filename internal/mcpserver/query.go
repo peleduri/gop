@@ -224,6 +224,7 @@ func (e *Engine) WhoCanReach(in WhoCanReachInput) (res WhoCanReachOutput, _ erro
 		return WhoCanReachOutput{}, err
 	}
 	conf, poss := splitPaths(e.ix.WhoCanReach(t))
+	conf, poss = e.harden(conf), e.harden(poss)
 	return WhoCanReachOutput{
 		Summary: withNote(fmt.Sprintf("%s can control %s (confirmed); %d more possible through a not visible hop",
 			plural(len(conf), "principal", "principals"), q(t), len(poss)), suppliedNote(append(append([]graph.Path{}, conf...), poss...)...)),
@@ -337,6 +338,7 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 		}
 		out.To = to
 		p, ok := r.Paths[to]
+		p.TargetOrgHardening = e.ix.TargetOrgHardening(p)
 		switch {
 		case !ok:
 			out.Summary = fmt.Sprintf("paths: %s has no path to %s, confirmed or possible", q(from), q(to))
@@ -360,6 +362,7 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 		return ps[i].To < ps[j].To
 	})
 	out.Confirmed, out.Possible = splitPaths(ps)
+	out.Confirmed, out.Possible = e.harden(out.Confirmed), e.harden(out.Possible)
 	out.Summary = withNote(fmt.Sprintf("paths: %s has confirmed paths to %s; %d more possible", q(from),
 		plural(len(out.Confirmed), "node", "nodes"), len(out.Possible)), suppliedNote(ps...))
 	return out, nil
@@ -380,6 +383,9 @@ type TopRisksOutput struct {
 	Brief   *Brief            `json:"brief,omitempty"`
 	// rows is the number of rows before n cut them (brief.total).
 	rows int
+
+	// TargetOrgHardening is context only: it never changes Risks or their order.
+	TargetOrgHardening []graph.OrgHardening `json:"target_org_hardening,omitempty" jsonschema:"context only, not part of the score: orgs that the listed rows' principals (every member of a group row) reach through confirmed or possible paths whose SSO is not enforced or IP allow list is not on (unknown when not visible, never read as off)"`
 }
 
 // TopRisks ranks principals by confirmed blast radius, grouping identical
@@ -402,6 +408,12 @@ func (e *Engine) TopRisks(in TopRisksInput) (res TopRisksOutput, _ error) {
 		risks = []graph.RiskGroup{}
 	}
 	out := TopRisksOutput{Risks: risks, rows: rows}
+	var principals []string
+	for _, g := range risks {
+		principals = append(principals, g.Principal)
+		principals = append(principals, g.Members...)
+	}
+	out.TargetOrgHardening = e.weakTargetOrgs(principals)
 	if len(risks) == 0 {
 		out.Summary = "the graph has no principals"
 	} else {
@@ -586,6 +598,9 @@ type EdgeOut struct {
 type ExplainOutput struct {
 	Summary string    `json:"summary"`
 	Edges   []EdgeOut `json:"edges"`
+	// TargetOrgHardening is context only, set when the hop's target is in a
+	// repo whose org has SSO not enforced or an IP allow list not on.
+	TargetOrgHardening *graph.OrgHardening `json:"target_org_hardening,omitempty" jsonschema:"context only: the org of the repo the hop leads into when its SSO is not enforced or IP allow list is not on (unknown when not visible, never read as off)"`
 }
 
 func edgeOut(ix *graph.Index, ed graph.Edge, rev bool) EdgeOut {
@@ -657,6 +672,7 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 	}
 	collect(from, to, false)
 	collect(to, from, true)
+	out.TargetOrgHardening = e.ix.TargetOrgHardening(graph.Path{From: from, To: to})
 	// MEMBER_OF points identity -> org:X, while hops use members:X.
 	if strings.HasPrefix(to, "members:") {
 		collect(from, "org:"+strings.TrimPrefix(to, "members:"), false)

@@ -122,6 +122,11 @@ type Path struct {
 	Unverified bool     `json:"unverified"`
 	Supplied   bool     `json:"supplied,omitempty"`
 	Stale      bool     `json:"stale,omitempty"`
+	// TargetOrgHardening is context only, set by the MCP tools and the CLI
+	// (never by Reach) when the path's target repo's org has SSO not
+	// enforced or an IP allow list not on, either one possibly unknown. It
+	// never changes evidence, counts, scores or rank order.
+	TargetOrgHardening *OrgHardening `json:"target_org_hardening,omitempty"`
 }
 
 // SuppliedFiles lists the supplied files the path's hops were read from, in
