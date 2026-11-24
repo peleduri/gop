@@ -57,7 +57,7 @@ func TestDiffMatchesCLI(t *testing.T) {
 				t.Fatal(err)
 			}
 			var out DiffOutput
-			res := call(t, connectDiff(t, name), "diff", map[string]any{"limit": 1000}, &out)
+			res := call(t, connectDiff(t, name), "diff", map[string]any{"limit": 1000, "detail": "full"}, &out)
 			if got, w := reportJSON(t, out.Report), reportJSON(t, want); got != w {
 				t.Errorf("report differs from gop diff --format json:\n%s", testutil.UnifiedDiff(w, got))
 			}
@@ -196,9 +196,9 @@ func TestGoldenDiffText(t *testing.T) {
 		golden, pair string
 		args         map[string]any
 	}{
-		{"diff.txt", "default-perm-raised", map[string]any{}},
-		{"diff_filtered.txt", "ref-unpinned", map[string]any{"principal": "identity:bob", "target_kind": "oidc", "only": []string{"paths", "scores"}}},
-		{"diff_lost_visibility.txt", "lost-visibility", map[string]any{"limit": 1}},
+		{"diff.txt", "default-perm-raised", map[string]any{"detail": "full"}},
+		{"diff_filtered.txt", "ref-unpinned", map[string]any{"principal": "identity:bob", "target_kind": "oidc", "only": []string{"paths", "scores"}, "detail": "full"}},
+		{"diff_lost_visibility.txt", "lost-visibility", map[string]any{"limit": 1, "detail": "full"}},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
 			res, err := connectDiff(t, tc.pair).CallTool(context.Background(), &mcp.CallToolParams{Name: "diff", Arguments: tc.args})

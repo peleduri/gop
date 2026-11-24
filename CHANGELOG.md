@@ -38,6 +38,20 @@ flags may change in minor releases.
   `gh` login gop follows `GH_HOST` to a GitHub Enterprise Server
   (`--github-url` wins), prints which host's login it used and never prints
   the token. `--use-gh-auth` and GitHub App mode are mutually exclusive.
+### Changed
+
+- MCP tools `who_can_reach`, `blast_radius`, `paths`, `top_risks`,
+  `suggest_fixes`, `diff` and `fix_plan` take an optional `detail` input
+  (`brief` or `full`) and a `limit`. **`brief` is the new default:** it caps
+  lists at `limit` (default 10; for `diff` it is shared across the whole
+  report), leaves out path hops, edge attrs and a fix plan's per-principal
+  scores, keeps every listed item's IDs and evidence level, and adds a `brief`
+  object with `truncated`, `limit`, `total` (each list's length before the
+  cut) and `omitted`. `paths` with `from` and `to` keeps its hops in brief, so
+  an agent can ask for one item's details. Pass `"detail": "full"` for the
+  previous answers (the `diff` per-list default of 50 is unchanged there). On a
+  synthetic 2,000-repo, 50-team enterprise every brief answer stays under 8 kB.
+  The `gop paths` and `gop who` commands still print full answers.
 
 ## [0.4.0] - 2026-11-24
 

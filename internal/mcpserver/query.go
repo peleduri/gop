@@ -196,6 +196,7 @@ func plural(n int, one, many string) string {
 // WhoCanReachInput is the who_can_reach tool input.
 type WhoCanReachInput struct {
 	Target string `json:"target" jsonschema:"node ID of a repo, workflow, action, secret, oidc, runner or cloud target, e.g. repo:acme-app/web or cloud:aws:arn:aws:iam::111111111111:role/deploy"`
+	DetailInput
 }
 
 // WhoCanReachOutput lists principals with a path to the target.
@@ -204,6 +205,7 @@ type WhoCanReachOutput struct {
 	Target    string       `json:"target"`
 	Confirmed []graph.Path `json:"confirmed" jsonschema:"principals with a path where every hop is live, inferred, audit or supplied"`
 	Possible  []graph.Path `json:"possible" jsonschema:"principals whose only path has at least one not_visible hop"`
+	Brief     *Brief       `json:"brief,omitempty"`
 }
 
 // WhoCanReach lists every principal that can control target, one shortest path each.
@@ -224,6 +226,7 @@ func (e *Engine) WhoCanReach(in WhoCanReachInput) (res WhoCanReachOutput, _ erro
 // BlastRadiusInput is the blast_radius tool input.
 type BlastRadiusInput struct {
 	Principal string `json:"principal" jsonschema:"principal node ID, e.g. members:acme-actions or identity:bob"`
+	DetailInput
 }
 
 // BlastRadiusOutput is a principal's score and reach sets.
@@ -232,6 +235,7 @@ type BlastRadiusOutput struct {
 	Score     graph.Score   `json:"score"`
 	Confirmed graph.Reached `json:"confirmed"`
 	Possible  graph.Reached `json:"possible"`
+	Brief     *Brief        `json:"brief,omitempty"`
 }
 
 // ReachSentence is the headline sentence for a score, confirmed numbers first.
@@ -274,6 +278,7 @@ func (e *Engine) BlastRadius(in BlastRadiusInput) (res BlastRadiusOutput, _ erro
 type PathsInput struct {
 	From string `json:"from" jsonschema:"principal node ID to start from"`
 	To   string `json:"to,omitempty" jsonschema:"optional target node ID; omit to list paths to everything reachable"`
+	DetailInput
 }
 
 // PathsOutput lists paths from a principal.
@@ -283,6 +288,7 @@ type PathsOutput struct {
 	To        string       `json:"to,omitempty"`
 	Confirmed []graph.Path `json:"confirmed"`
 	Possible  []graph.Path `json:"possible"`
+	Brief     *Brief       `json:"brief,omitempty"`
 }
 
 // Paths returns shortest paths from a principal, optionally only to one target.
@@ -332,12 +338,14 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 // TopRisksInput is the top_risks tool input.
 type TopRisksInput struct {
 	N int `json:"n,omitempty" jsonschema:"how many principals to return (default 10)"`
+	DetailInput
 }
 
 // TopRisksOutput ranks principals by confirmed score.
 type TopRisksOutput struct {
 	Summary string        `json:"summary"`
 	Risks   []graph.Score `json:"risks"`
+	Brief   *Brief        `json:"brief,omitempty"`
 }
 
 // TopRisks ranks principals by confirmed blast radius.
@@ -450,6 +458,7 @@ func (e *Engine) WhatIf(in WhatIfInput) (res WhatIfOutput, _ error) {
 // SuggestFixesInput is the suggest_fixes tool input.
 type SuggestFixesInput struct {
 	Budget int `json:"budget,omitempty" jsonschema:"maximum number of fixes (default 3)"`
+	DetailInput
 }
 
 // FixOut is one suggested fix.
@@ -469,6 +478,7 @@ type FixOut struct {
 type SuggestFixesOutput struct {
 	Summary string   `json:"summary"`
 	Fixes   []FixOut `json:"fixes"`
+	Brief   *Brief   `json:"brief,omitempty"`
 }
 
 // DescribeFix returns the FixSpec and a sentence for a graph fix.
