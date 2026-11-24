@@ -222,7 +222,9 @@ type FixSuggestion struct {
 // bypass actors there is no candidate), LowerDefaultPerm{To:"read"} for each
 // org with default_perm write/admin or default-perm CAN_PUSH edges, a
 // RestrictToken for each workflow with a via=token_write CAN_PUSH edge, and a
-// HardenTrigger for each workflow with a CAN_TRIGGER edge into it. A
+// HardenTrigger for each workflow with a CAN_TRIGGER edge into it. No PinRef
+// is proposed for an action that every use of is pinned by an actions.lock
+// (LockCovered). A
 // candidate whose changed edges are all not_visible or stale audit facts (or
 // that changes nothing) is dropped: gop does not recommend a fix for an edge
 // it cannot confirm exists.
@@ -249,7 +251,7 @@ func (ix *Index) Candidates() []Fix {
 	for _, e := range ix.g.Edges {
 		switch e.Kind {
 		case ResolvesTo:
-			if ix.actionMutable(e.From) && !ix.lockedNoBypass(e) {
+			if ix.actionMutable(e.From) && !ix.lockedNoBypass(e) && !ix.LockCovered(e.From) {
 				push(PinRef{Action: e.From})
 			}
 		case CanPush:

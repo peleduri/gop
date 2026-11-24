@@ -1,6 +1,7 @@
 package redact
 
 import (
+	"encoding/hex"
 	"regexp"
 	"sort"
 	"strconv"
@@ -39,6 +40,7 @@ func init() {
 		graph.AttrVia, graph.AttrRule, graph.AttrRefProtected, graph.AttrRefProtection, graph.AttrBypass, graph.AttrRef,
 		graph.AttrRefKindSource, graph.AttrRefAmbiguous, graph.AttrRefImmutable, graph.AttrRefImmutableBy,
 		graph.AttrActionsAccess, graph.AttrConsumerOrg,
+		graph.AttrActionsLock, graph.AttrLockedSHA, graph.AttrLockEntry, graph.AttrLockMissing,
 		graph.AttrSource, graph.AttrObservedUse, graph.AttrTimesUsed, graph.AttrLastUsed,
 		graph.AttrPoutineRules, graph.AttrPoutineSeverity, graph.AttrPoutineJobs, graph.AttrPoutineFile,
 		// documented in the JSON Schema
@@ -124,6 +126,15 @@ func ownerAttr(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r
 func idAttr(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r.id(v), false, true }
 
 func refAttr(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r.ref(v), false, true }
+
+// lockedSHAAttr maps a locked commit like any SHA ref (so it matches the
+// redacted action IDs); a SHA-256 commit becomes another 64-hex string.
+func lockedSHAAttr(r *redactor, _ attrCtx, v string) (string, bool, bool) {
+	if len(v) == 64 && hexRe.MatchString(v) {
+		return hex.EncodeToString(r.mac("sha\x00" + v)), false, true
+	}
+	return r.ref(v), false, true
+}
 
 func supplied(c attrCtx) bool {
 	return c.edge != nil && (c.edge.Evidence == graph.Supplied || c.edge.Kind == graph.CanAssume ||
@@ -261,6 +272,10 @@ var policies = map[string]policy{
 	graph.AttrRefImmutableBy:  enum(graph.RefImmutableRelease, graph.RefImmutableRuleset),
 	graph.AttrActionsAccess:   enum("none", "user", "organization", "enterprise", "public", "unknown"),
 	graph.AttrConsumerOrg:     ownerAttr,
+	graph.AttrActionsLock:     enum("true", "unknown", graph.LockLocked, graph.LockStale),
+	graph.AttrLockedSHA:       lockedSHAAttr,
+	graph.AttrLockEntry:       list(func(r *redactor, s string) string { return r.action(s) }),
+	graph.AttrLockMissing:     list(func(r *redactor, s string) string { return r.action(s) }),
 	graph.AttrSource:          sourceAPIAttr,
 	graph.AttrObservedUse:     enum("true"),
 	graph.AttrTimesUsed:       bucket,

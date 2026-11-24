@@ -40,6 +40,21 @@ flags may change in minor releases.
   the token. `--use-gh-auth` and GitHub App mode are mutually exclusive.
 - `--verbose` on `collect` (or `GOP_VERBOSE=1`): log every per-repository
   not-visible error as it happens, as before.
+- Actions pinned by a repo's `.github/workflows/actions.lock`
+  ([gh actions-lock](https://github.com/github/gh-actions-lock)) count as
+  pinned. `gop collect` reads the lockfile from the workflow listing (no extra
+  request on the batched path; a 404 or no listing entry means no lockfile)
+  and marks each workflow `USES` edge `actions_lock=locked` (with
+  `locked_sha`) or `stale` (with `lock_entry` / `lock_missing` and a
+  coverage entry), and the repo `actions_lock=true`. A locked edge needs the
+  lockfile to pin the nested refs gop saw under the action too. The engine
+  drops the control hop of a locked edge, so reach through it goes away for
+  that workflow only; a stale entry counts as unpinned. `suggest_fixes` no
+  longer proposes pinning an action every use of which is locked, `fix_plan`
+  and `gop pin` leave lockfile-governed `uses:` lines alone and list stale
+  entries ("rerun gh actions-lock"), and the report and the MCP summary
+  (`action_pins`) split "pinned in workflow" from "pinned by actions.lock".
+  Format and matching rules: [docs/actions-lock.md](docs/actions-lock.md).
 
 ### Changed
 

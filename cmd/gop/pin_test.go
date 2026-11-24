@@ -373,3 +373,33 @@ func TestReadOnlyTransportRefusesWrites(t *testing.T) {
 		}
 	}
 }
+
+// TestPinActionsLock: acme-app/web's actions.lock pins deploy@main and
+// acme-app/docs has a stale entry for it; only acme-app/api gets a diff.
+func TestPinActionsLock(t *testing.T) {
+	const lockFixture = "../../testdata/actionslock/graph.json"
+	r := runPin(t, nil, "--action", "acme-actions/deploy@main", "--graph", lockFixture, "--offline", "--format", "text")
+	if r.code != exitOK {
+		t.Fatalf("%+v", r)
+	}
+	testutil.Golden(t, "pin_actions_lock.txt", []byte(r.stdout))
+	for _, want := range []string{
+		"acme-app/api .github/workflows/deploy.yml line 12",
+		"skipped: acme-app/web .github/workflows/ci.yml:8: actions.lock governs this uses:",
+		"skipped: acme-app/docs .github/workflows/build.yml:9: stale actions.lock entry (it pins acme-actions/deploy@v1 instead)",
+		"2 uses: line(s) governed by actions.lock",
+	} {
+		if !strings.Contains(r.stdout, want) {
+			t.Errorf("output lacks %q:\n%s", want, r.stdout)
+		}
+	}
+	// --repo keeps only that repo's lock entries.
+	r = runPin(t, nil, "--action", "acme-actions/deploy@main", "--graph", lockFixture, "--offline", "--format", "json", "--repo", "acme-app/web")
+	var out pinResult
+	if err := json.Unmarshal([]byte(r.stdout), &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Files) != 0 || len(out.Skipped) != 1 || out.Skipped[0].Repo != "acme-app/web" {
+		t.Errorf("%+v", out)
+	}
+}

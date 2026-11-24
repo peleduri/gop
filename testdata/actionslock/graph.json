@@ -1,0 +1,494 @@
+{
+  "schema": "gop.graph/v2",
+  "collected_at": "2026-11-20T10:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {
+      "id": "action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567",
+      "kind": "action_ref",
+      "name": "acme-actions/deploy@0123456789abcdef0123456789abcdef01234567",
+      "evidence": "live",
+      "attrs": {
+        "owner": "acme-actions",
+        "repo": "deploy",
+        "ref": "0123456789abcdef0123456789abcdef01234567",
+        "ref_kind": "sha",
+        "in_enterprise": "true"
+      }
+    },
+    {
+      "id": "action:acme-actions/deploy@main",
+      "kind": "action_ref",
+      "name": "acme-actions/deploy@main",
+      "evidence": "live",
+      "attrs": {
+        "owner": "acme-actions",
+        "repo": "deploy",
+        "ref": "main",
+        "ref_kind": "branch",
+        "in_enterprise": "true"
+      }
+    },
+    {
+      "id": "action:acme-actions/lint@v2",
+      "kind": "action_ref",
+      "name": "acme-actions/lint@v2",
+      "evidence": "live",
+      "attrs": {
+        "owner": "acme-actions",
+        "repo": "lint",
+        "ref": "v2",
+        "ref_kind": "tag",
+        "in_enterprise": "true"
+      }
+    },
+    {
+      "id": "action:acme-actions/setup@main",
+      "kind": "action_ref",
+      "name": "acme-actions/setup@main",
+      "evidence": "live",
+      "attrs": {
+        "owner": "acme-actions",
+        "repo": "setup",
+        "ref": "main",
+        "ref_kind": "branch",
+        "in_enterprise": "true"
+      }
+    },
+    {
+      "id": "enterprise:acme",
+      "kind": "enterprise",
+      "name": "acme",
+      "evidence": "live"
+    },
+    {
+      "id": "members:acme-actions",
+      "kind": "org_members",
+      "name": "all members of acme-actions",
+      "evidence": "live"
+    },
+    {
+      "id": "members:acme-app",
+      "kind": "org_members",
+      "name": "all members of acme-app",
+      "evidence": "live"
+    },
+    {
+      "id": "oidc:acme-app/web",
+      "kind": "oidc",
+      "name": "acme-app/web OIDC token",
+      "evidence": "live"
+    },
+    {
+      "id": "org:acme-actions",
+      "kind": "org",
+      "name": "acme-actions",
+      "evidence": "live",
+      "attrs": {
+        "default_perm": "write"
+      }
+    },
+    {
+      "id": "org:acme-app",
+      "kind": "org",
+      "name": "acme-app",
+      "evidence": "live",
+      "attrs": {
+        "default_perm": "read"
+      }
+    },
+    {
+      "id": "repo:acme-actions/deploy",
+      "kind": "repo",
+      "name": "acme-actions/deploy",
+      "evidence": "live",
+      "attrs": {
+        "org": "acme-actions"
+      }
+    },
+    {
+      "id": "repo:acme-actions/lint",
+      "kind": "repo",
+      "name": "acme-actions/lint",
+      "evidence": "live",
+      "attrs": {
+        "org": "acme-actions"
+      }
+    },
+    {
+      "id": "repo:acme-actions/setup",
+      "kind": "repo",
+      "name": "acme-actions/setup",
+      "evidence": "live",
+      "attrs": {
+        "org": "acme-actions"
+      }
+    },
+    {
+      "id": "repo:acme-app/api",
+      "kind": "repo",
+      "name": "acme-app/api",
+      "evidence": "live",
+      "attrs": {
+        "org": "acme-app"
+      }
+    },
+    {
+      "id": "repo:acme-app/docs",
+      "kind": "repo",
+      "name": "acme-app/docs",
+      "evidence": "live",
+      "attrs": {
+        "org": "acme-app",
+        "actions_lock": "true"
+      }
+    },
+    {
+      "id": "repo:acme-app/web",
+      "kind": "repo",
+      "name": "acme-app/web",
+      "evidence": "live",
+      "attrs": {
+        "org": "acme-app",
+        "actions_lock": "true"
+      }
+    },
+    {
+      "id": "secret:acme-app/api",
+      "kind": "secret",
+      "name": "acme-app/api secrets",
+      "evidence": "live"
+    },
+    {
+      "id": "secret:acme-app/docs",
+      "kind": "secret",
+      "name": "acme-app/docs secrets",
+      "evidence": "live"
+    },
+    {
+      "id": "secret:acme-app/web",
+      "kind": "secret",
+      "name": "acme-app/web secrets",
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/api/.github/workflows/deploy.yml",
+      "kind": "workflow",
+      "name": "acme-app/api/.github/workflows/deploy.yml",
+      "evidence": "live",
+      "attrs": {
+        "repo": "acme-app/api",
+        "path": ".github/workflows/deploy.yml"
+      }
+    },
+    {
+      "id": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/build.yml",
+      "evidence": "live",
+      "attrs": {
+        "repo": "acme-app/docs",
+        "path": ".github/workflows/build.yml"
+      }
+    },
+    {
+      "id": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-app/web/.github/workflows/ci.yml",
+      "evidence": "live",
+      "attrs": {
+        "repo": "acme-app/web",
+        "path": ".github/workflows/ci.yml"
+      }
+    },
+    {
+      "id": "workflow:acme-app/web/.github/workflows/release.yml",
+      "kind": "workflow",
+      "name": "acme-app/web/.github/workflows/release.yml",
+      "evidence": "live",
+      "attrs": {
+        "repo": "acme-app/web",
+        "path": ".github/workflows/release.yml"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567",
+      "to": "repo:acme-actions/deploy",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "derived:workflow.uses+graphql:enterprise.organizations",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567",
+      "to": "action:acme-actions/setup@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}?ref={ref}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch",
+        "level": "step",
+        "file": "action.yml",
+        "file_ref": "0123456789abcdef0123456789abcdef01234567",
+        "line": "6",
+        "col": "13"
+      }
+    },
+    {
+      "from": "action:acme-actions/deploy@main",
+      "to": "repo:acme-actions/deploy",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "derived:workflow.uses+graphql:enterprise.organizations",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "action:acme-actions/deploy@main",
+      "to": "action:acme-actions/setup@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}?ref={ref}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch",
+        "level": "step",
+        "file": "action.yml",
+        "file_ref": "main",
+        "line": "6",
+        "col": "13"
+      }
+    },
+    {
+      "from": "action:acme-actions/lint@v2",
+      "to": "repo:acme-actions/lint",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "derived:workflow.uses+graphql:enterprise.organizations",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "action:acme-actions/setup@main",
+      "to": "repo:acme-actions/setup",
+      "kind": "RESOLVES_TO",
+      "evidence": "live",
+      "source_api": "derived:workflow.uses+graphql:enterprise.organizations",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "members:acme-actions",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "default_perm",
+        "rule": "default_perm",
+        "permission": "write"
+      }
+    },
+    {
+      "from": "members:acme-actions",
+      "to": "repo:acme-actions/lint",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "default_perm",
+        "rule": "default_perm",
+        "permission": "write"
+      }
+    },
+    {
+      "from": "members:acme-actions",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "via": "default_perm",
+        "rule": "default_perm",
+        "permission": "write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/deploy.yml",
+      "to": "repo:acme-app/api",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/deploy.yml",
+      "to": "secret:acme-app/api",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "secrets": "DEPLOY_KEY"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/deploy.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch",
+        "level": "step",
+        "job": "build",
+        "file": ".github/workflows/deploy.yml",
+        "file_ref": "main",
+        "line": "12",
+        "col": "15"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "secret:acme-app/docs",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "secrets": "DEPLOY_KEY"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch",
+        "level": "step",
+        "job": "build",
+        "file": ".github/workflows/build.yml",
+        "file_ref": "main",
+        "line": "9",
+        "col": "15",
+        "actions_lock": "stale",
+        "lock_entry": "acme-actions/deploy@v1"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "repo:acme-app/web",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "secret:acme-app/web",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "secrets": "DEPLOY_KEY"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "branch",
+        "level": "step",
+        "job": "build",
+        "file": ".github/workflows/ci.yml",
+        "file_ref": "main",
+        "line": "8",
+        "col": "15",
+        "actions_lock": "locked",
+        "locked_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ci.yml",
+      "to": "action:acme-actions/lint@v2",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "tag",
+        "level": "step",
+        "job": "build",
+        "file": ".github/workflows/ci.yml",
+        "file_ref": "main",
+        "line": "10",
+        "col": "15",
+        "actions_lock": "locked",
+        "locked_sha": "cccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "repo:acme-app/web",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "oidc:acme-app/web",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/release.yml",
+      "to": "action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T10:00:00Z",
+      "attrs": {
+        "ref_kind": "sha",
+        "level": "step",
+        "job": "build",
+        "file": ".github/workflows/release.yml",
+        "file_ref": "main",
+        "line": "9",
+        "col": "15",
+        "actions_lock": "locked",
+        "locked_sha": "0123456789abcdef0123456789abcdef01234567"
+      }
+    }
+  ],
+  "coverage": [
+    {
+      "scope": "workflow:acme-app/docs/.github/workflows/build.yml",
+      "fact": "actions_lock:acme-actions/deploy@main",
+      "reason": "actions.lock pins acme-actions/deploy@v1 but the workflow uses acme-actions/deploy@main: the lock is stale, so the use counts as unpinned",
+      "needs_fix": "rerun gh actions-lock in acme-app/docs"
+    }
+  ]
+}

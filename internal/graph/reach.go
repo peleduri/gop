@@ -55,6 +55,11 @@ import (
 //	                                     against the consumer's repo by actionsAccessAllows: a
 //	                                     disallowed hop is dropped, and an unknown setting makes a
 //	                                     cross-org hop not_visible. No attr: the hop is unchanged.
+//	                                     A USES edge from a workflow with actions_lock=locked is
+//	                                     dropped: the repo's actions.lock pins the action and every
+//	                                     nested ref under it to commits, so changing the action does
+//	                                     not change what the workflow runs. actions_lock=stale
+//	                                     changes nothing.
 //	principal -CAN_TRIGGER->  workflow   the principal can cause a risky trigger (pull_request_target,
 //	                                     workflow_run, issue_comment, ...) of a workflow that runs
 //	                                     attacker-controlled code: a forward control hop like CAN_PUSH.
@@ -443,6 +448,9 @@ func (ix *Index) buildControlRec(fixes []Fix, maxAuditAge time.Duration, rec fun
 				ix.addResolves(e, add)
 			}
 		case Uses:
+			if e.Attrs[AttrActionsLock] == LockLocked {
+				continue
+			}
 			if ix.gates != nil {
 				switch ix.gates[i] {
 				case gateClosed:
@@ -647,12 +655,13 @@ type PinnedExposure struct {
 	Action    string `json:"action"`             // the SHA-pinned or locked action ref
 	Via       string `json:"via"`                // the mutable action ref on the path that opens it
 	ViaNote   string `json:"via_note,omitempty"` // MutabilityNote of Via, when it is only possibly mutable
-	Consumers int    `json:"consumers"`          // workflows that use Action directly
+	Consumers int    `json:"consumers"`          // workflows that use Action directly, not counting uses an actions.lock pins
 	Path      Path   `json:"path"`               // one shortest path to Action, confirmed preferred
 }
 
 // PinnedExposures lists every action that cannot change without a new pin
-// (RefState RefPinned or RefLocked) that some principal can still control
+// (RefState RefPinned or RefLocked), and is not LockCovered, that some
+// principal can still control
 // through a nested mutable action, sorted by action ID. The paths come from
 // Reach, so a nested ref that refLock locks opens nothing, and one whose gate
 // is not visible gives a possible path with ViaNote set. Each gets one path,
@@ -661,7 +670,7 @@ type PinnedExposure struct {
 func (ix *Index) PinnedExposures() []PinnedExposure {
 	cands := map[string]bool{}
 	for _, e := range ix.g.Edges {
-		if e.Kind == Uses && ix.Kind(e.From) == KindActionRef && !cands[e.From] {
+		if e.Kind == Uses && ix.Kind(e.From) == KindActionRef && !cands[e.From] && !ix.LockCovered(e.From) {
 			if st := ix.RefState(e.From); st == RefPinned || st == RefLocked {
 				cands[e.From] = true
 			}
@@ -704,7 +713,7 @@ func (ix *Index) PinnedExposures() []PinnedExposure {
 			pe.ViaNote = ix.MutabilityNote(pe.Via)
 		}
 		for _, e := range ix.in[a] {
-			if e.Kind == Uses && ix.Kind(e.From) == KindWorkflow {
+			if e.Kind == Uses && ix.Kind(e.From) == KindWorkflow && e.Attrs[AttrActionsLock] != LockLocked {
 				pe.Consumers++
 			}
 		}

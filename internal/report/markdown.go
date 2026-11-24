@@ -165,6 +165,9 @@ func writeMarkdown(w io.Writer, d data) error {
 	}
 
 	p("## Coverage\n\n")
+	if d.LockLine != "" {
+		p("%s\n\n", md(d.LockLine))
+	}
 	if len(d.Coverage) == 0 {
 		p("Every fact gop looked for was visible to the token.\n\n")
 	} else {
