@@ -26,6 +26,20 @@ flags may change in minor releases.
   other users can read is refused) with `0600` files written atomically; it
   holds API responses as sensitive as graph.json (see
   `docs/threat-model.md`).
+- `gop export --format sql graph.json [graph2.json ...] --out gop.sql` writes
+  graphs as a SQL script that `sqlite3` and `duckdb` both load, for questions
+  that count and group, BI tools and text-to-SQL tools. Tables: `runs`,
+  `nodes`, `node_attrs`, `edges`, `edge_attrs`, `findings` (top risks and fix
+  candidates with the pairs each removes) and `reach` (gop's computed reach
+  per scoring principal, confirmed or possible, with the shortest path), all
+  keyed by `run_id`. Several graphs load as several runs, so trends work; the
+  script deletes a run's rows before inserting them, so loading it again
+  changes nothing and older runs stay. Evidence is plain text. Values with
+  control characters are written JSON-encoded (`'...' ->> '$'`, SQLite 3.38+),
+  so the script holds no raw control characters. gop writes text
+  and links no SQLite driver: the binary grows by about 50 KB, where a pure-Go
+  driver would add about 5 MB. `--out` writes mode 0600; the file lists attack
+  paths. Schema and example queries: `docs/sql.md`.
 - Action input `fail-on-reach-increase` (default `"false"`) with
   `baseline-artifact` (default `gop-posture`): compares the run's graph with
   the artifact of the previous successful run of the same workflow on the

@@ -66,6 +66,7 @@ Usage:
   gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
               [--github-url URL] [--format diff|text|json]
   gop export  --format cypher graph.json | --graph graph.json | --demo  [--out gop.cypher] [--github-url URL]
+  gop export  --format sql graph.json [graph2.json ...] | --graph graph.json | --demo  [--out gop.sql]
   gop mcp-config --client claude|cursor|vscode --graph graph.json
   gop version
 
