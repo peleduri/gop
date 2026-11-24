@@ -101,6 +101,10 @@ gop report --graph graph.json --out report.html                     # or ask you
 
 No enterprise handy? Every read command works on the fixture: `--graph testdata/acme/graph.json`.
 
+`gop report --demo --out report.html` builds the HTML report from the synthetic demo graph: the verdict, the fixes that remove the most confirmed reach, the top risks, what gop could not see and every path hop by hop ([docs/report.md](docs/report.md)).
+
+![The gop HTML report for the synthetic demo enterprise: a critical-exposure verdict with confirmed reach figures, then ranked fixes with the share of confirmed reach each removes](docs/assets/report-light.png)
+
 ### Connect your agent (MCP over stdio)
 
 Claude Code:

@@ -48,6 +48,7 @@ func Render(w io.Writer, g *graph.Graph, opts Options) error {
 		if err := addEmbedded(&d, g); err != nil {
 			return err
 		}
+		decorate(&d, g)
 		// html/template escapes markup; sanitize.HTML also turns raw
 		// control, bidi and zero-width characters from names into
 		// character references.
@@ -93,6 +94,11 @@ type data struct {
 	DataJSON  template.JS
 	OrgNames  []string
 	Truncated string
+
+	// HTML view model (view.go): the verdict hero and coverage groups.
+	Verdict, VerdictLabel, PickWho string
+	KPIs                           []kpi
+	CovGroups                      []covGroup
 
 	ix     *graph.Index
 	sugg   []graph.FixSuggestion
@@ -156,6 +162,13 @@ type riskRow struct {
 	// Advisory is set when the row ranks first for a known advisory: the
 	// action's advisories, or the advisory actions its paths run through.
 	Advisory string
+
+	Rank int      // 1-based position
+	Sev  string   // critical | high | medium | low from confirmed terminal impact; unknown for possible reach only
+	Bar  []barSeg // the impact bar segments, cloud roles, OIDC, secrets, runners
+	// Poutine counts the confirmed-reached workflows with an injection-class
+	// poutine finding (Score.PoutineInjectable); 0 without a poutine import.
+	Poutine int
 }
 
 type fixRow struct {
@@ -164,6 +177,12 @@ type fixRow struct {
 	FixID         string
 	Removed       int
 	CumulativePct string
+
+	// HTML only: this fix's share of the baseline confirmed pairs, the
+	// width classes of the earlier fixes' and this fix's bar segments, the
+	// one-line reason and the engine's caveat.
+	Pct, PrevWidth, Width string
+	Why, Caveat           string
 }
 
 // pinnedRow is a SHA-pinned action that is still controllable through a

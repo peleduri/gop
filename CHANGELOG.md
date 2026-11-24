@@ -110,6 +110,28 @@ flags may change in minor releases.
 
 ### Changed
 
+- The HTML report is redesigned. It opens with a verdict: the posture
+  (critical, high or moderate exposure, from the worst confirmed severity in
+  the top risks, as in `gop sarif`), the headline, the first fix, and six
+  figures: confirmed repos and orgs, cloud OIDC trusts, secret scopes and
+  self-hosted runners for the principal with the widest confirmed reach, the
+  top-risk count, and coverage (orgs gop could fully see). Possible reach is a
+  separate, weaker figure and is never added to a confirmed one; with no
+  confirmed reach the verdict never reads as safe while anything was not
+  visible. Suggested fixes are ranked choke-point cards with the share of
+  confirmed reach each removes, the cumulative share and a one-line reason.
+  Top risks show an impact pill ("High impact": the severity of confirmed
+  reach, kept apart from an advisory's own severity), an impact bar (cloud
+  roles, OIDC, secrets, runners) and the advisory and poutine markers; a
+  principal with possible reach only reads "possible only", never "low". "What gop could not see" moves up and is
+  grouped by the access that would close it ("Org owner needed on 1 org").
+  Paths are collapsible hop chains with an evidence badge on every hop and the
+  source API on hover or focus, plus the target-org hardening context note;
+  they stack on narrow screens. Org settings are a heat grid over every
+  setting column (strong, weak, or unknown linked to why). The report has
+  light and dark themes and a print stylesheet (A4 or Letter, light, every path
+  expanded, each hop's source shown), still one self-contained file under the
+  same CSP. Screenshots: `docs/assets/report-*.png`.
 - MCP tools `who_can_reach`, `blast_radius`, `paths`, `top_risks`,
   `suggest_fixes`, `diff` and `fix_plan` take an optional `detail` input
   (`brief` or `full`) and a `limit`. **`brief` is the new default:** it caps

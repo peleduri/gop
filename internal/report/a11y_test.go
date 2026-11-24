@@ -243,7 +243,7 @@ func TestScriptRendersAccessibleMarkup(t *testing.T) {
 
 var (
 	cssVar   = regexp.MustCompile(`--([a-z-]+):(#[0-9a-f]{3,6})`)
-	darkPart = "@media (prefers-color-scheme: dark)"
+	darkPart = "@media screen and (prefers-color-scheme: dark)"
 )
 
 func parseVars(s string) map[string]string {
@@ -280,34 +280,74 @@ func contrast(a, b string) float64 {
 	return (la + 0.05) / (lb + 0.05)
 }
 
+// mediaBlock returns the body of the first @media rule that starts with
+// marker, up to its matching closing brace.
+func mediaBlock(t *testing.T, css, marker string) string {
+	t.Helper()
+	i := strings.Index(css, marker)
+	if i < 0 {
+		t.Fatalf("no %s block", marker)
+	}
+	open := strings.Index(css[i:], "{")
+	depth := 0
+	for j := i + open; j < len(css); j++ {
+		switch css[j] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return css[i+open+1 : j]
+			}
+		}
+	}
+	t.Fatalf("unterminated %s block", marker)
+	return ""
+}
+
 // TestContrastAA checks every text color on every background it is used on
-// against WCAG AA (4.5:1 for normal text), in the light and dark themes.
+// against WCAG AA (4.5:1 for normal text), in the light and dark themes and
+// the print theme.
 func TestContrastAA(t *testing.T) {
 	i := strings.Index(styleCSS, darkPart)
 	if i < 0 {
 		t.Fatal("no dark theme")
 	}
 	light := parseVars(styleCSS[:i])
-	dark := map[string]string{}
-	for k, v := range light {
-		dark[k] = v
-	}
-	for k, v := range parseVars(styleCSS[i:]) {
-		dark[k] = v
+	theme := func(block string) map[string]string {
+		m := map[string]string{}
+		for k, v := range light {
+			m[k] = v
+		}
+		for k, v := range parseVars(block) {
+			m[k] = v
+		}
+		return m
 	}
 	pairs := [][2]string{
 		{"fg", "bg"}, {"fg", "card"}, {"muted", "bg"}, {"muted", "card"}, {"accent", "bg"}, {"accent", "card"},
-		{"live", "live-bg"}, {"audit", "audit-bg"}, {"nv", "nv-bg"},
+		{"live", "live-bg"}, {"audit", "audit-bg"}, {"nv", "nv-bg"}, {"nv", "card"}, {"accent", "accent-bg"},
+		{"crit-fg", "crit-bg"}, {"high-fg", "high-bg"}, {"med-fg", "med-bg"}, {"low-fg", "low-bg"},
+		{"good", "good-bg"}, {"good", "good-tint"}, {"weak", "weak-bg"}, {"weak", "weak-tint"}, {"fg", "nv-bg"},
+		{"card", "fg"}, {"card", "accent"},
 	}
-	for theme, vars := range map[string]map[string]string{"light": light, "dark": dark} {
+	themes := map[string]map[string]string{
+		"light": light,
+		"dark":  theme(mediaBlock(t, styleCSS, darkPart)),
+		"print": theme(mediaBlock(t, styleCSS, "@media print")),
+	}
+	for name, vars := range themes {
 		for _, p := range pairs {
 			fg, bg := vars[p[0]], vars[p[1]]
 			if fg == "" || bg == "" {
-				t.Fatalf("%s: missing --%s or --%s", theme, p[0], p[1])
+				t.Fatalf("%s: missing --%s or --%s", name, p[0], p[1])
 			}
 			if r := contrast(fg, bg); r < 4.5 {
-				t.Errorf("%s: --%s on --%s is %.2f:1, want at least 4.5:1", theme, p[0], p[1], r)
+				t.Errorf("%s: --%s on --%s is %.2f:1, want at least 4.5:1", name, p[0], p[1], r)
 			}
 		}
+	}
+	if themes["dark"]["bg"] == light["bg"] {
+		t.Error("dark theme does not override --bg")
 	}
 }

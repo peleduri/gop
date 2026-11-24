@@ -46,6 +46,10 @@ type cell struct {
 	Value string
 	NV    bool
 	Ref   string
+	// HTML heat grid: Tone is good, weak, unk or "" (decorate), Reason the
+	// why-unknown text shown when the unknown cell is hovered or focused.
+	Tone   string
+	Reason string
 }
 
 // orgWhy explains an org's unknown settings, one item per reason.
@@ -89,8 +93,12 @@ func orgSettings(g *graph.Graph) ([]orgRow, []orgWhy) {
 		for _, col := range settingCols {
 			v := graph.OrgSetting(n, col.Key)
 			if v == graph.HardeningUnknown {
-				r.Cells = append(r.Cells, cell{Value: graph.HardeningUnknown, NV: true, Ref: anchor})
 				reason, fix := unknownReason(g, n, col.Key)
+				why := reason
+				if fix != "" {
+					why += ". Access that fixes it: " + fix
+				}
+				r.Cells = append(r.Cells, cell{Value: graph.HardeningUnknown, NV: true, Ref: anchor, Reason: why})
 				k := [2]string{reason, fix}
 				if i, ok := byReason[k]; ok {
 					w.Items[i].Settings += ", " + col.Title

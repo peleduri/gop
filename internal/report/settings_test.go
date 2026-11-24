@@ -44,8 +44,9 @@ func TestOrgSettingsSection(t *testing.T) {
 	html := render(t, g, "html")
 	for _, want := range []string{
 		`<a class="badge nv" href="#why-acme-legacy"><span aria-hidden="true">?</span> unknown</a>`,
-		`<li id="why-acme-legacy"><code>acme-legacy</code><br>IP allow list: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy</li>`,
-		`<div class="note">Context, not part of the score: target org acme-actions: SSO not enforced (configured), IP allow list off</div>`,
+		`<li id="why-acme-legacy"><code>acme-legacy</code><ul><li><strong>IP allow list</strong>: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy</li></ul></li>`,
+		`<span class="tip">not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy</span>`,
+		`<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-actions: SSO not enforced (configured), IP allow list off</p>`,
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("html lacks %q", want)
