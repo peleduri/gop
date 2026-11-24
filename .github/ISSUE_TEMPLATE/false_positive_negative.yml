@@ -1,0 +1,62 @@
+name: False positive or false negative
+description: gop reported a path that is not real, or missed one that is
+title: "[accuracy] "
+labels: [correctness]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Privacy first.** This issue is public. Never paste a raw graph.json, a report, or real org, repo, user, secret or runner names. Reproduce with the synthetic demo (`gop demo`) or the fixture (`testdata/acme/graph.json`) if you can; otherwise attach the output of `gop redact --graph graph.json --out shareable.json` and name the synthetic node IDs, for example `repo:acme-org-03/repo-012`. Never attach the `--map-out` mapping file.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - false positive (gop reports reach that does not exist)
+        - false negative (gop misses reach that exists)
+        - wrong evidence level (for example confirmed when it should be possible)
+        - AI agent detection (missed, or wrongly flagged)
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where you saw it
+      multiple: true
+      options: [HTML report, Markdown report, gop paths / gop who, MCP answer, SARIF, gop diff, other]
+    validations:
+      required: true
+  - type: textarea
+    id: path
+    attributes:
+      label: The path or finding
+      description: The hops as gop printed them, with synthetic or redacted names, including each hop's evidence (live, inferred, audit, supplied, not_visible).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it is wrong
+      description: Which setting, permission or workflow line shows the real answer? Describe it in general terms or with synthetic names.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction (optional)
+      description: A minimal synthetic workflow or setting, a `gop demo` seed, or a redacted graph attached here.
+  - type: input
+    id: version
+    attributes:
+      label: gop version
+      description: Output of `gop version`
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: This issue contains no real org, repo, user, secret or runner names and no tokens.
+          required: true

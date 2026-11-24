@@ -1,12 +1,52 @@
 # gop: GitHub Enterprise Org Posture
 
-**Who can make code run where in your GitHub Enterprise.** gop maps an enterprise as an evidence graph and answers questions like: *members of acme-actions (default permission Write, 2FA not required) can push code that runs in 12 repos across 2 orgs, including a workflow with cloud OIDC. Which one change removes most of that?*
+**Which AI agents and people can make code run where in your GitHub Enterprise.** gop finds the AI coding agent in CI that anyone on the internet can start with a comment while it holds a write token and secrets, and the Action that members of one org can push to and that runs in another org's workflows with that org's OIDC trust. It shows every hop with its evidence and ranks the fewest changes that remove the most reach.
 
 [![ci](https://github.com/peleduri/gop/actions/workflows/ci.yml/badge.svg)](https://github.com/peleduri/gop/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/peleduri/gop/badge)](https://scorecard.dev/viewer/?uri=github.com/peleduri/gop)
 [![Go Report Card](https://goreportcard.com/badge/github.com/peleduri/gop)](https://goreportcard.com/report/github.com/peleduri/gop)
 [![License](https://img.shields.io/github/license/peleduri/gop)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/peleduri/gop?include_prereleases&sort=semver)](https://github.com/peleduri/gop/releases)
+
+[![The gop HTML report for the synthetic demo enterprise: a critical-exposure verdict with confirmed reach figures, then ranked fixes with the share of confirmed reach each removes](docs/assets/report-light.png)](https://peleduri.github.io/gop/)
+
+**[Site and live demo report](https://peleduri.github.io/gop/)** · [Quickstart](docs/quickstart.md) · [Docs](docs/) · [AI agents in CI guide](docs/agents-in-ci.md) · [Agent skill](skills/gop/README.md) · [How gop compares](docs/compare.md) · [Support](SUPPORT.md)
+
+## Try it in 60 seconds
+
+No token, no network, synthetic data:
+
+```sh
+go install github.com/peleduri/gop/cmd/gop@latest   # or brew, a signed archive, a container: see docs/install.md
+gop report --demo --out report.html                 # then open report.html
+gop report --demo --out - --format md               # or read it in the terminal
+```
+
+Then your own enterprise, with a read-only token ([Quickstart](docs/quickstart.md) has the token and GitHub App setup in the fewest steps):
+
+```sh
+export GITHUB_TOKEN=...                              # classic token of an enterprise owner: read:enterprise, read:org, repo
+gop doctor  --enterprise acme                        # preflight: scopes, SSO gaps, rate limit, time estimate, what will be not_visible
+gop collect --enterprise acme --out graph.json       # read-only
+gop report  --graph graph.json --out report.html
+```
+
+### What you'll see
+
+- **A verdict** in one sentence: who can make code run where, and the single change that removes the most confirmed reach.
+- **AI agents in CI:** workflows that run a coding agent, who can start each one (including people without push access), what untrusted text reaches its prompt, and what its token, secrets and tools let it do.
+- **Cross-org reach:** members of one org who can push to an Action that runs in other orgs' workflows, including Actions nested inside composite Actions and SHA pins that still run a mutable ref.
+- **Suggested fixes** ranked by the share of confirmed reach each removes, with the exact change (`gop fix-plan` prints the steps).
+- **Confirmed vs possible:** every hop is `live`, `inferred`, `audit`, `supplied` or `not_visible`. A hop the token could not see makes a path *possible*, never "no path".
+- **Every path, hop by hop**, with the API each fact came from.
+
+### Read-only, local, never phones home
+
+- gop sends only GET requests and GraphQL queries to the GitHub API; its client refuses anything else before sending it (the one exception: GitHub App mode mints read-only installation tokens).
+- No telemetry, no account, no server. graph.json and the report stay on your disk (mode `0600`).
+- Ask your AI agent over MCP (`gop serve`), use the CLI, or run the GitHub Action. Details in [Security and privacy](#security-and-privacy).
+
+## How it works
 
 gop is read-only. It joins org settings (default repository permission, 2FA, SSO), push access, workflows and the Actions they consume, including Actions nested inside composite Actions, and follows reach across org boundaries: members of one org push to a shared Action, and that Action runs inside another org's workflows with that org's secrets, OIDC trust and runners. You query the graph from an AI agent over MCP, from the CLI, or from a GitHub Action that builds an HTML report.
 
@@ -50,7 +90,7 @@ Possible (at least one hop not visible) (1):
 
 The last answer is the point of the tool: the token could not read acme-legacy's repositories, so gop reports a *possible* path, not "no path".
 
-To record this yourself with [vhs](https://github.com/charmbracelet/vhs): `vhs docs/demo.tape`.
+To record the demo GIF yourself with [vhs](https://github.com/charmbracelet/vhs): `vhs docs/demo.tape` (no token: `gop doctor`, then the demo report's verdict, AI agents section and fixes; it writes `docs/assets/demo.gif`).
 
 ## The nested-action trap
 
@@ -77,6 +117,8 @@ Good tools already cover GitHub security. Most of them answer "is this repo or o
 | Offensive tooling | What an attacker holding a token can exploit: runners, pwn requests, secrets | What one token can reach | Attack paths for red teams | [Gato-X](https://github.com/AdnaneKhan/gato-x) |
 | **gop** | Who can push code that ends up running in which repo's CI, with which secrets, OIDC trusts and runners | The whole enterprise, across orgs and nested Actions | A graph with evidence on every hop, confirmed vs possible reach, and the fewest changes that remove the most reach | |
 
+A longer, sourced comparison, including where each of those tools is better than gop, is in [docs/compare.md](docs/compare.md).
+
 Use them together. A linter tells you a workflow is unsafe; Scorecard tells you a repo lacks branch protection; gop tells you that the members of another org can change what that workflow runs. gop does not lint workflow contents for injection, and it is not an exploitation tool.
 
 ## Try it without a token
@@ -102,8 +144,6 @@ gop report --graph graph.json --out report.html                     # or ask you
 No enterprise handy? Every read command works on the fixture: `--graph testdata/acme/graph.json`.
 
 `gop report --demo --out report.html` builds the HTML report from the synthetic demo graph: the verdict, the fixes that remove the most confirmed reach, the top risks, what gop could not see and every path hop by hop ([docs/report.md](docs/report.md)).
-
-![The gop HTML report for the synthetic demo enterprise: a critical-exposure verdict with confirmed reach figures, then ranked fixes with the share of confirmed reach each removes](docs/assets/report-light.png)
 
 ### Connect your agent (MCP over stdio)
 
@@ -183,7 +223,6 @@ gop version
 `gop sarif` writes one SARIF 2.1.0 result per fixable edge for code-scanning style triage: `GOP001` for each `uses:` line of a mutable action ref that principals outside the consuming org can change (with the file and line), `GOP002` for an org whose default permission gives members push, `GOP003` (ranked first) for each `uses:` line of an action version with a known advisory. `--split-by-repo DIR` writes one file per repo. SARIF lists attack paths, so uploading it to code scanning shows them to everyone with alert access on the repo: gop never uploads it, and [docs/sarif.md](docs/sarif.md) explains the trade-off.
 `gop redact` makes a graph safe to attach to a bug report. Every org, repo, user, team, action, workflow file, secret name, runner label, environment and cloud name becomes a stable synthetic name (`acme-org-03`, `acme-org-03/repo-012`, `user-007`, `.github/workflows/wf-004.yml`; SHAs become other 40-hex strings, tags `v1.N`, branches `branch-N`), member, IP allow list and observed role-use (`times_used`) counts are bucketed and timestamps, including `last_used`, shift by one offset. Structure, evidence and the attrs reach depends on are kept, so reach and scores are the same as on the real graph. Attr keys gop does not define are dropped unless `--keep-attr` names them. Names come from HMAC-SHA256 under the salt: `--salt-file` gives the same names on every run, and without it each run uses a random salt. Before writing, it checks that no original name of 3 or more characters appears in the output and fails, writing nothing, if one does. `--map-out` writes the real-to-synthetic mapping to a local file: keep it, never share it. Regenerate a report from the redacted graph instead of redacting report.html.
 
-`gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md).
 `gop diff` compares two snapshots and reports posture drift: new and removed paths, setting changes, score deltas and coverage gaps. Facts the newer token cannot see are reported as lost visibility, never as removed. See [docs/drift.md](docs/drift.md). `gop report --graph new.json --previous old.json` opens the HTML report with the same changes as a "What changed" banner; [docs/report.md](docs/report.md) describes the report, the banner and its accessibility checks.
 
 `gop export --format cypher graph.json > gop.cypher` writes an idempotent Neo4j script that loads gop's nodes, edges and computed reach next to [Cartography](https://github.com/cartography-cncf/cartography) data, linked to its GitHub repo, org and AWS role nodes. See [docs/cartography.md](docs/cartography.md#export-gop-to-neo4j).
@@ -258,10 +297,15 @@ Scoring: each cloud role a principal reaches adds 13 to its blast radius score. 
 - `team:` nodes with nested teams (`MEMBER_OF` the parent team), direct team members (`MEMBER_OF` the team), and `CAN_PUSH` from each team repository grant with push. Members of a child team reach the parent's repos through the nesting. A non-owner token can't see secret teams; that gap is recorded in coverage.
 - Workflow files: the Actions and reusable workflows they use, `id-token: write`, secrets and self-hosted runners. Composite Actions and reusable workflows are expanded recursively at the referenced ref.
 - The Actions access setting of each private or internal repo that hosts a referenced Action. A workflow in another org can only use the Action when the setting allows it; when the setting can't be read (it needs repo admin), cross-org paths through the Action are possible, not confirmed.
+- Branch protection and rulesets: the effective default-branch protection of each repo (classic protection plus repo, org and enterprise rulesets, with bypass actors), and protection of the branches that mutable Action refs point at. A protected ref narrows who can change what runs; who can bypass it gets a `ref_bypass` edge. See [docs/schema.md](docs/schema.md).
+- AI coding agents in CI: workflows that run a known agent action or CLI, who can start each one, what untrusted text reaches its prompt and what its token, secrets and tools give it ([docs/agents-in-ci.md](docs/agents-in-ci.md)).
+- Known compromised Actions from OSV GitHub Actions advisories (`gop advisories update`, [docs/advisories.md](docs/advisories.md)) and Actions pinned by `.github/workflows/actions.lock` ([docs/actions-lock.md](docs/actions-lock.md)).
+
+What gop does with it, beyond reach: top risks grouped by cause (for example standing org ownership), org ownership concentration, ranked fixes including `reduce_owners`, a redesigned HTML report that opens with a verdict ([docs/report.md](docs/report.md)), and drift between two snapshots with `gop diff` ([docs/drift.md](docs/drift.md)).
 
 Refreshing some orgs: the collector API can re-collect only some orgs into an existing graph (`collect.Config.MergeInto` with `Orgs`, or `collect.Merge`), so cross-org paths survive without a full run; a CLI flag is planned. The merged graph mixes observation times: `org_collected_at` records when each org was last read, and `explain` shows each edge's `observed_at`. Both graphs must come from the same enterprise, host and token mode. Run `gop enrich` again after a merge: cloud trust edges of re-collected workflows are kept, but their coverage is not.
 
-Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, audit log facts, branch protection and environment rules.
+Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, audit log facts and environment protection rules.
 
 GitHub Enterprise Server: `gop collect --github-url https://github.acme.example` (or `GOP_GITHUB_URL`) reads `/api/v3` and `/api/graphql` on that host and leaves the APIs its version lacks `not_visible`. See [docs/ghes.md](docs/ghes.md).
 
@@ -384,12 +428,14 @@ Contributors: [docs/architecture.md](docs/architecture.md) has the package map, 
 
 Planned, roughly in order. Each item will get a [GitHub issue](https://github.com/peleduri/gop/issues); comment there if you need it.
 
-- Team and GitHub App push grants
+- GitHub App push grants
 - Audit log collection (`audit` evidence)
-- Branch protection, rulesets and environment protection as conditions on edges
-- `what-if` and `fix` CLI subcommands (available over MCP today)
+- Environment protection rules as conditions on edges
+- A `what-if` CLI subcommand (available over MCP today; `gop fix-plan` prints the steps of one fix)
 - Parallel collection
-- Diff between two collections
+- A CLI flag to re-collect some orgs into an existing graph (the collector API does it today)
+
+Shipped items move to [What gop collects today](#what-gop-collects-today) and [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

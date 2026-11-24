@@ -39,6 +39,9 @@
 - name: skip-changelog
   color: ededed
   description: "Leave out of the generated release notes"
+- name: ran-it
+  color: 0e8a16
+  description: "Report of a run from the I ran gop issue form"
 
 # ---- area: which part of gop it touches ----
 - name: collector
