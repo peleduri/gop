@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/peleduri/gop/internal/advisory"
 	"github.com/peleduri/gop/internal/collect"
 	"github.com/peleduri/gop/internal/demo"
 	"github.com/peleduri/gop/internal/diff"
@@ -45,8 +46,10 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
-              [--github-url URL] [--verbose]
-  gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json] --out graph2.json
+              [--github-url URL] [--verbose] [--advisories <zip|dir> | --advisories-live]
+  gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json]
+              [--advisories <zip|dir> | --advisories-live] --out graph2.json
+  gop advisories update [--out PATH]
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
               [--app-id N --app-key-file PATH]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
@@ -97,6 +100,11 @@ says it comes from a supplied file, not from the cloud. --poutine reads a poutin
 JSON report and marks the workflows its findings name (poutine_rules,
 poutine_severity); reach into a workflow with an injection finding ranks first.
 gop never runs poutine; unmatched findings are listed in coverage.
+advisories update downloads the OSV GitHub Actions advisories (all.zip) into
+the user cache dir. collect and enrich match every action ref against that copy
+(or --advisories, or the OSV API with --advisories-live) and mark affected refs
+(attrs advisories, advisory_severity); with no data the check is skipped and
+coverage says so. Paths through an affected action rank first.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
 validate checks graph.json against the published JSON Schema and that every
@@ -147,10 +155,16 @@ type app struct {
 	// gh reads the token of the GitHub CLI login (--use-gh-auth, or gop run
 	// as `gh gop`); nil means running gh. Tests set a fake.
 	gh ghTokener
+	// advisoryPath is the default local copy of the OSV advisories
+	// (advisory.DefaultPath); nil means none, so tests never read the
+	// user's cache. osvZipURL and osvAPIURL override the OSV endpoints.
+	advisoryPath         func() (string, error)
+	osvZipURL, osvAPIURL string
 }
 
 func main() {
-	a := &app{stdin: os.Stdin, stdout: os.Stdout, stderr: os.Stderr, getenv: os.Getenv, collect: collect.Collect, serve: mcpserver.ServeWith}
+	a := &app{stdin: os.Stdin, stdout: os.Stdout, stderr: os.Stderr, getenv: os.Getenv, collect: collect.Collect, serve: mcpserver.ServeWith,
+		advisoryPath: advisory.DefaultPath}
 	os.Exit(a.run(os.Args[1:]))
 }
 
@@ -209,6 +223,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdSARIF(rest)
 	case "export":
 		err = a.cmdExport(rest)
+	case "advisories":
+		err = a.cmdAdvisories(rest)
 	case "version", "--version", "-version":
 		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
 	case "help", "-h", "--help", "-help":
@@ -284,10 +300,14 @@ func (a *app) cmdCollect(args []string) error {
 		"cannot list) instead of one summary line per org (or set GOP_VERBOSE=1)")
 	var trusts trustFlag
 	fs.Var(&trusts, "oidc-trust", trustUsage+" (runs gop enrich after collection)")
+	adv := addAdvisoryFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if err := required("collect", "enterprise", *ent, "out", *out); err != nil {
+		return err
+	}
+	if err := adv.check("collect"); err != nil {
 		return err
 	}
 	if *resume && *cacheDir == "" {
@@ -332,6 +352,7 @@ func (a *app) cmdCollect(args []string) error {
 			return err
 		}
 	}
+	a.applyAdvisories(ctx, "collect", g, adv)
 	return a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) })
 }
 

@@ -261,7 +261,11 @@ func (r *redactor) graph(g *graph.Graph) *graph.Graph {
 		out.Edges = append(out.Edges, r.edge(e))
 	}
 	for _, c := range g.Coverage {
-		out.Coverage = append(out.Coverage, graph.Coverage{Scope: r.scope(c.Scope), Fact: r.text(c.Fact), Reason: r.text(c.Reason), NeedsFix: r.text(c.NeedsFix)})
+		reason := c.Reason
+		if c.Fact == graph.CoverageAdvisories {
+			reason = advisoryIDRe.ReplaceAllStringFunc(reason, func(id string) string { return advisoryID(r, id) })
+		}
+		out.Coverage = append(out.Coverage, graph.Coverage{Scope: r.scope(c.Scope), Fact: r.text(c.Fact), Reason: r.text(reason), NeedsFix: r.text(c.NeedsFix)})
 	}
 	// Sort on the synthetic names: the original order follows the real names.
 	sort.SliceStable(out.Nodes, func(i, j int) bool { return out.Nodes[i].ID < out.Nodes[j].ID })

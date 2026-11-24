@@ -27,6 +27,7 @@ gop does four things in order:
 | [`internal/report`](../internal/report) | `Render` writes one self-contained HTML file ([`html.go`](../internal/report/html.go), [`assets.go`](../internal/report/assets.go)) or Markdown ([`markdown.go`](../internal/report/markdown.go)) from the data built in [`data.go`](../internal/report/data.go). |
 | [`internal/fixplan`](../internal/fixplan) | Turns a graph fix into concrete change steps (workflow lines to edit, settings to change). Used by `fix_plan` and `gop fix-plan`. |
 | [`internal/oidc`](../internal/oidc) | Parses exported AWS, GCP and Azure OIDC trust files and matches them to workflow tokens (`gop enrich`). Offline only. |
+| [`internal/advisory`](../internal/advisory) | Loads OSV GitHub Actions advisories (a local `all.zip` or directory, or the OSV API with `--advisories-live`) and marks affected action refs (`advisories`, `advisory_severity`, `advisory_fixed`) for `gop collect` and `gop enrich`. Never talks to GitHub. See [advisories.md](advisories.md). |
 | [`internal/cartography`](../internal/cartography) | Reads the rows of a user-run Cartography query into OIDC trusts and observed role use for `gop enrich`. Offline only. |
 | [`internal/sarif`](../internal/sarif) | Turns fixable edges into SARIF 2.1.0 results (`gop sarif`). |
 | [`internal/diff`](../internal/diff) | Compares two graph snapshots (`gop diff`, the `diff` MCP tool). |

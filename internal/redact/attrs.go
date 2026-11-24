@@ -43,6 +43,7 @@ func init() {
 		graph.AttrActionsLock, graph.AttrLockedSHA, graph.AttrLockEntry, graph.AttrLockMissing,
 		graph.AttrSource, graph.AttrObservedUse, graph.AttrTimesUsed, graph.AttrLastUsed,
 		graph.AttrPoutineRules, graph.AttrPoutineSeverity, graph.AttrPoutineJobs, graph.AttrPoutineFile,
+		graph.AttrAdvisories, graph.AttrAdvisorySeverity, graph.AttrAdvisoryFixed,
 		// documented in the JSON Schema
 		"token_write", "token_scopes", "risky_triggers", "trigger", "exec",
 		// named by the redaction itself
@@ -53,8 +54,11 @@ func init() {
 }
 
 var (
-	wordRe = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
-	intRe  = regexp.MustCompile(`^[0-9]+$`)
+	// advisoryIDRe finds advisory IDs (GHSA-..., CVE-..., PYSEC-...) in coverage text.
+	advisoryIDRe = regexp.MustCompile(`\b[A-Z][A-Z0-9]+-[A-Za-z0-9]+(-[A-Za-z0-9]+)+\b`)
+	versionRe    = regexp.MustCompile(`^v?[0-9]+(\.[0-9]+){0,3}$`)
+	wordRe       = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+	intRe        = regexp.MustCompile(`^[0-9]+$`)
 )
 
 func enum(values ...string) policy {
@@ -117,6 +121,18 @@ func list(f func(r *redactor, s string) string) policy {
 		}
 		return strings.Join(items, ","), false, true
 	}
+}
+
+// advisoryID maps an advisory ID to a stable ADV-<hex> name: a real ID
+// names the public action it is about, which the redaction renames.
+func advisoryID(r *redactor, s string) string {
+	return "ADV-" + hex.EncodeToString(r.mac("advisory\x00" + s))[:12]
+}
+
+// versionAttr keeps a dotted version number (advisory_fixed), gop's
+// vocabulary, and drops anything else.
+func versionAttr(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
+	return v, true, versionRe.MatchString(v)
 }
 
 func text(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r.text(v), false, true }
@@ -310,6 +326,13 @@ var policies = map[string]policy{
 	"in_enterprise":     boolish,
 	"teams_partial":     boolish,
 	"org":               ownerAttr,
+}
+
+// Advisory attrs (docs/advisories.md), registered apart from the table above.
+func init() {
+	policies[graph.AttrAdvisories] = list(advisoryID)
+	policies[graph.AttrAdvisorySeverity] = enum("critical", "high", "medium", "low", "unknown")
+	policies[graph.AttrAdvisoryFixed] = versionAttr
 }
 
 // attrs rewrites an attr map. Keys outside the kept set are dropped; a kept

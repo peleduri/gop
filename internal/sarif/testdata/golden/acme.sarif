@@ -60,6 +60,32 @@
                   "github-actions"
                 ]
               }
+            },
+            {
+              "id": "GOP003",
+              "name": "action-with-known-advisory-reachable",
+              "shortDescription": {
+                "text": "A workflow runs an action version with a known compromise or vulnerability advisory"
+              },
+              "fullDescription": {
+                "text": "The uses: line names an action version that an OSV GitHub Actions advisory lists as affected, for example a hijacked tag that shipped code stealing secrets. The workflow runs that code with its secrets, OIDC tokens and runners."
+              },
+              "help": {
+                "text": "Move the action to the first fixed version the advisory names, or a commit SHA after it. Run gop fix-plan --pin <action> for every line to change. When the advisory is a compromise, also rotate the secrets and cloud credentials the workflow could reach while it ran the affected version.",
+                "markdown": "## Fix: move off the affected version\n\nAn [OSV](https://osv.dev) advisory lists this action version as affected. A compromised action runs the attacker's code with the workflow's secrets, OIDC tokens and runners.\n\n- Move the `uses:` line to the first fixed version (`advisory_fixed` on the action node) or a commit SHA after it; `gop fix-plan --graph graph.json --pin action:<owner>/<repo>@<ref>` lists every line with a diff.\n- With no fixed version, remove or replace the action.\n- For a compromise, rotate the secrets and cloud credentials the workflow reached while it ran the affected version, and check its run logs.\n\nSee docs/advisories.md for where the data comes from. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "high",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions"
+                ]
+              }
             }
           ]
         }

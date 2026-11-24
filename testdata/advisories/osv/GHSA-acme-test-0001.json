@@ -1,0 +1,20 @@
+{
+  "id": "GHSA-acme-test-0001",
+  "modified": "2026-01-01T00:00:00Z",
+  "aliases": ["CVE-0000-0001"],
+  "summary": "Synthetic: acme-actions/checkout-ish tags v2.0.0 to v2.4.0 were moved to a commit that prints secrets",
+  "affected": [
+    {
+      "package": {"ecosystem": "GitHub Actions", "name": "acme-actions/checkout-ish"},
+      "ranges": [
+        {"type": "ECOSYSTEM", "events": [{"introduced": "2.0.0"}, {"fixed": "2.4.1"}]},
+        {"type": "GIT", "repo": "https://github.com/acme-actions/checkout-ish", "events": [
+          {"introduced": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a"},
+          {"fixed": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"}
+        ]}
+      ],
+      "versions": ["v2.0.0", "v2.1.0", "v2.4.0", "2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c"]
+    }
+  ],
+  "database_specific": {"severity": "CRITICAL"}
+}

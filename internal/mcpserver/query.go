@@ -271,7 +271,25 @@ func ReachSentence(s graph.Score) string {
 		out += fmt.Sprintf("; %s with an injection finding from poutine (cited, not proved by gop)",
 			plural(s.PoutineInjectable, "reached workflow", "reached workflows"))
 	}
-	return out + fmt.Sprintf("; %d more possible", s.Possible.Repos)
+	out += fmt.Sprintf("; %d more possible", s.Possible.Repos)
+	return out + advisoryClause(s)
+}
+
+// advisoryClause names the actions with known advisories behind a score
+// (Score.Advisories), "" when there are none.
+func advisoryClause(s graph.Score) string {
+	adv := s.Advisories
+	if len(adv) == 0 {
+		return ""
+	}
+	if adv[0] == s.Principal {
+		out := "; " + s.Principal + " is a version with a known advisory, so whoever compromised it holds this reach"
+		if len(adv) > 1 {
+			out += ", and through " + strings.Join(adv[1:], ", ")
+		}
+		return out
+	}
+	return "; the paths run through " + plural(len(adv), "action", "actions") + " with a known advisory: " + strings.Join(adv, ", ")
 }
 
 // BlastRadius scores a principal.

@@ -44,6 +44,10 @@ type Score struct {
 	// separate rank factor cited from poutine: it never changes Score, the
 	// counts or any evidence. 0 when no poutine report was imported.
 	PoutineInjectable int `json:"poutine_injectable,omitempty"`
+	// Advisories lists the actions with a known-compromise or vulnerability
+	// advisory that a confirmed path runs through (for an advisory action ranked by
+	// TopPaths, the action itself first). Any entry here ranks first.
+	Advisories []string `json:"advisories,omitempty"`
 }
 
 // Blast radius weights. Terminal impact (cloud roles, OIDC to cloud, secrets,
@@ -141,6 +145,7 @@ func (ix *Index) score(cg *controlGraph, principal string) Score {
 			s.PoutineInjectable++
 		}
 	}
+	s.Advisories = ix.advisoriesOn(r)
 	return s
 }
 
@@ -153,13 +158,14 @@ func BlastRadius(g *Graph, principal string) Score {
 // BlastRadius on a prebuilt index.
 func (ix *Index) BlastRadius(principal string) Score { return ix.score(ix.base, principal) }
 
-// TopPaths ranks the scoring principals (see ScoringPrincipals) with RanksAbove
-// and returns the first n (all when n <= 0).
+// TopPaths ranks the scoring principals (see ScoringPrincipals), plus every
+// action with an advisory and confirmed reach (see advisoryScores), with
+// RanksAbove and returns the first n (all when n <= 0).
 func TopPaths(g *Graph, n int) []Score { return NewIndex(g).TopPaths(n) }
 
 // TopPaths on a prebuilt index.
 func (ix *Index) TopPaths(n int) []Score {
-	out := ix.allScores(ix.base)
+	out := append(ix.allScores(ix.base), ix.advisoryScores(ix.base)...)
 	sort.SliceStable(out, func(i, j int) bool { return RanksAbove(out[i], out[j]) })
 	if n > 0 && n < len(out) {
 		out = out[:n]
@@ -169,14 +175,19 @@ func (ix *Index) TopPaths(n int) []Score {
 
 // RanksAbove is the top_risks order. Rank factors, in order:
 //
-//  1. poutine injectable: more confirmed-reached workflows with an
+//  1. known advisory: an entry with confirmed reach through an action with
+//     a known-compromise or vulnerability advisory (rankAdvisory) first;
+//  2. poutine injectable: more confirmed-reached workflows with an
 //     injection-class poutine finding (Score.PoutineInjectable) first, so a
 //     confirmed path into a workflow poutine found injectable ranks above
 //     the same reach without one;
-//  2. confirmed Score (desc);
-//  3. PossibleScore (desc);
-//  4. principal ID.
+//  3. confirmed Score (desc);
+//  4. PossibleScore (desc);
+//  5. principal ID.
 func RanksAbove(a, b Score) bool {
+	if ra, rb := rankAdvisory(a), rankAdvisory(b); ra != rb {
+		return ra > rb
+	}
 	if a.PoutineInjectable != b.PoutineInjectable {
 		return a.PoutineInjectable > b.PoutineInjectable
 	}

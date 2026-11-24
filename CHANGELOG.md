@@ -55,6 +55,25 @@ flags may change in minor releases.
   entries ("rerun gh actions-lock"), and the report and the MCP summary
   (`action_pins`) split "pinned in workflow" from "pinned by actions.lock".
   Format and matching rules: [docs/actions-lock.md](docs/actions-lock.md).
+- Known compromises from OSV GitHub Actions advisories. `gop advisories update`
+  downloads the OSV `GitHub Actions` export (`all.zip`) into the user cache
+  dir; `gop collect` matches every action ref against that copy, or against
+  `--advisories <zip|dir>`, or the OSV API with the opt-in
+  `--advisories-live` (only package names are sent); `gop enrich` takes the
+  same flags for an existing graph. Tags are matched against the advisory's
+  ranges and versions, full SHAs against its listed commits; a branch, an
+  unlisted SHA or a moving tag that spans the fix is reported as unknown (a
+  coverage entry), never as safe. Affected action_ref nodes get
+  `advisories`, `advisory_severity` and `advisory_fixed` (no schema bump; in
+  the default redaction attrs, with advisory IDs renamed). With no data the
+  check is skipped with a coverage entry and the run goes on. Every action
+  with an advisory and confirmed reach becomes its own `top_risks` and report
+  entry, and any entry whose confirmed paths run through one ranks above
+  every entry without (`Score.advisories`); SARIF gets rule `GOP003`
+  (`action-with-known-advisory-reachable`), sorted first; `fix-plan --pin`
+  on such an action moves each line to the first fixed version or a SHA after
+  it. The demo graph plants one (`acme-oss/checkout-ish@v2`). See
+  `docs/advisories.md`.
 
 ### Changed
 

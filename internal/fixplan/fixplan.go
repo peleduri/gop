@@ -208,12 +208,31 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 	uses := strings.TrimPrefix(f.Action, "action:")
 	base, ref := splitRef(uses)
 	sha := "<sha-of-" + ref + ">"
-	switch ix.RefState(f.Action) {
-	case graph.RefPinned:
+	// A ref with a known advisory moves to the first fixed version (or a
+	// SHA after it): pinning the affected ref would keep the affected code.
+	an, _ := ix.Node(f.Action)
+	adv := graph.HasAdvisory(an)
+	target := ref
+	if adv {
+		target = FixedRef(an, ref)
+		if target != "" {
+			sha = "<sha-of-" + target + ">"
+			p.Description = "Move " + uses + " (known advisory) to " + target + " or a commit SHA after it in every workflow that uses it"
+			p.Caveats = append(p.Caveats, fmt.Sprintf("%s has a known advisory (%s): pinning it keeps the affected code. Move to %s, the first fixed version, or a commit SHA after it",
+				uses, strings.Join(graph.AdvisoryIDs(an), ", "), target))
+		} else {
+			target = ref
+			p.Caveats = append(p.Caveats, fmt.Sprintf("%s has a known advisory (%s) with no fixed version: remove the action or replace it; the steps below only list where it is used",
+				uses, strings.Join(graph.AdvisoryIDs(an), ", ")))
+		}
+	}
+	switch st := ix.RefState(f.Action); {
+	case adv:
+	case st == graph.RefPinned:
 		p.Caveats = append(p.Caveats, uses+" is already pinned to a commit SHA: there is nothing to change")
-	case graph.RefLocked:
+	case st == graph.RefLocked:
 		p.Caveats = append(p.Caveats, uses+" is locked (an immutable tag or a protected branch with no bypass that applies): pushing cannot move it, so a pin changes no reach")
-	case graph.RefPossiblyMutable:
+	case st == graph.RefPossiblyMutable:
 		p.Caveats = append(p.Caveats, uses+" is "+ix.MutabilityNote(f.Action)+": the pin closes paths through it only if it can move")
 	}
 
@@ -243,9 +262,12 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 		var notes []string
 		if line > 0 && file != "" {
 			s.Diff = PinDiff(file, line, uses, sha)
+			if target != ref {
+				s.Diff = fmt.Sprintf("--- a/%s\n+++ b/%s\n@@ -%d +%d @@\n-uses: %s\n+uses: %s@%s # %s\n", file, file, line, line, uses, base, sha, target)
+			}
 		} else {
 			noLine++
-			notes = append(notes, fmt.Sprintf("line not recorded in this graph: replace `uses: %s` with `uses: %s@%s # %s`", uses, base, sha, ref))
+			notes = append(notes, fmt.Sprintf("line not recorded in this graph: replace `uses: %s` with `uses: %s@%s # %s`", uses, base, sha, target))
 		}
 		if file == "" {
 			notes = append(notes, "file not recorded: the action's action.yml or action.yaml")
@@ -291,12 +313,18 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 		return
 	}
 	p.Steps = append(p.Steps, steps...)
+	note := fmt.Sprintf("fix-plan works offline and does not know the commit %s points at: run `gop pin --action %s --graph graph.json` to resolve it with one read-only API call and print these edits as a git apply diff, or replace %s with the full commit SHA of %s yourself. Use the same SHA in every step.",
+		ref, uses, sha, ref)
+	if target != ref {
+		note = fmt.Sprintf("fix-plan works offline and does not know the commit %s points at: run `gop pin --action %s` to resolve it with one read-only API call, "+
+			"check that the commit is not one the advisory lists, and replace %s with it. Use the same SHA in every step.",
+			target, base+"@"+target, sha)
+	}
 	p.Steps = append(p.Steps, Step{
 		Kind:  KindVerify,
 		Repo:  repoOf(base),
 		Owner: strings.SplitN(base, "/", 2)[0],
-		Note: fmt.Sprintf("fix-plan works offline and does not know the commit %s points at: run `gop pin --action %s --graph graph.json` to resolve it with one read-only API call and print these edits as a git apply diff, or replace %s with the full commit SHA of %s yourself. Use the same SHA in every step.",
-			ref, uses, sha, ref),
+		Note:  note,
 	})
 	if noLine > 0 {
 		p.Caveats = append(p.Caveats, fmt.Sprintf("%d of %d uses: lines have no line number in this graph (collected before line attributes); those steps say what to replace instead of a diff",
@@ -526,4 +554,18 @@ func LockGoverned(ix *graph.Index, action string) []LockUse {
 		return a.Line < b.Line
 	})
 	return out
+}
+
+// FixedRef is the ref to move an action with an advisory to: its
+// advisory_fixed version, written with a leading v when the current ref has
+// one and the version does not. "" when no fixed version is known.
+func FixedRef(n graph.Node, ref string) string {
+	f := n.Attrs[graph.AttrAdvisoryFixed]
+	if f == "" {
+		return ""
+	}
+	if strings.HasPrefix(ref, "v") && !strings.HasPrefix(f, "v") {
+		return "v" + f
+	}
+	return f
 }

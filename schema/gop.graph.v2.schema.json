@@ -127,7 +127,10 @@
         "poutine_rules": {"description": "workflow: sorted comma list of the poutine rule IDs with a finding in this workflow file (gop enrich --poutine). Cited from poutine, not proved by gop.", "type": "string", "minLength": 1},
         "poutine_severity": {"description": "workflow: the highest poutine rule level among those findings.", "type": "string", "enum": ["error", "warning", "note"]},
         "poutine_jobs": {"description": "workflow: sorted comma list of the job ids the poutine findings name.", "type": "string", "minLength": 1},
-        "poutine_file": {"description": "workflow: the poutine report the findings were read from.", "type": "string", "minLength": 1}
+        "poutine_file": {"description": "workflow: the poutine report the findings were read from.", "type": "string", "minLength": 1},
+        "advisories": {"description": "action_ref: comma list of the OSV advisory IDs (GitHub Actions ecosystem) that affect this ref, e.g. a known compromise. Set only for affected refs.", "type": "string", "minLength": 1},
+        "advisory_severity": {"description": "action_ref with advisories: the highest advisory severity.", "type": "string", "enum": ["critical", "high", "medium", "low", "unknown"]},
+        "advisory_fixed": {"description": "action_ref with advisories: the first fixed version that leaves every listed advisory; absent when one has no fix.", "type": "string", "minLength": 1}
       }
     },
     "EdgeAttrs": {
