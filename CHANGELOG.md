@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 flags may change in minor releases.
 
 ## [Unreleased]
+### Added
+- Top risks group by cause (#137). After the exact groups of #125, principals
+  whose confirmed repos come at least 90% through the same cause (org
+  ownership, one team, or membership of one org) and whose confirmed reach
+  overlaps by Jaccard 0.9 or more share one row: "4 owners of 18 to 20 orgs"
+  with the range of their repos and orgs ("54 to 56"). A direct collaborator
+  grant is never a shared cause. The report's row expands to each member's
+  own figures, and `top_risks` adds `cause`, `cause_scope`, `range` and (with
+  `detail: full`) `member_scores`. When the top row is a cause group, the
+  report headline and the `top_risks` summary name the cause ("4 accounts that
+  own 18 or more orgs can each push code that runs in ...; the cause is
+  standing org ownership"), never one member picked by tie-break. Scores,
+  counts and rank order are unchanged.
+- Org ownership concentration: a report block and a `gop://graph/summary`
+  `org_ownership` field with how many accounts own 1, 2-4, 5-9 and 10+ orgs
+  (the JSON lists them) and the share of confirmed (principal, repo) pairs
+  that depend on standing org ownership.
+- New fix kind `reduce_owners`: remove standing org ownership from accounts
+  that own N or more orgs (default 5), keeping at least 2 owners in each org
+  (the accounts over the threshold that own the most orgs stay where an org
+  needs them). `what_if` and `fix_plan` take `{type: "reduce_owners",
+  threshold}`, `suggest_fixes` ranks it by measured impact with a caveat that
+  recommends just-in-time ownership (`owner_threshold` input), and the CLI has
+  `gop fix-plan --reduce-owners N` and `gop report --owner-threshold N`.
+
 ### Fixed
 - `gop doctor` no longer states a repo total for an org the token does not
   own (#135). The enterprise GraphQL `repositories { totalCount }` counts only

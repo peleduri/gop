@@ -64,13 +64,15 @@ func NewServerWith(g *graph.Graph, version string, opts ServerOptions) *mcp.Serv
 			`{type:"pin_ref",action:"action:O/R@ref"} pins an action to a commit SHA; `+
 			`{type:"lower_default_perm",org:"org:X",to:"read"|"none"} lowers an org's default repository permission; `+
 			`{type:"restrict_token",workflow:"workflow:O/R/.github/workflows/x.yml"} sets the workflow's GITHUB_TOKEN to contents: read; `+
-			`{type:"harden_trigger",workflow:"workflow:O/R/.github/workflows/x.yml"} stops a risky trigger from running attacker code in the workflow. `+
+			`{type:"harden_trigger",workflow:"workflow:O/R/.github/workflows/x.yml"} stops a risky trigger from running attacker code in the workflow; `+
+			`{type:"reduce_owners",threshold:5} removes standing org ownership from accounts that own threshold or more orgs (default 5), keeping at least 2 owners per org. `+
 			"Reports confirmed and possible (principal, repo) pairs separately.",
 		e.WhatIf, func(o WhatIfOutput) string { return o.Summary })
 	addTool(s, "suggest_fixes",
 		"Suggest up to budget fixes by a greedy pick of the fix that removes the most confirmed "+
 			"(principal, repo) pairs, with the cumulative percentage removed. Fixes that touch only "+
-			"not_visible edges are never suggested."+detailNote,
+			"not_visible edges are never suggested. One candidate is reduce_owners: remove standing org ownership from "+
+			"accounts that own owner_threshold (default 5) or more orgs, keeping at least 2 owners per org."+detailNote,
 		withDetail(e.SuggestFixes, briefSuggest), func(o SuggestFixesOutput) string { return o.Summary })
 	addTool(s, "explain",
 		"Explain why an edge exists: its evidence level, source_api, observed_at and attributes, the rule of an "+

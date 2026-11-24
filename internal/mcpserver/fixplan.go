@@ -16,7 +16,7 @@ import (
 
 // FixPlanInput is the fix_plan tool input: exactly one of Fix and SuggestionRank.
 type FixPlanInput struct {
-	Fix            *FixSpec `json:"fix,omitempty" jsonschema:"the fix to plan, as in what_if: {type:pin_ref,action}, {type:lower_default_perm,org,to}, {type:restrict_token,workflow}, {type:harden_trigger,workflow}, or the advisory {type:require_reviews,repo} or {type:enable_push_protection,repo}"`
+	Fix            *FixSpec `json:"fix,omitempty" jsonschema:"the fix to plan, as in what_if: {type:pin_ref,action}, {type:lower_default_perm,org,to}, {type:restrict_token,workflow}, {type:harden_trigger,workflow}, {type:reduce_owners,threshold}, or the advisory {type:require_reviews,repo} or {type:enable_push_protection,repo}"`
 	SuggestionRank int      `json:"suggestion_rank,omitempty" jsonschema:"1-based rank of a fix in the suggest_fixes output with the default budget; use instead of fix"`
 	DetailInput
 }
@@ -71,6 +71,12 @@ func quotedDescription(f FixSpec) string {
 		return "Set permissions: contents: read on the GITHUB_TOKEN of " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:"))
 	case "harden_trigger":
 		return "Stop " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:")) + " from running attacker-controlled code on its risky triggers"
+	case "reduce_owners":
+		t := f.Threshold
+		if t <= 0 {
+			t = graph.DefaultOwnerThreshold
+		}
+		return fmt.Sprintf("Remove standing org ownership from accounts that own %d or more orgs (keep at least %d owners per org)", t, graph.MinOwnersPerOrg)
 	case "require_reviews":
 		return "Require at least one approving review on the default branch of " + sanitize.Value(strings.TrimPrefix(f.Repo, "repo:"))
 	case "enable_push_protection":
@@ -121,7 +127,8 @@ func addFixPlanTool(s *mcp.Server, e *Engine) {
 			"that uses the ref (repo, file, line and a one-line diff when the graph has line attributes); for " +
 			"lower_default_perm, the org setting with its UI path and REST call, and the repos where members lose push; " +
 			"for restrict_token, where to set permissions: contents: read in the workflow (top level or per job); for " +
-			"harden_trigger, the job and line of each checkout of the pull request head or script injection, with the change. " +
+			"harden_trigger, the job and line of each checkout of the pull request head or script injection, with the change; for " +
+			"reduce_owners, one role change per (account, org) ownership removed, and the owners kept so every org has at least 2. " +
 			"Pass fix (same shape as what_if) or suggestion_rank (1-based, from suggest_fixes). gop never runs the " +
 			"steps or calls write APIs: the REST call is text for whoever makes the change." + detailNote + evidenceNote + DataNote,
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: new(bool)},

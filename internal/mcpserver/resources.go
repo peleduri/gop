@@ -112,6 +112,7 @@ type Summary struct {
 	ActionPins    *graph.PinStats        `json:"action_pins,omitempty" jsonschema:"workflow uses: lines by how they are pinned: in the workflow file, by actions.lock, by actions.lock to a commit with a known advisory, stale actions.lock entry (not pinned), unpinned; only when the graph has an actions.lock fact"`
 	Orgs          []OrgSummary           `json:"orgs"`
 	TopPrincipals []graph.Score          `json:"top_principals" jsonschema:"top 5 principals by confirmed score"`
+	OrgOwnership  *graph.OrgOwnership    `json:"org_ownership,omitempty" jsonschema:"how concentrated standing org ownership is: accounts by number of orgs owned (1, 2-4, 5-9, 10+, with the accounts in each) and the share of confirmed (principal, repo) pairs that depend on org owner grants; only when an account owns an org"`
 	Note          string                 `json:"note"`
 }
 
@@ -173,6 +174,9 @@ func (e *Engine) Summary(now time.Time) Summary {
 	s.TopPrincipals = e.ix.TopPaths(summaryTopN)
 	if s.TopPrincipals == nil {
 		s.TopPrincipals = []graph.Score{}
+	}
+	if o, ok := e.ix.Ownership(); ok {
+		s.OrgOwnership = &o
 	}
 	return s
 }

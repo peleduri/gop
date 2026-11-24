@@ -81,10 +81,19 @@ func CoverageSummary(g *Graph) []OrgCoverage {
 // Caveat texts on fix suggestions and what-if results.
 const caveatNestedUnknown = "nested references not visible: the pin may not close every path"
 
+// CaveatReduceOwners travels with every ReduceOwners suggestion: owner work
+// still needs owners, so the fix is to grant it on demand.
+const CaveatReduceOwners = "prefer just-in-time ownership (owner access granted on demand and removed after) over standing ownership; " +
+	"the kept owners and anyone with owner access granted later still hold this reach"
+
 // fixCaveat returns what gop could not see that may make f less effective
 // than computed: a PinRef on an action whose nested references are unknown
-// (nested=unknown) may leave mutable references inside it. "" if none.
+// (nested=unknown) may leave mutable references inside it. A ReduceOwners
+// always carries CaveatReduceOwners. "" if none.
 func fixCaveat(ix *Index, f Fix) string {
+	if _, ok := f.(ReduceOwners); ok {
+		return CaveatReduceOwners
+	}
 	if p, ok := f.(PinRef); ok {
 		if n, ok := ix.nodes[p.Action]; ok && n.Attrs["nested"] == "unknown" {
 			return caveatNestedUnknown

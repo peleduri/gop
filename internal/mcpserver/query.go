@@ -473,6 +473,11 @@ func (e *Engine) toFix(i int, f FixSpec) (graph.Fix, error) {
 			return graph.RestrictToken{Workflow: w}, nil
 		}
 		return graph.HardenTrigger{Workflow: w}, nil
+	case "reduce_owners":
+		if f.Threshold < 0 {
+			return nil, fmt.Errorf("fixes[%d].threshold: want a positive number of owned orgs, got %d", i, f.Threshold)
+		}
+		return e.ix.ReduceOwners(f.Threshold), nil
 	case "require_reviews", "enable_push_protection":
 		r, err := e.resolve(fmt.Sprintf("fixes[%d].repo", i), f.Repo)
 		if err != nil {
@@ -522,6 +527,8 @@ func (e *Engine) WhatIf(in WhatIfInput) (res WhatIfOutput, _ error) {
 // SuggestFixesInput is the suggest_fixes tool input.
 type SuggestFixesInput struct {
 	Budget int `json:"budget,omitempty" jsonschema:"maximum number of fixes (default 3)"`
+	// OwnerThreshold sets the reduce_owners candidate's threshold.
+	OwnerThreshold int `json:"owner_threshold,omitempty" jsonschema:"for the reduce_owners candidate: accounts that own this many orgs or more (default 5)"`
 	DetailInput
 }
 
@@ -564,8 +571,8 @@ func DescribeFix(f graph.Fix) (FixSpec, string) { return fixplan.Spec(f) }
 
 // fixTypes and fixShapes name the fix types in error messages.
 const (
-	fixTypes  = "pin_ref, lower_default_perm, restrict_token, harden_trigger, require_reviews or enable_push_protection"
-	fixShapes = `{type:"pin_ref",action}, {type:"lower_default_perm",org,to}, {type:"restrict_token",workflow}, {type:"harden_trigger",workflow}, {type:"require_reviews",repo} or {type:"enable_push_protection",repo}`
+	fixTypes  = "pin_ref, lower_default_perm, restrict_token, harden_trigger, reduce_owners, require_reviews or enable_push_protection"
+	fixShapes = `{type:"pin_ref",action}, {type:"lower_default_perm",org,to}, {type:"restrict_token",workflow}, {type:"harden_trigger",workflow}, {type:"reduce_owners",threshold}, {type:"require_reviews",repo} or {type:"enable_push_protection",repo}`
 )
 
 // SuggestFixes runs the budgeted greedy.
@@ -578,8 +585,11 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 	if b == 0 {
 		b = DefaultBudget
 	}
+	if in.OwnerThreshold < 0 {
+		return SuggestFixesOutput{}, fmt.Errorf("owner_threshold must be positive, got %d", in.OwnerThreshold)
+	}
 	out := SuggestFixesOutput{Fixes: []FixOut{}}
-	for _, s := range e.ix.SuggestFixes(b) {
+	for _, s := range e.ix.SuggestFixesOwners(b, in.OwnerThreshold) {
 		spec, desc := DescribeFix(s.Fix)
 		es := s.Edges
 		if es == nil {

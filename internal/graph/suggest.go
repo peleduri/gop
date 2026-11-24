@@ -23,12 +23,11 @@ import (
 //     scratch. Results are written by principal and summed in order, and the
 //     pick is chosen after all of them are in, so the outcome never depends
 //     on scheduling.
-func (ix *Index) suggestFixes(budget int) []FixSuggestion {
+func (ix *Index) suggestFixes(budget int, cands []Fix) []FixSuggestion {
 	if budget <= 0 {
 		return nil
 	}
 	fx := ix.fast()
-	cands := ix.Candidates()
 	candTags := make([][]int32, len(cands))
 	tagCands := make([][]int32, len(fx.tagNum))
 	for c, f := range cands {

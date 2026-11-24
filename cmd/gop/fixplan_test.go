@@ -19,6 +19,7 @@ func TestGoldenFixPlanCLI(t *testing.T) {
 		{"fixplan_pin.md", []string{"fix-plan", "--graph", linesFixture, "--pin", "action:acme-actions/deploy@main", "--format", "markdown"}},
 		{"fixplan_lower.txt", []string{"fix-plan", "--graph", fixture, "--lower-default-perm", "org:acme-actions", "--to", "read"}},
 		{"fixplan_restrict.txt", []string{"fix-plan", "--graph", fixture, "--restrict-token", "workflow:acme-app/web/.github/workflows/ci.yml"}},
+		{"fixplan_owners.md", []string{"fix-plan", "--graph", "../../testdata/causes/graph.json", "--reduce-owners", "19", "--format", "markdown"}},
 		{"fixplan_harden.md", []string{"fix-plan", "--graph", "../../internal/fixplan/testdata/triggers.json", "--harden-trigger", "workflow:acme-app/docs/.github/workflows/preview.yml", "--format", "markdown"}},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
@@ -59,7 +60,8 @@ func TestFixPlanCLIErrors(t *testing.T) {
 		code int
 		want string
 	}{
-		{[]string{"fix-plan", "--graph", fixture}, exitUsage, "one of --pin, --lower-default-perm, --restrict-token or --harden-trigger is required"},
+		{[]string{"fix-plan", "--graph", fixture, "--reduce-owners", "-1"}, exitUsage, "--reduce-owners must be positive"},
+		{[]string{"fix-plan", "--graph", fixture}, exitUsage, "one of --pin, --lower-default-perm, --restrict-token, --harden-trigger or --reduce-owners is required"},
 		{[]string{"fix-plan", "--graph", fixture, "--pin", "action:acme-actions/deploy@main", "--lower-default-perm", "org:acme-actions"}, exitUsage, "use only one of"},
 		{[]string{"fix-plan", "--graph", fixture, "--restrict-token", "workflow:acme-app/web/.github/workflows/ci.yml", "--harden-trigger", "workflow:acme-app/web/.github/workflows/ci.yml"}, exitUsage, "use only one of"},
 		{[]string{"fix-plan", "--graph", fixture, "--restrict-token", "repo:acme-app/web"}, exitRuntime, "not a workflow"},

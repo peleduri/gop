@@ -24,6 +24,9 @@ type Options struct {
 	Top       int    // principals in the risks table and paths section (default 10)
 	FixBudget int    // suggested fixes (default 5)
 	Version   string // gop version for the footer
+	// OwnerThreshold is the reduce_owners candidate's threshold (0:
+	// graph.DefaultOwnerThreshold).
+	OwnerThreshold int
 	// Changes is diff.Compare(previous, current) (gop report --previous):
 	// the report opens with a "what changed" banner. Nil means no banner.
 	Changes *diff.Report
@@ -94,6 +97,11 @@ type data struct {
 	HardenFixes   []hardenFixRow
 	Coverage      []graph.Coverage
 	Banner        *banner // set only with Options.Changes
+	// Ownership is the org ownership concentration; nil when no account
+	// owns an org in this graph.
+	Ownership *ownership
+	// Ranged is true when a risk row is a cause group with ranges.
+	Ranged bool
 
 	// HTML only: the data the filters and org views read, the org names
 	// for the filter bar, and a note when embedded paths were cut.
@@ -109,6 +117,8 @@ type data struct {
 	ix     *graph.Index
 	sugg   []graph.FixSuggestion
 	budget int
+	// ownerThreshold is Options.OwnerThreshold.
+	ownerThreshold int
 }
 
 // whatIfFixes are the top suggested fixes the Graph tab can simulate: the
@@ -118,7 +128,7 @@ func (d *data) whatIfFixes() []graph.FixSuggestion {
 	if len(d.sugg) >= graphWhatIfFixes || d.budget >= graphWhatIfFixes {
 		return d.sugg
 	}
-	return d.ix.SuggestFixes(graphWhatIfFixes)
+	return d.ix.SuggestFixesOwners(graphWhatIfFixes, d.ownerThreshold)
 }
 
 // addEmbedded fills the HTML-only fields from the graph.
@@ -157,9 +167,14 @@ type riskRow struct {
 	// Group is set for a row of two or more principals with identical
 	// confirmed reach: "14 principals (org owners of acme)". Members lists
 	// every member; MembersText is the truncated list the row shows.
-	Group                        string
-	Members                      []string
-	MembersText                  string
+	Group       string
+	Members     []string
+	MembersText string
+	// ReposRange and OrgsRange are the spread of a cause group's members
+	// ("1,009 to 1,079"); MemberRows each member's own figures. Set only on
+	// a cause group (graph.RiskGroup.Cause).
+	ReposRange, OrgsRange        string
+	MemberRows                   []memberRow
 	Repos, Orgs                  int
 	Cloud                        int
 	OIDC, Secrets, Runners       int
@@ -175,6 +190,60 @@ type riskRow struct {
 	// Poutine counts the confirmed-reached workflows with an injection-class
 	// poutine finding (Score.PoutineInjectable); 0 without a poutine import.
 	Poutine int
+}
+
+// ownership is the org ownership concentration block: how many accounts own
+// 1, 2-4, 5-9 and 10 or more orgs, and how much confirmed reach depends on
+// standing ownership. Counts only: the members are in the JSON.
+type ownership struct {
+	Line    string
+	Note    string
+	Buckets []ownerBucket
+	Tone    string // crit when an account owns 10 or more orgs, high for 5-9
+}
+
+type ownerBucket struct {
+	Label    string
+	Accounts int
+	Width    string // bar width class, share of the largest bucket
+	Tone     string // crit for 10+, high for 5-9
+}
+
+func ownershipView(o graph.OrgOwnership) *ownership {
+	v := &ownership{
+		Line: fmt.Sprintf("%.0f%% of confirmed reach depends on standing org ownership: removing every org owner grant would remove %s of %s confirmed (principal, repo) pairs.",
+			o.OwnerPct, mcpserver.Num(o.OwnerPairs), mcpserver.Num(o.ConfirmedPairs)),
+		Note: fmt.Sprintf("%s own at least one org. An org owner is admin on every repo of the org, so an account that owns many orgs can push code that runs across all of them. gop counts owners from org owner grants on repos: an org with no repos shows no owners. The gop://graph/summary resource lists the accounts in each bucket.",
+			plural(o.Owners, "account", "accounts")),
+	}
+	most := 0
+	for _, b := range o.Buckets {
+		most = max(most, b.Accounts)
+	}
+	for _, b := range o.Buckets {
+		ob := ownerBucket{Label: strings.Replace(b.Label, "-", "–", 1), Accounts: b.Accounts, Width: "w0"}
+		if most > 0 {
+			ob.Width = widthClass(float64(b.Accounts) / float64(most))
+		}
+		switch {
+		case b.Min >= 10:
+			ob.Tone = "crit"
+		case b.Min >= graph.DefaultOwnerThreshold:
+			ob.Tone = "high"
+		}
+		if b.Accounts > 0 && (v.Tone == "" || ob.Tone == "crit") && ob.Tone != "" {
+			v.Tone = ob.Tone
+		}
+		v.Buckets = append(v.Buckets, ob)
+	}
+	return v
+}
+
+// memberRow is one member of a cause group with its own figures.
+type memberRow struct {
+	Principal          string
+	Repos, Orgs, Owned int
+	Score              string
 }
 
 type fixRow struct {
@@ -296,12 +365,20 @@ func build(g *graph.Graph, opts Options) data {
 			row.Group, row.Members = mcpserver.GroupKind(g), g.Members
 			row.MembersText = mcpserver.MembersText(g.Members, mcpserver.MaxGroupMembersText)
 		}
+		if g.Range != nil {
+			d.Ranged = true
+			row.ReposRange, row.OrgsRange = mcpserver.RangeText(g.Range.Repos), mcpserver.RangeText(g.Range.Orgs)
+			for _, m := range g.MemberScores {
+				row.MemberRows = append(row.MemberRows, memberRow{Principal: m.Principal, Repos: m.Confirmed.Repos,
+					Orgs: m.Confirmed.Orgs, Owned: len(ix.OwnedOrgs(m.Principal)), Score: fmt.Sprintf("%.1f", m.Score)})
+			}
+		}
 		d.Risks = append(d.Risks, row)
 		if pp := pickPaths(ix, s.Principal); len(pp) > 0 {
 			d.Paths = append(d.Paths, principalPaths{Principal: s.Principal, Group: row.Group, Paths: pp})
 		}
 	}
-	d.sugg, d.budget = ix.SuggestFixes(opts.FixBudget), opts.FixBudget
+	d.sugg, d.budget, d.ownerThreshold = ix.SuggestFixesOwners(opts.FixBudget, opts.OwnerThreshold), opts.FixBudget, opts.OwnerThreshold
 	for i, f := range d.sugg {
 		_, desc := mcpserver.DescribeFix(f.Fix)
 		d.Fixes = append(d.Fixes, fixRow{N: i + 1, Description: desc, FixID: f.FixID, Removed: f.Removed,
@@ -325,6 +402,9 @@ func build(g *graph.Graph, opts Options) data {
 	}
 	if st := ix.PinStats(); st.HasLock() {
 		d.LockLine = lockLine(st)
+	}
+	if o, ok := ix.Ownership(); ok {
+		d.Ownership = ownershipView(o)
 	}
 	d.Orgs, d.OrgWhy = orgSettings(g)
 	addHardening(&d, ix, opts.Top)
@@ -355,6 +435,9 @@ func headlinePick(ix *graph.Index, top []graph.RiskGroup) graph.RiskGroup {
 }
 
 func headline(ix *graph.Index, g graph.RiskGroup) string {
+	if g.Cause != "" && g.Range != nil {
+		return causeHeadline(ix, g)
+	}
 	s := g.GroupScore
 	c := s.Confirmed
 	who := mcpserver.GroupWho(ix, g)
@@ -392,9 +475,18 @@ func headline(ix *graph.Index, g graph.RiskGroup) string {
 		out += fmt.Sprintf(" %s more possible through facts gop could not see.", plural(s.Possible.Repos, "repo", "repos"))
 	}
 	if c.CloudTargets > 0 {
-		r := ix.Reach(s.Principal, graph.Options{})
-		var files []string
-		seen := map[string]bool{}
+		out += suppliedSentence(ix, []string{s.Principal})
+	}
+	return out
+}
+
+// suppliedSentence names the supplied trust files behind the principals'
+// confirmed cloud roles, "" when there are none.
+func suppliedSentence(ix *graph.Index, principals []string) string {
+	var files []string
+	seen := map[string]bool{}
+	for _, p := range principals {
+		r := ix.Reach(p, graph.Options{})
 		for _, id := range r.Confirmed.CloudTargets {
 			for _, f := range r.Paths[id].SuppliedFiles() {
 				if !seen[f] {
@@ -403,8 +495,77 @@ func headline(ix *graph.Index, g graph.RiskGroup) string {
 				}
 			}
 		}
-		sort.Strings(files)
-		out += " Cloud hops from supplied trust files " + strings.Join(files, ", ") + ", not read from the cloud."
+	}
+	if len(files) == 0 {
+		return ""
+	}
+	sort.Strings(files)
+	return " Cloud hops from supplied trust files " + strings.Join(files, ", ") + ", not read from the cloud."
+}
+
+// causeHeadline names a cause group's cause, never one member: "4 accounts
+// that own 18 or more orgs can each push code that runs in 1,009 to 1,079
+// repos across 18 to 20 orgs (confirmed)". The impact terms give the most
+// any member reaches ("up to" when members differ).
+func causeHeadline(ix *graph.Index, g graph.RiskGroup) string {
+	who := mcpserver.GroupWho(ix, g)
+	r := g.Range
+	out := fmt.Sprintf("%s can each push code that runs in %s across %s (confirmed)", who,
+		mcpserver.RangePlural(r.Repos, "repo", "repos"), mcpserver.RangePlural(r.Orgs, "org", "orgs"))
+	span := func(get func(graph.Score) int) graph.MinMax {
+		var m graph.MinMax
+		for i, s := range g.MemberScores {
+			n := get(s)
+			if i == 0 || n < m.Min {
+				m.Min = n
+			}
+			if i == 0 || n > m.Max {
+				m.Max = n
+			}
+		}
+		return m
+	}
+	var term []string
+	for _, t := range []struct {
+		get       func(graph.Score) int
+		one, many string
+	}{
+		{func(s graph.Score) int { return s.Confirmed.CloudTargets }, "cloud role", "cloud roles"},
+		{func(s graph.Score) int { return s.Confirmed.OIDC }, "cloud OIDC trust", "cloud OIDC trusts"},
+		{func(s graph.Score) int { return s.Confirmed.Secrets }, "secret scope", "secret scopes"},
+		{func(s graph.Score) int { return s.Confirmed.Runners }, "self-hosted runner pool", "self-hosted runner pools"},
+	} {
+		m := span(t.get)
+		if m.Max == 0 {
+			continue
+		}
+		txt := plural(m.Max, t.one, t.many)
+		if m.Min != m.Max {
+			txt = "up to " + txt
+		}
+		term = append(term, txt)
+	}
+	if len(term) > 0 {
+		out += ", including " + strings.Join(term, ", ")
+	}
+	out += "."
+	switch g.Cause {
+	case graph.CauseOrgOwner:
+		out += " The cause is standing org ownership: an org owner is admin on every repo of each org it owns."
+	case graph.CauseTeam:
+		out += " The cause is one team: " + g.CauseScope[0] + "."
+	case graph.CauseOrgMembers:
+		out += " The cause is membership of " + strings.TrimPrefix(g.CauseScope[0], "members:") + "."
+	}
+	if span(func(s graph.Score) int { return s.Confirmed.CloudTargets }).Max > 0 {
+		out += suppliedSentence(ix, g.Members)
+	}
+	if m := span(func(s graph.Score) int { return s.Possible.Repos }); m.Max > 0 {
+		if m.Min == m.Max {
+			out += fmt.Sprintf(" %s more possible each through facts gop could not see.", plural(m.Max, "repo", "repos"))
+		} else {
+			out += fmt.Sprintf(" Up to %s more possible through facts gop could not see.", plural(m.Max, "repo", "repos"))
+		}
 	}
 	return out
 }
