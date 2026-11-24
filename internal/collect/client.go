@@ -174,9 +174,16 @@ func (c *Client) noteGraphQLRate(remaining int, resetAt time.Time) {
 	}
 	c.rate.mu.Lock()
 	defer c.rate.mu.Unlock()
-	c.rate.s.GraphQLRemaining = remaining
+	// The same response's headers were noted first. When both report a
+	// remaining count, keep the lower one and the earlier reset, so a stale
+	// or optimistic body never lets a request dip into Config.Reserve.
+	if cur := c.rate.s.GraphQLRemaining; cur < 0 || remaining < cur {
+		c.rate.s.GraphQLRemaining = remaining
+	}
 	if !resetAt.IsZero() {
-		c.rate.s.GraphQLReset = resetAt.UTC()
+		if cur := c.rate.s.GraphQLReset; cur.IsZero() || resetAt.Before(cur) {
+			c.rate.s.GraphQLReset = resetAt.UTC()
+		}
 	}
 }
 
