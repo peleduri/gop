@@ -148,7 +148,7 @@ func agentConfidence(sources []string) string {
 	switch {
 	case containsStr(sources, "uses") || containsStr(sources, "setup"):
 		return graph.AgentAction
-	case containsStr(sources, "run"):
+	case containsStr(sources, "run") || containsStr(sources, "image"):
 		return graph.AgentCLI
 	}
 	return graph.AgentHeuristic
@@ -193,6 +193,13 @@ func agentJob(w *yamlWalk, id string, job *yamlMap, risky bool, wfEnv *yamlMap, 
 			k, _ = job.get("runs-on")
 		}
 		a.at("", k)
+	}
+	for _, im := range jobImages(w, job) {
+		if ag, ok := matchAgentImage(im.ref); ok {
+			a.kinds[ag.kind], a.sources["image"] = true, true
+			a.setGate(graph.GateNone)
+			a.at("", im.at)
+		}
 	}
 	// A called reusable workflow runs with this job's event: its agents are
 	// this job's.
@@ -599,6 +606,62 @@ var cmdPrefix = map[string]bool{
 	"-y": true, "--yes": true, "pnpm": true, "yarn": true, "bun": true, "run": true, "x": true,
 }
 
+// jobImage is one container image a job names, with the node to point at.
+type jobImage struct {
+	ref string
+	at  *yaml.Node
+}
+
+// jobImages lists the images a job runs: its container (a string or
+// container.image), each services.*.image and each docker:// step.
+func jobImages(w *yamlWalk, job *yamlMap) []jobImage {
+	var out []jobImage
+	if k, _ := job.get("container"); k != nil {
+		if s := scalarOf(w, field(job, "container")); s != "" {
+			out = append(out, jobImage{s, k})
+		} else if c, err := w.mapping(field(job, "container"), "container"); err == nil {
+			if s := scalarOf(w, field(c, "image")); s != "" {
+				out = append(out, jobImage{s, k})
+			}
+		}
+	}
+	if svcs, err := w.mapping(field(job, "services"), "services"); err == nil && svcs != nil {
+		for _, name := range svcs.keys {
+			if svc, err := w.mapping(field(svcs, name), "service"); err == nil {
+				if s := scalarOf(w, field(svc, "image")); s != "" {
+					k, _ := svcs.get(name)
+					out = append(out, jobImage{s, k})
+				}
+			}
+		}
+	}
+	steps, _ := w.sequence(field(job, "steps"), "steps")
+	for _, sn := range steps {
+		step, err := w.mapping(sn, "step")
+		if err != nil {
+			continue
+		}
+		if s := scalarOf(w, field(step, "uses")); strings.HasPrefix(s, "docker://") {
+			k, _ := step.get("uses")
+			out = append(out, jobImage{strings.TrimPrefix(s, "docker://"), k})
+		}
+	}
+	return out
+}
+
+// matchAgentImage reports a known agent platform image (any tag or digest).
+func matchAgentImage(ref string) (agentImage, bool) {
+	r := strings.ToLower(strings.TrimSpace(ref))
+	for _, ai := range agentImages {
+		for _, p := range ai.prefixes {
+			if r == p || strings.HasPrefix(r, p+":") || strings.HasPrefix(r, p+"@") {
+				return ai, true
+			}
+		}
+	}
+	return agentImage{}, false
+}
+
 // matchAgentCLI finds a non-interactive agent CLI invocation in a run:
 // script. args is the rest of the matched command line.
 func matchAgentCLI(run string) (agentCLI, string, bool) {
@@ -659,6 +722,15 @@ func cliName(s string) string {
 }
 
 func cliMarked(c agentCLI, args []string) bool {
+	if len(args) >= 2 {
+		a0 := strings.ToLower(strings.Trim(args[0], `"'`))
+		a1 := strings.ToLower(strings.Trim(args[1], `"'`))
+		for _, s := range c.subs {
+			if a0 == s[0] && a1 == s[1] {
+				return true
+			}
+		}
+	}
 	for i, a := range args {
 		a = strings.ToLower(strings.Trim(a, `"'`))
 		if eq := strings.Index(a, "="); eq > 0 && strings.HasPrefix(a, "-") {
