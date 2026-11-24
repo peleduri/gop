@@ -49,7 +49,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH [--parallel N]]
               [--oidc-trust <files>] [--github-url URL] [--verbose] [--advisories <zip|dir> | --advisories-live]
-              [--cache-dir DIR [--resume]] [--max-requests N] [--reserve N] [--priority a,b]
+              [--cache-dir DIR [--resume] [--incremental [--full-every DAYS]]] [--max-requests N] [--reserve N] [--priority a,b]
   gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json]
               [--advisories <zip|dir> | --advisories-live] --out graph2.json
   gop advisories update [--out PATH]
