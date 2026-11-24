@@ -7,8 +7,8 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-24
 ### Added
-
 - Principals with identical reach share one row in the report's top risks
   table, the `top_risks` MCP tool and `gop sarif` messages. Two principals group
   only when their confirmed reach is the same set of targets and every score
@@ -25,7 +25,6 @@ flags may change in minor releases.
   message folds a group only when it has more members than the message names;
   its principal lists stay complete. Scores, counts and the rank order are
   unchanged: grouping is presentation only.
-
 - Org settings and hardening context (#126). The report's Org settings
   section (HTML and Markdown) now has one row per org with SSO, 2FA, IP allow
   list, default permission, member capabilities and members; a setting gop
@@ -127,9 +126,20 @@ flags may change in minor releases.
   on such an action moves each line to the first fixed version or a SHA after
   it. The demo graph plants one (`acme-oss/checkout-ish@v2`). See
   `docs/advisories.md`.
+- `gop enrich --poutine <report.json>` imports a
+  [poutine](https://github.com/boostsecurityio/poutine) JSON report (format
+  checked against poutine v1.1.6; gop never runs poutine). Each finding maps
+  to its workflow node by repo and file and sets `poutine_rules`,
+  `poutine_severity`, `poutine_jobs` and `poutine_file`. Findings that match no
+  workflow (repo outside the graph, composite action, non-GitHub purl, no
+  path) are printed and listed in coverage as `poutine_finding`, never
+  dropped. A new, separate rank factor `poutine_injectable` (confirmed-reached
+  workflows with an `injection` or `untrusted_checkout_exec` finding) ranks
+  such principals first in `top_risks` and the report; scores, counts and
+  evidence are unchanged, and poutine is cited as its own source. SARIF and
+  malformed files fail with a clear error. See `docs/poutine.md`.
 
 ### Changed
-
 - The HTML report is redesigned. It opens with a verdict: the posture
   (critical, high or moderate exposure, from the worst confirmed severity in
   the top risks, as in `gop sarif`), the headline, the first fix, and six
@@ -164,18 +174,6 @@ flags may change in minor releases.
   previous answers (the `diff` per-list default of 50 is unchanged there). On a
   synthetic 2,000-repo, 50-team enterprise every brief answer stays under 8 kB.
   The `gop paths` and `gop who` commands still print full answers.
-- `gop enrich --poutine <report.json>` imports a
-  [poutine](https://github.com/boostsecurityio/poutine) JSON report (format
-  checked against poutine v1.1.6; gop never runs poutine). Each finding maps
-  to its workflow node by repo and file and sets `poutine_rules`,
-  `poutine_severity`, `poutine_jobs` and `poutine_file`. Findings that match no
-  workflow (repo outside the graph, composite action, non-GitHub purl, no
-  path) are printed and listed in coverage as `poutine_finding`, never
-  dropped. A new, separate rank factor `poutine_injectable` (confirmed-reached
-  workflows with an `injection` or `untrusted_checkout_exec` finding) ranks
-  such principals first in `top_risks` and the report; scores, counts and
-  evidence are unchanged, and poutine is cited as its own source. SARIF and
-  malformed files fail with a clear error. See `docs/poutine.md`.
 - `gop collect` no longer prints one stderr line per repository whose
   collaborators the token cannot list. It counts them and, at the end of each
   org, prints one line such as `org acme-actions: collaborators not visible on
@@ -184,7 +182,6 @@ flags may change in minor releases.
   unchanged. `--verbose` restores the per-repository lines.
 
 ### Fixed
-
 - Advisories: a `uses:` that `.github/workflows/actions.lock` pins is now
   checked on the locked commit (`locked_sha`), not only on the workflow's ref.
   A lock that pins a commit an OSV advisory lists as affected used to count as
@@ -215,7 +212,6 @@ flags may change in minor releases.
   fake.
 
 ### Security
-
 - Harden MCP and report output against prompt injection through GitHub
   names (repo, workflow, team, branch, environment and file names are
   written by whoever can create them). A new `internal/sanitize` package
