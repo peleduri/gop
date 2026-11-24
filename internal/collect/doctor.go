@@ -56,11 +56,15 @@ const (
 	// DoctorMaxOrgs is how many orgs doctor probes, one request each.
 	DoctorMaxOrgs = 100
 
-	estAvgWorkflows   = 3   // workflow files per repository (not counted by doctor)
-	estPerRepo        = 2   // collaborators + workflow directory listing
-	estPerOrg         = 8   // owner view, roles, teams, outside collaborators, members
-	estEnterprise     = 10  // org list, licenses and other enterprise-level reads
-	estLatencyMillis  = 300 // average time per sequential request
+	estAvgWorkflows  = 3   // workflow files per repository (not counted by doctor)
+	estPerRepo       = 2   // collaborators + workflow directory listing
+	estPerOrg        = 8   // owner view, roles, teams, outside collaborators, members
+	estEnterprise    = 10  // org list, licenses and other enterprise-level reads
+	estLatencyMillis = 300 // average time per sequential request
+	// estBotScriptPct is the share (percent) of repositories with a run:
+	// step that invokes a repo script with a token, whose script gop reads
+	// once (one contents GET, botscript.go).
+	estBotScriptPct   = 5
 	estReposPerPage   = 100
 	headerScopes      = "X-OAuth-Scopes"
 	headerSSO         = "X-GitHub-SSO"
@@ -812,6 +816,8 @@ func (d *doctor) estimate() {
 	// workflow read and secret scanning in the repository listing, at no
 	// extra request).
 	e.Requests += int(math.Ceil(float64(e.Repos) / DefaultBatchSize))
+	// Bot merge scripts: one read-only contents GET per followed script.
+	e.Requests += int(math.Ceil(float64(e.Repos) * estBotScriptPct / 100))
 	minutes := float64(e.Requests) * estLatencyMillis / 1000 / 60
 	if b := r.REST; b != nil && e.Requests > b.Remaining && b.Limit > 0 {
 		short := e.Requests - b.Remaining

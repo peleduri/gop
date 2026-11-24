@@ -31,11 +31,11 @@ func TestParseBotFacts(t *testing.T) {
 		want *botFacts
 	}{
 		{"AI review approves with an App token", readBotFixture(t, "ai-review.yml"), &botFacts{
-			ApproveJobs: []string{"review"}, ApproveTokens: []string{graph.BotTokenApp}, ApproveStarter: graph.StarterPROpeners,
+			ApproveJobs: []string{"review"}, ApproveTokens: []string{graph.BotTokenApp}, ApproveStarter: graph.StarterPROpeners, ReReviews: true,
 		}},
 		{"author comment merges with the App", readBotFixture(t, "ai-merge.yml"), &botFacts{
 			MergeJobs: []string{"merge"}, MergeTokens: []string{graph.BotTokenApp}, MergeStarter: graph.StarterPROpeners,
-			MergeGate: graph.BotGateAuthor, MergeTriggers: []string{"issue_comment"}, MergeLine: 22,
+			MergeGate: graph.BotGateAuthor, MergeTriggers: []string{"issue_comment"}, MergeLine: 22, MergeKeys: []string{"REVIEW_APP_KEY"},
 		}},
 		{"author_association admits members", `on: issue_comment
 jobs:
@@ -47,7 +47,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MERGE_BOT_TOKEN }}
 `, &botFacts{MergeJobs: []string{"merge"}, MergeTokens: []string{graph.BotTokenPAT}, MergeStarter: graph.StarterMembers,
-			MergeGate: graph.BotGateAssociation, MergeTriggers: []string{"issue_comment"}, MergeLine: 7}},
+			MergeGate: graph.BotGateAssociation, MergeTriggers: []string{"issue_comment"}, MergeLine: 7, MergeKeys: []string{"MERGE_BOT_TOKEN"}}},
 		{"a named actor only", `on: issue_comment
 jobs:
   merge:
@@ -69,7 +69,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ github.event.pull_request.number }}
 `, &botFacts{MergeJobs: []string{"automerge"}, MergeTokens: []string{graph.BotTokenGitHub}, MergeStarter: graph.StarterPushers,
-			MergeGate: graph.BotGateNone, MergeTriggers: []string{"pull_request"}, MergeLine: 6}},
+			MergeGate: graph.BotGateNone, MergeTriggers: []string{"pull_request"}, MergeLine: 6, ReReviews: true}},
 		{"workflow_dispatch: maintainers", `on: workflow_dispatch
 jobs:
   merge:
@@ -79,7 +79,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.ADMIN_TOKEN }}
 `, &botFacts{MergeJobs: []string{"merge"}, MergeTokens: []string{graph.BotTokenPAT}, MergeStarter: graph.StarterMaintainers,
-			MergeGate: graph.BotGateNone, MergeAdmin: true, MergeLine: 6}},
+			MergeGate: graph.BotGateNone, MergeAdmin: true, MergeLine: 6, MergeKeys: []string{"ADMIN_TOKEN"}}},
 		{"github-script review and merge API calls", `on: pull_request_target
 env:
   BOT: ${{ secrets.BOT_PAT }}
@@ -102,7 +102,8 @@ jobs:
           TOKEN: ${{ secrets.MERGE_PAT }}
 `, &botFacts{ApproveJobs: []string{"approve"}, ApproveTokens: []string{graph.BotTokenPAT}, ApproveStarter: graph.StarterPROpeners,
 			MergeJobs: []string{"merge"}, MergeTokens: []string{graph.BotTokenPAT}, MergeStarter: graph.StarterPROpeners,
-			MergeGate: graph.BotGateNone, MergeTriggers: []string{"pull_request_target"}, MergeLine: 16}},
+			MergeGate: graph.BotGateNone, MergeTriggers: []string{"pull_request_target"}, MergeLine: 16,
+			MergeKeys: []string{"BOT_PAT", "MERGE_PAT"}, ReReviews: true}},
 		{"agent allowed to approve, open to anyone", `on: pull_request_target
 jobs:
   ai:
@@ -112,7 +113,7 @@ jobs:
         with:
           allowed_non_write_users: "*"
           claude_args: --allowedTools "Bash(gh pr review:*)"
-`, &botFacts{ApproveJobs: []string{"ai"}, ApproveTokens: []string{graph.BotTokenApp}, ApproveStarter: graph.StarterPROpeners}},
+`, &botFacts{ApproveJobs: []string{"ai"}, ApproveTokens: []string{graph.BotTokenApp}, ApproveStarter: graph.StarterPROpeners, ReReviews: true}},
 		{"agent allowed to approve, write access only", `on: pull_request_target
 jobs:
   ai:
@@ -122,7 +123,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_args: --allowedTools "Bash(gh pr review:*)"
-`, &botFacts{ApproveJobs: []string{"ai"}, ApproveTokens: []string{graph.BotTokenGitHub}, ApproveStarter: graph.StarterPushers}},
+`, &botFacts{ApproveJobs: []string{"ai"}, ApproveTokens: []string{graph.BotTokenGitHub}, ApproveStarter: graph.StarterPushers, ReReviews: true}},
 		{"a review comment is not an approval", `on: pull_request_target
 jobs:
   review:
@@ -142,7 +143,7 @@ jobs:
 			if err != nil {
 				t.Fatal(err)
 			}
-			got := parseBotFacts([]byte(c.yaml), f.Triggers)
+			got := parseBotFacts([]byte(c.yaml), f.Triggers, nil)
 			if !reflect.DeepEqual(got, c.want) {
 				t.Errorf("got  %+v\nwant %+v", got, c.want)
 			}

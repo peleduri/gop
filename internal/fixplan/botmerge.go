@@ -58,5 +58,15 @@ func buildBotMerge(ix *graph.Index, f graph.BlockBotMerge, p *Plan) {
 			step(Step{Kind: KindEditWorkflow, File: file, Change: fixes[3]})
 		}
 	}
+	// Script and key findings: the merge script's stale-approval logic
+	// (suspected), the review that does not re-run on push, the merge key
+	// held by an AI step. They narrow the path; they do not close it.
+	for _, x := range graph.BotMergeExtras(n) {
+		s := Step{Kind: KindEditWorkflow, File: x.File, Change: x.Change}
+		if x.File == "" {
+			s.Kind = KindChangeSetting
+		}
+		step(s)
+	}
 	p.Caveats = append(p.Caveats, "Any one of the first three changes closes the path; the approving workflow change alone does not when the merging app bypasses the rules.")
 }

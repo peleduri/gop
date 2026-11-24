@@ -44,3 +44,30 @@ func TestBuildBlockBotMerge(t *testing.T) {
 		t.Errorf("plan for a repo without the path = %+v", empty)
 	}
 }
+
+// The script variant adds the script, re-review and merge key steps after
+// the four that close the path.
+func TestBuildBlockBotMergeScript(t *testing.T) {
+	g, err := graph.LoadFile("../../testdata/botmerge-script/graph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := Build(graph.NewIndex(g), graph.BlockBotMerge{Repo: "repo:acme-app/web"})
+	if len(p.Steps) != 7 {
+		t.Fatalf("steps = %+v", p.Steps)
+	}
+	want := []struct{ kind, file, change string }{
+		{KindEditWorkflow, "tools/merge.py", "Count only approvals of the head commit"},
+		{KindEditWorkflow, ".github/workflows/ai-review.yml", "Re-run the AI review on every push"},
+		{KindEditWorkflow, ".github/workflows/ai-review.yml", "Keep the merge key out of the AI step"},
+	}
+	for i, w := range want {
+		s := p.Steps[4+i]
+		if s.Kind != w.kind || s.File != w.file || !strings.HasPrefix(s.Change, w.change) {
+			t.Errorf("step %d = %+v", 4+i, s)
+		}
+	}
+	if p.Steps[2].Line != 24 {
+		t.Errorf("merge step line = %d, want 24", p.Steps[2].Line)
+	}
+}

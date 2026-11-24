@@ -43,6 +43,15 @@ func writeMDBotMerge(p func(string, ...any), d data) {
 		if r := n.Attrs[graph.AttrReviewBypassReason]; r != "" {
 			p("- Why no human review: %s\n", md(r))
 		}
+		if s := graph.BotMergeScript(n); s != "" {
+			p("- Merge rules in a script: %s (read from the default branch, not run)\n", md("`"+s+"`"))
+		}
+		if graph.StaleApprovalsSuspected(n) {
+			p("- Stale approvals (suspected, heuristic): the merge seems to count approvals not tied to the head commit; confirm by hand\n")
+		}
+		if n.Attrs[graph.AttrAgentHoldsMergeKey] == "true" {
+			p("- The AI step holds the merge key: %s\n", md(strings.ReplaceAll(n.Attrs[graph.AttrAgentMergeKeyWorkflows], ",", ", ")))
+		}
 		for i, f := range graph.BotMergeFixes(n) {
 			p("  %d. %s\n", i+1, md(f))
 		}

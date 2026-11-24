@@ -1,0 +1,29 @@
+# Synthetic: an AI reviewer that approves with the App's token. It runs when
+# a pull request is opened or on a comment, not on later pushes, and its
+# step env holds the App's private key.
+name: AI review
+on:
+  pull_request_target:
+    types: [opened]
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.MERGE_APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: AI review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          claude -p "Review pull request $PR_NUMBER. If it is safe, run gh pr review $PR_NUMBER --approve" \
+            --allowedTools "Bash(gh pr review:*)"

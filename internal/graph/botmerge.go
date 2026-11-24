@@ -33,10 +33,32 @@ func BotMergeChain(n Node) string {
 		parts = append(parts, "`"+path.Base(f)+"`")
 	}
 	if m := n.Attrs[AttrReviewBypassMerge]; m != "" {
-		parts = append(parts, "`"+path.Base(m)+"`")
+		p := "`" + path.Base(m) + "`"
+		if s := BotMergeScript(n); s != "" {
+			p += " (merges in `" + s + "`)"
+		}
+		parts = append(parts, p)
 	}
 	return strings.Join(parts, " + ")
 }
+
+// BotMergeScript is the repo script a node's bot merge happens in (from
+// bot_merge_source=script:<path>), "" when the merge is a workflow step.
+func BotMergeScript(n Node) string {
+	s, _ := strings.CutPrefix(n.Attrs[AttrBotMergeSource], BotScriptPrefix)
+	return s
+}
+
+// StaleApprovalsSuspected reports whether a node's bot merge is suspected
+// (heuristic, never confirmed) to count approvals not tied to the head
+// commit.
+func StaleApprovalsSuspected(n Node) bool {
+	return n.Attrs[AttrBotMergeStale] == StaleSuspected
+}
+
+// staleNote is the path note suffix when the approval may not cover the
+// merged code.
+const staleNote = "; the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)"
 
 // BotMergeNote is the path note of a repo with a review bypass: "a PR author
 // can get code onto `main` without human review: `ai-review.yml` +
@@ -47,10 +69,14 @@ func BotMergeNote(n Node) string {
 		return ""
 	}
 	h, _ := RepoHardening(n)
-	if !ReviewBypassConfirmed(n) {
-		return "a PR author may get code onto " + h.branch() + " without human review (" + botUnknown(n) + "): " + BotMergeChain(n)
+	stale := ""
+	if n.Attrs[AttrReviewBypassStale] == StaleSuspected {
+		stale = staleNote
 	}
-	return "a PR author can get code onto " + h.branch() + " without human review: " + BotMergeChain(n)
+	if !ReviewBypassConfirmed(n) {
+		return "a PR author may get code onto " + h.branch() + " without human review (" + botUnknown(n) + "): " + BotMergeChain(n) + stale
+	}
+	return "a PR author can get code onto " + h.branch() + " without human review: " + BotMergeChain(n) + stale
 }
 
 // botUnknown names the fact that makes a review bypass possible only.
@@ -87,6 +113,50 @@ func BotMergeFixes(n Node) []string {
 	out = append(out,
 		"Do not let PR authors trigger the merge: drop the author check from "+mergeName(n)+", or require a maintainer (author_association OWNER, or a write-permission check) and an environment with required reviewers.",
 		"Do not give the reviewer write or approve rights: let the AI reviewer comment (pull-requests: write without approving, or a read-only token) and keep approve and merge with people.")
+	for _, x := range BotMergeExtras(n) {
+		out = append(out, x.Change)
+	}
+	return out
+}
+
+// BotMergeExtra is a fix for a script or key finding of a review bypass,
+// with the file it changes ("" when it is not one file).
+type BotMergeExtra struct {
+	File, Change string
+}
+
+// BotMergeExtras are the fixes after the four of BotMergeFixes, in order:
+// the stale-approval logic of the merge script (suspected), the review that
+// does not re-run on push, and the merge key held by an AI step.
+func BotMergeExtras(n Node) []BotMergeExtra {
+	if !ReviewBypassed(n) {
+		return nil
+	}
+	var out []BotMergeExtra
+	if StaleApprovalsSuspected(n) {
+		file, where := BotMergeScript(n), "the merge step"
+		if file != "" {
+			where = "`" + file + "`"
+		}
+		out = append(out, BotMergeExtra{File: file, Change: "Count only approvals of the head commit in " + where + " (suspected, heuristic: confirm by hand): skip reviews whose commit_id is not the head SHA and never count DISMISSED reviews."})
+	}
+	if n.Attrs[AttrReviewBypassStale] == StaleSuspected {
+		for _, f := range splitAttr(n.Attrs[AttrReviewBypassApprove]) {
+			out = append(out, BotMergeExtra{File: f, Change: "Re-run the AI review on every push: add synchronize to the pull_request types of `" + path.Base(f) + "`, so an approval always covers the code that is merged."})
+		}
+	}
+	if n.Attrs[AttrAgentHoldsMergeKey] == "true" {
+		files := splitAttr(n.Attrs[AttrAgentMergeKeyWorkflows])
+		names := make([]string, len(files))
+		for i, f := range files {
+			names[i] = "`" + path.Base(f) + "`"
+		}
+		file := ""
+		if len(files) == 1 {
+			file = files[0]
+		}
+		out = append(out, BotMergeExtra{File: file, Change: "Keep the merge key out of the AI step: the agent in " + strings.Join(names, ", ") + " holds the secret the merge uses, so a prompt injection can merge by itself. Give the merge its own App and key, outside the agent's env."})
+	}
 	return out
 }
 

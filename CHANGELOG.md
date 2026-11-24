@@ -31,6 +31,27 @@ flags may change in minor releases.
   hostile and semantic graphs it serves are `testutil.HostileGraphJSON` and
   `testutil.SemanticGraphJSON` of the acme fixture, committed in
   `evals/fixtures/` and kept equal by a Go test. New `docs/evals.md`.
+- Bot self-merge in scripts, stale approvals and merge keys held by AI
+  steps (#152). A `run:` step that invokes a repo script (`python3
+  tools/merge.py`, `node`, `bash`, `npx tsx`, `go run ./path`) with a token
+  or key in its env is followed: `gop collect` reads the script from the
+  default branch with one read-only contents GET (through the response
+  cache, 256 KiB cap, never executed) and scans it for the merge and approve
+  calls of #146 plus PyGithub `pr.merge()` and `create_review(event=
+  "APPROVE")`. A merge found there feeds the same review-bypass join and is
+  recorded as `bot_merge_source=script:<path>`; the path note names the
+  script. A merge script that counts `DISMISSED` reviews as approvals, or
+  compares a review's `commit_id` with the head and still counts it, gets
+  `bot_merge_stale_approvals=suspected` with confidence `heuristic`
+  (`not_visible`, with a coverage entry asking for a manual check); when the
+  approving workflow also does not re-run on `synchronize`, the repo gets
+  `review_bypass_stale_approval=suspected` and the path note adds "the
+  approval may not cover the merged code". An AI agent step that holds the
+  same secret the merge's token comes from sets `agent_holds_merge_key=true`.
+  Each adds a fix after the four of `block_bot_merge` (head-commit approvals
+  only, re-review on push, keep the merge key out of the AI step), in the
+  report, `explain` and `fix-plan`. `gop doctor` counts the script reads in
+  its request estimate.
 - Semantic and lookalike prompt-injection names in the hostile-name corpus
   (#154). Beside the structural values (newlines, tags, bidi, zero-width,
   10 kB), `internal/testutil/hostile.go` now has printable names the

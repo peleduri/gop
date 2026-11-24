@@ -202,6 +202,10 @@ type collector struct {
 	// botLines holds the line of each bot merge workflow's merging step, by
 	// workflow node ID (botmerge.go).
 	botLines map[string]int
+	// botFacts holds each workflow's bot facts by node ID, and botScriptWFs
+	// the workflows whose steps run repo scripts to follow (botscript.go).
+	botFacts     map[string]*botFacts
+	botScriptWFs []botScriptWF
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -367,6 +371,9 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	if err := k.collectBranchProtection(ctx); err != nil {
+		return err
+	}
+	if err := k.followBotScripts(ctx); err != nil {
 		return err
 	}
 	k.addBotMergePaths()
@@ -1387,7 +1394,9 @@ func (k *collector) processWorkflowFile(o *orgState, repo *graph.Node, path stri
 	pending = k.addTokenFacts(wid, wn, repo, facts, pending)
 	k.addTriggerFacts(o, repo, wid, wn, facts)
 	addAgentFacts(wn, facts)
-	k.addBotFacts(wn, parseBotFacts(data, facts.Triggers))
+	bf := parseBotFacts(data, facts.Triggers, nil)
+	k.addBotFacts(wn, bf)
+	k.trackBotScripts(o, repo, wn, data, facts.Triggers, bf)
 	return pending
 }
 
