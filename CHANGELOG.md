@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 flags may change in minor releases.
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-11-24
 ### Added
 - Agent-behaviour eval for the MCP server and skill (#151). New `evals/`
   (Python, outside the Go module) runs a model with `skills/gop/SKILL.md` as
