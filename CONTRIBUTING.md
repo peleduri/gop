@@ -2,6 +2,8 @@
 
 Thanks for helping. gop is small and opinionated: read-only, no telemetry, and every fact carries an evidence level.
 
+How the project is run is in [GOVERNANCE.md](GOVERNANCE.md); the maintainers are listed in [MAINTAINERS.md](MAINTAINERS.md), and the direction is in [ROADMAP.md](ROADMAP.md). Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
+
 Start with [docs/architecture.md](docs/architecture.md): the package map, how data flows from the GitHub API to `graph.json` to the MCP tools and report, the control-graph rules, the invariants every change must keep, and checklists for adding a collector, an MCP tool or a fix type.
 
 ## Finding something to work on
@@ -32,6 +34,8 @@ golangci-lint run
 govulncheck ./...
 ./scripts/leak-check.sh
 ```
+
+New functionality and bug fixes come with tests in the same pull request: a unit or golden test for new behaviour, and a test that fails without the fix for a bug. Collector changes are tested against the httptest fake GitHub, never the real API. A pull request that adds a feature without tests is not merged.
 
 The agent-behaviour eval in `evals/` (Python, outside the Go module) has a deterministic part that needs no model: `pip install -r evals/requirements-dry.txt`, then `pytest evals` and `python -m evals.run --dry`. CI runs both. See [docs/evals.md](docs/evals.md) for the live run.
 
@@ -76,3 +80,33 @@ This adds `Signed-off-by: Your Name <you@example.com>` and certifies you have th
 Keep PRs focused, fill in the PR template checklist, and update docs when behavior changes.
 
 PR titles follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<area>): <imperative summary>`, for example `feat(collect): read environment protection rules`. A CI check enforces it. Allowed types: `feat`, `fix`, `sec`, `docs`, `perf`, `refactor`, `test`, `ci`, `build`, `chore`, `revert`, `release`. PRs are squash-merged with the title as the commit message, and release notes are grouped by type (Security for `sec`, Features for `feat`, Fixes for `fix`, Docs for `docs`), so pick the type a user would look for. Report security issues through [SECURITY.md](SECURITY.md), not PRs.
+
+## Contributor ladder
+
+gop's roles, adapted from the [CNCF contributor ladder template](https://github.com/cncf/project-template/blob/main/CONTRIBUTOR_LADDER.md). Each role keeps the rights of the ones before it. You move up by doing the work of the next role, then asking (or being asked); nothing here depends on your employer.
+
+### Participant
+
+Anyone who uses gop, opens an issue (an "I ran gop" report, a false positive, a bug, a feature request), answers a question in Discussions, or comments on a pull request. No requirements beyond the [code of conduct](CODE_OF_CONDUCT.md).
+
+### Contributor
+
+Anyone with at least one merged pull request: code, tests, docs, fixtures or CI. Contributors are expected to follow this guide (sign-off, synthetic data only, design rules) and to respond to review on their pull requests. Contributors can be assigned issues and are credited in the release notes through their pull request titles.
+
+### Reviewer
+
+A contributor trusted to review pull requests in one or more areas (for example `collector`, `engine`, `report`, `mcp`, docs). Reviewers' approvals count toward merging, and they help triage issues in their area.
+
+- Requirements: several non-trivial merged pull requests over at least two months, and reviews on other people's pull requests that show they know the evidence model and the design rules.
+- How: nominate yourself or be nominated on an issue; a maintainer approves. Reviewers are listed by area in [.github/CODEOWNERS](.github/CODEOWNERS) once the project has any.
+
+### Maintainer
+
+Maintainers merge pull requests, cut releases, handle security and conduct reports, hold the project's accounts and set direction, as described in [GOVERNANCE.md](GOVERNANCE.md#maintainers).
+
+- Requirements: active as a reviewer (or equivalent sustained contribution) for at least three months; a track record of quality code or docs across more than one area; reviews of at least 10 non-trivial pull requests; an understanding of the release, signing and security processes in [docs/maintainers.md](docs/maintainers.md) and [SECURITY.md](SECURITY.md); and willingness to take on the project's credentials responsibly.
+- How: nomination and approval as described in [GOVERNANCE.md](GOVERNANCE.md#adding-a-maintainer). See also [Becoming a maintainer](MAINTAINERS.md#becoming-a-maintainer).
+
+### Stepping down and inactivity
+
+Anyone can step back from a role at any time; maintainers move to the emeritus list in [MAINTAINERS.md](MAINTAINERS.md). Reviewers and maintainers who are inactive for 12 months are asked whether they want to stay, and are moved back a step (or to emeritus) if they do not reply within 30 days. Removal for cause follows [GOVERNANCE.md](GOVERNANCE.md#removing-a-maintainer).

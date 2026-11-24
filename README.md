@@ -432,20 +432,20 @@ Contributors: [docs/architecture.md](docs/architecture.md) has the package map, 
 
 ## Roadmap
 
-Planned, roughly in order. Each item will get a [GitHub issue](https://github.com/peleduri/gop/issues); comment there if you need it.
+The direction, without dates, is in [ROADMAP.md](ROADMAP.md): collection that scales to large enterprises, better AI agent detection, more of the control graph (App push grants, audit log evidence, environment protection rules) and distribution. Shipped items move to [What gop collects today](#what-gop-collects-today) and [CHANGELOG.md](CHANGELOG.md).
 
-- GitHub App push grants
-- Audit log collection (`audit` evidence)
-- Environment protection rules as conditions on edges
-- A `what-if` CLI subcommand (available over MCP today; `gop fix-plan` prints the steps of one fix)
-- Parallel collection
-- A CLI flag to re-collect some orgs into an existing graph (the collector API does it today)
+## Community
 
-Shipped items move to [What gop collects today](#what-gop-collects-today) and [CHANGELOG.md](CHANGELOG.md).
+- [GOVERNANCE.md](GOVERNANCE.md): how decisions are made and how maintainers are added or removed.
+- [MAINTAINERS.md](MAINTAINERS.md): who maintains gop, and how to become a maintainer.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): gop follows the CNCF Code of Conduct.
+- [ADOPTERS.md](ADOPTERS.md): using gop? Add yourself.
+- [ROADMAP.md](ROADMAP.md): where the project is heading.
+- [docs/cncf.md](docs/cncf.md): readiness for a possible CNCF Sandbox application (gop is not a CNCF project).
 
 ## Contributing
 
-Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first: commits need a DCO sign-off, and all fixtures, examples and issues use synthetic names only (`acme`, `acme-actions`, `acme-app`). Never paste a real graph.json anywhere. Report security issues through [SECURITY.md](SECURITY.md). Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first (it includes the contributor ladder): commits need a DCO sign-off, and all fixtures, examples and issues use synthetic names only (`acme`, `acme-actions`, `acme-app`). Never paste a real graph.json anywhere. Report security issues through [SECURITY.md](SECURITY.md). Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Status
 

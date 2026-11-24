@@ -64,7 +64,10 @@ var mdLink = regexp.MustCompile(`\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
 // files and in docs/ points at a file or directory that exists. External
 // links (http, mailto) and pure in-page anchors are not checked here.
 func TestRelativeLinks(t *testing.T) {
-	files := []string{"../README.md", "../SUPPORT.md", "../CONTRIBUTING.md", "../SECURITY.md"}
+	files := []string{
+		"../README.md", "../SUPPORT.md", "../CONTRIBUTING.md", "../SECURITY.md",
+		"../GOVERNANCE.md", "../MAINTAINERS.md", "../CODE_OF_CONDUCT.md", "../ADOPTERS.md", "../ROADMAP.md",
+	}
 	docs, err := filepath.Glob("*.md")
 	if err != nil {
 		t.Fatal(err)

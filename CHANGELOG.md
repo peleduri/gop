@@ -7,7 +7,21 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- Project governance and community files, following the CNCF project
+  template: `GOVERNANCE.md` (maintainer-led: decision making, adding and
+  removing maintainers, conflict resolution, changing the governance),
+  `MAINTAINERS.md` (with how to become a maintainer), a contributor ladder
+  and a written test policy in `CONTRIBUTING.md`, `ADOPTERS.md` (empty, with
+  how to add yourself) and a public `ROADMAP.md` without dates. The code of
+  conduct is now the CNCF Code of Conduct, reported privately to the
+  maintainers. New `docs/cncf.md` cites the current CNCF Sandbox and
+  OpenSSF Best Practices requirements, checks the repository against them
+  (met and not met, with evidence), and holds a draft Sandbox application
+  that has not been submitted. The README links all of these from a new
+  Community section.
+
 - Plugin icon and Cursor logo, and a `version` in every plugin manifest (Claude Code, Cursor, Codex) so `claude plugin validate --strict` passes for directory submission. A test keeps the versions in step; bump them with each release.
+
 - One-step installs in AI assistants (#163). The repository is a Claude Code
   plugin marketplace: `/plugin marketplace add peleduri/gop` and
   `/plugin install gop@gop` add the MCP server (asking for the graph.json
