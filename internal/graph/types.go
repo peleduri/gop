@@ -138,6 +138,12 @@ type Graph struct {
 	// AuditRetentionDays is the audit log retention the audit facts were read
 	// under. When set, audit edges older than half of it are stale by default.
 	AuditRetentionDays int `json:"audit_retention_days,omitempty"`
+	// OrgCollectedAt records when each org's facts were last read, keyed by
+	// org login. A collection sets it to CollectedAt for every org it
+	// collected; a merge of a partial re-collection into an older graph
+	// (collect.Merge) keeps the older times of the orgs it did not re-collect.
+	// Optional: graphs written before it existed omit it.
+	OrgCollectedAt map[string]time.Time `json:"org_collected_at,omitempty"`
 }
 
 // Org attribute keys (Node.Attrs on KindOrg). Values are strings for a flat JSON shape.

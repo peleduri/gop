@@ -21,6 +21,7 @@ gop validate --graph graph.json [--format text|json]
 | `edges` | Edge[] | Directed facts. |
 | `coverage` | Coverage[] | What the token could not see, and how to fix it. |
 | `audit_retention_days` | integer | Optional. The audit log retention the `audit` facts were read under. When set, an `audit` edge older than half of it is stale (see [Evidence](#evidence)). |
+| `org_collected_at` | object, org login → RFC 3339 time | Optional. When each org's facts were last read. A collection sets every org it collected to `collected_at`. A graph that merges a re-collection of some orgs into an older graph (`collect.Merge`, `collect.Config.MergeInto`) keeps the older time for the other orgs, and `collected_at` is the re-collection's. Absent in graphs written before it existed. |
 
 ## Evidence
 
@@ -321,6 +322,7 @@ v2 adds the evidence value `inferred`, the top-level field `audit_retention_days
 - v2 readers load v1: `graph.Load` accepts `gop.graph/v1`, upgrades it in memory (`schema` becomes `gop.graph/v2`, nothing else changes), and rejects a document that claims v1 but contains `inferred`. `gop validate` checks a v1 document against the v1 JSON Schema.
 - Collectors now write `default_perm` and `org_owner` `CAN_PUSH` edges as `inferred` with `attrs.rule`; they were `live` in v1. Confirmed reach is unchanged.
 - `audit` edges can be stale by age (see [Evidence](#evidence)). gop does not collect audit facts yet.
+- Additive, in both v1 and v2: the optional top-level `org_collected_at` (per-org freshness). `collect.Merge` loads both graphs through `graph.Load`, so a v1 base merges with a v2 re-collection and the result is v2.
 
 ## Changelog
 
@@ -330,6 +332,7 @@ v2 adds the evidence value `inferred`, the top-level field `audit_retention_days
 | `gop.graph/v1` | unreleased | Additive: JSON Schema published in `schema/gop.graph.v1.schema.json`; `file`, `file_ref`, `line`, `col` on `USES` and `EXECUTES_WITH` edges; `identity` nodes for licensed users; `CAN_PUSH` `via` values `org_owner`, `direct`, `outside_collaborator`, `team`; `identity` nodes with `team:<org>/<slug>` IDs (the engine already read this prefix as `identity`) and `MEMBER_OF` edges to teams. |
 | `gop.graph/v1` | unreleased | Additive: `ref_protected`, `ref_protection` and `bypass` on action_ref nodes (typed in the JSON Schema as `NodeAttrs`); `CAN_PUSH` `via=ref_bypass` with `ref`, `rule_source` and `bypass_mode`, possibly parallel to another `CAN_PUSH` edge between the same nodes; coverage facts `ref_protection`, `bypass` and `ref_bypass`. |
 | `gop.graph/v1` | unreleased | Additive: `CAN_PUSH` from a workflow to its own repo with `via=token_write`, `permission=contents: write` and `jobs`; `token_write` and `token_scopes` on workflow nodes; coverage fact `default_workflow_permissions`. Coverage scoped to a repo also covers the workflows in it (`gop validate`). |
+| `gop.graph/v1` | unreleased | Additive: optional top-level `org_collected_at` (per-org freshness, for graphs that merge a re-collection of some orgs into an older graph). |
 | `gop.graph/v1` | unreleased | Additive: `ref_kind_source`, `ref_ambiguous`, `ref_immutable` and `ref_immutable_reason` on action_ref nodes (typed in the JSON Schema as `NodeAttrs`); `via=ref_bypass` edges whose `ref` is a tag; coverage facts `ref_kind` and `ref_immutable`. `ref_kind` of enterprise-internal refs now comes from the API. |
 | `gop.graph/v1` | unreleased | Additive: `actions_access` on repo nodes (typed in the JSON Schema as `NodeAttrs`), `consumer_org` on `USES` edges (`EdgeAttrs`), coverage fact `actions_access`. |
 | `gop.graph/v1` | unreleased | Additive: OIDC claim inputs `jobs`, `environments`, `job_workflow_ref`, `repository` and `repository_owner` on `EXECUTES_WITH` edges to `oidc` (typed in the JSON Schema as `EdgeAttrs`). The OIDC edge now exists only when at least one job resolves to `id-token: write` after job-level permissions replace workflow-level ones. |
