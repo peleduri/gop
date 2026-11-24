@@ -62,7 +62,9 @@ func TestEmbeddedSchemaCompiles(t *testing.T) {
 
 func TestValidFixtures(t *testing.T) {
 	files, _ := filepath.Glob("testdata/valid/*.json")
-	files = append(files, filepath.Join("..", "..", "testdata", "acme", "graph.json"))
+	files = append(files, filepath.Join("..", "..", "testdata", "acme", "graph.json"),
+		filepath.Join("..", "..", "testdata", "botmerge", "graph.json"),
+		filepath.Join("..", "..", "testdata", "botmerge-script", "graph.json"))
 	for _, f := range files {
 		t.Run(filepath.Base(f), func(t *testing.T) {
 			r := validateFile(t, f)

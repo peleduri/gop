@@ -10,7 +10,7 @@ Checks
                      fix: use an enterprise owner token with read:enterprise
   INFO  permissions  installation token permissions are not exposed in headers; the App needs read access to organization administration, members, metadata and contents
   PASS  orgs         2 of 2 organizations readable (from installation repositories)
-  PASS  rate limit   collect needs about 1078 REST requests and 4980 of 5000 remain
+  PASS  rate limit   collect needs about 1089 REST requests and 4980 of 5000 remain
 
 Rate limit
   REST    4980 of 5000 remaining, resets 2026-11-23T12:40:00Z
@@ -18,7 +18,7 @@ Rate limit
 
 Estimate for gop collect
   2 orgs, 208 repos (GET /orgs/{org} counts), 3 workflows per repo assumed
-  about 1078 requests and 6 minutes
+  about 1089 requests and 6 minutes
 
 Predicted not_visible
   - enterprise settings (ownerInfo: SSO, 2FA, default permission, repo creation, visibility, deletion and fork policies); per-org values come from GET /orgs/{org} where readable, SSO stays not_visible

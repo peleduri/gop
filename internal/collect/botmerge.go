@@ -98,12 +98,29 @@ type botFacts struct {
 	MergeAdmin                 bool
 	MergeTriggers              []string
 	MergeLine                  int // 1-based line of the first merging step's run:/uses: key
+
+	// Scripts are the repo scripts run: steps with a token invoke, to
+	// follow (botscript.go); MergeSource and ApproveSource name the script
+	// a merge or approval was found in ("" when in the workflow itself),
+	// and MergeStale is set when that merge script matched the
+	// stale-approval heuristic.
+	Scripts                    []string
+	MergeSource, ApproveSource string
+	MergeStale                 bool
+	// MergeKeys are the secrets the merging jobs' token comes from (App
+	// token step inputs and the merging steps' env); AgentKeys the secrets
+	// in the env and with: of the workflow's AI agent steps; ReReviews is
+	// set when the workflow re-runs on a push to the pull request.
+	MergeKeys, AgentKeys []string
+	ReReviews            bool
 }
 
-// parseBotFacts finds the approving and merging jobs of a workflow. nil when
-// it has neither. Lenient like readAgents: a shape it does not understand
-// yields nothing.
-func parseBotFacts(data []byte, triggers []string) *botFacts {
+// parseBotFacts finds the approving and merging jobs of a workflow. scripts
+// holds the facts of the repo scripts its steps run, when followed (nil on
+// the first read). nil when it has no approving or merging job, no script to
+// follow and no agent step holding a secret. Lenient like readAgents: a
+// shape it does not understand yields nothing.
+func parseBotFacts(data []byte, triggers []string, scripts map[string]*scriptFacts) *botFacts {
 	var doc yaml.Node
 	if yaml.Unmarshal(data, &doc) != nil {
 		return nil
@@ -119,8 +136,9 @@ func parseBotFacts(data []byte, triggers []string) *botFacts {
 		return nil
 	}
 	wfEnv := envMap(w, field(root, "env"))
-	bf := &botFacts{}
+	bf := &botFacts{ReReviews: rereviews(w, root)}
 	approveTok, mergeTok, mergeTrig := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	scriptSet, mergeKeys, agentKeys := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	gateRank := map[string]int{"": -1, graph.BotGateListed: 0, graph.BotGateAssociation: 1, graph.BotGateAuthor: 2, graph.BotGateNone: 3}
 	ids := append([]string(nil), jobs.keys...)
 	sort.Strings(ids)
@@ -134,6 +152,7 @@ func parseBotFacts(data []byte, triggers []string) *botFacts {
 		jobEnv := mergeEnv(wfEnv, envMap(w, field(job, "env")))
 		steps, _ := w.sequence(field(job, "steps"), "steps")
 		appIDs := map[string]bool{}
+		var appKeys []string // secrets the job's App token steps read
 		approves, merges := false, false
 		approveIf, mergeIf := jobIf, jobIf
 		approveLimit, mergeLimit := "", ""
@@ -152,13 +171,27 @@ func parseBotFacts(data []byte, triggers []string) *botFacts {
 					if sid := strings.TrimSpace(scalarOf(w, field(step, "id"))); sid != "" {
 						appIDs[sid] = true
 					}
+					with, _ := w.mapping(field(step, "with"), "with")
+					appKeys = append(appKeys, secretRefNames(withValues(w, with)...)...)
 					continue
 				}
 			}
-			bs := botStep(w, step, u, isUse, name, env, appIDs)
+			if isAgentStep(w, step, u, isUse) {
+				with, _ := w.mapping(field(step, "with"), "with")
+				for _, s := range secretRefNames(append(mapValues(env), withValues(w, with)...)...) {
+					agentKeys[s] = true
+				}
+			}
+			bs := botStep(w, step, u, isUse, name, env, appIDs, scripts)
+			for _, p := range bs.scripts {
+				scriptSet[p] = true
+			}
 			if bs.approve {
 				approves = true
 				approveTok[bs.token] = true
+				if bs.approveSrc != "" && bf.ApproveSource == "" {
+					bf.ApproveSource = bs.approveSrc
+				}
 				approveIf = joinIf(approveIf, stepIf)
 				approveLimit = widerLimit(approveLimit, bs.limit)
 			}
@@ -170,6 +203,13 @@ func parseBotFacts(data []byte, triggers []string) *botFacts {
 				mergeLimit = widerLimit(mergeLimit, bs.limit)
 				if bs.key != nil && (bf.MergeLine == 0 || bs.key.Line < bf.MergeLine) {
 					bf.MergeLine = bs.key.Line
+				}
+				if bs.mergeSrc != "" && bf.MergeSource == "" {
+					bf.MergeSource = bs.mergeSrc
+				}
+				bf.MergeStale = bf.MergeStale || bs.stale
+				for _, s := range append(appKeys, secretRefNames(mapValues(env)...)...) {
+					mergeKeys[s] = true
 				}
 			}
 		}
@@ -195,7 +235,11 @@ func parseBotFacts(data []byte, triggers []string) *botFacts {
 			}
 		}
 	}
-	if len(bf.ApproveJobs) == 0 && len(bf.MergeJobs) == 0 {
+	bf.Scripts, bf.MergeKeys, bf.AgentKeys = sortedSet(scriptSet), sortedSet(mergeKeys), sortedSet(agentKeys)
+	if len(bf.Scripts) > botScriptsPerWorkflow {
+		bf.Scripts = bf.Scripts[:botScriptsPerWorkflow]
+	}
+	if len(bf.ApproveJobs) == 0 && len(bf.MergeJobs) == 0 && len(bf.Scripts) == 0 && len(bf.AgentKeys) == 0 {
 		return nil
 	}
 	bf.ApproveTokens, bf.MergeTokens, bf.MergeTriggers = sortedSet(approveTok), sortedSet(mergeTok), sortedSet(mergeTrig)
@@ -225,10 +269,17 @@ type botStepFacts struct {
 	approve, merge, admin bool
 	token, limit          string
 	key                   *yaml.Node
+	// scripts are the repo scripts the run: step invokes with a token in
+	// its env; approveSrc and mergeSrc name the script (script:<path>) an
+	// approval or merge came from; stale is set when that merge script
+	// matched the stale-approval heuristic.
+	scripts              []string
+	approveSrc, mergeSrc string
+	stale                bool
 }
 
 // botStep reads one step.
-func botStep(w *yamlWalk, step *yamlMap, u ActionUse, isUse bool, name string, env map[string]string, appIDs map[string]bool) botStepFacts {
+func botStep(w *yamlWalk, step *yamlMap, u ActionUse, isUse bool, name string, env map[string]string, appIDs map[string]bool, scripts map[string]*scriptFacts) botStepFacts {
 	if isUse {
 		bs := botStepFacts{limit: noLimit}
 		bs.key, _ = step.get("uses")
@@ -289,11 +340,35 @@ func botStep(w *yamlWalk, step *yamlMap, u ActionUse, isUse bool, name string, e
 	bs := botStepFacts{limit: noLimit}
 	bs.approve = ghApproveRe.MatchString(script) || (apiReviewRe.MatchString(script) && approveRe.MatchString(script))
 	bs.merge = ghMergeRe.MatchString(script) || apiMergeRe.MatchString(script)
-	if !bs.approve && !bs.merge {
-		return botStepFacts{}
+	// A repo script the step runs with a token: followed from the default
+	// branch (botscript.go), and once read, its calls count as the step's.
+	var viaScript *scriptFacts
+	if stepHoldsToken(env) {
+		bs.scripts = scriptCalls(run, scalarOf(w, field(step, "working-directory")))
+		for _, p := range bs.scripts {
+			sf := scripts[p]
+			if sf == nil {
+				continue
+			}
+			if sf.approve && !bs.approve {
+				bs.approve, bs.approveSrc = true, graph.BotScriptPrefix+p
+				viaScript = sf
+			}
+			if sf.merge && !bs.merge {
+				bs.merge, bs.mergeSrc, bs.stale = true, graph.BotScriptPrefix+p, sf.stale
+				viaScript = sf
+			}
+		}
 	}
-	bs.admin = ghAdminRe.MatchString(script)
+	if !bs.approve && !bs.merge {
+		return botStepFacts{scripts: bs.scripts}
+	}
 	bs.key, _ = step.get("run")
+	bs.admin = ghAdminRe.MatchString(script)
+	if viaScript != nil {
+		bs.token = scriptToken(*viaScript, env, appIDs)
+		return bs
+	}
 	var exprs []string
 	for _, k := range tokenEnv {
 		if v, ok := env[k]; ok {
@@ -463,6 +538,23 @@ func (k *collector) addBotFacts(wn *graph.Node, bf *botFacts) {
 	if bf == nil {
 		return
 	}
+	if k.botFacts == nil {
+		k.botFacts = map[string]*botFacts{}
+	}
+	k.botFacts[wn.ID] = bf
+	if bf.ApproveSource != "" {
+		setAttr(wn, graph.AttrBotApproveSource, bf.ApproveSource, graph.Live)
+	}
+	if bf.MergeSource != "" {
+		setAttr(wn, graph.AttrBotMergeSource, bf.MergeSource, graph.Live)
+	}
+	if bf.MergeStale {
+		// A heuristic: the attr is never live, and a coverage entry asks
+		// for a manual check.
+		setAttr(wn, graph.AttrBotMergeStale, graph.StaleSuspected, graph.NotVisible)
+		setAttr(wn, graph.AttrBotMergeStaleConf, graph.StaleHeuristic, graph.Live)
+		k.cover(wn.ID, graph.FactStaleApprovals, staleWhy(bf.MergeSource), staleFix(bf.MergeSource))
+	}
 	if len(bf.ApproveJobs) > 0 {
 		setAttr(wn, graph.AttrBotApproves, "true", graph.Live)
 		setAttr(wn, graph.AttrBotApproveToken, strings.Join(bf.ApproveTokens, ","), graph.Live)
@@ -529,6 +621,12 @@ func (k *collector) addBotMergePaths() {
 	if len(byRepo) == 0 {
 		return
 	}
+	agents := map[string][]*graph.Node{} // repo -> workflows with an agent step holding a secret
+	for id, bf := range k.botFacts {
+		if n := k.nodes[id]; n != nil && len(bf.AgentKeys) > 0 {
+			agents[n.Attrs["repo"]] = append(agents[n.Attrs["repo"]], n)
+		}
+	}
 	for _, o := range k.orgs {
 		for _, repo := range o.repos {
 			wfs := byRepo[strings.TrimPrefix(repo.ID, "repo:")]
@@ -536,6 +634,7 @@ func (k *collector) addBotMergePaths() {
 				continue
 			}
 			sort.Slice(wfs, func(i, j int) bool { return wfs[i].ID < wfs[j].ID })
+			k.agentMergeKey(repo, wfs, agents[strings.TrimPrefix(repo.ID, "repo:")])
 			if best := botBest(repo, wfs); best != nil {
 				k.applyBotOutcome(o, repo, best)
 			}
@@ -705,6 +804,7 @@ func (k *collector) applyBotOutcome(o *orgState, repo *graph.Node, b *botOutcome
 	if len(approveFiles) > 0 {
 		setAttr(repo, graph.AttrReviewBypassApprove, strings.Join(approveFiles, ","), graph.Live)
 	}
+	k.applyBotScriptFacts(repo, b)
 	if b.ev == graph.NotVisible {
 		k.cover(repo.ID, graph.FactReviewBypass, b.why, b.fix)
 	}
@@ -742,6 +842,61 @@ func (k *collector) applyBotOutcome(o *orgState, repo *graph.Node, b *botOutcome
 		}
 		k.edge(p, repo.ID, graph.CanMergeViaBot, ev, srcWorkflow, attrs())
 	}
+}
+
+// applyBotScriptFacts copies the merge workflow's script source and
+// stale-approval suspicion to the repo (the coverage entry asking for a
+// manual check is on the merge workflow), and marks that the approval may not
+// cover the merged code when an approving workflow does not re-run on a
+// push. Both stay not_visible: a heuristic, never confirmed.
+func (k *collector) applyBotScriptFacts(repo *graph.Node, b *botOutcome) {
+	m := b.merge.Attrs
+	if v := m[graph.AttrBotMergeSource]; v != "" {
+		setAttr(repo, graph.AttrBotMergeSource, v, graph.Live)
+	}
+	if m[graph.AttrBotMergeStale] != graph.StaleSuspected {
+		return
+	}
+	setAttr(repo, graph.AttrBotMergeStale, graph.StaleSuspected, graph.NotVisible)
+	setAttr(repo, graph.AttrBotMergeStaleConf, graph.StaleHeuristic, graph.Live)
+	for _, a := range b.approve {
+		if bf := k.botFacts[a.ID]; bf != nil && !bf.ReReviews {
+			setAttr(repo, graph.AttrReviewBypassStale, graph.StaleSuspected, graph.NotVisible)
+			return
+		}
+	}
+}
+
+// agentMergeKey marks a repo whose AI agent step holds the key its bot
+// merge uses: the same secret name in an agent step's env (or with:) and in
+// a merging job's token source.
+func (k *collector) agentMergeKey(repo *graph.Node, wfs, agents []*graph.Node) {
+	keys := map[string]bool{}
+	for _, n := range wfs {
+		if bf := k.botFacts[n.ID]; bf != nil && len(bf.MergeJobs) > 0 {
+			for _, s := range bf.MergeKeys {
+				keys[s] = true
+			}
+		}
+	}
+	if len(keys) == 0 {
+		return
+	}
+	var files []string
+	for _, n := range agents {
+		for _, s := range k.botFacts[n.ID].AgentKeys {
+			if keys[s] {
+				files = append(files, n.Attrs["path"])
+				break
+			}
+		}
+	}
+	if len(files) == 0 {
+		return
+	}
+	sort.Strings(files)
+	setAttr(repo, graph.AttrAgentHoldsMergeKey, "true", graph.Live)
+	setAttr(repo, graph.AttrAgentMergeKeyWorkflows, strings.Join(files, ","), graph.Live)
 }
 
 // splitList splits a comma list attr, dropping empty items.

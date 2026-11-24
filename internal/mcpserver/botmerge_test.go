@@ -59,3 +59,22 @@ func TestBotMergeTools(t *testing.T) {
 		t.Error("block_bot_merge on an org: no error")
 	}
 }
+
+// TestBotMergeScriptExplain: explain names the script, keeps the stale
+// approvals suspected and lists the extra fixes.
+func TestBotMergeScriptExplain(t *testing.T) {
+	g, err := graph.LoadFile("../../testdata/botmerge-script/graph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ex, err := NewEngine(g).Explain(ExplainInput{From: "external:anyone", To: "repo:acme-app/web"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range []string{"(merges in `tools/merge.py`)", "the approval may not cover the merged code (suspected, heuristic",
+		"fix 5: Count only approvals of the head commit", "fix 7: Keep the merge key out of the AI step"} {
+		if !strings.Contains(ex.Summary, w) {
+			t.Errorf("explain lacks %q: %q", w, ex.Summary)
+		}
+	}
+}

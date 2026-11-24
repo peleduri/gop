@@ -53,6 +53,8 @@ func init() {
 		graph.AttrBotMergeAdmin, graph.AttrBotMergeTriggers,
 		graph.AttrReviewBypass, graph.AttrReviewBypassReason, graph.AttrReviewBypassApprove, graph.AttrReviewBypassMerge,
 		graph.AttrApproveWorkflows, graph.AttrMergeWorkflow,
+		graph.AttrBotMergeSource, graph.AttrBotApproveSource, graph.AttrBotMergeStale, graph.AttrBotMergeStaleConf,
+		graph.AttrReviewBypassStale, graph.AttrAgentHoldsMergeKey, graph.AttrAgentMergeKeyWorkflows,
 		graph.AttrLockAdvisories, graph.AttrLockAdvisorySeverity, graph.AttrLockAdvisoryFixed,
 		graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview, graph.AttrBranchDismissStale,
 		graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits, graph.AttrBranchForcePush,
@@ -433,6 +435,23 @@ func init() {
 	policies[graph.AttrReviewBypassMerge] = pathAttr
 	policies[graph.AttrApproveWorkflows] = list(func(r *redactor, s string) string { return r.id(s) })
 	policies[graph.AttrMergeWorkflow] = idAttr
+	policies[graph.AttrBotMergeSource] = botSourceAttr
+	policies[graph.AttrBotApproveSource] = botSourceAttr
+	policies[graph.AttrBotMergeStale] = enum(graph.StaleSuspected)
+	policies[graph.AttrBotMergeStaleConf] = enum(graph.StaleHeuristic)
+	policies[graph.AttrReviewBypassStale] = enum(graph.StaleSuspected)
+	policies[graph.AttrAgentHoldsMergeKey] = enum("true")
+	policies[graph.AttrAgentMergeKeyWorkflows] = list(func(r *redactor, s string) string { return r.path(s) })
+}
+
+// botSourceAttr is a bot_merge_source or bot_approve_source value:
+// script:<path>, with the path redacted. Any other value is dropped.
+func botSourceAttr(r *redactor, _ attrCtx, v string) (string, bool, bool) {
+	p, ok := strings.CutPrefix(v, graph.BotScriptPrefix)
+	if !ok || p == "" {
+		return "", false, false
+	}
+	return graph.BotScriptPrefix + r.path(p), false, true
 }
 
 var (

@@ -1,0 +1,24 @@
+# Synthetic: the pull request's author comments /merge and a repo script
+# merges with the App's private key. The merge rules live in the script.
+name: AI merge
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+jobs:
+  merge:
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/merge') && github.event.comment.user.login == github.event.issue.user.login
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install PyGithub==2.5.0
+      - name: Merge when approved
+        env:
+          APP_ID: ${{ vars.MERGE_APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: python3 tools/merge.py --pr "$PR_NUMBER"

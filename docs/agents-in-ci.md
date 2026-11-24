@@ -208,11 +208,55 @@ three closes the path):
    environment with required reviewers.
 4. Do not give the reviewer write or approve rights: let it comment only.
 
+**Merges in a script.** The merge rules often live in a repo script the
+workflow runs (`run: python3 tools/merge.py`). For a `run:` step that
+invokes a repo script (`python3 path.py`, `node path.js`, `bash path.sh`,
+`npx tsx path.ts`, `./path.sh`, `go run ./path`) with a token or key in its
+env, gop reads that file from the default branch with one read-only contents
+`GET` per repo and path (through the response cache, at most 5 scripts per
+workflow, 256 KiB per script) and scans its text for the same calls: `gh pr
+merge`, `pulls/{n}/merge`, PyGithub `pr.merge()`, Octokit `pulls.merge`,
+GraphQL `mergePullRequest`, and approvals through `create_review(event=
+"APPROVE")`, `createReview` or `gh pr review --approve`. gop never runs the
+script. A merge found there sets `bot_merges` with
+`bot_merge_source=script:<path>` (`bot_approve_source` for an approval) and
+joins the rules as above; the repo also carries `bot_merge_source`, and the
+path note reads "`ai-merge.yml` (merges in `tools/merge.py`)". The token is
+`app` when the script mints an App token or the step hands it a
+`*PRIVATE_KEY` secret. A script gop cannot read gets a `bot_script:<path>`
+coverage entry on the workflow. `gop doctor` counts these reads in its
+request estimate.
+
+**Stale approvals (heuristic).** A merge script that decides which reviews
+count can keep counting an approval after later pushes. When the script
+reads reviews and either counts a `DISMISSED` review next to `APPROVED`, or
+compares a review's `commit_id` with the head and goes on without skipping
+it, gop sets `bot_merge_stale_approvals=suspected` with
+`bot_merge_stale_confidence=heuristic` on the workflow and the repo. The
+attr's evidence is `not_visible` and a `bot_merge_stale_approvals` coverage
+entry asks for a manual check: it is a text match, never confirmed. When an
+approving workflow of the path also does not re-run on `synchronize` (its
+`pull_request` or `pull_request_target` types leave it out),
+`review_bypass_stale_approval=suspected` is set and the path note adds "the
+approval may not cover the merged code".
+
+**The merge key next to the AI.** When an AI agent step (a known agent
+action or CLI) has the same secret in its env or `with:` as the merge's
+token source (the private key of the App token step, or a secret in the
+merging step's env), the repo gets `agent_holds_merge_key=true` and
+`agent_merge_key_workflows`: a prompt injection can use the key to merge by
+itself.
+
+These add fixes after the four above (they narrow the path, they do not
+close it): count only approvals of the head commit in the script, re-run the
+AI review on every push, and keep the merge key out of the AI step.
+
 **Limits.** gop does not know which App a token belongs to, so any app
 bypass actor counts for any App token; it does not read the "allow GitHub
-Actions to approve" setting; it does not follow a merge done in a script
-file or a called reusable workflow; and a scheduled job that merges approved
-pull requests is not modeled.
+Actions to approve" setting; it follows only literal script paths (not
+`$SCRIPT`, `python -m`, imports or a called reusable workflow), and the
+stale-approval check is a text heuristic; and a scheduled job that merges
+approved pull requests is not modeled.
 
 ## Limits
 

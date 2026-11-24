@@ -180,7 +180,14 @@
         "review_bypass": {"description": "repo: bot_self_merge when a pull request's author can get it approved and merged by bots with no human review (not_visible when possible only).", "type": "string", "enum": ["bot_self_merge"]},
         "review_bypass_reason": {"description": "repo: why the bot merge needs no human review.", "type": "string", "enum": ["app_bypass", "admin_bypass", "bot_approvals", "unprotected"]},
         "review_bypass_approve": {"description": "repo: sorted comma list of the approving workflow files.", "type": "string", "minLength": 1},
-        "review_bypass_merge": {"description": "repo: the merging workflow file.", "type": "string", "minLength": 1}
+        "review_bypass_merge": {"description": "repo: the merging workflow file.", "type": "string", "minLength": 1},
+        "bot_merge_source": {"description": "workflow, repo: script:<path> when the merge call is in a repo script a workflow step runs (read from the default branch, never executed); absent when the merge is a workflow step.", "type": "string", "pattern": "^script:.+"},
+        "bot_approve_source": {"description": "workflow: script:<path> when the approve call is in a repo script a workflow step runs.", "type": "string", "pattern": "^script:.+"},
+        "bot_merge_stale_approvals": {"description": "workflow, repo: suspected when the merge script seems to count approvals not tied to the head commit (a dismissed review, or a review of an older commit it does not skip). A heuristic, never confirmed: attr evidence not_visible, with a bot_merge_stale_approvals coverage entry.", "type": "string", "enum": ["suspected"]},
+        "bot_merge_stale_confidence": {"description": "workflow, repo: the confidence of bot_merge_stale_approvals.", "type": "string", "enum": ["heuristic"]},
+        "review_bypass_stale_approval": {"description": "repo: suspected when the merge counts older approvals (suspected) and an approving workflow does not re-run on synchronize: the approval may not cover the merged code.", "type": "string", "enum": ["suspected"]},
+        "agent_holds_merge_key": {"description": "repo: an AI agent step's env (or with:) holds the same secret the bot merge's token comes from.", "type": "string", "enum": ["true"]},
+        "agent_merge_key_workflows": {"description": "repo: sorted comma list of the workflow files whose agent step holds the merge key.", "type": "string", "minLength": 1}
       }
     },
     "EdgeAttrs": {

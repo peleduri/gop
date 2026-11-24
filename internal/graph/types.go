@@ -527,6 +527,18 @@ const (
 	AttrBotMergeAdmin    = "bot_merge_admin"     // workflow: true when a merge step passes --admin
 	AttrBotMergeTriggers = "bot_merge_triggers"  // workflow: sorted comma list of the triggers that start a merging job
 
+	// Bot merges and approvals implemented in a repo script a workflow step
+	// runs (python3 tools/merge.py), read from the default branch and never
+	// executed.
+	AttrBotMergeSource    = "bot_merge_source"           // workflow, repo: script:<path> when the merge call is in a script the step runs (absent: in the workflow itself)
+	AttrBotApproveSource  = "bot_approve_source"         // workflow: script:<path> when the approve call is in a script the step runs
+	AttrBotMergeStale     = "bot_merge_stale_approvals"  // workflow, repo: suspected when the merge script seems to count approvals not tied to the head commit (heuristic, never confirmed; attr evidence not_visible)
+	AttrBotMergeStaleConf = "bot_merge_stale_confidence" // workflow, repo: heuristic (the only value): bot_merge_stale_approvals is a text match, not a proof
+
+	AttrReviewBypassStale      = "review_bypass_stale_approval" // repo: suspected when the merge counts older approvals (suspected) and the approving workflow does not re-run on synchronize: the approval may not cover the merged code
+	AttrAgentHoldsMergeKey     = "agent_holds_merge_key"        // repo: true when an AI agent step's env holds the same secret the bot merge uses as its key
+	AttrAgentMergeKeyWorkflows = "agent_merge_key_workflows"    // repo: sorted comma list of the workflow files whose agent step holds the merge key
+
 	AttrReviewBypass        = "review_bypass"         // repo: bot_self_merge (live, or not_visible when possible only)
 	AttrReviewBypassReason  = "review_bypass_reason"  // repo, CAN_MERGE_VIA_BOT: app_bypass | admin_bypass | bot_approvals | unprotected
 	AttrReviewBypassApprove = "review_bypass_approve" // repo: sorted comma list of the approving workflow files; absent when no approval is needed
@@ -536,10 +548,23 @@ const (
 
 	// FactReviewBypass is the coverage fact of a review bypass gop could not decide.
 	FactReviewBypass = "review_bypass"
+	// FactStaleApprovals is the coverage fact asking for a manual check of a
+	// suspected stale-approval merge script.
+	FactStaleApprovals = "bot_merge_stale_approvals"
 )
 
 // Values of review_bypass.
 const ReviewBypassBotSelfMerge = "bot_self_merge"
+
+// Values of bot_merge_stale_approvals, review_bypass_stale_approval and
+// bot_merge_stale_confidence.
+const (
+	StaleSuspected = "suspected"
+	StaleHeuristic = "heuristic"
+)
+
+// BotScriptPrefix starts bot_merge_source and bot_approve_source values.
+const BotScriptPrefix = "script:"
 
 // Values of review_bypass_reason: why the bot merge needs no human review.
 const (
