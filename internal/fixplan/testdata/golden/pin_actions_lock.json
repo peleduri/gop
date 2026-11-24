@@ -1,0 +1,89 @@
+{
+  "summary": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 1 line to edit across 1 repo; removes 0 of 5 confirmed (principal, repo) pairs (0%)",
+  "plan": {
+    "fix_id": "pin:action:acme-actions/deploy@main",
+    "fix": {
+      "type": "pin_ref",
+      "action": "action:acme-actions/deploy@main"
+    },
+    "description": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it",
+    "removes": {
+      "fixes": [
+        "pin:action:acme-actions/deploy@main"
+      ],
+      "before": {
+        "principals": 2,
+        "confirmed": {
+          "repos": 5,
+          "orgs": 2,
+          "workflows": 2,
+          "secrets": 2,
+          "oidc": 0,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 5,
+        "possible_pairs": 0,
+        "score": 20,
+        "possible_score": 0
+      },
+      "after": {
+        "principals": 2,
+        "confirmed": {
+          "repos": 5,
+          "orgs": 2,
+          "workflows": 2,
+          "secrets": 2,
+          "oidc": 0,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "confirmed_pairs": 5,
+        "possible_pairs": 0,
+        "score": 20,
+        "possible_score": 0
+      },
+      "per_principal": []
+    },
+    "steps": [
+      {
+        "kind": "edit_workflow",
+        "repo": "acme-app/api",
+        "file": ".github/workflows/deploy.yml",
+        "file_ref": "main",
+        "line": 12,
+        "col": 15,
+        "diff": "--- a/.github/workflows/deploy.yml\n+++ b/.github/workflows/deploy.yml\n@@ -12 +12 @@\n-uses: acme-actions/deploy@main\n+uses: acme-actions/deploy@<sha-of-main> # main\n",
+        "owner": "acme-app",
+        "edge": "workflow:acme-app/api/.github/workflows/deploy.yml USES action:acme-actions/deploy@main",
+        "evidence": "live"
+      },
+      {
+        "kind": "verify",
+        "repo": "acme-actions/deploy",
+        "owner": "acme-actions",
+        "note": "fix-plan works offline and does not know the commit main points at: run `gop pin --action acme-actions/deploy@main --graph graph.json` to resolve it with one read-only API call and print these edits as a git apply diff, or replace <sha-of-main> with the full commit SHA of main yourself. Use the same SHA in every step."
+      }
+    ],
+    "caveats": [
+      "acme-app/docs .github/workflows/build.yml line 9: stale actions.lock entry (it pins acme-actions/deploy@v1 instead): rerun gh actions-lock in acme-app/docs instead of editing the workflow",
+      "acme-app/web .github/workflows/ci.yml line 8: actions.lock governs this uses: and pins it to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: nothing to edit",
+      "diffs show the uses: entry without its indentation or list marker; keep those as they are in the file",
+      "pinning acme-actions/deploy@main alone does not close paths through the mutable refs it uses itself: acme-actions/setup@main (acme-actions/deploy@main action.yml:6). Pin those too (for example gop fix-plan --pin action:acme-actions/setup@main)"
+    ]
+  }
+}

@@ -143,6 +143,11 @@ action    -USES->         action     every workflow or composite action that use
                                      against the consumer's repo by actionsAccessAllows: a
                                      disallowed hop is dropped, and an unknown setting makes a
                                      cross-org hop not_visible. No attr: the hop is unchanged.
+                                     A USES edge from a workflow with actions_lock=locked is
+                                     dropped: the repo's actions.lock pins the action and every
+                                     nested ref under it to commits, so changing the action does
+                                     not change what the workflow runs. actions_lock=stale
+                                     changes nothing.
 principal -CAN_TRIGGER->  workflow   the principal can cause a risky trigger (pull_request_target,
                                      workflow_run, issue_comment, ...) of a workflow that runs
                                      attacker-controlled code: a forward control hop like CAN_PUSH.

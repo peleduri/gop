@@ -68,6 +68,10 @@ type data struct {
 	Fixes    []fixRow
 	PinLine  string
 	Pinned   []pinnedRow
+	// LockLine counts workflow uses: lines pinned in the workflow file, by
+	// an actions.lock, stale in one, and unpinned; set only when the graph
+	// has an actions.lock fact.
+	LockLine string
 	Paths    []principalPaths
 	Orgs     []orgRow
 	Coverage []graph.Coverage
@@ -242,6 +246,9 @@ func build(g *graph.Graph, opts Options) data {
 		}
 		d.PinLine = fmt.Sprintf("Pinning is not enough: %s pinned to a commit SHA still %s a mutable ref that someone can push to.",
 			plural(n, "action", "actions"), verb)
+	}
+	if st := ix.PinStats(); st.HasLock() {
+		d.LockLine = lockLine(st)
 	}
 	for _, n := range g.Nodes {
 		if n.Kind != graph.KindOrg {
@@ -441,3 +448,10 @@ func evClass(ev graph.Evidence) string {
 }
 
 const footer = "This file maps attack paths in your organization. Treat it as sensitive."
+
+// lockLine is the coverage note that splits workflow uses: lines by how they
+// are pinned. A stale actions.lock entry is never counted as pinned.
+func lockLine(st graph.PinStats) string {
+	return fmt.Sprintf("Action pins (workflow uses: lines): %d pinned in the workflow file, %d pinned by actions.lock (%s), %d with a stale actions.lock entry (counted as unpinned, listed below), %d unpinned.",
+		st.InWorkflow, st.ByLock, plural(st.Locks, "repo has a lockfile", "repos have a lockfile"), st.Stale, st.Unpinned)
+}

@@ -192,6 +192,8 @@ type collector struct {
 	host        string
 	ghes        bool
 	ghesVersion string
+	// locks holds each repo's parsed actions.lock, by repo node ID (actionslock.go).
+	locks map[string]*actionsLock
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -343,6 +345,7 @@ func (k *collector) run(ctx context.Context) error {
 	if err := k.expandNested(ctx); err != nil {
 		return err
 	}
+	k.applyActionsLocks()
 	k.linkJobWorkflowRefs()
 	k.coverUnknownOwners()
 	k.pushToStubs()
@@ -1222,6 +1225,21 @@ func (k *collector) collectWorkflows(ctx context.Context, o *orgState, repo *gra
 		k.cover(repo.ID, "workflows", "unexpected contents response for .github/workflows",
 			"check .github/workflows in "+full+" is a directory")
 		return nil
+	}
+	for _, e := range entries {
+		if e.Name != actionsLockName {
+			continue
+		}
+		if e.Type != "file" {
+			k.noteActionsLock(repo, nil, errLockNotFile)
+			break
+		}
+		data, err := k.getFile(ctx, o.login, name, e.Path, "")
+		if err != nil && ctx.Err() != nil {
+			return ctx.Err()
+		}
+		k.noteActionsLock(repo, data, err)
+		break
 	}
 	count := 0
 	var pending []tokenDefault

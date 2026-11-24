@@ -110,7 +110,8 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{end}}</tbody></table></div>{{end}}
 
 <h2 id="coverage">Coverage</h2>
-{{if .Coverage}}<div class="scroll"><table>
+{{if .LockLine}}<p class="note">{{.LockLine}}</p>
+{{end}}{{if .Coverage}}<div class="scroll"><table>
 <caption class="vh">Coverage: facts the token could not see</caption>
 <thead><tr><th scope="col">Scope</th><th scope="col">Not visible</th><th scope="col">Why</th><th scope="col">Access that fixes it</th></tr></thead>
 <tbody>{{range .Coverage}}<tr><td><code>{{.Scope}}</code></td><td><span class="badge nv"><span aria-hidden="true">?</span> {{.Fact}}</span></td><td>{{.Reason}}</td><td>{{.NeedsFix}}</td></tr>

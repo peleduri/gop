@@ -256,6 +256,17 @@ func pin(ctx context.Context, c *collect.Client, u collect.ActionUse, g *graph.G
 		}
 		lines[k] = append(lines[k], s.Line)
 	}
+	locked := 0
+	for _, u := range fixplan.LockGoverned(ix, id) {
+		if onlyRepo != "" && u.Repo != onlyRepo {
+			continue
+		}
+		res.Skipped = append(res.Skipped, pinSkip{Repo: u.Repo, File: u.File, Line: u.Line, Reason: u.Reason()})
+		locked++
+	}
+	if locked > 0 {
+		res.Warnings = append(res.Warnings, fmt.Sprintf("%d uses: line(s) governed by actions.lock (listed as skipped): gop pin does not edit them or the lockfile; for a stale entry, rerun gh actions-lock in that repo", locked))
+	}
 	if onlyRepo != "" && len(order) == 0 && len(res.Skipped) == 0 {
 		res.Warnings = append(res.Warnings, "no workflow in "+onlyRepo+" uses "+uses+" in this graph")
 	}

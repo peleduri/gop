@@ -143,7 +143,7 @@ var nameFacts = map[string]string{
 	graph.AttrRefImmutable: factRulesets,
 	"workflows":            factWorkflows, "workflow_parse": factWorkflows, "dynamic_uses": factWorkflows,
 	"nested_uses": factActions, "nested": factActions, graph.AttrRefKind: factActions,
-	graph.AttrActionsAccess:        factActions,
+	graph.AttrActionsAccess: factActions, graph.AttrActionsLock: factActions,
 	"default_workflow_permissions": factTokenPerms, "token_write": factTokenPerms,
 	"triggering_principals": factTriggers, graph.AttrVisibility: factTriggers,
 	"cloud_trust": factOIDC, graph.AttrEnvironments: factOIDC,
@@ -165,6 +165,8 @@ func factOfName(name, id string) string {
 		return factTeams
 	case strings.HasPrefix(name, "workflow:"):
 		return factWorkflows
+	case strings.HasPrefix(name, graph.AttrActionsLock+":"):
+		return factActions
 	}
 	if f, ok := nameFacts[name]; ok {
 		return f

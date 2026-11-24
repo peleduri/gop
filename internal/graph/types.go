@@ -323,3 +323,27 @@ const (
 	AttrActionsAccess = "actions_access" // repo: none | user | organization | enterprise | public | unknown (not_visible)
 	AttrConsumerOrg   = "consumer_org"   // USES edge into an enterprise-hosted action: org login of the using workflow or action
 )
+
+// GitHub Actions dependency lockfiles (.github/workflows/actions.lock, written
+// by gh actions-lock; see docs/actions-lock.md). The lockfile pins each
+// workflow's actions, nested ones included, to commits, so a workflow that
+// says @v4 runs the locked commit.
+const (
+	AttrActionsLock = "actions_lock" // repo: true (a lockfile was read) | unknown (not_visible or unreadable); USES edge from a workflow: locked | stale
+	AttrLockedSHA   = "locked_sha"   // USES edge with actions_lock=locked: the commit the lockfile pins the action to
+	AttrLockEntry   = "lock_entry"   // USES edge with actions_lock=stale: comma list of the lockfile's pin keys (owner/repo@ref) for the same action repo; absent when there is none
+	AttrLockMissing = "lock_missing" // USES edge with actions_lock=stale: comma list of the nested refs (owner/repo@ref) the lockfile does not pin for this workflow
+)
+
+// Values of actions_lock on USES edges.
+const (
+	// LockLocked: the lockfile lists this uses: for the workflow, with a
+	// commit, and pins every nested ref gop saw under it. The engine drops the
+	// edge's control hop: changing the action cannot change what the
+	// workflow runs.
+	LockLocked = "locked"
+	// LockStale: the repo has a lockfile, but it does not pin this uses: as
+	// written (another ref, the workflow is missing, or a nested ref is
+	// missing). It counts as unpinned.
+	LockStale = "stale"
+)

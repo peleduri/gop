@@ -378,6 +378,20 @@ func (k *collector) applyWorkflowDir(ctx context.Context, o *orgState, repo *gra
 			return false, nil
 		}
 	}
+	for _, e := range dir.Entries {
+		if e.Name != actionsLockName {
+			continue
+		}
+		switch {
+		case e.Type != "blob" || (e.Mode != modeFile && e.Mode != modeExecutable):
+			k.noteActionsLock(repo, nil, errLockNotFile)
+		case !e.Object.complete():
+			k.noteActionsLock(repo, nil, errTooLarge)
+		default:
+			k.noteActionsLock(repo, []byte(*e.Object.Text), nil)
+		}
+		break
+	}
 	count := 0
 	var pending []tokenDefault
 	for _, e := range dir.Entries {

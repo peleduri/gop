@@ -19,6 +19,9 @@ const (
 	triggersPath = "testdata/triggers.json"
 	previewWF    = "workflow:acme-app/docs/.github/workflows/preview.yml"
 	webCI        = "workflow:acme-app/web/.github/workflows/ci.yml"
+	// lockPath: acme-app/web's actions.lock pins deploy@main, acme-app/docs
+	// has a stale entry for it, acme-app/api has no lockfile.
+	lockPath = "../../testdata/actionslock/graph.json"
 )
 
 func index(t *testing.T, path string) *graph.Index {
@@ -188,6 +191,7 @@ func TestGoldenRender(t *testing.T) {
 	}{
 		{"pin_lines", linesPath, graph.PinRef{Action: deployRef}},
 		{"pin_acme", acmePath, graph.PinRef{Action: deployRef}},
+		{"pin_actions_lock", lockPath, graph.PinRef{Action: deployRef}},
 		{"lower_lines", linesPath, graph.LowerDefaultPerm{Org: "org:acme-actions", To: "read"}},
 		{"restrict_acme", acmePath, graph.RestrictToken{Workflow: webCI}},
 		{"restrict_triggers", triggersPath, graph.RestrictToken{Workflow: previewWF}},
@@ -226,5 +230,30 @@ func TestNoCollectOrNetworkImports(t *testing.T) {
 			dep == "os/exec":
 			t.Errorf("internal/fixplan depends on %s", dep)
 		}
+	}
+}
+
+func TestPinSkipsActionsLock(t *testing.T) {
+	ix := index(t, lockPath)
+	p := Build(ix, graph.PinRef{Action: deployRef})
+	got := edits(p)
+	if len(got) != 1 || got[0].Repo != "acme-app/api" || got[0].Line != 12 {
+		t.Fatalf("edit steps %+v, want only acme-app/api line 12", got)
+	}
+	if !hasCaveat(p, "acme-app/web .github/workflows/ci.yml line 8: actions.lock governs this uses: and pins it to aaaa") {
+		t.Errorf("missing locked caveat: %v", p.Caveats)
+	}
+	if !hasCaveat(p, "acme-app/docs .github/workflows/build.yml line 9: stale actions.lock entry (it pins acme-actions/deploy@v1 instead): rerun gh actions-lock in acme-app/docs") {
+		t.Errorf("missing stale caveat: %v", p.Caveats)
+	}
+	locks := LockGoverned(ix, deployRef)
+	if len(locks) != 2 || locks[0].Repo != "acme-app/docs" || locks[0].State != graph.LockStale || locks[1].State != graph.LockLocked {
+		t.Errorf("LockGoverned = %+v", locks)
+	}
+
+	// Every use of lint@v2 is locked: nothing to edit.
+	p = Build(ix, graph.PinRef{Action: "action:acme-actions/lint@v2"})
+	if len(edits(p)) != 0 || !hasCaveat(p, "every use of acme-actions/lint@v2 is governed by an actions.lock") {
+		t.Errorf("lint plan: steps %+v caveats %v", p.Steps, p.Caveats)
 	}
 }

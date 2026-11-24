@@ -225,8 +225,8 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 	var steps []Step
 	noLine := 0
 	for _, e := range ix.In(f.Action) {
-		if e.Kind != graph.Uses {
-			continue
+		if e.Kind != graph.Uses || e.Attrs[graph.AttrActionsLock] != "" {
+			continue // an actions.lock governs it: see LockGoverned below
 		}
 		repo, file, nested := location(ix, e)
 		line := atoi(e.Attrs[graph.AttrLine])
@@ -274,8 +274,20 @@ func buildPin(ix *graph.Index, f graph.PinRef, p *Plan) {
 		}
 		return a.Edge < b.Edge
 	})
+	locks := LockGoverned(ix, f.Action)
+	for _, u := range locks {
+		loc := u.Repo + " " + u.File
+		if u.Line > 0 {
+			loc += fmt.Sprintf(" line %d", u.Line)
+		}
+		p.Caveats = append(p.Caveats, loc+": "+u.Reason())
+	}
 	if len(steps) == 0 {
-		p.Caveats = append(p.Caveats, "no workflow or action in this graph uses "+uses)
+		if len(locks) == 0 {
+			p.Caveats = append(p.Caveats, "no workflow or action in this graph uses "+uses)
+		} else {
+			p.Caveats = append(p.Caveats, "every use of "+uses+" is governed by an actions.lock: there is no workflow line to edit")
+		}
 		return
 	}
 	p.Steps = append(p.Steps, steps...)
@@ -457,5 +469,61 @@ func dedup(s []string) []string {
 			out = append(out, v)
 		}
 	}
+	return out
+}
+
+// LockUse is a uses: line of an action that a repo's actions.lock governs
+// (its USES edge carries actions_lock). gop does not edit those lines: the
+// lockfile decides what runs, and gh actions-lock maintains it.
+type LockUse struct {
+	Repo    string `json:"repo"`
+	File    string `json:"file,omitempty"`
+	Line    int    `json:"line,omitempty"`
+	State   string `json:"state" jsonschema:"locked or stale"`
+	SHA     string `json:"locked_sha,omitempty"`
+	Entry   string `json:"lock_entry,omitempty"`
+	Missing string `json:"lock_missing,omitempty"`
+}
+
+// Reason says, in one sentence, why the line is left alone.
+func (u LockUse) Reason() string {
+	if u.State == graph.LockLocked {
+		return "actions.lock governs this uses: and pins it to " + u.SHA + ": nothing to edit"
+	}
+	var why string
+	switch {
+	case u.Missing != "":
+		why = "it does not pin the nested " + strings.ReplaceAll(u.Missing, ",", ", ")
+	case u.Entry != "":
+		why = "it pins " + strings.ReplaceAll(u.Entry, ",", ", ") + " instead"
+	default:
+		why = "it has no entry for this uses:"
+	}
+	return "stale actions.lock entry (" + why + "): rerun gh actions-lock in " + u.Repo + " instead of editing the workflow"
+}
+
+// LockGoverned lists the uses: lines of action that an actions.lock
+// governs, sorted by repo, file and line.
+func LockGoverned(ix *graph.Index, action string) []LockUse {
+	var out []LockUse
+	for _, e := range ix.In(action) {
+		st := e.Attrs[graph.AttrActionsLock]
+		if e.Kind != graph.Uses || st == "" {
+			continue
+		}
+		repo, file, _ := location(ix, e)
+		out = append(out, LockUse{Repo: repo, File: file, Line: atoi(e.Attrs[graph.AttrLine]), State: st,
+			SHA: e.Attrs[graph.AttrLockedSHA], Entry: e.Attrs[graph.AttrLockEntry], Missing: e.Attrs[graph.AttrLockMissing]})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		if a.Repo != b.Repo {
+			return a.Repo < b.Repo
+		}
+		if a.File != b.File {
+			return a.File < b.File
+		}
+		return a.Line < b.Line
+	})
 	return out
 }

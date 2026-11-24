@@ -1,0 +1,12 @@
+action: acme-actions/deploy@main
+sha: 1111111111111111111111111111111111111111
+ref kind: branch
+replace: uses: acme-actions/deploy@main
+with:    uses: acme-actions/deploy@1111111111111111111111111111111111111111 # main
+files (1):
+  acme-app/api .github/workflows/deploy.yml line 12
+skipped: acme-app/docs .github/workflows/build.yml:9: stale actions.lock entry (it pins acme-actions/deploy@v1 instead): rerun gh actions-lock in acme-app/docs instead of editing the workflow
+skipped: acme-app/web .github/workflows/ci.yml:8: actions.lock governs this uses: and pins it to aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: nothing to edit
+warning: 2 uses: line(s) governed by actions.lock (listed as skipped): gop pin does not edit them or the lockfile; for a stale entry, rerun gh actions-lock in that repo
+warning: --offline hunks show the uses: entry without its indentation or list marker and carry no context: they do not apply with git apply; drop --offline for exact diffs
+warning: pinning acme-actions/deploy@main alone does not close paths through the mutable refs it uses itself: acme-actions/setup@main (acme-actions/deploy@main action.yml:6). Pin those too (for example gop pin --action acme-actions/setup@main)
