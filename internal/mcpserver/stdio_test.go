@@ -81,3 +81,51 @@ func TestClassify(t *testing.T) {
 		}
 	}
 }
+
+func TestClassifyBatchAndCancel(t *testing.T) {
+	req, rep := classify([]byte(`[{"jsonrpc":"2.0","id":1,"method":"a"},{"jsonrpc":"2.0","id":2,"method":"b"},{"jsonrpc":"2.0","method":"n"}]`))
+	if req != 2 || rep != 0 {
+		t.Errorf("batch: got %d,%d want 2,0", req, rep)
+	}
+	req, rep = classify([]byte(`{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":3}}`))
+	if req != 0 || rep != 1 {
+		t.Errorf("cancelled: got %d,%d want 0,1", req, rep)
+	}
+}
+
+// TestLinesSplitAndCap: lines are split across feeds, and a line longer
+// than maxFrame is dropped without holding its bytes.
+func TestLinesSplitAndCap(t *testing.T) {
+	old := maxFrame
+	maxFrame = 8
+	defer func() { maxFrame = old }()
+	var got []string
+	var l lines
+	each := func(b []byte) { got = append(got, string(b)) }
+	l.feed([]byte("ab"), each)
+	l.feed([]byte("c\nxxxxxxxx"), each)
+	l.feed([]byte("xxxxxxxx\nok\n"), each)
+	if len(got) != 2 || got[0] != "abc" || got[1] != "ok" {
+		t.Fatalf("got %q, want [abc ok]", got)
+	}
+	if len(l.buf) != 0 || l.skip {
+		t.Fatalf("buffer not reset: %d bytes, skip=%v", len(l.buf), l.skip)
+	}
+}
+
+// TestServeStreamFinalLineWithoutNewline: the last request has no trailing
+// newline and still gets its reply.
+func TestServeStreamFinalLineWithoutNewline(t *testing.T) {
+	in := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}` + "\n" +
+		`{"jsonrpc":"2.0","method":"notifications/initialized"}` + "\n" +
+		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`
+	var out bytes.Buffer
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := serveStream(ctx, NewServer(loadAcme(t), "test"), strings.NewReader(in), &out); err != nil {
+		t.Fatalf("serveStream: %v", err)
+	}
+	if !strings.Contains(out.String(), `"id":2,`) {
+		t.Errorf("no reply to the unterminated last request: %.300s", out.String())
+	}
+}

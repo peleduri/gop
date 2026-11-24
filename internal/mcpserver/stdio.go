@@ -84,38 +84,74 @@ type frame struct {
 	Method string          `json:"method"`
 }
 
-// classify returns (1, 0) for a request, (0, 1) for a reply, else (0, 0).
+// classify counts requests and replies in one line: an object, or a batch
+// array of objects. A notifications/cancelled message counts as a reply,
+// because the receiver of a cancelled request sends none.
 func classify(line []byte) (req, rep int) {
 	line = bytes.TrimSpace(line)
-	if len(line) == 0 || line[0] != '{' {
+	if len(line) == 0 {
 		return 0, 0
 	}
-	var f frame
-	if json.Unmarshal(line, &f) != nil {
+	var frames []frame
+	switch line[0] {
+	case '{':
+		var f frame
+		if json.Unmarshal(line, &f) != nil {
+			return 0, 0
+		}
+		frames = []frame{f}
+	case '[':
+		if json.Unmarshal(line, &frames) != nil {
+			return 0, 0
+		}
+	default:
 		return 0, 0
 	}
-	hasID := len(f.ID) > 0 && string(f.ID) != "null"
-	switch {
-	case hasID && f.Method != "":
-		return 1, 0
-	case hasID && f.Method == "":
-		return 0, 1
+	for _, f := range frames {
+		hasID := len(f.ID) > 0 && string(f.ID) != "null"
+		switch {
+		case hasID && f.Method != "":
+			req++
+		case hasID && f.Method == "":
+			rep++
+		case f.Method == "notifications/cancelled":
+			rep++
+		}
 	}
-	return 0, 0
+	return req, rep
 }
 
+// maxFrame caps how much of one unfinished line is buffered for counting,
+// matching the SDK's own frame cap (mcp.DefaultMaxLineLength). A longer line
+// is passed through uncounted; the SDK rejects it anyway.
+var maxFrame = mcp.DefaultMaxLineLength
+
 // lines splits a byte stream into complete lines across calls.
-type lines struct{ buf []byte }
+type lines struct {
+	buf  []byte
+	skip bool // inside a line longer than maxFrame: drop until the next newline
+}
 
 func (l *lines) feed(b []byte, each func([]byte)) {
-	l.buf = append(l.buf, b...)
-	for {
-		i := bytes.IndexByte(l.buf, '\n')
+	for len(b) > 0 {
+		i := bytes.IndexByte(b, '\n')
 		if i < 0 {
+			if !l.skip {
+				l.buf = append(l.buf, b...)
+				if len(l.buf) > maxFrame {
+					l.buf, l.skip = nil, true
+				}
+			}
 			return
 		}
-		each(l.buf[:i])
-		l.buf = l.buf[i+1:]
+		if !l.skip {
+			l.buf = append(l.buf, b[:i]...)
+			if len(l.buf) <= maxFrame {
+				each(l.buf)
+			}
+		}
+		l.buf, l.skip = l.buf[:0], false
+		b = b[i+1:]
 	}
 }
 
@@ -130,18 +166,18 @@ func (c *countingReader) Read(b []byte) (int, error) {
 	n, err := c.r.Read(b)
 	if n > 0 {
 		c.l.feed(b[:n], func(line []byte) {
-			if req, _ := classify(line); req > 0 {
-				c.p.add(req, 0)
+			if req, rep := classify(line); req+rep > 0 {
+				c.p.add(req, rep)
 			}
 		})
 	}
 	if err == io.EOF {
-		if len(bytes.TrimSpace(c.l.buf)) > 0 { // last line without a newline
-			if req, _ := classify(c.l.buf); req > 0 {
-				c.p.add(req, 0)
+		if !c.l.skip && len(bytes.TrimSpace(c.l.buf)) > 0 { // last line without a newline
+			if req, rep := classify(c.l.buf); req+rep > 0 {
+				c.p.add(req, rep)
 			}
-			c.l.buf = nil
 		}
+		c.l.buf, c.l.skip = nil, false
 		if n > 0 {
 			return n, nil // deliver the bytes first; EOF on the next call
 		}
