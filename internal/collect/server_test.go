@@ -97,6 +97,10 @@ type fakeGitHub struct {
 	extraWorkflows map[string]string
 	// extraFiles plants other files (CODEOWNERS), keyed "owner/repo/path".
 	extraFiles map[string]string
+	// installs plants GET /orgs/{o}/installations entries per org login;
+	// installsDenied answers 403 for those orgs even to an owner.
+	installs       map[string][]map[string]any
+	installsDenied map[string]bool
 	// secAnalysis overrides the listing's security_and_analysis per
 	// "owner/repo" (nil value: omitted, as for a token without admin).
 	secAnalysis map[string]any
@@ -174,7 +178,12 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 	}
 	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{},
 		collabStatus:   map[string]int{},
-		extraWorkflows: map[string]string{}, extraFiles: map[string]string{}, secAnalysis: map[string]any{}, objectErrors: map[string]string{}, truncated: map[string]bool{},
+		extraWorkflows: map[string]string{}, extraFiles: map[string]string{}, installsDenied: map[string]bool{}, installs: map[string][]map[string]any{
+			// Planted case 1: an AI review App installed on every repository
+			// of acme-app with contents and workflows write.
+			"acme-app": {{"id": 501, "app_id": 9001, "app_slug": "acme-ai-reviewer", "repository_selection": "all",
+				"permissions": map[string]any{"contents": "write", "workflows": "write", "pull_requests": "write", "metadata": "read"}}},
+		}, secAnalysis: map[string]any{}, objectErrors: map[string]string{}, truncated: map[string]bool{},
 		conditional: map[string]int{}, notModified: map[string]int{}, ok200: map[string]bool{}}
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
 		t.Fatal(err)
@@ -322,6 +331,8 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		f.org(w, strings.TrimPrefix(p, "/orgs/"))
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/repos"):
 		f.repos(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/repos"))
+	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/installations"):
+		f.orgInstalls(w, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/installations"))
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/outside_collaborators"):
 		f.outside(w, r, strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/outside_collaborators"))
 	case strings.HasPrefix(p, "/orgs/") && strings.HasSuffix(p, "/custom-repository-roles"):
@@ -567,6 +578,32 @@ func (f *fakeGitHub) teams(w http.ResponseWriter, r *http.Request, rest string) 
 			f.paged(w, r, items, listPage)
 			return
 		}
+	}
+	notFoundOrForbidden(w, 404)
+}
+
+// orgInstalls serves /orgs/{o}/installations (org owners only).
+func (f *fakeGitHub) orgInstalls(w http.ResponseWriter, org string) {
+	for _, o := range f.fx.Orgs {
+		if o.Login != org {
+			continue
+		}
+		f.mu.Lock()
+		denied := f.installsDenied[org]
+		f.mu.Unlock()
+		if !o.Owner || denied {
+			notFoundOrForbidden(w, 403)
+			return
+		}
+		f.mu.Lock()
+		ins := f.installs[org]
+		f.mu.Unlock()
+		if ins == nil {
+			ins = []map[string]any{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"total_count": len(ins), "installations": ins})
+		return
 	}
 	notFoundOrForbidden(w, 404)
 }

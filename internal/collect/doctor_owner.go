@@ -138,6 +138,7 @@ func (d *doctor) predictNotOwned(o *DoctorOrg, ssoEnforced, entVisible bool) {
 		facts = append(facts, fact)
 	}
 	note("ip_allow_list", fix)
+	note(graph.FactAppInstallations, fix)
 	note(attrRepositories, fix)
 	// Without ownerInfo, the default permission comes from GET /orgs/{org},
 	// which returns it to org owners only.

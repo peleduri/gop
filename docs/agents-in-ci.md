@@ -26,6 +26,21 @@ each counted once. M counts the merging workflows: confirmed when one of
 their `CAN_MERGE_VIA_BOT` edges is verified, possible when all are
 `not_visible`.
 
+## Installed GitHub Apps
+
+For each org the token owns, gop lists the GitHub Apps installed in it
+(`GET /orgs/{org}/installations`: org owner only; fine-grained tokens and
+Apps need Organization Administration: read). Each App is an identity
+`identity:<slug>[bot]`, the login it acts as, with `app_id`, `app_slug`,
+`app_orgs`, `app_write` (the permissions it holds with write, such as
+`contents`, `workflows`, `pull_requests`), `app_repos` (`all` when it is
+installed on every repository of an org, else `selected`: an org token
+cannot read the selected list) and `app_ai=name` when its slug names an AI
+coding or review tool. An App with `contents` and `workflows` write on all
+repositories can change code and CI everywhere it is installed. The org gets
+`app_installations`; an org the token does not own gets `unknown`
+(`not_visible`) with a coverage entry.
+
 ## What gop detects
 
 `gop collect` marks a workflow node with `agent=<kind>` (a comma list when it

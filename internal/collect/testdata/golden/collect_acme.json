@@ -145,6 +145,20 @@
       "evidence": "live"
     },
     {
+      "id": "identity:acme-ai-reviewer[bot]",
+      "kind": "identity",
+      "name": "acme-ai-reviewer[bot]",
+      "attrs": {
+        "app_ai": "name",
+        "app_id": "9001",
+        "app_orgs": "acme-app",
+        "app_repos": "all",
+        "app_slug": "acme-ai-reviewer",
+        "app_write": "contents,pull_requests,workflows"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "identity:alice",
       "kind": "identity",
       "name": "alice",
@@ -242,6 +256,7 @@
       "kind": "org",
       "name": "acme-actions",
       "attrs": {
+        "app_installations": "0",
         "archived": "false",
         "change_visibility": "false",
         "default_perm": "write",
@@ -265,6 +280,7 @@
       "kind": "org",
       "name": "acme-app",
       "attrs": {
+        "app_installations": "1",
         "archived": "false",
         "change_visibility": "true",
         "default_perm": "read",
@@ -306,6 +322,7 @@
       "kind": "org",
       "name": "acme-legacy",
       "attrs": {
+        "app_installations": "unknown",
         "archived": "false",
         "change_visibility": "true",
         "default_perm": "write",
@@ -326,6 +343,7 @@
       },
       "evidence": "live",
       "attr_evidence": {
+        "app_installations": "not_visible",
         "ip_allow_entries": "not_visible",
         "ip_allow_list": "not_visible",
         "ip_allow_list_apps": "not_visible",
@@ -338,6 +356,7 @@
       "kind": "org",
       "name": "acme-secure",
       "attrs": {
+        "app_installations": "0",
         "archived": "false",
         "change_visibility": "false",
         "default_perm": "read",
@@ -2157,6 +2176,12 @@
     {
       "scope": "org:acme-legacy",
       "fact": "ip_allow_list",
+      "reason": "token is not an org owner",
+      "needs_fix": "org owner on acme-legacy (SSO enforced: join through the identity provider first)"
+    },
+    {
+      "scope": "org:acme-legacy",
+      "fact": "app_installations",
       "reason": "token is not an org owner",
       "needs_fix": "org owner on acme-legacy (SSO enforced: join through the identity provider first)"
     },

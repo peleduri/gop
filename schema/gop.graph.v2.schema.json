@@ -109,6 +109,13 @@
       "properties": {
         "ip_allow_list_entries": {"description": "org: number of active IP allow list entries (org owner only); entry values are never collected.", "type": "string", "pattern": "^([0-9]+|unknown)$"},
         "ip_allow_list_apps": {"description": "org: whether the IP allow list also applies to installed GitHub Apps (org owner only).", "type": "string", "enum": ["on", "off", "unknown"]},
+        "app_installations": {"description": "org: number of GitHub Apps installed in the org (GET /orgs/{org}/installations, org owner only), or unknown (not_visible).", "type": "string", "pattern": "^([0-9]+|unknown)$"},
+        "app_id": {"description": "identity (an installed GitHub App, ID identity:<slug>[bot]): the App's numeric ID.", "type": "string", "pattern": "^[0-9]+$"},
+        "app_slug": {"description": "identity (an installed GitHub App): the App's slug.", "type": "string", "minLength": 1},
+        "app_orgs": {"description": "identity (an installed GitHub App): sorted comma list of the collected orgs it is installed in.", "type": "string", "minLength": 1},
+        "app_write": {"description": "identity (an installed GitHub App): sorted comma list of the permissions granted with write in any of those orgs (contents, workflows, pull_requests, ...), or none.", "type": "string", "minLength": 1},
+        "app_repos": {"description": "identity (an installed GitHub App): all when it is installed on every repository of at least one org, else selected (the selected list is not readable to an org token).", "type": "string", "enum": ["all", "selected"]},
+        "app_ai": {"description": "identity (an installed GitHub App): name when its slug names an AI coding or review tool (a name-only signal).", "type": "string", "enum": ["name"]},
         "ref_protected": {"description": "action_ref on a branch: whether branch protection stops a pusher from changing it alone.", "type": "string", "enum": ["true", "false", "unknown"]},
         "ref_protection": {"description": "Comma list of the branch's rules, e.g. reviews,dismiss_stale,status_checks.", "type": "string", "minLength": 1},
         "bypass": {"description": "Comma list of principal IDs that can land code on the protected branch, or move the immutable tag, alone; none, or unknown.", "type": "string", "minLength": 1},

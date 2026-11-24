@@ -1235,7 +1235,7 @@ func TestCoverageLog(t *testing.T) {
 			cov = append(cov, l)
 		}
 	}
-	want := "collect: coverage acme-legacy: 1 not_visible nodes, 2 edges, 11 attrs, 11 entries"
+	want := "collect: coverage acme-legacy: 1 not_visible nodes, 2 edges, 12 attrs, 12 entries"
 	if !slices.Contains(cov, want) {
 		t.Errorf("coverage log lines = %q, want %q", cov, want)
 	}
