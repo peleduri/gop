@@ -2,7 +2,7 @@
 
 Enterprise **acme**, collected 2026-11-20T12:00:00Z
 
-**AI agents and bots:** 3 non-human actors; none can merge to a default branch without a human.
+**AI agents and bots:** 4 non-human actors; none can merge to a default branch without a human.
 
 > identity:bob can push code that runs in 9 repos across 3 orgs (confirmed), including 1 cloud OIDC trust, 2 secret scopes, 1 self-hosted runner pool. 1 repo more possible through facts gop could not see.
 >
