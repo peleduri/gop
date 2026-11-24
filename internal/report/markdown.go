@@ -14,14 +14,18 @@ import (
 // neutralized, and characters that break tables or formatting are escaped.
 // md first escapes newlines, control, bidi and zero-width characters
 // (sanitize.Truncate), so a GitHub name can never start a line or hide
-// text, and caps the value at sanitize.MaxLine runes.
+// text, and caps the value at sanitize.MaxLine runes. sanitize.NoAutolink
+// breaks bare http://, https:// and www. autolinks, so with [ and ] escaped
+// here a name cannot become a live link.
 var mdEsc = strings.NewReplacer(
 	"&", "&amp;", "<", "&lt;", ">", "&gt;",
 	"|", `\|`, "`", "\\`", "*", `\*`, "_", `\_`, "[", `\[`, "]", `\]`,
 	"\r", " ", "\n", " ",
 )
 
-func md(s string) string { return mdEsc.Replace(sanitize.Truncate(s, sanitize.MaxLine)) }
+func md(s string) string {
+	return mdEsc.Replace(sanitize.NoAutolink(sanitize.Truncate(s, sanitize.MaxLine)))
+}
 
 func writeMDHops(p func(string, ...any), hops []hopView) {
 	for i, h := range hops {

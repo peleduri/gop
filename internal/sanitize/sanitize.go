@@ -9,7 +9,8 @@
 // also caps the length and wraps the result in backticks, the fixed
 // delimiter text summaries use around every value. Line cleans and caps a
 // whole summary line. JSON escapes the same characters inside marshaled JSON
-// so the decoded values stay exactly as they were.
+// so the decoded values stay exactly as they were. NoLinks and NoAutolink
+// keep a name from turning into a live link in Markdown.
 package sanitize
 
 import (
@@ -177,4 +178,48 @@ func HTML(b []byte) []byte {
 		out.WriteRune(r)
 	}
 	return []byte(out.String())
+}
+
+// NoLinks escapes the Markdown that turns plain text into a live link or
+// image: the "](" of [text](url) and ![alt](src) gets a backslash, and so do
+// the autolinks NoAutolink breaks. Reference links need a definition at the
+// start of a line, which a cleaned value cannot write, so other brackets stay
+// as they are. Run it once, on cleaned text (Clean) in Markdown prose, not in
+// a code span.
+func NoLinks(s string) string { return NoAutolink(strings.ReplaceAll(s, "](", `\](`)) }
+
+// NoAutolink breaks the GitHub-flavored Markdown autolinks a bare URL in a
+// name would make: a backslash goes before the colon of http://, https://
+// and ftp:// and before the dot of www. (any letter case). The text still
+// renders the same, without the link.
+func NoAutolink(s string) string {
+	var b strings.Builder
+	last := 0
+	for i := 0; i < len(s); i++ {
+		switch {
+		case s[i] == ':' && strings.HasPrefix(s[i:], "://") &&
+			(foldSuffix(s[:i], "http") || foldSuffix(s[:i], "https") || foldSuffix(s[:i], "ftp")):
+			b.WriteString(s[last:i])
+			b.WriteString(`\`)
+			last = i
+		case s[i] == '.' && foldSuffix(s[:i], "www"):
+			b.WriteString(s[last:i])
+			b.WriteString(`\`)
+			last = i
+		}
+	}
+	if last == 0 {
+		return s
+	}
+	b.WriteString(s[last:])
+	return b.String()
+}
+
+// foldSuffix reports whether s ends with the lowercase ASCII word w, in any
+// letter case.
+func foldSuffix(s, w string) bool {
+	if len(s) < len(w) {
+		return false
+	}
+	return strings.EqualFold(s[len(s)-len(w):], w)
 }

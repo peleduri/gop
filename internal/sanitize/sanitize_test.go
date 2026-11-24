@@ -135,3 +135,24 @@ func TestHTML(t *testing.T) {
 		t.Errorf("clean HTML changed: %q", got)
 	}
 }
+
+func TestNoLinks(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"acme-app/web", "acme-app/web"},
+		{"gop://graph/summary", "gop://graph/summary"},
+		{"[fix](http://example.invalid)", `[fix\](http\://example.invalid)`},
+		{"x [not visible]", "x [not visible]"},
+		{"![x](www.example.invalid).yml", `![x\](www\.example.invalid).yml`},
+		{"HTTPS://example.invalid and Www.example.invalid", `HTTPS\://example.invalid and Www\.example.invalid`},
+		{"ftp://example.invalid", `ftp\://example.invalid`},
+		{"a-www.b", `a-www\.b`},
+		{"acme-app/w" + ch(0x0435) + "b", "acme-app/w" + ch(0x0435) + "b"},
+	} {
+		if got := NoLinks(tc.in); got != tc.want {
+			t.Errorf("NoLinks(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+	if got := NoAutolink("[a](http://x.invalid)"); got != `[a](http\://x.invalid)` {
+		t.Errorf("NoAutolink escaped brackets: %q", got)
+	}
+}

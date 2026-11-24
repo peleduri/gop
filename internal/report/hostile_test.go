@@ -13,13 +13,17 @@ import (
 	"github.com/peleduri/gop/internal/testutil"
 )
 
-func hostileGraph(t *testing.T) *graph.Graph {
+func hostileGraph(t *testing.T) *graph.Graph { return swappedGraph(t, testutil.HostileGraphJSON) }
+
+func semanticGraph(t *testing.T) *graph.Graph { return swappedGraph(t, testutil.SemanticGraphJSON) }
+
+func swappedGraph(t *testing.T, swap func([]byte) []byte) *graph.Graph {
 	t.Helper()
 	raw, err := os.ReadFile("../../testdata/acme/graph.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	g, err := graph.Load(bytes.NewReader(testutil.HostileGraphJSON(raw)))
+	g, err := graph.Load(bytes.NewReader(swap(raw)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,5 +83,56 @@ func TestHostileNamesHTML(t *testing.T) {
 		if strings.Contains(out, raw) {
 			t.Errorf("HTML report has a raw %q from a name", raw)
 		}
+	}
+}
+
+// TestHostileNamesSemantic renders the markdown report, the drift markdown
+// and the HTML report over the semantic graph (printable instructions, fake
+// output fields, Markdown links, a lookalike repo). Those names pass the
+// sanitizer unchanged, so it checks what is deterministic: no line starts
+// with a name, no name becomes a live link, heading or HTML link, and the
+// lookalike and the real acme-app/web both show up as separate names.
+func TestHostileNamesSemantic(t *testing.T) {
+	g := semanticGraph(t)
+	rep, err := diff.Compare(loadAcme(t), g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var md, page bytes.Buffer
+	if err := Render(&md, g, Options{Format: "md", Version: "test", Changes: &rep}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Render(&page, g, Options{Format: "html", Version: "test"}); err != nil {
+		t.Fatal(err)
+	}
+	var drift bytes.Buffer
+	diff.WriteMarkdown(&drift, rep)
+	values := testutil.SemanticValues()
+	look := "acme-app/" + testutil.LookalikeRepo
+	for name, out := range map[string]string{"report.md": md.String(), "diff.md": drift.String()} {
+		if l := testutil.LineStart(out, values); l != "" {
+			t.Errorf("%s: a line starts with a semantic name: %.120q", name, l)
+		}
+		if l := testutil.LiveLink(out); l != "" {
+			t.Errorf("%s: a name renders as a live link: %.200q", name, l)
+		}
+		if !strings.Contains(out, "example.invalid") {
+			t.Errorf("%s: the link names are missing, so the link check checked nothing", name)
+		}
+		if !strings.Contains(out, look) {
+			t.Errorf("%s: the lookalike repo is missing", name)
+		}
+	}
+	if !strings.Contains(md.String(), "acme-app/web") {
+		t.Error("report.md: the real acme-app/web is missing")
+	}
+	out := page.String()
+	for _, raw := range []string{`href="http://example.invalid`, `href="www.example.invalid`, `src="www.example.invalid`, "<a href=\"http://example"} {
+		if strings.Contains(out, raw) {
+			t.Errorf("HTML report links a name: %q", raw)
+		}
+	}
+	if !strings.Contains(out, testutil.LookalikeRepo) {
+		t.Error("HTML report: the lookalike repo is missing")
 	}
 }

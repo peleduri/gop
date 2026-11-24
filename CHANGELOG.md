@@ -7,6 +7,21 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- Semantic and lookalike prompt-injection names in the hostile-name corpus
+  (#154). Beside the structural values (newlines, tags, bidi, zero-width,
+  10 kB), `internal/testutil/hostile.go` now has printable names the
+  sanitizer leaves unchanged: a plain-ASCII instruction repo, a repo that
+  imitates gop's output fields, a workflow file holding a fake JSON tool
+  result, a Markdown link login and image file name, and a mixed-script
+  lookalike of `acme-app/web` added beside the real one. `TestHostileNames`
+  and the report tests run every MCP tool, the markdown, drift and HTML
+  reports and the fix-plan markdown on that graph and check that names stay
+  inside backticks in summaries, the JSON copy decodes to exactly the
+  structured output, no name starts a line or becomes a live link, and the
+  lookalike stays a separate node with its own ID. The corpus is exported as
+  `testdata/hostile/payloads.json` for agent evals; a test keeps it equal to
+  the Go values. `docs/threat-model.md` says lookalike names are kept
+  distinct but not flagged.
 - AI approve + self-merge (#146). `gop collect` marks workflows whose jobs
   submit an approving review (`gh pr review --approve`, a reviews API call
   with `APPROVE`, an approve action, or an agent allowed to run
@@ -115,6 +130,14 @@ flags may change in minor releases.
   `gop fix-plan --reduce-owners N` and `gop report --owner-threshold N`.
 
 ### Fixed
+- A name can no longer render as a live link or image in Markdown output
+  (#154). The fix-plan markdown, the drift markdown and the markdown report
+  escape the `](` of link and image syntax and break bare `http://`,
+  `https://`, `ftp://` and `www.` autolinks in names that sit in prose
+  (`sanitize.NoLinks`, `sanitize.NoAutolink`); the text renders the same.
+  `gop fix-plan --format markdown` now escapes names like the `fix_plan`
+  tool does (control, bidi and zero-width characters, backticks in code
+  spans): the escaping moved into `fixplan.WriteMarkdown`.
 - A `pull_request_target` or `workflow_run` job that checks out the pull
   request's head is no longer counted as running untrusted code unless a later
   step runs code from that checkout (#145). gop now counts it as execution
