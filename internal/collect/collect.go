@@ -116,6 +116,12 @@ type Config struct {
 	// FullEvery is how long an incremental collection may go without a full
 	// run (default DefaultFullEvery, 7 days).
 	FullEvery time.Duration
+	// Parallel is how many orgs GitHub App mode reads at the same time, each
+	// with its own installation token and rate-limit budget (parallel.go).
+	// 0 means DefaultParallel; 1 reads the orgs one after another. Values
+	// above MaxParallel are capped. Token mode always reads sequentially:
+	// one token has one budget. The graph is the same either way.
+	Parallel int
 }
 
 // Source API labels recorded on edges and used in coverage.
@@ -252,6 +258,8 @@ type collector struct {
 	// (partial.go).
 	phase    string
 	phaseOrg int
+	// prefetchCounters track the parallel App-mode prefetch (parallel.go).
+	prefetchCounters
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -271,7 +279,15 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 	if cfg.FullEvery < 0 {
 		return nil, errors.New("collect: FullEvery must not be negative")
 	}
+	parallel := cfg.appMode() && cfg.parallel() > 1
+	if parallel {
+		// Org workers log from several goroutines.
+		cfg.Logf = lockedLogf(cfg.Logf)
+	}
 	c := cfg.Client
+	if c != nil && parallel {
+		c = c.withLockedLog()
+	}
 	if c == nil {
 		var err error
 		c, err = newClient(ClientOptions{
@@ -312,16 +328,8 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		// Every App-mode request goes through an org's installation client.
 		c = c.WithTokenSource(noTokenSource{})
 	}
-	k := &collector{
-		c: c, cfg: cfg, now: time.Now().UTC(), enterprise: cfg.Enterprise,
-		nodes: map[string]*graph.Node{}, edges: map[string]*graph.Edge{},
-		covSeen: map[string]bool{}, byLower: map[string]*orgState{},
-		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
-		idByLower: map[string]string{}, codeowners: map[string]Codeowners{}, policy: map[string][]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs, app: app,
-		batch: newBatchState(cfg), progressFn: progressFunc(cfg),
-		host: cfg.host(),
-	}
-	k.ghes = isGHES(k.host)
+	k := newCollector(cfg, c, app)
+	k.progressFn = progressFunc(cfg)
 	if cache != nil {
 		resumed, err := cache.beginRun(cfg.Enterprise, cfg.Orgs, cfg.Resume, k.now)
 		if err != nil {
@@ -331,7 +339,10 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 			k.logf("collect: cache: resuming the interrupted run started %s", cache.resumeSince.UTC().Format(time.RFC3339))
 		}
 	}
-	runErr := k.run(ctx)
+	runErr := k.prefetchOrgs(ctx)
+	if runErr == nil {
+		runErr = k.run(ctx)
+	}
 	if runErr == nil && ctx.Err() != nil {
 		// A step that records a failed request as coverage may have
 		// finished after the stop.
@@ -342,8 +353,10 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		if reason == "" {
 			return nil, runErr
 		}
+		k.endPrefetch()
 		return k.stopped(cache, reason, runErr, budget.Sent())
 	}
+	k.endPrefetch()
 	g := k.graph()
 	if inc != nil {
 		inc.finish(k, g)
@@ -381,6 +394,21 @@ func (k *collector) stopped(cache *responseCache, reason string, cause error, se
 		g = merged
 	}
 	return g, &PartialError{Reason: reason, Err: cause}
+}
+
+// newCollector returns a collector for one run over c (and app in GitHub App
+// mode). It sends no request.
+func newCollector(cfg Config, c *Client, app *appAuth) *collector {
+	k := &collector{
+		c: c, cfg: cfg, now: time.Now().UTC(), enterprise: cfg.Enterprise,
+		nodes: map[string]*graph.Node{}, edges: map[string]*graph.Edge{},
+		covSeen: map[string]bool{}, byLower: map[string]*orgState{},
+		entOrgs: map[string]string{}, repoIDs: map[string]string{}, expanded: map[string]bool{},
+		idByLower: map[string]string{}, codeowners: map[string]Codeowners{}, policy: map[string][]string{}, repoGrants: map[string][]repoGrant{}, orgsSrc: srcOrgs, app: app,
+		batch: newBatchState(cfg), host: cfg.host(),
+	}
+	k.ghes = isGHES(k.host)
+	return k
 }
 
 // logCoverage logs one line per org (and the enterprise) that has unknown

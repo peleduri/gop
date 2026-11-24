@@ -44,7 +44,7 @@
     {
       "name": "rate limit",
       "status": "pass",
-      "detail": "collect needs about 55 REST requests and 4990 of 5000 remain; about 4 GraphQL points and 5000 of 5000 remain"
+      "detail": "collect needs about 57 REST requests, at most 25 per org; each installation has its own budget (4990 of 5000 remain on the first)"
     }
   ],
   "orgs": [
@@ -87,7 +87,10 @@
     "graphql_queries": 2,
     "graphql_points": 4,
     "minutes": 1,
-    "rate_limit_waits": 0
+    "rate_limit_waits": 0,
+    "per_installation": true,
+    "parallel": 4,
+    "max_org_requests": 25
   },
   "not_visible": [
     "enterprise settings (ownerInfo: SSO, 2FA, default permission, repo creation, visibility, deletion and fork policies); per-org values come from GET /orgs/{org} where readable, SSO stays not_visible",

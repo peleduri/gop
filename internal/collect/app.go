@@ -152,6 +152,13 @@ type appAuth struct {
 
 	installs map[string]*appInstallation // lower account login -> installation
 	fallback *Client                     // for content reads of orgs without an installation
+	// listed is set once installs holds GET /app/installations, so the
+	// sequential pass after a parallel prefetch does not list them again.
+	listed bool
+	// memo, when set, gives every installation client a response memo
+	// (parallel.go): org workers record responses and the sequential pass
+	// replays them.
+	memo bool
 }
 
 func newAppAuth(cfg Config, base *Client) (*appAuth, error) {
@@ -178,7 +185,10 @@ func (s appJWTSource) Token(context.Context) (string, error) {
 
 // listInstallations reads GET /app/installations into a.installs.
 func (a *appAuth) listInstallations(ctx context.Context) error {
-	return a.jwt.GetPages(ctx, "/app/installations?per_page=100", func(page []byte) error {
+	if a.listed {
+		return nil
+	}
+	err := a.jwt.GetPages(ctx, "/app/installations?per_page=100", func(page []byte) error {
 		var batch []struct {
 			ID      int64 `json:"id"`
 			Account struct {
@@ -201,6 +211,8 @@ func (a *appAuth) listInstallations(ctx context.Context) error {
 		}
 		return nil
 	})
+	a.listed = err == nil
+	return err
 }
 
 // installation returns the usable (not suspended) installation for an account.
@@ -234,6 +246,12 @@ func (a *appAuth) client(login string) (*Client, bool) {
 	defer in.mu.Unlock()
 	if in.client == nil {
 		in.client = a.base.WithTokenSource(installSource{a: a, in: in})
+		// Each installation has its own hourly budget: track it, and pause
+		// on its rate limits, apart from the other installations.
+		in.client.rate = newInstallRateTracker()
+		if a.memo {
+			in.client.memo = newResponseMemo()
+		}
 	}
 	return in.client, true
 }

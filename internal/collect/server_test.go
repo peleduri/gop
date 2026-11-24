@@ -164,6 +164,9 @@ type fakeGitHub struct {
 	cancelAfter int
 	cancel      func()
 	requests    int
+	// latency delays every response, like a round trip to GitHub
+	// (parallel_test.go).
+	latency time.Duration
 
 	// gqlRepoTotals overrides the repositories totalCount gop doctor's
 	// enterprise query returns per org (default: the fixture's repo count).
@@ -235,8 +238,11 @@ func (f *fakeGitHub) handle(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	f.requests++
 	interrupted := f.cancelAfter > 0 && f.requests > f.cancelAfter
-	etags := f.etags
+	etags, latency := f.etags, f.latency
 	f.mu.Unlock()
+	if latency > 0 {
+		time.Sleep(latency)
+	}
 	if interrupted {
 		if f.cancel != nil {
 			f.cancel()

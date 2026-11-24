@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/peleduri/gop/internal/collect"
 )
 
 // creds is the authentication collect and doctor run with: a token, or GitHub
@@ -30,6 +32,21 @@ func addAppFlags(fs *flag.FlagSet) appFlags {
 		keyFile: fs.String("app-key-file", "", "path to the GitHub App private key PEM (or GOP_APP_PRIVATE_KEY with the PEM contents); "+
 			"keep it mode 0600"),
 	}
+}
+
+// addParallelFlag adds --parallel, the number of orgs GitHub App mode reads
+// at once.
+func addParallelFlag(fs *flag.FlagSet) *int {
+	return fs.Int("parallel", collect.DefaultParallel, fmt.Sprintf("GitHub App mode: orgs to read at once, each on its own "+
+		"installation's rate-limit budget (1 to %d; 1 reads them one after another). The graph is the same at any value", collect.MaxParallel))
+}
+
+// checkParallel rejects a --parallel value outside 1..MaxParallel.
+func checkParallel(cmd string, n int) error {
+	if n < 1 || n > collect.MaxParallel {
+		return usagef("%s: --parallel must be between 1 and %d, got %d", cmd, collect.MaxParallel, n)
+	}
+	return nil
 }
 
 // resolveCreds picks the token or the App credentials for cmd. Flags win over

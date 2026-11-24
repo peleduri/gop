@@ -1,0 +1,39 @@
+gop doctor: enterprise acme
+
+Token
+  kind    classic personal access token
+  user    alice
+  mode    (a) enterprise-owner token
+  scopes  read:audit_log, read:enterprise, read:org, repo
+  expires 2027-02-01 00:00:00 UTC
+
+Checks
+  PASS  token                  authenticated as alice (classic personal access token)
+  PASS  enterprise             ownerInfo readable for acme; 4 organizations
+  PASS  scope read:enterprise  present
+  PASS  scope read:org         present
+  PASS  scope repo             present
+  PASS  scope read:audit_log   present
+  PASS  write scopes           none beyond repo, which private contents require
+  PASS  expiry                 expires 2027-02-01 00:00:00 UTC
+  PASS  orgs                   4 of 4 organizations readable (from enterprise organizations)
+  WARN  rate limit             collect needs about 15394 REST requests and 4980 remain; it will wait for 3 rate-limit reset(s); about 2016 GraphQL points and 4995 of 5000 remain
+                               fix: run collect after the reset at 2026-11-23T12:40:00Z, or with a token that has more budget
+
+Rate limit
+  REST    4980 of 5000 remaining, resets 2026-11-23T12:40:00Z
+  GraphQL 4995 of 5000 remaining, resets 2026-11-23T12:40:00Z
+
+Estimate for gop collect
+  4 orgs, 3600 repos (GET /orgs/{org} counts), 3 workflows per repo assumed
+  about 15682 requests (15394 REST, 288 GraphQL queries costing about 2016 points) and 239 minutes, including 3 rate-limit wait(s)
+
+Recommendation: use GitHub App mode
+  with this token collect takes about 239 minutes (3 rate-limit waits): one token has one hourly budget
+  in GitHub App mode each org installation has its own budget; with --parallel 4 collect takes about 20 minutes
+  set up a read-only App: https://github.com/peleduri/gop/blob/main/docs/github-app-token.md
+
+Predicted not_visible
+  nothing predicted
+
+Result: 1 warning

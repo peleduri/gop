@@ -110,6 +110,52 @@ Locally: `gop collect --enterprise acme --out graph.json --app-id 123456
 --app-key-file gop-app.pem`, or set `GOP_APP_ID` and `GOP_APP_PRIVATE_KEY`
 (the PEM contents). App credentials and `GITHUB_TOKEN` are mutually exclusive.
 
+### Large enterprises: one rate-limit budget per org
+
+A personal access token has one REST budget of 5,000 requests an hour, shared
+by every org it reads. Each installation of a GitHub App has its **own**
+hourly budget (at least 5,000; GitHub raises it for installations on large
+orgs), so in App mode the budget a run can spend grows with the number of
+orgs. gop uses that: it reads several orgs at once, each on its own
+installation token, with `--parallel N` workers (default 4, at most 16; `1`
+reads the orgs one after another).
+
+For example, an enterprise of 40 orgs that needs about 100,000 REST requests:
+
+| | Budget | Expected time |
+|---|---|---|
+| One token | 5,000 an hour for the whole run | at least 20 hours, mostly waiting for rate-limit resets |
+| App mode, `--parallel 4` | 5,000 an hour per org; about 2,500 requests per org fit in one | about 2 hours, bound by request latency |
+| App mode, `--parallel 8` | the same | about 1 hour |
+
+`gop doctor` makes this estimate for your enterprise. In token mode, when the
+estimate is above 3 hours or more than 2 rate-limit resets, it prints a
+recommendation to use App mode with the expected time under App mode (also in
+`--format json` as `recommendation`). In App mode its estimate uses each
+installation's budget and `--parallel`.
+
+How it stays correct:
+
+- **Same graph at any `--parallel`.** The workers only fetch: each runs a
+  throwaway collection of one org and keeps the responses in memory
+  (compressed) on that org's installation client. The graph is then built by
+  the normal sequential pass over every org, which takes those responses
+  instead of asking GitHub again and asks GitHub only for what the workers
+  could not predict. Its output is identical, byte for byte, to a run with
+  `--parallel 1`.
+- **Rate limits per installation.** Progress lines show the remaining budget
+  of the installations closest to running out, for example
+  `fetch 3/40 orgs | acme-app rest 1180 left, resets 14:05Z | acme rest 3900 left`.
+  A primary or secondary rate limit (HTTP 403 or 429, honoring `Retry-After`)
+  pauses only the requests of the installation that hit it; the other orgs go
+  on.
+- **Cost.** Each worker reads everything its org needs, so a file several
+  orgs use (for example a shared action) is read once per org, and the
+  sequential pass sends the few requests the workers could not predict. An
+  App-mode run therefore sends somewhat more requests than a sequential one,
+  spread over the installations' budgets. Memory holds the compressed
+  responses until the graph is built.
+
 ### Alternative: mint the token yourself with `actions/create-github-app-token`
 
 If the private key must not reach gop at all, mint the installation token in a

@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -85,6 +86,20 @@ const (
 	headerTokenExpiry        = "GitHub-Authentication-Token-Expiration"
 )
 
+// GitHub App mode in the estimate.
+const (
+	// estAppBudget is the hourly REST budget assumed for each GitHub App
+	// installation when doctor cannot read it (GitHub's floor; large orgs
+	// get more).
+	estAppBudget = 5000
+	// recommendAppMinutes and recommendAppWaits are the token-mode estimate
+	// above which doctor recommends GitHub App mode.
+	recommendAppMinutes = 180
+	recommendAppWaits   = 2
+	// AppModeDoc documents GitHub App mode and why it suits large enterprises.
+	AppModeDoc = "https://github.com/peleduri/gop/blob/main/docs/github-app-token.md"
+)
+
 // DoctorConfig drives one doctor run.
 type DoctorConfig struct {
 	Enterprise string
@@ -110,6 +125,9 @@ type DoctorConfig struct {
 	Client *Client
 	// Now defaults to time.Now; tests fix it for stable estimates.
 	Now func() time.Time
+	// Parallel is the collect --parallel value the estimate assumes for
+	// GitHub App mode (0 means DefaultParallel).
+	Parallel int
 }
 
 // DoctorCheck is one line of the checks table.
@@ -210,6 +228,29 @@ type DoctorEstimate struct {
 	GraphQLPoints  int `json:"graphql_points"`
 	Minutes        int `json:"minutes"`
 	RateLimitWaits int `json:"rate_limit_waits"`
+	// PerInstallation is set in GitHub App mode: each org spends its own
+	// installation's budget, Parallel orgs are read at once, and
+	// MaxOrgRequests is the estimate for the largest org. RateLimitWaits is
+	// then the most resets any one installation waits for.
+	PerInstallation bool `json:"per_installation,omitempty"`
+	Parallel        int  `json:"parallel,omitempty"`
+	MaxOrgRequests  int  `json:"max_org_requests,omitempty"`
+}
+
+// DoctorRecommendation is doctor's advice when a token-mode collect would
+// take long: GitHub App mode gives every org installation its own budget.
+type DoctorRecommendation struct {
+	// Mode is the recommended authentication mode, KindApp.
+	Mode   string `json:"mode"`
+	Reason string `json:"reason"`
+	// Minutes and RateLimitWaits repeat the token-mode estimate.
+	Minutes        int `json:"minutes"`
+	RateLimitWaits int `json:"rate_limit_waits"`
+	// AppMinutes is the estimate in GitHub App mode with Parallel org
+	// workers and estAppBudget requests per installation and hour.
+	AppMinutes int    `json:"app_minutes"`
+	Parallel   int    `json:"parallel"`
+	Doc        string `json:"doc"`
 }
 
 // DoctorReport is the result of Doctor.
@@ -224,7 +265,10 @@ type DoctorReport struct {
 	REST       *RateBucket     `json:"rate_limit_rest,omitempty"`
 	GraphQL    *RateBucket     `json:"rate_limit_graphql,omitempty"`
 	Estimate   *DoctorEstimate `json:"estimate,omitempty"`
-	NotVisible []string        `json:"not_visible"`
+	// Recommendation is set when the token-mode estimate is above the
+	// threshold for GitHub App mode.
+	Recommendation *DoctorRecommendation `json:"recommendation,omitempty"`
+	NotVisible     []string              `json:"not_visible"`
 	// Predicted lists the org coverage entries collect will record for orgs
 	// the token does not own.
 	Predicted []PredictedCoverage `json:"predicted_coverage,omitempty"`
@@ -795,13 +839,15 @@ func (d *doctor) rateLimit(ctx context.Context) error {
 }
 
 // estimate predicts requests and minutes for gop collect and checks them
-// against the remaining REST budget.
+// against the remaining REST budget: the token's one budget, or in GitHub
+// App mode each installation's own.
 func (d *doctor) estimate() {
 	r := d.r
 	if r.Mode == ModeOneRepo || r.Mode == ModeUnknown || len(r.Orgs) == 0 {
 		return
 	}
 	e := &DoctorEstimate{AssumedWorkflows: estAvgWorkflows}
+	var orgReqs []int // per-org requests, for App-mode scheduling
 	for _, o := range r.Orgs {
 		if o.Status != "ok" {
 			continue
@@ -809,6 +855,7 @@ func (d *doctor) estimate() {
 		e.Orgs++
 		if o.Repos == nil {
 			e.OrgsUncounted++
+			orgReqs = append(orgReqs, estPerOrg)
 			continue
 		}
 		e.Repos += *o.Repos
@@ -824,6 +871,7 @@ func (d *doctor) estimate() {
 			e.ReposLowerBound++
 		}
 		e.Requests += estPerOrg + int(math.Ceil(float64(*o.Repos)/estReposPerPage))
+		orgReqs = append(orgReqs, estOrgRequests(*o.Repos))
 	}
 	e.Requests += estEnterprise + e.OrgsUncounted*estPerOrg
 	if r.Mode == ModeOwner {
@@ -848,6 +896,10 @@ func (d *doctor) estimate() {
 		e.GraphQLPoints += pts
 	}
 	e.Requests += e.GraphQLQueries
+	if r.Token.Kind == KindApp {
+		d.estimateApp(e, orgReqs)
+		return
+	}
 	minutes := float64(e.Requests) * estLatencyMillis / 1000 / 60
 	if b := r.REST; b != nil && e.RESTRequests > b.Remaining && b.Limit > 0 {
 		short := e.RESTRequests - b.Remaining
@@ -858,10 +910,7 @@ func (d *doctor) estimate() {
 		}
 		minutes += wait.Minutes() + float64(e.RateLimitWaits-1)*60
 	}
-	e.Minutes = int(math.Ceil(minutes))
-	if e.Minutes < 1 {
-		e.Minutes = 1
-	}
+	e.Minutes = max(int(math.Ceil(minutes)), 1)
 	r.Estimate = e
 	gql, gqlShort := "", false
 	if g := r.GraphQL; g != nil && e.GraphQLQueries > 0 {
@@ -883,6 +932,111 @@ func (d *doctor) estimate() {
 		r.check("rate limit", StatusPass,
 			fmt.Sprintf("collect needs about %d REST requests and %d of %d remain%s", e.RESTRequests, b.Remaining, b.Limit, gql), "")
 	}
+	d.recommendApp(e, orgReqs)
+}
+
+// estOrgRequests estimates one org's requests with repos repositories, as
+// estimate counts them for the whole run.
+func estOrgRequests(repos int) int {
+	// Two batched GraphQL queries per DefaultBatchSize repositories:
+	// branch protection and direct collaborators.
+	return estPerOrg + int(math.Ceil(float64(repos)/estReposPerPage)) + repos*(estPerRepo+estAvgWorkflows) +
+		2*int(math.Ceil(float64(repos)/DefaultBatchSize)) + int(math.Ceil(float64(repos)*estBotScriptPct/100)) +
+		int(math.Ceil(float64(repos)*estFollowPct/100))
+}
+
+// estimateApp finishes the estimate in GitHub App mode: each org spends its
+// own installation's budget, and collect reads Parallel orgs at once. Every
+// installation is assumed to have the budget doctor read for the first
+// readable one (estAppBudget when it could not).
+func (d *doctor) estimateApp(e *DoctorEstimate, orgReqs []int) {
+	r := d.r
+	e.PerInstallation = true
+	e.Parallel = (Config{Parallel: d.cfg.Parallel}).parallel()
+	for _, n := range orgReqs {
+		e.MaxOrgRequests = max(e.MaxOrgRequests, n)
+	}
+	remaining, limit, firstWait := estAppBudget, estAppBudget, time.Hour
+	if b := r.REST; b != nil && b.Limit > 0 {
+		remaining, limit, firstWait = b.Remaining, b.Limit, max(b.reset.Sub(d.now), 0)
+	}
+	minutes, waits := appSchedule(orgReqs, e.Requests-sum(orgReqs), remaining, limit, firstWait, e.Parallel)
+	e.Minutes, e.RateLimitWaits = max(int(math.Ceil(minutes)), 1), waits
+	r.Estimate = e
+	b := r.REST
+	if b == nil {
+		return
+	}
+	if waits > 0 {
+		r.check("rate limit", StatusWarn,
+			fmt.Sprintf("the largest org needs about %d REST requests and its installation has %d left; it will wait for %d rate-limit reset(s)",
+				e.MaxOrgRequests, b.Remaining, waits),
+			"run collect after the reset at "+b.Reset+"; installations of large orgs get a larger budget from GitHub")
+		return
+	}
+	r.check("rate limit", StatusPass,
+		fmt.Sprintf("collect needs about %d REST requests, at most %d per org; each installation has its own budget (%d of %d remain on the first)",
+			e.Requests, e.MaxOrgRequests, b.Remaining, b.Limit), "")
+}
+
+// recommendApp recommends GitHub App mode when the token-mode estimate is
+// above recommendAppMinutes or recommendAppWaits rate-limit resets.
+func (d *doctor) recommendApp(e *DoctorEstimate, orgReqs []int) {
+	if e.Minutes <= recommendAppMinutes && e.RateLimitWaits <= recommendAppWaits {
+		return
+	}
+	parallel := (Config{Parallel: d.cfg.Parallel}).parallel()
+	appMin, _ := appSchedule(orgReqs, e.Requests-sum(orgReqs), estAppBudget, estAppBudget, time.Hour, parallel)
+	d.r.Recommendation = &DoctorRecommendation{
+		Mode:           KindApp,
+		Reason:         "one token has one hourly rate-limit budget; in GitHub App mode each org installation has its own, and collect reads orgs in parallel",
+		Minutes:        e.Minutes,
+		RateLimitWaits: e.RateLimitWaits,
+		AppMinutes:     max(int(math.Ceil(appMin)), 1),
+		Parallel:       parallel,
+		Doc:            AppModeDoc,
+	}
+}
+
+// appSchedule estimates the minutes of an App-mode collect. Each org takes
+// its requests at estLatencyMillis each, plus a wait for every reset its
+// installation needs (the first after firstWait, then hourly) once it has
+// spent remaining requests of limit per hour. Orgs are spread over parallel
+// workers, largest first; shared requests run before them. It also returns
+// the most resets one installation waits for.
+func appSchedule(orgReqs []int, shared, remaining, limit int, firstWait time.Duration, parallel int) (float64, int) {
+	perReq := float64(estLatencyMillis) / 1000 / 60
+	times := make([]float64, 0, len(orgReqs))
+	waits := 0
+	for _, n := range orgReqs {
+		t := float64(n) * perReq
+		if n > remaining && limit > 0 {
+			w := int(math.Ceil(float64(n-remaining) / float64(limit)))
+			waits = max(waits, w)
+			t += firstWait.Minutes() + float64(w-1)*60
+		}
+		times = append(times, t)
+	}
+	sort.Sort(sort.Reverse(sort.Float64Slice(times)))
+	loads := make([]float64, max(min(parallel, len(times)), 1))
+	for _, t := range times {
+		i := 0
+		for j := range loads {
+			if loads[j] < loads[i] {
+				i = j
+			}
+		}
+		loads[i] += t
+	}
+	return float64(max(shared, 0))*perReq + slices.Max(loads), waits
+}
+
+func sum(xs []int) int {
+	n := 0
+	for _, x := range xs {
+		n += x
+	}
+	return n
 }
 
 // batchCost returns the batched GraphQL queries for repos repositories,
@@ -1060,6 +1214,22 @@ func WriteDoctor(w io.Writer, r *DoctorReport) error {
 		}
 		fmt.Fprintf(&b, "  about %d requests (%d REST, %d GraphQL queries costing about %d points) and %d minutes%s\n",
 			e.Requests, e.RESTRequests, e.GraphQLQueries, e.GraphQLPoints, e.Minutes, wait)
+		if e.PerInstallation {
+			fmt.Fprintf(&b, "  GitHub App mode: each org spends its own installation's budget (largest org about %d requests), up to %d orgs at a time (--parallel)\n",
+				e.MaxOrgRequests, e.Parallel)
+		}
+	}
+
+	if rec := r.Recommendation; rec != nil {
+		b.WriteString("\nRecommendation: use GitHub App mode\n")
+		fmt.Fprintf(&b, "  with this token collect takes about %d minutes", rec.Minutes)
+		if rec.RateLimitWaits > 0 {
+			fmt.Fprintf(&b, " (%d rate-limit waits)", rec.RateLimitWaits)
+		}
+		b.WriteString(": one token has one hourly budget\n")
+		fmt.Fprintf(&b, "  in GitHub App mode each org installation has its own budget; with --parallel %d collect takes about %d minutes\n",
+			rec.Parallel, rec.AppMinutes)
+		fmt.Fprintf(&b, "  set up a read-only App: %s\n", rec.Doc)
 	}
 
 	b.WriteString("\nPredicted not_visible\n")

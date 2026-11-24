@@ -1,0 +1,134 @@
+{
+  "enterprise": "acme",
+  "mode": "a",
+  "mode_label": "(a) enterprise-owner token",
+  "token": {
+    "kind": "classic_pat",
+    "login": "alice",
+    "scopes": [
+      "read:audit_log",
+      "read:enterprise",
+      "read:org",
+      "repo"
+    ],
+    "scopes_known": true,
+    "expires": "2027-02-01 00:00:00 UTC"
+  },
+  "checks": [
+    {
+      "name": "token",
+      "status": "pass",
+      "detail": "authenticated as alice (classic personal access token)"
+    },
+    {
+      "name": "enterprise",
+      "status": "pass",
+      "detail": "ownerInfo readable for acme; 4 organizations"
+    },
+    {
+      "name": "scope read:enterprise",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "scope read:org",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "scope repo",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "scope read:audit_log",
+      "status": "pass",
+      "detail": "present"
+    },
+    {
+      "name": "write scopes",
+      "status": "pass",
+      "detail": "none beyond repo, which private contents require"
+    },
+    {
+      "name": "expiry",
+      "status": "pass",
+      "detail": "expires 2027-02-01 00:00:00 UTC"
+    },
+    {
+      "name": "orgs",
+      "status": "pass",
+      "detail": "4 of 4 organizations readable (from enterprise organizations)"
+    },
+    {
+      "name": "rate limit",
+      "status": "warn",
+      "detail": "collect needs about 15394 REST requests and 4980 remain; it will wait for 3 rate-limit reset(s); about 2016 GraphQL points and 4995 of 5000 remain",
+      "fix": "run collect after the reset at 2026-11-23T12:40:00Z, or with a token that has more budget"
+    }
+  ],
+  "orgs": [
+    {
+      "login": "acme",
+      "status": "ok",
+      "repos": 900,
+      "repos_source": "rest",
+      "role": "owner"
+    },
+    {
+      "login": "acme-actions",
+      "status": "ok",
+      "repos": 900,
+      "repos_source": "rest",
+      "role": "owner"
+    },
+    {
+      "login": "acme-app",
+      "status": "ok",
+      "repos": 900,
+      "repos_source": "rest",
+      "role": "owner"
+    },
+    {
+      "login": "acme-secure",
+      "status": "ok",
+      "repos": 900,
+      "repos_source": "rest",
+      "role": "owner"
+    }
+  ],
+  "orgs_total": 4,
+  "rate_limit_rest": {
+    "limit": 5000,
+    "remaining": 4980,
+    "reset": "2026-11-23T12:40:00Z"
+  },
+  "rate_limit_graphql": {
+    "limit": 5000,
+    "remaining": 4995,
+    "reset": "2026-11-23T12:40:00Z"
+  },
+  "estimate": {
+    "orgs": 4,
+    "orgs_uncounted": 0,
+    "repos": 3600,
+    "repos_rest_orgs": 4,
+    "assumed_workflows_per_repo": 3,
+    "requests": 15682,
+    "rest_requests": 15394,
+    "graphql_queries": 288,
+    "graphql_points": 2016,
+    "minutes": 239,
+    "rate_limit_waits": 3
+  },
+  "recommendation": {
+    "mode": "github_app",
+    "reason": "one token has one hourly rate-limit budget; in GitHub App mode each org installation has its own, and collect reads orgs in parallel",
+    "minutes": 239,
+    "rate_limit_waits": 3,
+    "app_minutes": 20,
+    "parallel": 4,
+    "doc": "https://github.com/peleduri/gop/blob/main/docs/github-app-token.md"
+  },
+  "not_visible": []
+}

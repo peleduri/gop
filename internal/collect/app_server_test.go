@@ -57,7 +57,17 @@ type fakeApp struct {
 	// forbid answers these paths with 403, as for a permission the App lacks.
 	forbid map[string]bool
 
+	// budget, when > 0, makes every installation-token response carry
+	// X-RateLimit headers for that installation's own budget, which starts
+	// at budget and drops by one per request (parallel_test.go).
+	budget int
+	// limitOnce answers the first request to each path with this status and
+	// Retry-After header, as a secondary rate limit.
+	limitOnce map[string]limitReply
+
 	mu       sync.Mutex
+	used     map[string]int    // account login -> requests with its token
+	limited  []string          // "login path" for every rate-limited answer
 	tokens   map[string]string // installation token -> account login
 	mints    map[string]int    // account login -> tokens minted
 	requests []string          // "METHOD /path" for every request
@@ -66,7 +76,14 @@ type fakeApp struct {
 
 func newFakeApp(t *testing.T, now func() time.Time, installs map[string]int64) *fakeApp {
 	return &fakeApp{t: t, pub: &appTestKey(t).PublicKey, installs: installs, now: now, lifetime: time.Hour,
-		forbid: map[string]bool{}, tokens: map[string]string{}, mints: map[string]int{}}
+		forbid: map[string]bool{}, tokens: map[string]string{}, mints: map[string]int{},
+		limitOnce: map[string]limitReply{}, used: map[string]int{}}
+}
+
+// limitReply is a rate-limited answer: an HTTP status and Retry-After seconds.
+type limitReply struct {
+	status     int
+	retryAfter int
 }
 
 var mintRe = regexp.MustCompile(`^/app/installations/([0-9]+)/access_tokens$`)
@@ -158,6 +175,29 @@ func (a *fakeApp) serve(f *fakeGitHub, w http.ResponseWriter, r *http.Request) b
 		if _, installed := a.installs[owner]; installed && !strings.EqualFold(owner, login) {
 			a.t.Errorf("%s %s: carries the %s installation token", r.Method, p, login)
 		}
+	}
+	a.mu.Lock()
+	a.used[login]++
+	used := a.used[login]
+	lim, limited := a.limitOnce[p]
+	if limited {
+		delete(a.limitOnce, p)
+		a.limited = append(a.limited, login+" "+p)
+	}
+	a.mu.Unlock()
+	if a.budget > 0 {
+		resource := "core"
+		if p == "/graphql" {
+			resource = "graphql"
+		}
+		w.Header().Set("X-RateLimit-Resource", resource)
+		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(max(a.budget-used, 0)))
+		w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(a.now().Add(time.Hour).Unix(), 10))
+	}
+	if limited {
+		w.Header().Set("Retry-After", strconv.Itoa(lim.retryAfter))
+		writeJSON(w, lim.status, map[string]string{"message": "You have exceeded a secondary rate limit."})
+		return false
 	}
 	if a.forbid[p] {
 		writeJSON(w, 403, map[string]string{"message": "Resource not accessible by integration"})

@@ -47,14 +47,14 @@ const (
 const usage = `gop maps who can make code run where in a GitHub Enterprise.
 
 Usage:
-  gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
-              [--github-url URL] [--verbose] [--advisories <zip|dir> | --advisories-live]
+  gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH [--parallel N]]
+              [--oidc-trust <files>] [--github-url URL] [--verbose] [--advisories <zip|dir> | --advisories-live]
               [--cache-dir DIR [--resume]] [--max-requests N] [--reserve N] [--priority a,b]
   gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json]
               [--advisories <zip|dir> | --advisories-live] --out graph2.json
   gop advisories update [--out PATH]
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
-              [--app-id N --app-key-file PATH]
+              [--app-id N --app-key-file PATH [--parallel N]]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
   gop serve   --graph graph.json | --demo  [--baseline old.json]
   gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
@@ -97,14 +97,18 @@ requests of the hourly rate limit unspent for other jobs on the same token
 GitHub App mode (--app-id and --app-key-file, or GOP_APP_ID and
 GOP_APP_PRIVATE_KEY with the PEM contents) mints a read-only installation
 token per org instead; it excludes GITHUB_TOKEN. The key stays in memory and
-is never printed.
+is never printed. Each installation has its own rate-limit budget, so App mode
+reads --parallel orgs at once (default 4, at most 16; 1 is sequential). The
+graph is the same at any --parallel.
 collect logs per-repository not-visible errors (for example collaborators the
 token cannot list) as one line per org with counts by HTTP status; the
 details are in coverage. --verbose (or GOP_VERBOSE=1) logs every repository.
 doctor is a read-only preflight for collect: token mode, scopes, SSO
 authorization gaps, rate limit, a time estimate and what will come out
 not_visible. In App mode it lists installations, the --orgs without one and
-any granted permission that is not read. Exit 0 all pass, 1 any fail, 3 warnings only.
+any granted permission that is not read. When a token-mode collect would take
+more than 3 hours or wait for more than 2 rate-limit resets, doctor recommends
+App mode and estimates its time. Exit 0 all pass, 1 any fail, 3 warnings only.
 enrich reads cloud OIDC trust files you export (AWS, GCP, Azure), or a
 Cartography export (--cartography, AWS; one or both), and adds the cloud roles each
 workflow's token can assume (CAN_ASSUME). Offline: no token, no cloud API. Those hops have evidence "supplied" and every path through them
@@ -318,6 +322,7 @@ func (a *app) cmdCollect(args []string) error {
 		"with the same directory: repositories whose pushed_at and updated_at did not move are answered from that run's "+
 		"records; org-level reads are always repeated")
 	fullEvery := fs.Int("full-every", 7, "with --incremental, do a full run when the last one is at least this many days old")
+	parallel := addParallelFlag(fs)
 	verbose := fs.Bool("verbose", false, "log every per-repository not-visible error (for example collaborators the token "+
 		"cannot list) instead of one summary line per org (or set GOP_VERBOSE=1)")
 	var trusts trustFlag
@@ -346,6 +351,9 @@ func (a *app) cmdCollect(args []string) error {
 	}
 	if *fullEvery < 1 {
 		return usagef("collect: --full-every must be at least 1 (days)")
+	}
+	if err := checkParallel("collect", *parallel); err != nil {
+		return err
 	}
 	ep, err := uf.resolve(a.getenv)
 	if err != nil {
@@ -377,6 +385,7 @@ func (a *app) cmdCollect(args []string) error {
 		Priority:         splitList(*priority),
 		Incremental:      *incremental,
 		FullEvery:        time.Duration(*fullEvery) * 24 * time.Hour,
+		Parallel:         *parallel,
 		Verbose:          *verbose || envTrue(a.getenv("GOP_VERBOSE")),
 		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}

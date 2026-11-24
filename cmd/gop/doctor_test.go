@@ -27,6 +27,7 @@ type doctorServer struct {
 	orgs    []string
 	sso     map[string]bool
 	install []string // installation repository full names
+	repos   map[string]int
 }
 
 func (d doctorServer) start(t *testing.T) string {
@@ -72,7 +73,11 @@ func (d doctorServer) start(t *testing.T) string {
 				reply(w, 403, map[string]string{"message": "Resource protected by organization SAML enforcement."})
 				return
 			}
-			reply(w, 200, map[string]any{"login": org, "public_repos": 4, "total_private_repos": 10 * len(org)})
+			private := 10 * len(org)
+			if n, ok := d.repos[org]; ok {
+				private = n
+			}
+			reply(w, 200, map[string]any{"login": org, "public_repos": 4, "total_private_repos": private})
 		case p == "/rate_limit":
 			reset := doctorClock.Add(40 * time.Minute).Unix()
 			reply(w, 200, map[string]any{"resources": map[string]any{
@@ -143,6 +148,11 @@ func TestGoldenDoctor(t *testing.T) {
 	sso.orgs = []string{"acme", "acme-app", "acme-legacy"}
 	sso.sso = map[string]bool{"acme-legacy": true}
 	app := doctorServer{token: "ghs_synthetic0app", install: []string{"acme-actions/deploy", "acme-app/web", "acme-app/api"}}
+	// Four orgs of about 900 repositories: one token waits for three
+	// rate-limit resets, so doctor recommends GitHub App mode.
+	large := ownerServer
+	large.orgs = []string{"acme", "acme-actions", "acme-app", "acme-secure"}
+	large.repos = map[string]int{"acme": 896, "acme-actions": 896, "acme-app": 896, "acme-secure": 896}
 	for _, tc := range []struct {
 		golden string
 		srv    doctorServer
@@ -153,6 +163,8 @@ func TestGoldenDoctor(t *testing.T) {
 		{"doctor_owner.json", ownerServer, exitOK, []string{"--format", "json"}},
 		{"doctor_app.txt", app, exitWarn, nil},
 		{"doctor_sso.txt", sso, exitRuntime, nil},
+		{"doctor_recommend.txt", large, exitWarn, nil},
+		{"doctor_recommend.json", large, exitWarn, []string{"--format", "json"}},
 	} {
 		t.Run(tc.golden, func(t *testing.T) {
 			url := tc.srv.start(t)
@@ -175,6 +187,8 @@ func TestDoctorUsage(t *testing.T) {
 		{"ghp_synthetic0owner", []string{"--enterprise", "acme", "--format", "yaml"}},
 		{"", []string{"--enterprise", "acme"}},
 		{"ghp_synthetic0owner", []string{"--enterprise", "acme", "extra"}},
+		{"ghp_synthetic0owner", []string{"--enterprise", "acme", "--parallel", "0"}},
+		{"ghp_synthetic0owner", []string{"--enterprise", "acme", "--parallel", "17"}},
 	} {
 		if r := runDoctorApp(t, tc.token, tc.args...); r.code != exitUsage {
 			t.Errorf("%v: exit %d, want 2", tc.args, r.code)

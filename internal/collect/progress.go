@@ -9,6 +9,9 @@ import (
 
 // Progress phases, in the order a run goes through them.
 const (
+	// PhaseFetch is the parallel prefetch of GitHub App mode (parallel.go),
+	// before the other phases: Done counts the orgs whose worker finished.
+	PhaseFetch     = "fetch"
 	PhaseOrgs      = "orgs"
 	PhaseSettings  = "settings"
 	PhaseMembers   = "members"
@@ -38,6 +41,10 @@ type Progress struct {
 	ResetAt time.Time
 	// Cache holds the response cache counts; nil when the cache is off.
 	Cache *CacheStats
+	// Installations holds each GitHub App installation's budget, sorted by
+	// login, in App mode, where every installation has its own budget and
+	// RESTRemaining and GraphQLRemaining are -1.
+	Installations []InstallationBudget
 }
 
 // phaseUnits names what a phase counts, for the default progress line.
@@ -49,6 +56,7 @@ var phaseUnits = map[string]string{
 	PhaseWorkflows:  "repos",
 	PhaseNested:     "refs",
 	PhaseProtection: "repos",
+	PhaseFetch:      "orgs",
 }
 
 // String renders p as one log line, for example
@@ -72,6 +80,9 @@ func (p Progress) String() string {
 		if !p.ResetAt.IsZero() {
 			b.WriteString(", resets " + p.ResetAt.UTC().Format("15:04") + "Z")
 		}
+	}
+	if len(p.Installations) > 0 {
+		b.WriteString(installationsString(p.Installations))
 	}
 	if p.Cache != nil {
 		b.WriteString(" | cache " + strconv.Itoa(p.Cache.Hits) + " hits, " + strconv.Itoa(p.Cache.Fetched) + " fetched")
@@ -122,6 +133,10 @@ func (k *collector) progress(phase string, done, total int) {
 		Phase: phase, Done: done, Total: total,
 		RESTRemaining: rs.RESTRemaining, GraphQLRemaining: rs.GraphQLRemaining, GraphQLPoints: rs.GraphQLPoints,
 		ResetAt: rs.RESTReset,
+	}
+	if k.app != nil {
+		p.RESTRemaining, p.GraphQLRemaining, p.ResetAt = -1, -1, time.Time{}
+		p.Installations = k.app.budgets()
 	}
 	if k.c.cache != nil {
 		st := k.c.cache.Stats()
