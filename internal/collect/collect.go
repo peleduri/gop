@@ -53,6 +53,11 @@ type Config struct {
 	GraphQLURL  string
 	MaxAttempts int
 	Logf        func(format string, args ...any)
+	// Verbose logs every per-repository not-visible error (for example a
+	// repository whose collaborators the token cannot list) as it happens.
+	// By default they are counted and logged as one summary line per org and
+	// fact; the coverage entries are the same either way.
+	Verbose bool
 
 	// Client overrides the options above when set.
 	Client *Client
@@ -132,6 +137,9 @@ type orgState struct {
 	rest         *apiOrg // GET /orgs/{org}, read only when the enterprise is not visible
 	// collabErr is the first error listing a repository's collaborators.
 	collabErr error
+	// notVisible counts per-repository not-visible errors by fact until the
+	// org's summary line is logged (notvisible.go).
+	notVisible map[string]*notVisibleTally
 	// workflowDefault caches the org's default workflow permissions (token.go).
 	workflowDefault *orgWorkflowDefault
 }
@@ -325,6 +333,7 @@ func (k *collector) run(ctx context.Context) error {
 		// Owner edges come after collaborator edges: k.edge keeps the first edge
 		// per (from, kind, to), so a direct grant to an owner keeps via=direct.
 		k.ownerPush(o)
+		k.flushNotVisible(o)
 		k.progress(PhaseRepos, i+1, len(k.orgs))
 	}
 	if err := k.collectAllWorkflows(ctx); err != nil {
@@ -1099,7 +1108,7 @@ func (k *collector) collectCollaborators(ctx context.Context, o *orgState, repo 
 		if ctx.Err() != nil {
 			return false, ctx.Err()
 		}
-		k.logf("collect: %s: collaborators not visible: %v", repo.ID, err)
+		k.repoNotVisible(o, "collaborators", repo.ID, err)
 		if o.collabErr == nil {
 			o.collabErr = err
 		}

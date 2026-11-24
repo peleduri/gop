@@ -74,6 +74,9 @@ type fakeGitHub struct {
 	// forbidCollab makes /repos/{o}/{r}/collaborators return 403 for "o/r",
 	// on top of the fixture's collaborators_forbidden flag and non-owner orgs.
 	forbidCollab map[string]bool
+	// collabStatus makes /repos/{o}/{r}/collaborators return this HTTP
+	// status for "o/r" (for example 404), ahead of forbidCollab.
+	collabStatus map[string]int
 
 	// enterpriseForbidden answers every enterprise GraphQL query with
 	// enterprise:null + FORBIDDEN and consumed-licenses with 403, like a token
@@ -149,6 +152,7 @@ func newFakeGitHub(t *testing.T) *fakeGitHub {
 		t.Fatal(err)
 	}
 	f := &fakeGitHub{t: t, pageSize: 3, failures: map[string]int{}, hits: map[string]int{}, forbidCollab: map[string]bool{},
+		collabStatus:   map[string]int{},
 		extraWorkflows: map[string]string{}, objectErrors: map[string]string{}, truncated: map[string]bool{},
 		conditional: map[string]int{}, notModified: map[string]int{}, ok200: map[string]bool{}}
 	if err := json.Unmarshal(raw, &f.fx); err != nil {
@@ -425,7 +429,12 @@ func (f *fakeGitHub) collaborators(w http.ResponseWriter, r *http.Request, full 
 			}
 			f.mu.Lock()
 			forbid := f.forbidCollab[full]
+			status := f.collabStatus[full]
 			f.mu.Unlock()
+			if status != 0 {
+				notFoundOrForbidden(w, status)
+				return
+			}
 			if !o.Owner || m.Forbidden || forbid {
 				notFoundOrForbidden(w, 403)
 				return

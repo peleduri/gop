@@ -38,6 +38,9 @@ flags may change in minor releases.
   `gh` login gop follows `GH_HOST` to a GitHub Enterprise Server
   (`--github-url` wins), prints which host's login it used and never prints
   the token. `--use-gh-auth` and GitHub App mode are mutually exclusive.
+- `--verbose` on `collect` (or `GOP_VERBOSE=1`): log every per-repository
+  not-visible error as it happens, as before.
+
 ### Changed
 
 - MCP tools `who_can_reach`, `blast_radius`, `paths`, `top_risks`,
@@ -64,6 +67,12 @@ flags may change in minor releases.
   such principals first in `top_risks` and the report; scores, counts and
   evidence are unchanged, and poutine is cited as its own source. SARIF and
   malformed files fail with a clear error. See `docs/poutine.md`.
+- `gop collect` no longer prints one stderr line per repository whose
+  collaborators the token cannot list. It counts them and, at the end of each
+  org, prints one line such as `org acme-actions: collaborators not visible on
+  27 repos (HTTP 404: 26, HTTP 403: 1); see coverage`. Errors that stop or
+  degrade collection still print right away, and the coverage entries are
+  unchanged. `--verbose` restores the per-repository lines.
 
 ### Fixed
 
