@@ -7,6 +7,13 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- Detect the agentrun agent platform (github.com/Parcha-ai/agentrun) in
+  workflows: `agentrun runs start` and `agentrun template eval` in `run:`
+  steps (also through `npx @parcha/agentrun`) as `agentrun-cli`, and its
+  server image `ghcr.io/parcha-ai/agentrun-server` as a job container, a
+  service or a `docker://` step as `agentrun-server`, with the new
+  `agent_source` value `image` (#185).
+
 - Project governance and community files, following the CNCF project
   template: `GOVERNANCE.md` (maintainer-led: decision making, adding and
   removing maintainers, conflict resolution, changing the governance),
