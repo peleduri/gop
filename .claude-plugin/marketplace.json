@@ -11,7 +11,13 @@
       "source": "./",
       "description": "The gop MCP server over your graph.json and the gop triage skill. Read-only.",
       "category": "security",
-      "tags": ["github", "security", "mcp", "skill"]
+      "tags": [
+        "github",
+        "security",
+        "mcp",
+        "skill"
+      ],
+      "version": "0.6.1"
     }
   ]
 }

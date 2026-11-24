@@ -190,3 +190,7 @@ Anthropic's directory no longer accepts local MCP servers packaged as desktop ex
 ### Codex
 
 `codex plugin marketplace add peleduri/gop` reads `.claude-plugin/marketplace.json` and installs the plugin from `.codex-plugin/plugin.json` (the skill only; checked with Codex CLI 0.163.0). OpenAI's public plugin directory has no self-serve submission documented today; revisit when it does.
+
+## Plugin versions
+
+Before tagging a release, set `version` in `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.cursor-plugin/plugin.json` and `.codex-plugin/plugin.json` to the new release number. `TestPluginVersionsAgree` fails if they drift apart.
