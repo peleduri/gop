@@ -86,6 +86,33 @@
                   "github-actions"
                 ]
               }
+            },
+            {
+              "id": "GOP004",
+              "name": "agent-workflow-exposed",
+              "shortDescription": {
+                "text": "People without push access can start an AI coding agent that runs with the repo's token and secrets"
+              },
+              "fullDescription": {
+                "text": "The workflow runs an AI coding agent (a known agent action or CLI) on a trigger that people without push access can cause, and the agent's own actor check does not stop them. The agent reads their text (a comment, an issue, a pull request) and acts with the job's GITHUB_TOKEN, secrets, OIDC token and tools, so a prompt injection uses all of them."
+              },
+              "help": {
+                "text": "Restrict who can start the agent (keep the action's write-access check, drop allowed_non_write_users or allow-users, or require approval for outside contributors), give the agent job a read-only token and do writes in a separate job, pin the agent action to a commit SHA, drop --dangerously-skip-permissions and similar flags, and scope the allowed tools. See docs/agents-in-ci.md.",
+                "markdown": "## Fix: close the agent to outsiders and shrink what it holds\n\nAn AI coding agent reads the text of whoever triggered it. When that can be anyone without push access, a prompt injection acts with the job's token, secrets, OIDC token and tools.\n\n- Restrict who can start it: keep the action's write-access check (remove `allowed_non_write_users` / `allow-users`), move it off `pull_request_target`, `issue_comment` and `issues`, or require approval for outside contributors.\n- Give the agent job `permissions: contents: read` and make changes in a separate job that takes the agent's output.\n- Pin the agent action to a full commit SHA.\n- Drop `--dangerously-skip-permissions`, `--yolo`, `bypassPermissions`, `safety-strategy: unsafe` and similar flags.\n- Scope the allowed tools, for example `--allowedTools \"Bash(gh pr comment:*)\"`.\n\n`properties.agent_fixes` lists the changes for this workflow. See docs/agents-in-ci.md. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions",
+                  "ai-agent"
+                ]
+              }
             }
           ]
         }

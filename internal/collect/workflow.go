@@ -81,6 +81,12 @@ type WorkflowFacts struct {
 	// run attacker input under a risky trigger (triggers.go).
 	Triggers      []string
 	UntrustedExec []UntrustedExec
+
+	// Agents are the jobs that run an AI coding agent (agents.go). Name and
+	// JobNames (job id -> name:, only when set) feed the weak name-only match.
+	Agents   []AgentJob
+	Name     string
+	JobNames map[string]string
 }
 
 // IDTokenJob is one job that can mint an OIDC token, with the inputs of the
@@ -577,6 +583,7 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 		return nil, fmt.Errorf("parse workflow: %w", err)
 	}
 	f.Triggers, f.UntrustedExec = triggerFacts(&doc)
+	f.readAgents(&doc)
 	return f, nil
 }
 

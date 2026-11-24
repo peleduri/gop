@@ -1,0 +1,14 @@
+# Synthetic fixture: an AI reviewer on pull_request with a read-only token.
+# A fork's pull_request gets no secrets and no write token: lower risk.
+name: PR review
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/run-gemini-cli@v0
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: Review the diff and comment on risky changes.

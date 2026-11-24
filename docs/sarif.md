@@ -36,6 +36,7 @@ gop sarif --graph graph.json --split-by-repo DIR [same filters]
 | `GOP001` | `mutable-action-ref-reachable` | `uses:` line (USES edge) of a branch or tag action ref whose host repo a principal outside the consuming org can change | the consuming repo's workflow file and line (`artifactLocation.uri` relative to that repo, `properties.repository` names it) |
 | `GOP002` | `default-permission-grants-push` | org whose default repository permission gives members push (a `lower_default_perm` candidate) | logical location `org:<login>`, no file |
 | `GOP003` | `action-with-known-advisory-reachable` | `uses:` line (USES edge) of an action ref with a known compromise or vulnerability advisory (`advisories` attr, see [advisories.md](advisories.md)) | the consuming repo's workflow file and line, as for GOP001 |
+| `GOP004` | `agent-workflow-exposed` | AI coding agent workflow that people without push access can start (`agent_exposure=outsiders` with a known agent action or CLI, see [agents-in-ci.md](agents-in-ci.md)) | the workflow file and the agent step's line from its `CAN_TRIGGER` edge |
 
 GOP003 results sort before every other result, whatever their severity, and
 `--top` keeps them first. Their fix is the `pin_ref` plan for the action, which
@@ -43,6 +44,13 @@ for an advisory moves the line to the first fixed version (`advisory_fixed`) or
 a commit SHA after it. They have no principals: whoever compromised the version
 holds the reach, so `confirmed_principals` and `possible_principals` are empty
 and `reach_removed_pct` is 0.
+
+Confirmed GOP004 results sort right after GOP003 results, matching the
+`agent_exposed` rank factor. Their principals are the sources of the
+workflow's `CAN_TRIGGER` edges; a result whose edges are all `not_visible`
+(the agent's actor check is unknown) is possible. Severity is at least high
+when the agent job holds a write scope or a secret. Their fix is the
+`harden_trigger` plan; `agent_fixes` lists the agent-specific changes.
 
 Results come from the same candidate fixes as `suggest_fixes` and `gop fix-plan`.
 A fix whose edges are all `not_visible` is never a result. Each rule's
@@ -61,7 +69,9 @@ Severity comes from the terminal impact behind the result: for GOP001, what
 controlling the consuming workflow (or nested action) reaches; for GOP002, what
 the affected principals lose when the base permission is read; for GOP003, what
 the consuming workflow reaches, raised to the advisory's own severity
-(`advisory_severity`, high when the advisory gives none) when that is higher.
+(`advisory_severity`, high when the advisory gives none) when that is higher;
+for GOP004, what the agent workflow reaches, at least high when the agent job
+holds a write scope or a secret.
 
 | Severity | Terminal impact | SARIF level |
 |----------|-----------------|-------------|
@@ -79,7 +89,7 @@ Every result carries a `properties` bag:
 | Property | Meaning |
 |----------|---------|
 | `severity` | critical, high, medium or low |
-| `repository` | GOP001: the repo that owns the fix, e.g. `acme-app/web` |
+| `repository` | GOP001, GOP003, GOP004: the repo that owns the fix, e.g. `acme-app/web` |
 | `org` | GOP002: the org that owns the fix |
 | `edge` | the evidence edge behind the result, as `from KIND to` |
 | `evidence` | `live`, `inferred`, `audit`, `supplied` or `not_visible` |
@@ -90,10 +100,13 @@ Every result carries a `properties` bag:
 | `fix` | the fix in the shape the MCP tools take (`pin_ref` or `lower_default_perm`) |
 | `reach_removed_pct` | share of all confirmed (principal, repo) pairs the fix removes on its own |
 | `advisories` | GOP003: the advisory IDs behind the result |
+| `agent` | GOP004: the agent kinds the workflow runs (attr `agent`) |
+| `agent_fixes` | GOP004: the changes that shrink the agent's exposure, most effective first |
 
 ## Fingerprints
 
 `partialFingerprints["gopFixableEdge/v1"]` is a SHA-256 of the rule, repo, file
-and action ref (GOP001, GOP003) or the rule and org (GOP002). It does not include the
+and action ref (GOP001, GOP003), the rule and org (GOP002), or the rule, repo
+and workflow file (GOP004). It does not include the
 line, so code scanning keeps tracking an alert when the `uses:` line moves, and
 it is identical across runs on the same graph.

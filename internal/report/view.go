@@ -112,15 +112,19 @@ func decorateRisks(d *data) {
 			max = t
 		}
 	}
-	poutine := map[string]int{}
+	poutine, agent := map[string]int{}, map[string]int{}
 	for _, s := range d.ix.Scores() {
 		if s.PoutineInjectable > 0 {
 			poutine[s.Principal] = s.PoutineInjectable
+		}
+		if s.AgentExposed > 0 {
+			agent[s.Principal] = s.AgentExposed
 		}
 	}
 	for i := range d.Risks {
 		r := &d.Risks[i]
 		r.Poutine = poutine[r.Principal]
+		r.Agent = agent[r.Principal]
 		r.Rank, r.Sev = i+1, severity(*r)
 		if r.Sev == "low" && r.PossibleRepos+r.PossibleOther > 0 {
 			r.Sev = "unknown" // possible reach only: never shown as low

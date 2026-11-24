@@ -78,6 +78,15 @@
       "evidence": "live"
     },
     {
+      "id": "external:anyone",
+      "kind": "external",
+      "name": "anyone on the internet",
+      "attrs": {
+        "source_api": "demo:planted-ai-agent"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "identity:alice",
       "kind": "identity",
       "name": "alice",
@@ -603,7 +612,7 @@
       "name": "acme-app/docs",
       "attrs": {
         "source_api": "demo:planted-cross-org",
-        "visibility": "private"
+        "visibility": "public"
       },
       "evidence": "live"
     },
@@ -1274,6 +1283,27 @@
       "evidence": "live"
     },
     {
+      "id": "workflow:acme-app/docs/.github/workflows/claude.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/claude.yml",
+      "attrs": {
+        "agent": "claude-code-action",
+        "agent_confidence": "action",
+        "agent_exposure": "outsiders",
+        "agent_gate": "anyone",
+        "agent_jobs": "claude",
+        "agent_permissions": "contents:write,pull-requests:write",
+        "agent_ref_kind": "tag",
+        "agent_runner": "hosted",
+        "agent_secrets": "1",
+        "agent_source": "uses",
+        "agent_tools": "dangerously_skip_permissions",
+        "risky_triggers": "issue_comment",
+        "source_api": "demo:planted-ai-agent"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "workflow:acme-app/docs/.github/workflows/preview.yml",
       "kind": "workflow",
       "name": "acme-app/docs/.github/workflows/preview.yml",
@@ -1604,6 +1634,22 @@
       "evidence": "live",
       "source_api": "demo:action-host",
       "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "external:anyone",
+      "to": "workflow:acme-app/docs/.github/workflows/claude.yml",
+      "kind": "CAN_TRIGGER",
+      "evidence": "live",
+      "source_api": "demo:planted-ai-agent",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "detail": "claude-code-action",
+        "exec": "agent",
+        "file": ".github/workflows/claude.yml",
+        "job": "claude",
+        "line": "16",
+        "trigger": "issue_comment"
+      }
     },
     {
       "from": "identity:alice",
@@ -2456,6 +2502,34 @@
       "attrs": {
         "ref_kind": "branch"
       }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:planted-ai-agent",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "claude",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:planted-ai-agent",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude.yml",
+      "to": "secret:acme-app/docs",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:planted-ai-agent",
+      "observed_at": "2026-01-01T00:00:00Z"
     },
     {
       "from": "workflow:acme-app/docs/.github/workflows/preview.yml",

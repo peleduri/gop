@@ -427,3 +427,64 @@ const (
 	FactCodeowners       = "codeowners"
 	FactSecretScanning   = "secret_scanning"
 )
+
+// AI coding agents in GitHub Actions (workflow nodes, see
+// docs/agents-in-ci.md). The collector sets them when a workflow runs a known
+// agent action, invokes a known agent CLI in a run: step, or (weak) only has
+// an agent-like name. Values describe the workflow's agent jobs taken
+// together: the weakest gate, the widest exposure, the union of the rest.
+const (
+	AttrAgent           = "agent"            // sorted comma list of agent kinds, e.g. claude-code-action,codex-cli
+	AttrAgentSource     = "agent_source"     // sorted comma list of how each was found: uses | run | setup | name
+	AttrAgentConfidence = "agent_confidence" // action | cli | name_only (strongest signal); name_only never makes a path agentic
+	AttrAgentJobs       = "agent_jobs"       // sorted comma list of the agent job ids
+	AttrAgentGate       = "agent_gate"       // write_access | listed_users | anyone | none | unknown: who the agent itself lets start it
+	AttrAgentExposure   = "agent_exposure"   // outsiders | listed_users | fork_readonly | maintainers: who can start an agent job with the base repo's token and secrets
+	AttrAgentPrompt     = "agent_prompt_injection"
+	AttrAgentPerms      = "agent_permissions" // sorted comma list of the agent jobs' write scopes, e.g. contents:write,id-token:write; default when a job takes the repo default
+	AttrAgentSecrets    = "agent_secrets"     // integer as string: secrets the agent jobs reference (GITHUB_TOKEN excluded)
+	AttrAgentRunner     = "agent_runner"      // hosted | self_hosted | unknown
+	AttrAgentTools      = "agent_tools"       // sorted comma list of tool and sandbox settings, from AgentToolFlags
+	AttrAgentRefKind    = "agent_ref_kind"    // sha | tag | branch: the least pinned ref of the agent actions (absent for CLIs)
+)
+
+// Values of agent_confidence.
+const (
+	AgentAction   = "action"    // a step uses: a known agent action (or the Copilot setup workflow)
+	AgentCLI      = "cli"       // a run: step invokes a known agent CLI non-interactively
+	AgentNameOnly = "name_only" // only the workflow, job or file name looks like an agent: weak
+)
+
+// Values of agent_gate: who the agent action lets start a run, read from
+// its inputs (claude-code-action and codex-action check that the actor has
+// write access unless allowed_non_write_users / allow-users widen it).
+const (
+	GateWriteAccess = "write_access" // only actors with write access
+	GateListed      = "listed_users" // write access plus named users
+	GateAnyone      = "anyone"       // the check is turned off ('*')
+	GateNone        = "none"         // the agent has no actor check (a CLI, a base action)
+	GateUnknown     = "unknown"      // gop does not know the action's check: counted as possible, never as closed
+)
+
+// Values of agent_exposure.
+const (
+	ExposureOutsiders  = "outsiders"     // people without push access can start an agent job on a trigger that holds the base repo's token and secrets
+	ExposureListed     = "listed_users"  // named users without write access can
+	ExposureForkRO     = "fork_readonly" // anyone can start it from a fork's pull_request, which runs with a read-only token and no secrets
+	ExposureMaintainer = "maintainers"   // only people with write (push) access can start it
+)
+
+// AgentToolFlags is the vocabulary of agent_tools: settings that widen or
+// scope what the agent may do. allowed_tools means a tool list was given;
+// every other value removes the agent's own approval or sandbox.
+var AgentToolFlags = []string{
+	"allowed_tools",
+	"bypass_permissions",
+	"dangerously_bypass_approvals_and_sandbox",
+	"dangerously_skip_permissions",
+	"full_auto",
+	"safety_strategy_unsafe",
+	"sandbox_danger_full_access",
+	"yes_always",
+	"yolo",
+}

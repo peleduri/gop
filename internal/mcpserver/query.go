@@ -272,6 +272,10 @@ func ReachSentence(s graph.Score) string {
 		out += fmt.Sprintf("; %s with an injection finding from poutine (cited, not proved by gop)",
 			plural(s.PoutineInjectable, "reached workflow", "reached workflows"))
 	}
+	if s.AgentExposed > 0 {
+		out += fmt.Sprintf("; can start %s without push access [agent_exposed]",
+			plural(s.AgentExposed, "AI agent workflow that holds write, secrets or OIDC", "AI agent workflows that hold write, secrets or OIDC"))
+	}
 	out += fmt.Sprintf("; %d more possible", s.Possible.Repos)
 	return out + advisoryClause(s)
 }
@@ -652,6 +656,9 @@ type ExplainOutput struct {
 	Protection *graph.Hardening `json:"protection,omitempty" jsonschema:"default-branch protection, CODEOWNERS and secret scanning of the repo end of the edge (context only; never changes reach)"`
 	// Note is the hardening note a CAN_PUSH hop over this edge carries.
 	Note string `json:"note,omitempty"`
+	// Agent explains the AI coding agent at the workflow end of the edge
+	// (see docs/agents-in-ci.md); empty when there is none.
+	Agent string `json:"agent,omitempty" jsonschema:"the AI coding agent the workflow end runs: who can start it, what it holds, the untrusted text it reads and the fixes"`
 }
 
 func edgeOut(ix *graph.Index, ed graph.Edge, rev bool) EdgeOut {
@@ -768,7 +775,58 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 		out.Summary += fmt.Sprintf(" (+%d more)", len(out.Edges)-1)
 	}
 	e.explainHardening(&out, from, to, graph.EdgeKind(first.Kind), first.Reversed)
+	e.explainAgent(&out, from, to)
 	return out, nil
+}
+
+// explainAgent adds the agent note of the workflow end of an edge.
+func (e *Engine) explainAgent(out *ExplainOutput, from, to string) {
+	for _, id := range []string{to, from} {
+		n, ok := e.ix.Node(id)
+		if !ok || !graph.IsAgent(n) {
+			continue
+		}
+		out.Agent = AgentNote(n)
+		out.Summary += "; agent: " + out.Agent
+		return
+	}
+}
+
+// AgentNote is a one-paragraph explanation of a workflow's AI coding agent.
+func AgentNote(n graph.Node) string {
+	a := n.Attrs
+	if !graph.AgentConfirmed(n) {
+		return "the workflow, job or file name looks like an AI agent (name only: weak, never counted as an agent path)"
+	}
+	out := a[graph.AttrAgent] + " (" + a[graph.AttrAgentConfidence] + ")"
+	switch a[graph.AttrAgentExposure] {
+	case graph.ExposureOutsiders:
+		out += ", people without push access can start it on " + strings.ReplaceAll(a["risky_triggers"], ",", ", ")
+		if a[graph.AttrAgentGate] == graph.GateUnknown {
+			out += " unless the action checks the actor (gop does not know its check)"
+		}
+	case graph.ExposureListed:
+		out += ", named users without write access can start it"
+	case graph.ExposureForkRO:
+		out += ", forks can start it on pull_request with a read-only token and no secrets"
+	default:
+		out += ", only people with write access can start it"
+	}
+	if imp := graph.AgentImpact(n); len(imp) > 0 {
+		out += "; it holds " + strings.Join(imp, ", ")
+	} else {
+		out += "; it holds no write scope or secret"
+	}
+	if p := a[graph.AttrAgentPrompt]; p != "" {
+		out += "; untrusted text reaches its prompt: " + strings.ReplaceAll(p, ",", ", ")
+	}
+	if u := graph.AgentUnrestricted(n); len(u) > 0 {
+		out += "; approvals or sandbox off: " + strings.Join(u, ", ")
+	}
+	if f := graph.AgentFixes(n); len(f) > 0 {
+		out += ". Fix: " + f[0]
+	}
+	return out
 }
 
 // explainHardening adds the repo end's hardening facts and the hop note.

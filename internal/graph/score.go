@@ -48,6 +48,12 @@ type Score struct {
 	// advisory that a confirmed path runs through (for an advisory action ranked by
 	// TopPaths, the action itself first). Any entry here ranks first.
 	Advisories []string `json:"advisories,omitempty"`
+	// AgentExposed counts the confirmed-reached AI agent workflows the
+	// principal starts through its own CAN_TRIGGER edge (without push
+	// access) and that hold write, secrets or OIDC (see AgentExposed). A
+	// separate rank factor like PoutineInjectable: it never changes Score,
+	// the counts or any evidence. 0 when the graph has no such workflow.
+	AgentExposed int `json:"agent_exposed,omitempty"`
 }
 
 // Blast radius weights. Terminal impact (cloud roles, OIDC to cloud, secrets,
@@ -150,6 +156,7 @@ func (ix *Index) scoreOf(principal string, r Result) Score {
 		}
 	}
 	s.Advisories = ix.advisoriesOn(r)
+	s.AgentExposed = ix.agentExposedOn(r)
 	return s
 }
 
@@ -185,15 +192,21 @@ func (ix *Index) TopPaths(n int) []Score {
 //     injection-class poutine finding (Score.PoutineInjectable) first, so a
 //     confirmed path into a workflow poutine found injectable ranks above
 //     the same reach without one;
-//  3. confirmed Score (desc);
-//  4. PossibleScore (desc);
-//  5. principal ID.
+//  3. agent exposed: more confirmed-reached AI agent workflows the
+//     principal can start without push access while they hold write,
+//     secrets or OIDC (Score.AgentExposed) first;
+//  4. confirmed Score (desc);
+//  5. PossibleScore (desc);
+//  6. principal ID.
 func RanksAbove(a, b Score) bool {
 	if ra, rb := rankAdvisory(a), rankAdvisory(b); ra != rb {
 		return ra > rb
 	}
 	if a.PoutineInjectable != b.PoutineInjectable {
 		return a.PoutineInjectable > b.PoutineInjectable
+	}
+	if a.AgentExposed != b.AgentExposed {
+		return a.AgentExposed > b.AgentExposed
 	}
 	if a.Score != b.Score {
 		return a.Score > b.Score
