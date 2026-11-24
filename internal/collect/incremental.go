@@ -692,6 +692,21 @@ func protectionPlan(repos []hardenRepo, withRules bool) *aliasPlan {
 	}}
 }
 
+// collabPlan is the plan of a batched direct-collaborator query (collabbatch.go).
+func collabPlan(o *orgState, repos []*graph.Node) *aliasPlan {
+	names := make([]string, len(repos))
+	for i, r := range repos {
+		names[i] = o.login + "/" + repoName(o, r)
+	}
+	return &aliasPlan{repos: names, build: func(idx []int) (string, map[string]any) {
+		sub := make([]*graph.Node, len(idx))
+		for j, i := range idx {
+			sub[j] = repos[i]
+		}
+		return buildCollabQuery(o, sub)
+	}}
+}
+
 // refsPlan is the plan of a batched ref lookup (refs.go).
 func refsPlan(ts []*refTarget) *aliasPlan {
 	names := make([]string, len(ts))

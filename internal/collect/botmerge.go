@@ -539,7 +539,7 @@ func envMap(w *yamlWalk, n *yaml.Node) map[string]string {
 }
 
 func mergeEnv(base, over map[string]string) map[string]string {
-	out := make(map[string]string, len(base)+len(over))
+	out := map[string]string{}
 	for k, v := range base {
 		out[k] = v
 	}
