@@ -39,6 +39,11 @@ type Score struct {
 	Multiplier    float64 `json:"multiplier"`
 	Score         float64 `json:"score"`
 	PossibleScore float64 `json:"possible_score"`
+	// PoutineInjectable counts the confirmed-reached workflows that carry an
+	// injection-class poutine finding (see PoutineInjectable). It is a
+	// separate rank factor cited from poutine: it never changes Score, the
+	// counts or any evidence. 0 when no poutine report was imported.
+	PoutineInjectable int `json:"poutine_injectable,omitempty"`
 }
 
 // Blast radius weights. Terminal impact (cloud roles, OIDC to cloud, secrets,
@@ -131,6 +136,11 @@ func (ix *Index) score(cg *controlGraph, principal string) Score {
 	s := Score{Principal: principal, Confirmed: countsOf(r.Confirmed), Possible: countsOf(r.Possible), Multiplier: ix.multiplier(principal)}
 	s.Score = rawScore(s.Confirmed) * s.Multiplier
 	s.PossibleScore = rawScore(s.Possible) * s.Multiplier
+	for _, w := range r.Confirmed.Workflows {
+		if PoutineInjectable(ix.nodes[w]) {
+			s.PoutineInjectable++
+		}
+	}
 	return s
 }
 
@@ -143,26 +153,40 @@ func BlastRadius(g *Graph, principal string) Score {
 // BlastRadius on a prebuilt index.
 func (ix *Index) BlastRadius(principal string) Score { return ix.score(ix.base, principal) }
 
-// TopPaths ranks the scoring principals (see ScoringPrincipals) by confirmed Score (desc), then PossibleScore
-// (desc), then ID, and returns the first n (all when n <= 0).
+// TopPaths ranks the scoring principals (see ScoringPrincipals) with RanksAbove
+// and returns the first n (all when n <= 0).
 func TopPaths(g *Graph, n int) []Score { return NewIndex(g).TopPaths(n) }
 
 // TopPaths on a prebuilt index.
 func (ix *Index) TopPaths(n int) []Score {
 	out := ix.allScores(ix.base)
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Score != out[j].Score {
-			return out[i].Score > out[j].Score
-		}
-		if out[i].PossibleScore != out[j].PossibleScore {
-			return out[i].PossibleScore > out[j].PossibleScore
-		}
-		return out[i].Principal < out[j].Principal
-	})
+	sort.SliceStable(out, func(i, j int) bool { return RanksAbove(out[i], out[j]) })
 	if n > 0 && n < len(out) {
 		out = out[:n]
 	}
 	return out
+}
+
+// RanksAbove is the top_risks order. Rank factors, in order:
+//
+//  1. poutine injectable: more confirmed-reached workflows with an
+//     injection-class poutine finding (Score.PoutineInjectable) first, so a
+//     confirmed path into a workflow poutine found injectable ranks above
+//     the same reach without one;
+//  2. confirmed Score (desc);
+//  3. PossibleScore (desc);
+//  4. principal ID.
+func RanksAbove(a, b Score) bool {
+	if a.PoutineInjectable != b.PoutineInjectable {
+		return a.PoutineInjectable > b.PoutineInjectable
+	}
+	if a.Score != b.Score {
+		return a.Score > b.Score
+	}
+	if a.PossibleScore != b.PossibleScore {
+		return a.PossibleScore > b.PossibleScore
+	}
+	return a.Principal < b.Principal
 }
 
 // allScores scores every principal in ScoringPrincipals.

@@ -281,12 +281,12 @@ func orgCell(n graph.Node, key string) cell {
 	return cell{Value: v}
 }
 
-// headlinePick is the top-scored principal; among equal scores an org's
+// headlinePick is the top-ranked principal; among equal ranks an org's
 // members (a whole population) win over a single identity.
 func headlinePick(ix *graph.Index, top []graph.Score) graph.Score {
 	best := top[0]
 	for _, s := range top[1:] {
-		if s.Score != best.Score {
+		if s.Score != best.Score || s.PoutineInjectable != best.PoutineInjectable {
 			break
 		}
 		if ix.Kind(s.Principal) == graph.KindOrgMembers && ix.Kind(best.Principal) != graph.KindOrgMembers {

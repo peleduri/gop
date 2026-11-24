@@ -45,7 +45,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
               [--github-url URL]
-  gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] --out graph2.json
+  gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json] --out graph2.json
   gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json]
               [--app-id N --app-key-file PATH]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
@@ -89,7 +89,10 @@ any granted permission that is not read. Exit 0 all pass, 1 any fail, 3 warnings
 enrich reads cloud OIDC trust files you export (AWS, GCP, Azure), or a
 Cartography export (--cartography, AWS; one or both), and adds the cloud roles each
 workflow's token can assume (CAN_ASSUME). Offline: no token, no cloud API. Those hops have evidence "supplied" and every path through them
-says it comes from a supplied file, not from the cloud.
+says it comes from a supplied file, not from the cloud. --poutine reads a poutine
+JSON report and marks the workflows its findings name (poutine_rules,
+poutine_severity); reach into a workflow with an injection finding ranks first.
+gop never runs poutine; unmatched findings are listed in coverage.
 demo writes a synthetic enterprise graph (no token, no network) to try gop on.
 serve runs an MCP server over stdio. --baseline loads an older snapshot for the diff tool.
 validate checks graph.json against the published JSON Schema and that every

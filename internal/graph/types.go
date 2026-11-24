@@ -3,7 +3,10 @@
 // collectors, the analysis engine, the MCP server and the report.
 package graph
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // SchemaVersion is bumped on any breaking change to the serialized Graph.
 // v2 added the inferred evidence level; Load still reads SchemaV1 documents.
@@ -214,6 +217,42 @@ const (
 	// SourceCartography is the value of AttrSource for a Cartography export.
 	SourceCartography = "cartography"
 )
+
+// Workflow node attribute keys from gop enrich --poutine (a poutine JSON
+// report, see docs/poutine.md). They cite poutine's findings as a separate
+// source: gop did not prove them, and they never change any evidence.
+const (
+	AttrPoutineRules    = "poutine_rules"    // workflow: sorted comma list of the poutine rule IDs with a finding in this workflow file
+	AttrPoutineSeverity = "poutine_severity" // workflow: the highest poutine rule level among those findings: error | warning | note
+	AttrPoutineJobs     = "poutine_jobs"     // workflow: sorted comma list of the job ids the findings name, when poutine names one
+	AttrPoutineFile     = "poutine_file"     // workflow: the poutine report the findings were read from
+	// FactPoutine is the Coverage.Fact of a poutine finding that matches no
+	// workflow node: it is listed, never dropped silently.
+	FactPoutine = "poutine_finding"
+)
+
+// poutineInjection are the poutine rule IDs whose finding means attacker
+// input becomes code in the workflow: an expression injected into a script
+// (injection) or untrusted fork code run by a build tool
+// (untrusted_checkout_exec).
+var poutineInjection = map[string]bool{"injection": true, "untrusted_checkout_exec": true}
+
+// IsPoutineInjectionRule reports whether a poutine rule ID is injection-class.
+func IsPoutineInjectionRule(id string) bool { return poutineInjection[id] }
+
+// PoutineInjectable reports whether a workflow node carries an
+// injection-class poutine finding (AttrPoutineRules).
+func PoutineInjectable(n Node) bool {
+	if n.Kind != KindWorkflow {
+		return false
+	}
+	for _, r := range strings.Split(n.Attrs[AttrPoutineRules], ",") {
+		if poutineInjection[r] {
+			return true
+		}
+	}
+	return false
+}
 
 // IsDemo reports whether g is synthetic demo data: the enterprise node
 // ("enterprise:<slug>") carries demo=true.
