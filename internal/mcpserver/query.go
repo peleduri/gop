@@ -338,6 +338,7 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 		}
 		out.To = to
 		p, ok := r.Paths[to]
+		p = e.ix.Annotate(p)
 		p.TargetOrgHardening = e.ix.TargetOrgHardening(p)
 		switch {
 		case !ok:
@@ -353,7 +354,7 @@ func (e *Engine) Paths(in PathsInput) (res PathsOutput, _ error) {
 	}
 	ps := make([]graph.Path, 0, len(r.Paths))
 	for _, p := range r.Paths {
-		ps = append(ps, p)
+		ps = append(ps, e.ix.Annotate(p))
 	}
 	sort.Slice(ps, func(i, j int) bool {
 		if len(ps[i].Hops) != len(ps[j].Hops) {
@@ -472,6 +473,18 @@ func (e *Engine) toFix(i int, f FixSpec) (graph.Fix, error) {
 			return graph.RestrictToken{Workflow: w}, nil
 		}
 		return graph.HardenTrigger{Workflow: w}, nil
+	case "require_reviews", "enable_push_protection":
+		r, err := e.resolve(fmt.Sprintf("fixes[%d].repo", i), f.Repo)
+		if err != nil {
+			return nil, err
+		}
+		if e.ix.Kind(r) != graph.KindRepo {
+			return nil, fmt.Errorf("fixes[%d].repo: %s is not a repo", i, r)
+		}
+		if f.Type == "require_reviews" {
+			return graph.RequireReviews{Repo: r}, nil
+		}
+		return graph.EnablePushProtection{Repo: r}, nil
 	}
 	return nil, fmt.Errorf("fixes[%d].type: want %s, got %q", i, fixTypes, f.Type)
 }
@@ -529,16 +542,30 @@ type FixOut struct {
 type SuggestFixesOutput struct {
 	Summary string   `json:"summary"`
 	Fixes   []FixOut `json:"fixes"`
-	Brief   *Brief   `json:"brief,omitempty"`
+	// Hardening lists advisory fixes for repos on the top risk paths. They
+	// change no edge, so they are never counted as removing confirmed reach.
+	Hardening []HardeningOut `json:"hardening,omitempty" jsonschema:"advisory hardening suggestions for repos on top risk paths (require reviews, enable push protection); never counted as removing confirmed reach"`
+	Brief     *Brief         `json:"brief,omitempty"`
 }
+
+// HardeningOut is one advisory hardening suggestion.
+type HardeningOut struct {
+	FixID       string  `json:"fix_id"`
+	Fix         FixSpec `json:"fix"`
+	Description string  `json:"description"`
+	Reason      string  `json:"reason"`
+}
+
+// HardeningLimit caps the advisory suggestions suggest_fixes lists.
+const HardeningLimit = 5
 
 // DescribeFix returns the FixSpec and a sentence for a graph fix.
 func DescribeFix(f graph.Fix) (FixSpec, string) { return fixplan.Spec(f) }
 
 // fixTypes and fixShapes name the fix types in error messages.
 const (
-	fixTypes  = "pin_ref, lower_default_perm, restrict_token or harden_trigger"
-	fixShapes = `{type:"pin_ref",action}, {type:"lower_default_perm",org,to}, {type:"restrict_token",workflow} or {type:"harden_trigger",workflow}`
+	fixTypes  = "pin_ref, lower_default_perm, restrict_token, harden_trigger, require_reviews or enable_push_protection"
+	fixShapes = `{type:"pin_ref",action}, {type:"lower_default_perm",org,to}, {type:"restrict_token",workflow}, {type:"harden_trigger",workflow}, {type:"require_reviews",repo} or {type:"enable_push_protection",repo}`
 )
 
 // SuggestFixes runs the budgeted greedy.
@@ -562,12 +589,20 @@ func (e *Engine) SuggestFixes(in SuggestFixesInput) (res SuggestFixesOutput, _ e
 			Removed: s.Removed, CumulativeRemoved: s.CumulativeRemoved, Remaining: s.Remaining, CumulativePct: s.CumulativePct,
 			Caveat: s.Caveat})
 	}
+	for _, h := range e.ix.SuggestHardening(DefaultTopN, HardeningLimit) {
+		spec, desc := DescribeFix(h.Fix)
+		out.Hardening = append(out.Hardening, HardeningOut{FixID: h.FixID, Fix: spec, Description: desc, Reason: h.Reason})
+	}
 	if len(out.Fixes) == 0 {
 		out.Summary = "no candidate fix removes confirmed reach"
 	} else {
 		last := out.Fixes[len(out.Fixes)-1]
 		out.Summary = fmt.Sprintf("%s remove %.0f%% of confirmed (principal, repo) pairs; first: %s",
 			plural(len(out.Fixes), "fix", "fixes"), last.CumulativePct, quotedDescription(out.Fixes[0].Fix))
+	}
+	if n := len(out.Hardening); n > 0 {
+		out.Summary += fmt.Sprintf("; plus %s (advisory, not counted as removing reach)",
+			plural(n, "hardening suggestion", "hardening suggestions"))
 	}
 	return out, nil
 }
@@ -601,6 +636,12 @@ type ExplainOutput struct {
 	// TargetOrgHardening is context only, set when the hop's target is in a
 	// repo whose org has SSO not enforced or an IP allow list not on.
 	TargetOrgHardening *graph.OrgHardening `json:"target_org_hardening,omitempty" jsonschema:"context only: the org of the repo the hop leads into when its SSO is not enforced or IP allow list is not on (unknown when not visible, never read as off)"`
+	// Protection is the effective default-branch protection, CODEOWNERS
+	// and secret scanning of the repo end of the edge, with the source of
+	// each value. Context only: it never changes reach.
+	Protection *graph.Hardening `json:"protection,omitempty" jsonschema:"default-branch protection, CODEOWNERS and secret scanning of the repo end of the edge (context only; never changes reach)"`
+	// Note is the hardening note a CAN_PUSH hop over this edge carries.
+	Note string `json:"note,omitempty"`
 }
 
 func edgeOut(ix *graph.Index, ed graph.Edge, rev bool) EdgeOut {
@@ -716,7 +757,34 @@ func (e *Engine) Explain(in ExplainInput) (res ExplainOutput, _ error) {
 	if len(out.Edges) > 1 {
 		out.Summary += fmt.Sprintf(" (+%d more)", len(out.Edges)-1)
 	}
+	e.explainHardening(&out, from, to, graph.EdgeKind(first.Kind), first.Reversed)
 	return out, nil
+}
+
+// explainHardening adds the repo end's hardening facts and the hop note.
+func (e *Engine) explainHardening(out *ExplainOutput, from, to string, kind graph.EdgeKind, rev bool) {
+	repo := to
+	if e.ix.Kind(repo) != graph.KindRepo {
+		repo = from
+	}
+	n, ok := e.ix.Node(repo)
+	if !ok || n.Kind != graph.KindRepo {
+		return
+	}
+	h, ok := graph.RepoHardening(n)
+	if !ok {
+		return
+	}
+	out.Protection = &h
+	if !rev {
+		out.Note = e.ix.HopNote(graph.Hop{Kind: kind, From: from, To: to})
+	}
+	if sum := h.Summary(); sum != "" {
+		out.Summary += "; " + q(strings.TrimPrefix(repo, "repo:")) + " " + sum
+	}
+	if out.Note != "" {
+		out.Summary += "; note: " + out.Note
+	}
 }
 
 // fileLine renders an edge's source position as file:line (or file, when

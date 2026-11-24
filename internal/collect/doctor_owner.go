@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/peleduri/gop/internal/graph"
 )
 
 // This file holds the doctor's org ownership check. An org the token does
@@ -134,6 +136,9 @@ func (d *doctor) predictNotOwned(o *DoctorOrg, ssoEnforced, entVisible bool) {
 	// enterprise query counts as empty has no repositories to try.
 	if o.ReposSource != ReposGraphQL || o.Repos == nil || *o.Repos > 0 {
 		note("can_push:collaborators", fix+", or push access on each repository")
+		// security_and_analysis is returned to repo admins, org owners and
+		// security managers only.
+		note(graph.FactSecretScanning, "admin on those repositories, or org owner or security manager in "+o.Login)
 	}
 	note("can_push:teams", fix)
 

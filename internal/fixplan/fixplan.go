@@ -30,11 +30,12 @@ const ConfirmFirst = "not visible to the token: confirm this exists first"
 
 // FixSpec describes one fix in the shape the MCP tools take.
 type FixSpec struct {
-	Type     string `json:"type" jsonschema:"pin_ref, lower_default_perm, restrict_token or harden_trigger"`
+	Type     string `json:"type" jsonschema:"pin_ref, lower_default_perm, restrict_token, harden_trigger, or the advisory require_reviews and enable_push_protection"`
 	Action   string `json:"action,omitempty" jsonschema:"for pin_ref: the action node ID, e.g. action:acme-actions/deploy@main"`
 	Org      string `json:"org,omitempty" jsonschema:"for lower_default_perm: the org node ID, e.g. org:acme-actions"`
 	To       string `json:"to,omitempty" jsonschema:"for lower_default_perm: read or none"`
 	Workflow string `json:"workflow,omitempty" jsonschema:"for restrict_token and harden_trigger: the workflow node ID, e.g. workflow:acme-app/web/.github/workflows/ci.yml"`
+	Repo     string `json:"repo,omitempty" jsonschema:"for the advisory require_reviews and enable_push_protection: the repo node ID, e.g. repo:acme-app/web"`
 }
 
 // Step is one change a person or agent makes outside gop.
@@ -85,6 +86,12 @@ func Spec(f graph.Fix) (FixSpec, string) {
 	case graph.HardenTrigger:
 		return FixSpec{Type: "harden_trigger", Workflow: v.Workflow},
 			"Stop " + strings.TrimPrefix(v.Workflow, "workflow:") + " from running attacker-controlled code on its risky triggers"
+	case graph.RequireReviews:
+		return FixSpec{Type: "require_reviews", Repo: v.Repo},
+			"Require at least one approving review on the default branch of " + strings.TrimPrefix(v.Repo, "repo:")
+	case graph.EnablePushProtection:
+		return FixSpec{Type: "enable_push_protection", Repo: v.Repo},
+			"Enable secret scanning push protection on " + strings.TrimPrefix(v.Repo, "repo:")
 	}
 	return FixSpec{}, f.ID()
 }
@@ -102,6 +109,8 @@ func Build(ix *graph.Index, f graph.Fix) Plan {
 		buildRestrict(ix, v, &p)
 	case graph.HardenTrigger:
 		buildHarden(ix, v, &p)
+	case graph.RequireReviews, graph.EnablePushProtection:
+		buildHardening(ix, f, &p)
 	}
 	p.Steps = confirmedFirst(p.Steps)
 	return p
@@ -595,4 +604,37 @@ func withV(f, ref string) string {
 		return "v" + f
 	}
 	return f
+}
+
+// HardeningCaveat is the caveat of every advisory hardening plan.
+const HardeningCaveat = "advisory hardening: gop does not model branch protection or push protection as cutting a path, so this removes no confirmed reach"
+
+// buildHardening plans an advisory hardening fix: one setting to change.
+func buildHardening(ix *graph.Index, f graph.Fix, p *Plan) {
+	p.Caveats = append(p.Caveats, HardeningCaveat)
+	var repo string
+	s := Step{Kind: KindChangeSetting}
+	switch v := f.(type) {
+	case graph.RequireReviews:
+		repo = strings.TrimPrefix(v.Repo, "repo:")
+		branch := "{default branch}"
+		if n, ok := ix.Node(v.Repo); ok && n.Attrs["default_branch"] != "" {
+			branch = n.Attrs["default_branch"]
+		}
+		s.Change = "add a branch ruleset (or classic protection) on " + branch + " that requires a pull request with at least one approval, dismisses stale approvals, and requires CODEOWNERS review for .github/workflows/"
+		s.Setting = "Settings > Rules > Rulesets > New branch ruleset > Require a pull request before merging"
+		s.API = "POST /repos/" + repo + "/rulesets"
+	case graph.EnablePushProtection:
+		repo = strings.TrimPrefix(v.Repo, "repo:")
+		s.Change = "turn on secret scanning and push protection"
+		s.Setting = "Settings > Advanced Security > Secret Protection > Push protection"
+		s.API = "PATCH /repos/" + repo + " (security_and_analysis.secret_scanning_push_protection.status=enabled)"
+	}
+	s.Repo, s.Owner = repo, ownerOf(repo)
+	if n, ok := ix.Node("repo:" + repo); ok {
+		if h, ok := graph.RepoHardening(n); ok {
+			s.Note = h.Summary()
+		}
+	}
+	p.Steps = append(p.Steps, s)
 }

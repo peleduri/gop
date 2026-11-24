@@ -185,6 +185,11 @@ type collector struct {
 	calledOIDC    map[string]*calledOIDC // action id -> reusable workflow that mints a token
 	// batch is the batched GraphQL file reader state (batch.go).
 	batch batchState
+	// protOff disables batched branch protection reads after a query GitHub
+	// does not support (hardening.go); rulesetBypass caches ruleset bypass
+	// actors read over REST by ruleset ID.
+	protOff       bool
+	rulesetBypass map[int64]*apiRulesetBypass
 	// progressFn receives progress updates (progress.go); nil means none.
 	progressFn func(Progress)
 	// host is the GitHub host; ghes is set when it is a GitHub Enterprise
@@ -356,6 +361,9 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	if err := k.collectTagImmutability(ctx); err != nil {
+		return err
+	}
+	if err := k.collectBranchProtection(ctx); err != nil {
 		return err
 	}
 	return k.collectRefProtection(ctx)
@@ -965,6 +973,9 @@ type apiRepo struct {
 	Archived      bool   `json:"archived"`
 	Fork          bool   `json:"fork"`
 	DefaultBranch string `json:"default_branch"`
+	// SecurityAndAnalysis is null or absent unless the token is a repo
+	// admin, org owner or security manager.
+	SecurityAndAnalysis *apiSecurityAnalysis `json:"security_and_analysis"`
 }
 
 func (k *collector) collectRepos(ctx context.Context, o *orgState) error {
@@ -985,6 +996,7 @@ func (k *collector) collectRepos(ctx context.Context, o *orgState) error {
 		k.cover(o.node.ID, attrRepositories, "could not list repositories: "+err.Error(), k.fixFor(err, k.ownerFix(o)))
 		return nil
 	}
+	var secrets secretTally
 	for _, r := range repos {
 		id := "repo:" + o.login + "/" + r.Name
 		n := k.node(id, graph.KindRepo, o.login+"/"+r.Name)
@@ -1002,9 +1014,13 @@ func (k *collector) collectRepos(ctx context.Context, o *orgState) error {
 		if r.DefaultBranch != "" {
 			setAttr(n, "default_branch", r.DefaultBranch, graph.Live)
 		}
+		if !r.Archived {
+			applySecretScanning(n, r.SecurityAndAnalysis, &secrets)
+		}
 		k.repoIDs[strings.ToLower(o.login+"/"+r.Name)] = id
 		o.repos = append(o.repos, n)
 	}
+	k.coverSecretScanning(o, secrets)
 	if o.ownerVisible {
 		setAttr(o.node, attrRepositories, strconv.Itoa(len(repos)), graph.Live)
 	} else {

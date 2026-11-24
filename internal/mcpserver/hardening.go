@@ -19,6 +19,7 @@ func (e *Engine) harden(ps []graph.Path) []graph.Path {
 	}
 	out := make([]graph.Path, len(ps))
 	for i, p := range ps {
+		p = e.ix.Annotate(p) // repo hardening notes on CAN_PUSH hops
 		p.TargetOrgHardening = e.ix.TargetOrgHardening(p)
 		out[i] = p
 	}

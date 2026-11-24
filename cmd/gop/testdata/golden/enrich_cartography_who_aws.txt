@@ -5,6 +5,7 @@ Confirmed (every hop live, inferred, audit or supplied) (2):
       note: cloud hop from supplied trust file testdata/cartography/oidc-trusts.json, not read from the cloud
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       identity:bob =[CAN_PUSH, live]=> repo:acme-actions/deploy  source: rest:/repos/{owner}/{repo}/collaborators
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/release.yml  source: contents:.github/workflows
       workflow:acme-app/web/.github/workflows/release.yml =[CAN_ASSUME, supplied file]=> cloud:aws:arn:aws:iam::111111111111:role/deploy  source: supplied:testdata/cartography/oidc-trusts.json
@@ -12,6 +13,7 @@ Confirmed (every hop live, inferred, audit or supplied) (2):
       note: cloud hop from supplied trust file testdata/cartography/oidc-trusts.json, not read from the cloud
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/release.yml  source: contents:.github/workflows
       workflow:acme-app/web/.github/workflows/release.yml =[CAN_ASSUME, supplied file]=> cloud:aws:arn:aws:iam::111111111111:role/deploy  source: supplied:testdata/cartography/oidc-trusts.json

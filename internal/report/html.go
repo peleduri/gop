@@ -43,7 +43,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 </div></div>
 {{if .Demo}}<p class="demo">Synthetic demo graph</p>{{end}}
 </div></header>
-<nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li>{{if .Banner}}<li><a href="#changes">What changed</a></li>{{end}}<li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li><li><a href="#coverage">Not visible</a></li>{{if .Pinned}}<li><a href="#pinned">Pinned, still reachable</a></li>{{end}}<li><a href="#top-paths">Top paths</a></li>{{if .Orgs}}<li><a href="#org-settings">Org settings</a></li>{{end}}<li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
+<nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li>{{if .Banner}}<li><a href="#changes">What changed</a></li>{{end}}<li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li><li><a href="#coverage">Not visible</a></li>{{if .Pinned}}<li><a href="#pinned">Pinned, still reachable</a></li>{{end}}<li><a href="#top-paths">Top paths</a></li>{{if .Orgs}}<li><a href="#org-settings">Org settings</a></li>{{end}}{{if .RepoHardening}}<li><a href="#repo-hardening">Repo hardening</a></li>{{end}}<li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
 <main id="main" class="wrap">
 <div id="gop-static">
 <section id="verdict" class="hero v-{{.Verdict}}" aria-labelledby="verdict-h">
@@ -119,6 +119,8 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <p class="lede">A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:</p>
 {{range .Pinned}}<div class="card pinned">
 <p><code>{{.Action}}</code> (used by {{.Consumers}} {{if eq .Consumers 1}}workflow{{else}}workflows{{end}}) runs <code>{{.Via}}</code>{{if .ViaNote}} ({{.ViaNote}}){{end}}. <code>{{.Principal}}</code> can change it {{if .Path.Confirmed}}<span class="badge live"><span aria-hidden="true">✓</span> confirmed</span>{{else}}<span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span>{{end}}</p>
+{{- if .Path.PushNote}}
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: {{.Path.PushNote}}</p>{{end}}
 {{template "chain" .Path}}
 </div>
 {{end}}</section>
@@ -133,6 +135,8 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <p class="note">{{.Note}}</p>{{end}}
 {{- if .Hardening}}
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: {{.Hardening}}</p>{{end}}
+{{- if .PushNote}}
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: {{.PushNote}}</p>{{end}}
 {{template "chain" .}}
 </details>
 {{end}}</div>
@@ -148,6 +152,23 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{end}}</tbody></table></div>
 {{if .OrgWhy}}<h3 id="why-unknown">Why unknown</h3>
 <ul class="card whys">{{range .OrgWhy}}<li id="{{.Anchor}}"><code>{{.Org}}</code><ul>{{range .Items}}<li><strong>{{.Settings}}</strong>: {{.Reason}}{{if .Fix}}. Access that fixes it: {{.Fix}}{{end}}</li>{{end}}</ul></li>
+{{end}}</ul>{{end}}
+</section>{{end}}
+{{if .RepoHardening}}<section aria-labelledby="repo-hardening">
+<h2 id="repo-hardening">Repo hardening</h2>
+<p class="lede">Context, not part of the score: default-branch protection, CODEOWNERS and secret scanning never change evidence, counts or scores. Each cell is repos where the fact holds / repos with the fact; repos gop could not read are counted as unknown, never as off.</p>
+<p class="lede keys"><span class="g g-good"><span aria-hidden="true">✓</span> every repo</span> <span class="g g-weak"><span aria-hidden="true">!</span> some repos lack it</span> <span class="g g-unk"><span aria-hidden="true">?</span> some repos unknown</span></p>
+<div class="card flush scroll"><table class="grid">
+<caption class="vh">Repo hardening per org; unknown repos are counted separately</caption>
+<thead><tr><th scope="col">Org</th><th scope="col">Repos</th><th scope="col">Protected default branch</th><th scope="col">Required reviews</th><th scope="col">CODEOWNERS covers workflows</th><th scope="col">Secret scanning</th><th scope="col">Push protection</th></tr></thead>
+<tbody>{{range .RepoHardening}}<tr><th scope="row"><code>{{.Org}}</code></th><td>{{.Repos}}</td>{{range .Cells}}<td{{if .Tone}} class="g-{{.Tone}}"{{end}}>{{if eq .Tone "good"}}<span aria-hidden="true">✓</span> {{else if eq .Tone "weak"}}<span aria-hidden="true">!</span> {{else if eq .Tone "unk"}}<span aria-hidden="true">?</span> {{end}}{{.Value}}</td>{{end}}</tr>
+{{end}}</tbody></table></div>
+{{if .HardenRepos}}<h3 id="repo-hardening-top">Repos on the top paths</h3>
+<ul class="card whys">{{range .HardenRepos}}<li><code>{{.Repo}}</code>: {{.State}}</li>
+{{end}}</ul>{{end}}
+{{if .HardenFixes}}<h3 id="repo-hardening-fixes">Hardening suggestions</h3>
+<p class="lede">Advisory: these settings are not counted as removing confirmed reach.</p>
+<ul class="card whys">{{range .HardenFixes}}<li>{{.Description}} ({{.Reason}})</li>
 {{end}}</ul>{{end}}
 </section>{{end}}
 </div>

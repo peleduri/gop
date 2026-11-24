@@ -14,7 +14,8 @@ paths: `members:acme-actions` can reach `oidc:acme-app/web` in 4 hops (confirmed
           "from": "members:acme-actions",
           "to": "repo:acme-actions/deploy",
           "evidence": "inferred",
-          "source_api": "rest:/orgs/{org}"
+          "source_api": "rest:/orgs/{org}",
+          "note": "push needs 1 approval to reach `main` + CODEOWNERS on workflows"
         },
         {
           "kind": "RESOLVES_TO",

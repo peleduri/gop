@@ -106,6 +106,9 @@ type Hop struct {
 	// maximum audit age: Evidence is then not_visible, and the edge itself
 	// stays audit.
 	Stale bool `json:"stale,omitempty"`
+	// Note is hardening context set by Index.Annotate (HopNote), e.g. "push
+	// needs 2 approvals to reach `main`". It never changes evidence.
+	Note string `json:"note,omitempty"`
 }
 
 // Path is one shortest control path from a principal to a node. Evidence is the

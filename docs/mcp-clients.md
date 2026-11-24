@@ -135,6 +135,7 @@ gop's server instructions and the `explain_path` prompt ask the agent to call `c
 | `oidc` | OIDC tokens, their claims (environments) and cloud trust matches |
 | `runners_and_secrets` | self-hosted runners and secret scopes a workflow runs with |
 | `org_settings` | org security settings that weight scores: SSO, two-factor, IP allow list and member privileges |
+| `repo_hardening` | default-branch protection, CODEOWNERS and secret scanning of repos: context on paths only, so no question requires it |
 | `other` | any gap gop cannot classify |
 <!-- end check_answerable table -->
 

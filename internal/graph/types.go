@@ -378,3 +378,52 @@ const (
 // data) on the enterprise scope, or one entry per action ref gop could not
 // place.
 const CoverageAdvisories = "advisories"
+
+// Default-branch hardening of a repo (repo nodes, see docs/schema.md "Repo
+// hardening"). Context only: the engine never reads them, so evidence
+// levels, counts, scores and rank order do not depend on them. Every value
+// gop could not read is "unknown" (with attr evidence not_visible and a
+// coverage entry), never "false" or "off".
+const (
+	// Effective default-branch protection, merged from classic branch
+	// protection and the active repo, org and enterprise rulesets that target
+	// the default branch. Merge rule: a requirement holds when any source
+	// sets it (the highest review count, the union of status checks); a
+	// bypass holds only when every protecting source allows it.
+	AttrBranchProtected       = "branch_protected"         // true | false | unknown
+	AttrBranchReviews         = "branch_required_reviews"  // integer as string | unknown
+	AttrBranchCodeOwnerReview = "branch_code_owner_review" // true | false | unknown
+	AttrBranchDismissStale    = "branch_dismiss_stale"     // true | false | unknown
+	AttrBranchLastPush        = "branch_last_push_approval"
+	AttrBranchStatusChecks    = "branch_status_checks"    // integer as string (distinct required checks) | unknown
+	AttrBranchSignedCommits   = "branch_signed_commits"   // true | false | unknown
+	AttrBranchForcePush       = "branch_allow_force_push" // true | false | unknown
+	AttrBranchPushRestricted  = "branch_push_restricted"  // true | false | unknown
+	AttrBranchBypassActors    = "branch_bypass_actors"    // integer as string | unknown
+	AttrBranchAdminBypass     = "branch_admin_bypass"     // true | false | unknown: repo or org admins get past every protecting source
+	AttrBranchAppBypass       = "branch_app_bypass"       // true | false | unknown: an app gets past every protecting source
+	// AttrBranchSources lists the protecting sources: classic and
+	// ruleset:<id>, comma separated, or none.
+	AttrBranchSources = "branch_protection_sources"
+	// AttrBranchValueSources records which source set each effective value:
+	// comma list of key=source[+source], e.g.
+	// required_reviews=ruleset:7,allow_force_push=classic+ruleset:7.
+	AttrBranchValueSources = "branch_value_sources"
+
+	// CODEOWNERS on the default branch.
+	AttrCodeowners          = "codeowners"           // .github/CODEOWNERS | CODEOWNERS | docs/CODEOWNERS | none | unknown
+	AttrCodeownersValid     = "codeowners_valid"     // true | false (a line gop or GitHub cannot parse)
+	AttrCodeownersWorkflows = "codeowners_workflows" // true | false | unknown: the rule matching .github/workflows/ names an owner
+
+	// Secret scanning, from the repo's security_and_analysis.
+	AttrSecretScanning       = "secret_scanning"                 // on | off | unknown
+	AttrSecretPushProtection = "secret_scanning_push_protection" // on | off | unknown
+	AttrSecretValidity       = "secret_scanning_validity_checks" // on | off | unknown
+)
+
+// Coverage facts of repo hardening.
+const (
+	FactBranchProtection = "branch_protection"
+	FactCodeowners       = "codeowners"
+	FactSecretScanning   = "secret_scanning"
+)

@@ -15,6 +15,8 @@ const (
 	PhaseRepos     = "repos"
 	PhaseWorkflows = "workflows"
 	PhaseNested    = "nested"
+	// PhaseProtection reads default-branch protection (repo hardening).
+	PhaseProtection = "protection"
 )
 
 // progressInterval is the shortest gap between two default progress lines.
@@ -37,12 +39,13 @@ type Progress struct {
 
 // phaseUnits names what a phase counts, for the default progress line.
 var phaseUnits = map[string]string{
-	PhaseOrgs:      "orgs",
-	PhaseSettings:  "steps",
-	PhaseMembers:   "steps",
-	PhaseRepos:     "orgs",
-	PhaseWorkflows: "repos",
-	PhaseNested:    "refs",
+	PhaseOrgs:       "orgs",
+	PhaseSettings:   "steps",
+	PhaseMembers:    "steps",
+	PhaseRepos:      "orgs",
+	PhaseWorkflows:  "repos",
+	PhaseNested:     "refs",
+	PhaseProtection: "repos",
 }
 
 // String renders p as one log line, for example

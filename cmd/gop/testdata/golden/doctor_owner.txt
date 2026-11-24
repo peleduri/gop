@@ -17,7 +17,7 @@ Checks
   PASS  write scopes           none beyond repo, which private contents require
   PASS  expiry                 expires 2027-02-01 00:00:00 UTC
   PASS  orgs                   3 of 3 organizations readable (from enterprise organizations)
-  PASS  rate limit             collect needs about 1314 REST requests and 4980 of 5000 remain
+  PASS  rate limit             collect needs about 1325 REST requests and 4980 of 5000 remain
 
 Rate limit
   REST    4980 of 5000 remaining, resets 2026-11-23T12:40:00Z
@@ -25,7 +25,7 @@ Rate limit
 
 Estimate for gop collect
   3 orgs, 252 repos (GET /orgs/{org} counts), 3 workflows per repo assumed
-  about 1314 requests and 7 minutes
+  about 1325 requests and 7 minutes
 
 Predicted not_visible
   nothing predicted

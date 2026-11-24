@@ -313,7 +313,8 @@ func (k *collector) collectAllWorkflows(ctx context.Context) error {
 		reqs := make([]objReq, len(chunk))
 		for i, rr := range chunk {
 			reqs[i] = objReq{owner: rr.o.login, name: repoName(rr.o, rr.repo),
-				exprs: []string{workflowDirExpr, githubDirExpr}, shallow: []bool{false, true}}
+				exprs:   append([]string{workflowDirExpr, githubDirExpr}, codeownersExprs()...),
+				shallow: []bool{false, true}}
 		}
 		res, err := k.fetchObjects(ctx, c, reqs)
 		if err != nil {
@@ -330,6 +331,11 @@ func (k *collector) collectAllWorkflows(ctx context.Context) error {
 				if err := k.collectWorkflows(ctx, rr.o, rr.repo); err != nil {
 					return err
 				}
+			}
+			if res[i].ok {
+				k.applyCodeownersObjs(rr.repo, res[i].objs[2:])
+			} else if err := k.collectCodeowners(ctx, rr.o, rr.repo); err != nil {
+				return err
 			}
 			done++
 			k.progress(PhaseWorkflows, done, done+len(chunk)-i-1+len(all))

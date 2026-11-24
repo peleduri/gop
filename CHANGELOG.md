@@ -42,6 +42,26 @@ flags may change in minor releases.
   Context only: evidence levels, counts, scores and rank order do not change,
   and unknown is never shown as off. The `gop://graph/summary` resource and a
   new `org_settings` view in the SQL export carry the same per-org settings.
+- Repo hardening context: `gop collect` records each non-archived repo's
+  default-branch protection (classic branch protection and repo, org and
+  enterprise rulesets merged into one effective view: protected, required
+  reviews, code owner review, stale review dismissal, last push approval,
+  status checks, signed commits, force push, push restrictions, bypass actors
+  and whether admins or apps can bypass, with the source of each value),
+  CODEOWNERS (present, valid, covering `.github/workflows/`) and secret
+  scanning, push protection and validity checks. Protection is one batched
+  GraphQL query per 25 repos (REST fallback); CODEOWNERS rides in the batched
+  workflow read and secret scanning in the repo listing, so the extra cost is
+  small (`gop doctor`'s estimate counts it). What the token cannot read is
+  `unknown` with coverage, never unprotected. `CAN_PUSH` hops get notes ("push
+  needs 2 approvals to reach `main`", "push reaches the default branch
+  directly") in `paths`, `who_can_reach`, the CLI and the report; the report
+  has a "Repo hardening" section with a per-org rollup and the repos on top
+  paths; `explain` shows a repo's effective protection; `suggest_fixes` lists
+  advisory `require_reviews` and `enable_push_protection` suggestions that
+  `fix_plan` and `what_if` accept and that never count as removing reach.
+  Scores, counts and rank order are unchanged. New repo attrs are additive to
+  `gop.graph/v2` (JSON Schema, `docs/schema.md`, redaction defaults).
 - `skills/gop/SKILL.md`: an agent skill for MCP triage. It walks the agent
   through checking the graph (`gop validate`, or `gop doctor` then
   `gop collect`), `coverage` and `check_answerable` before any claim,

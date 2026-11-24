@@ -46,6 +46,12 @@ func init() {
 		graph.AttrPoutineRules, graph.AttrPoutineSeverity, graph.AttrPoutineJobs, graph.AttrPoutineFile,
 		graph.AttrAdvisories, graph.AttrAdvisorySeverity, graph.AttrAdvisoryFixed,
 		graph.AttrLockAdvisories, graph.AttrLockAdvisorySeverity, graph.AttrLockAdvisoryFixed,
+		graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview, graph.AttrBranchDismissStale,
+		graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits, graph.AttrBranchForcePush,
+		graph.AttrBranchPushRestricted, graph.AttrBranchBypassActors, graph.AttrBranchAdminBypass, graph.AttrBranchAppBypass,
+		graph.AttrBranchSources, graph.AttrBranchValueSources,
+		graph.AttrCodeowners, graph.AttrCodeownersValid, graph.AttrCodeownersWorkflows,
+		graph.AttrSecretScanning, graph.AttrSecretPushProtection, graph.AttrSecretValidity,
 		// documented in the JSON Schema
 		"token_write", "token_scopes", "risky_triggers", "trigger", "exec",
 		// named by the redaction itself
@@ -135,6 +141,20 @@ func advisoryID(r *redactor, s string) string {
 // vocabulary, and drops anything else.
 func versionAttr(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
 	return v, true, versionRe.MatchString(v)
+}
+
+// countOrUnknown keeps a small count (gop's own number, not a name) or "unknown".
+func countOrUnknown(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
+	return v, true, v == "unknown" || intRe.MatchString(v)
+}
+
+// protectionSourcesRe matches branch_protection_sources (classic,ruleset:7
+// or none) and branch_value_sources (required_reviews=ruleset:7+classic,...):
+// gop's vocabulary and ruleset IDs, never a name.
+var protectionSourcesRe = regexp.MustCompile(`^([a-z_]+=)?(classic|none|ruleset(:[0-9]+)?)(\+(classic|ruleset(:[0-9]+)?))*(,([a-z_]+=)?(classic|none|ruleset(:[0-9]+)?)(\+(classic|ruleset(:[0-9]+)?))*)*$`)
+
+func protectionSources(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
+	return v, true, protectionSourcesRe.MatchString(v)
 }
 
 func text(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r.text(v), false, true }
@@ -279,37 +299,57 @@ var policies = map[string]policy{
 	graph.AttrWarnings:        words,
 	graph.AttrVia: enum(graph.ViaDefaultPerm, graph.ViaOrgOwner, graph.ViaDirect, graph.ViaOutsideCollaborator,
 		graph.ViaTeam, graph.ViaRefBypass, graph.ViaTokenWrite, graph.ViaUnknown),
-	graph.AttrRule:            words,
-	graph.AttrRefProtected:    boolish,
-	graph.AttrRefProtection:   words,
-	graph.AttrBypass:          bypassAttr,
-	graph.AttrRef:             refAttr,
-	graph.AttrRefKindSource:   enum(graph.RefKindSourceAPI, graph.RefKindSourceName),
-	graph.AttrRefAmbiguous:    boolish,
-	graph.AttrRefImmutable:    boolish,
-	graph.AttrRefImmutableBy:  enum(graph.RefImmutableRelease, graph.RefImmutableRuleset),
-	graph.AttrActionsAccess:   enum("none", "user", "organization", "enterprise", "public", "unknown"),
-	graph.AttrConsumerOrg:     ownerAttr,
-	graph.AttrActionsLock:     enum("true", "unknown", graph.LockLocked, graph.LockStale),
-	graph.AttrLockedSHA:       lockedSHAAttr,
-	graph.AttrLockEntry:       list(func(r *redactor, s string) string { return r.action(s) }),
-	graph.AttrLockMissing:     list(func(r *redactor, s string) string { return r.action(s) }),
-	graph.AttrSource:          sourceAPIAttr,
-	graph.AttrObservedUse:     enum("true"),
-	graph.AttrTimesUsed:       bucket,
-	graph.AttrLastUsed:        timeAttr,
-	graph.AttrPoutineRules:    words,
-	graph.AttrPoutineSeverity: enum("error", "warning", "note"),
-	graph.AttrPoutineJobs:     list(func(r *redactor, s string) string { return r.job(s) }),
-	graph.AttrPoutineFile:     func(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r.file(v), false, true },
-	"token_write":             boolish,
-	"token_scopes":            words,
-	"risky_triggers":          words,
-	"trigger":                 words,
-	"exec":                    enum("checkout", "injection"),
-	"secrets":                 list(secretName),
-	"labels":                  list(func(r *redactor, s string) string { return r.label(s) }),
-	"source_api":              sourceAPIAttr,
+	graph.AttrRule:                  words,
+	graph.AttrRefProtected:          boolish,
+	graph.AttrRefProtection:         words,
+	graph.AttrBypass:                bypassAttr,
+	graph.AttrRef:                   refAttr,
+	graph.AttrRefKindSource:         enum(graph.RefKindSourceAPI, graph.RefKindSourceName),
+	graph.AttrRefAmbiguous:          boolish,
+	graph.AttrRefImmutable:          boolish,
+	graph.AttrRefImmutableBy:        enum(graph.RefImmutableRelease, graph.RefImmutableRuleset),
+	graph.AttrActionsAccess:         enum("none", "user", "organization", "enterprise", "public", "unknown"),
+	graph.AttrConsumerOrg:           ownerAttr,
+	graph.AttrActionsLock:           enum("true", "unknown", graph.LockLocked, graph.LockStale),
+	graph.AttrLockedSHA:             lockedSHAAttr,
+	graph.AttrLockEntry:             list(func(r *redactor, s string) string { return r.action(s) }),
+	graph.AttrLockMissing:           list(func(r *redactor, s string) string { return r.action(s) }),
+	graph.AttrSource:                sourceAPIAttr,
+	graph.AttrObservedUse:           enum("true"),
+	graph.AttrTimesUsed:             bucket,
+	graph.AttrLastUsed:              timeAttr,
+	graph.AttrPoutineRules:          words,
+	graph.AttrPoutineSeverity:       enum("error", "warning", "note"),
+	graph.AttrPoutineJobs:           list(func(r *redactor, s string) string { return r.job(s) }),
+	graph.AttrPoutineFile:           func(r *redactor, _ attrCtx, v string) (string, bool, bool) { return r.file(v), false, true },
+	graph.AttrBranchProtected:       boolish,
+	graph.AttrBranchReviews:         countOrUnknown,
+	graph.AttrBranchCodeOwnerReview: boolish,
+	graph.AttrBranchDismissStale:    boolish,
+	graph.AttrBranchLastPush:        boolish,
+	graph.AttrBranchStatusChecks:    countOrUnknown,
+	graph.AttrBranchSignedCommits:   boolish,
+	graph.AttrBranchForcePush:       boolish,
+	graph.AttrBranchPushRestricted:  boolish,
+	graph.AttrBranchBypassActors:    countOrUnknown,
+	graph.AttrBranchAdminBypass:     boolish,
+	graph.AttrBranchAppBypass:       boolish,
+	graph.AttrBranchSources:         protectionSources,
+	graph.AttrBranchValueSources:    protectionSources,
+	graph.AttrCodeowners:            enum(".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS", "none", "unknown"),
+	graph.AttrCodeownersValid:       boolish,
+	graph.AttrCodeownersWorkflows:   boolish,
+	graph.AttrSecretScanning:        enum("on", "off", "unknown"),
+	graph.AttrSecretPushProtection:  enum("on", "off", "unknown"),
+	graph.AttrSecretValidity:        enum("on", "off", "unknown"),
+	"token_write":                   boolish,
+	"token_scopes":                  words,
+	"risky_triggers":                words,
+	"trigger":                       words,
+	"exec":                          enum("checkout", "injection"),
+	"secrets":                       list(secretName),
+	"labels":                        list(func(r *redactor, s string) string { return r.label(s) }),
+	"source_api":                    sourceAPIAttr,
 
 	// Collector attrs kept only with --keep-attr.
 	"owner":             ownerAttr,

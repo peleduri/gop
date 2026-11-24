@@ -102,6 +102,8 @@ var fixedVocab = []string{
 	"secret:", "oidc:", "runner:", "cloud:", "external:", "external:anyone", "anyone on the internet", "members of ",
 	".github/workflows/", "action.yml", "action.yaml", "github_token", "acme-enterprise",
 	graph.EnvDynamic, graph.SourceSupplied,
+	// repo hardening coverage wording (internal/collect/hardening.go)
+	"repo admins", "admin on those repositories", "default branch", "security_and_analysis", "secret_scanning_validity_checks",
 }
 
 // check is the self-check: it fails when an enterprise-internal name of

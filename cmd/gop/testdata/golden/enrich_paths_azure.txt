@@ -5,6 +5,7 @@ Possible (at least one hop not visible) (1):
       note: cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud
       context: target org acme-app: SSO enforced, IP allow list unknown (not part of the score)
       members:acme-actions =[CAN_PUSH, inferred]=> repo:acme-actions/deploy  source: rest:/orgs/{org}
+        note: push needs 1 approval to reach `main` + CODEOWNERS on workflows
       repo:acme-actions/deploy =[RESOLVES_TO (reversed), live]=> action:acme-actions/deploy@main  source: contents:.github/workflows
       action:acme-actions/deploy@main =[USES (reversed), live]=> workflow:acme-app/web/.github/workflows/ci.yml  source: contents:.github/workflows
       workflow:acme-app/web/.github/workflows/ci.yml =[CAN_ASSUME, not visible]=> cloud:azure:app:11111111-1111-1111-1111-111111111111  source: supplied:testdata/acme/trust/azure/web-main.json

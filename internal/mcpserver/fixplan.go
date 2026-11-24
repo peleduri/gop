@@ -16,7 +16,7 @@ import (
 
 // FixPlanInput is the fix_plan tool input: exactly one of Fix and SuggestionRank.
 type FixPlanInput struct {
-	Fix            *FixSpec `json:"fix,omitempty" jsonschema:"the fix to plan, as in what_if: {type:pin_ref,action}, {type:lower_default_perm,org,to}, {type:restrict_token,workflow} or {type:harden_trigger,workflow}"`
+	Fix            *FixSpec `json:"fix,omitempty" jsonschema:"the fix to plan, as in what_if: {type:pin_ref,action}, {type:lower_default_perm,org,to}, {type:restrict_token,workflow}, {type:harden_trigger,workflow}, or the advisory {type:require_reviews,repo} or {type:enable_push_protection,repo}"`
 	SuggestionRank int      `json:"suggestion_rank,omitempty" jsonschema:"1-based rank of a fix in the suggest_fixes output with the default budget; use instead of fix"`
 	DetailInput
 }
@@ -71,6 +71,10 @@ func quotedDescription(f FixSpec) string {
 		return "Set permissions: contents: read on the GITHUB_TOKEN of " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:"))
 	case "harden_trigger":
 		return "Stop " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:")) + " from running attacker-controlled code on its risky triggers"
+	case "require_reviews":
+		return "Require at least one approving review on the default branch of " + sanitize.Value(strings.TrimPrefix(f.Repo, "repo:"))
+	case "enable_push_protection":
+		return "Enable secret scanning push protection on " + sanitize.Value(strings.TrimPrefix(f.Repo, "repo:"))
 	}
 	return "fix " + sanitize.Value(f.Type)
 }

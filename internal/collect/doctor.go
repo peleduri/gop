@@ -797,6 +797,11 @@ func (d *doctor) estimate() {
 		}
 	}
 	e.Requests += e.Repos * (estPerRepo + estAvgWorkflows)
+	// Default-branch protection: one batched GraphQL query per
+	// DefaultBatchSize repositories (CODEOWNERS rides in the batched
+	// workflow read and secret scanning in the repository listing, at no
+	// extra request).
+	e.Requests += int(math.Ceil(float64(e.Repos) / DefaultBatchSize))
 	minutes := float64(e.Requests) * estLatencyMillis / 1000 / 60
 	if b := r.REST; b != nil && e.Requests > b.Remaining && b.Limit > 0 {
 		short := e.Requests - b.Remaining
