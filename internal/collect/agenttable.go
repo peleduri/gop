@@ -83,6 +83,9 @@ type agentCLI struct {
 	// modelValueFlags are not prompts.
 	model           bool
 	modelValueFlags []string
+	// subs: two-word subcommands that start an agent run (agentrun runs
+	// start). Either word alone, or another subcommand, is not a run.
+	subs [][2]string
 }
 
 var agentCLIs = []agentCLI{
@@ -101,6 +104,26 @@ var agentCLIs = []agentCLI{
 	// agent runs.
 	{kind: "ollama-cli", bins: []string{"ollama"}, markers: []string{"run"}, model: true,
 		modelValueFlags: []string{"--format", "--keepalive", "--choice", "--level", "--voice"}},
+	// agentrun (github.com/Parcha-ai/agentrun, docs/SKILL.md and README,
+	// November 2026): agentrun runs start AGENT ... starts a run and
+	// agentrun template eval DIR runs a template's eval cases as real runs.
+	// agentrun doctor, stop and workflows validate are not runs.
+	{kind: "agentrun-cli", bins: []string{"agentrun", "@parcha/agentrun"},
+		subs: [][2]string{{"runs", "start"}, {"template", "eval"}}},
+}
+
+// agentImage is a known agent platform container image, matched by name
+// prefix (any tag or digest) in a job container, a service or a
+// docker:// step.
+type agentImage struct {
+	kind     string
+	prefixes []string
+}
+
+var agentImages = []agentImage{
+	// The agentrun server image published by its release workflow
+	// (compose.yaml and render.yaml in github.com/Parcha-ai/agentrun).
+	{kind: "agentrun-server", prefixes: []string{"ghcr.io/parcha-ai/agentrun-server"}},
 }
 
 // agentToolFlags maps a lower-case substring of a run: command or an args

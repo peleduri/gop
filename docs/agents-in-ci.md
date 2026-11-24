@@ -25,7 +25,8 @@ add a row there to detect a new action or CLI.
 |---|---|---|---|
 | A step `uses:` a known agent action (any ref, any letter case; matched by `owner/repo[/path]`) | `uses` | `action` | `claude-code-action`, `claude-code-base-action`, `claude-code-security-review`, `codex-action`, `gemini-cli-action`, `pr-agent`, `opencode-action` |
 | The Copilot coding agent setup job (`copilot-setup-steps`) | `setup` | `action` | `copilot-coding-agent` |
-| A `run:` step invokes a known agent CLI non-interactively (a prompt flag or subcommand) | `run` | `cli` | `claude-cli` (`claude -p`), `codex-cli` (`codex exec`), `cursor-cli` (`cursor-agent -p`), `gemini-cli` (`gemini -p`), `aider` (`aider --message`), `opencode-cli` (`opencode run`), `llm-cli` (`llm "..."`), `ollama-cli` (`ollama run MODEL "..."`, `ollama run MODEL --ask "..." < file`, or `... \| ollama run MODEL`) |
+| A `run:` step invokes a known agent CLI non-interactively (a prompt flag or subcommand) | `run` | `cli` | `claude-cli` (`claude -p`), `codex-cli` (`codex exec`), `cursor-cli` (`cursor-agent -p`), `gemini-cli` (`gemini -p`), `aider` (`aider --message`), `opencode-cli` (`opencode run`), `llm-cli` (`llm "..."`), `ollama-cli` (`ollama run MODEL "..."`, `ollama run MODEL --ask "..." < file`, or `... \| ollama run MODEL`), `agentrun-cli` (`agentrun runs start AGENT`, `agentrun template eval DIR`, also through `npx @parcha/agentrun`) |
+| A job runs a known agent platform image as its `container`, a `services` image or a `docker://` step (any tag or digest) | `image` | `cli` | `agentrun-server` (`ghcr.io/parcha-ai/agentrun-server`) |
 | On a risky trigger, a job with no known agent has a step that holds a model API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OLLAMA_API_KEY`, `VLLM_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN` and similar, as an env name or a secret name) and reads the pull request's content: a checkout of its head made by an earlier step (named in `run:`, `with:` or `env:`), `gh pr diff` or `gh pr view`, or attacker contexts | `heuristic` | `heuristic` | `llm-script` |
 | Only the workflow name, the file name or a job id or name contains `ai-`, `claude`, `codex`, `copilot` or `llm` | `name` | `name_only` | `unknown` |
 
@@ -40,7 +41,9 @@ A name-only match is weak: it is listed in the report but never ranked, never
 reported in SARIF and never makes a path agentic. A bare `claude --version`
 or `npm install -g @openai/codex` is not an agent run, and neither is
 `ollama pull`, `ollama serve` or an `ollama run MODEL` with no prompt
-argument, `--ask` or redirected or piped stdin.
+argument, `--ask` or redirected or piped stdin. For agentrun, only
+`runs start` and `template eval` start runs: `agentrun doctor`, `stop`,
+`workflows validate` and a bare `npx @parcha/agentrun` are not agent runs.
 
 ### One level down
 
