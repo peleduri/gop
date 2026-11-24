@@ -1,0 +1,24 @@
+{
+  "case": "correct-blast-bob",
+  "note": "States a confirmed number gop never returned.",
+  "tool_calls": [
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "blast_radius",
+        "subject": "$subject"
+      }
+    },
+    {
+      "name": "blast_radius",
+      "arguments": {
+        "principal": "$subject"
+      }
+    }
+  ],
+  "answer": "`identity:bob` can make code run in 14 repos across 2 orgs (confirmed).",
+  "expect_failed": [
+    "confirmed_numbers_match",
+    "confirmed_reported"
+  ]
+}

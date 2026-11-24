@@ -49,3 +49,7 @@ The skill names gop's MCP tools, their arguments and CLI commands. A test
 (`go test ./skills/`) fails if any of them is renamed or removed, so the copy in
 a release matches that release's server. Copy the skill again when you upgrade
 gop.
+
+The agent-behaviour eval ([docs/evals.md](../../docs/evals.md)) runs a model with
+this skill as its system prompt and scores its answers against gop's own
+output. Run it after changing a rule here.

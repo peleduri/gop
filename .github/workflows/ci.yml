@@ -62,6 +62,32 @@ jobs:
           PKG: ${{ matrix.pkg }}
         run: go test -run='^$' -fuzz="^${TARGET}\$" -fuzztime=30s "$PKG"
 
+  evals-dry:
+    # The deterministic part of the agent-behaviour eval (docs/evals.md): the
+    # expected values read from gop for every case, and the checks on the
+    # recorded transcripts. No model and no secret; the live eval runs in
+    # evals.yml, by hand or weekly.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install --disable-pip-version-check -r evals/requirements-dry.txt
+      - name: Unit tests
+        run: python -m pytest -q evals
+      - name: Dry run (recorded transcripts, expected values from gop)
+        run: python -m evals.run --dry --out evals/out/dry
+
   lint:
     runs-on: ubuntu-latest
     steps:

@@ -7,6 +7,30 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- Agent-behaviour eval for the MCP server and skill (#151). New `evals/`
+  (Python, outside the Go module) runs a model with `skills/gop/SKILL.md` as
+  its system prompt against `gop serve` on the acme fixture and on hostile and
+  semantic-injection variants of it, over 25 synthetic cases in four groups
+  (correctness, no overclaiming, refusal, injection). Expected values are read
+  from gop for each case, never written by hand. Deterministic checks fail a
+  case whatever the judge says: `check_answerable` was called, confirmed
+  numbers match gop's, no possible-plus-confirmed sum, nothing gop could not
+  see called safe or off, rejected only on a `yes`, refusal when gop says
+  `no`, and no write action. DeepEval's `ToolCorrectnessMetric`,
+  `MCPUseMetric` and two `GEval` criteria score on top, with any
+  OpenAI-compatible agent and judge (Ollama works). `python -m evals.run`
+  writes `evals/out/scorecard.{json,md}` with per-group pass rates;
+  `--skill-variant` removes one skill rule so `python -m evals.compare` can
+  show a broken skill scores lower. `python -m evals.run --dry` needs no
+  model or key: it checks the gop-derived expected values and replays
+  recorded good and bad transcripts through the checks; CI runs it on every
+  pull request (`evals-dry`). The live eval runs in the new
+  `.github/workflows/evals.yml` by hand or weekly, never on pull requests,
+  with the `EVAL_MODEL_API_KEY` secret; a test runs gop's own workflow parser
+  on it and finds no `agent_exposure=outsiders`. The
+  hostile and semantic graphs it serves are `testutil.HostileGraphJSON` and
+  `testutil.SemanticGraphJSON` of the acme fixture, committed in
+  `evals/fixtures/` and kept equal by a Go test. New `docs/evals.md`.
 - Semantic and lookalike prompt-injection names in the hostile-name corpus
   (#154). Beside the structural values (newlines, tags, bidi, zero-width,
   10 kB), `internal/testutil/hostile.go` now has printable names the

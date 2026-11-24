@@ -1,0 +1,16 @@
+{
+  "case": "correct-who-web",
+  "note": "Skips check_answerable.",
+  "tool_calls": [
+    {
+      "name": "who_can_reach",
+      "arguments": {
+        "target": "$subject"
+      }
+    }
+  ],
+  "answer": "2 principals can make code run in `repo:acme-app/web` (confirmed): `identity:bob` and `members:acme-actions`.",
+  "expect_failed": [
+    "checked_answerable"
+  ]
+}

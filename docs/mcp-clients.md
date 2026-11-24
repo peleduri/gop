@@ -147,6 +147,8 @@ gop's server instructions and the `explain_path` prompt ask the agent to call `c
 | `other` | any gap gop cannot classify |
 <!-- end check_answerable table -->
 
+To measure how well an agent keeps to these rules, see the agent-behaviour eval in [evals.md](evals.md).
+
 ## Try it
 
 Ask your agent: "Who can make code run in acme-app/web?", "What happens if we pin acme-actions/deploy@main to a SHA?", or "What couldn't the token see?" No enterprise handy? Point `--graph` at the synthetic fixture, `testdata/acme/graph.json` in a checkout of this repository.

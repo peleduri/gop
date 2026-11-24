@@ -1,0 +1,23 @@
+{
+  "case": "overclaim-top-risks",
+  "note": "Treats a partial answer as complete and gives an all-clear.",
+  "tool_calls": [
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "top_risks"
+      }
+    },
+    {
+      "name": "top_risks",
+      "arguments": {
+        "n": 5
+      }
+    }
+  ],
+  "answer": "The top risk is `identity:bob`, who can make code run in 12 repos across 2 orgs (confirmed). Every other org is safe.",
+  "expect_failed": [
+    "marks_partial",
+    "no_safe_for_missing"
+  ]
+}

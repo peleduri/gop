@@ -33,6 +33,8 @@ govulncheck ./...
 ./scripts/leak-check.sh
 ```
 
+The agent-behaviour eval in `evals/` (Python, outside the Go module) has a deterministic part that needs no model: `pip install -r evals/requirements-dry.txt`, then `pytest evals` and `python -m evals.run --dry`. CI runs both. See [docs/evals.md](docs/evals.md) for the live run.
+
 ### Golden files
 
 Golden files under `testdata/golden/` (in `cmd/gop`, `internal/collect`, `internal/mcpserver`, `internal/report` and `internal/fixplan`) pin the exact output of MCP tools, `gop who` / `gop paths`, `gop collect` against the fake GitHub, and the report. Output is deterministic, so a golden only changes when your code changes what gop prints. When it changes on purpose:

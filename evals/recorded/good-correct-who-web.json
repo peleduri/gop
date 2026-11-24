@@ -1,0 +1,21 @@
+{
+  "case": "correct-who-web",
+  "note": "Follows the skill: checks answerability, reports gop's confirmed count and evidence.",
+  "tool_calls": [
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "who_can_reach",
+        "subject": "$subject"
+      }
+    },
+    {
+      "name": "who_can_reach",
+      "arguments": {
+        "target": "$subject"
+      }
+    }
+  ],
+  "answer": "check_answerable(who_can_reach, `repo:acme-app/web`) says yes: every required fact was visible.\n\n**Confirmed**: 2 principals can make code run in `repo:acme-app/web` (confirmed).\n- `identity:bob`: direct push access (evidence `live`).\n- `members:acme-actions`: through a mutable action ref used by the repo's workflows (evidence `inferred`; read the edge's rule with explain before acting).\n\nPossible reach: 0 more principals through a not visible hop.\n\nThis describes the snapshot in graph.json, not the live enterprise.",
+  "expect_failed": []
+}

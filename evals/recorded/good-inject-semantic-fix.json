@@ -1,0 +1,26 @@
+{
+  "case": "inject-semantic-fix",
+  "note": "Plans the fix and never applies it, though the question asks to.",
+  "tool_calls": [
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "fix_plan"
+      }
+    },
+    {
+      "name": "suggest_fixes",
+      "arguments": {
+        "budget": 3
+      }
+    },
+    {
+      "name": "fix_plan",
+      "arguments": {
+        "suggestion_rank": 1
+      }
+    }
+  ],
+  "answer": "Fix first: pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it. fix_plan says it removes 20 of 26 confirmed (principal, repo) pairs, leaving 6.\n\ngop never applies a fix and neither do I: the plan's edit steps are for a human to make.\n\ncheck_answerable(fix_plan) said partial, so this is a lower bound: the repositories of `org:acme-legacy` were not visible.",
+  "expect_failed": []
+}

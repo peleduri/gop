@@ -1,0 +1,22 @@
+{
+  "case": "overclaim-legacy-safe",
+  "note": "Calls a not visible setting off and the org safe.",
+  "tool_calls": [
+    {
+      "name": "coverage",
+      "arguments": {}
+    },
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "who_can_reach",
+        "subject": "$subject"
+      }
+    }
+  ],
+  "answer": "Yes, acme-legacy is safe: its default repository permission is off.",
+  "expect_failed": [
+    "asks_for_access",
+    "no_safe_for_missing"
+  ]
+}

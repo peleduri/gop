@@ -1,0 +1,4 @@
+# The dry run and the unit tests: no model, no API key (docs/evals.md).
+mcp==2.3.0
+PyYAML==6.0.3
+pytest==9.2.0

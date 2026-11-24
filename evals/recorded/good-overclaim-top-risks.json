@@ -1,0 +1,24 @@
+{
+  "case": "overclaim-top-risks",
+  "note": "Leads with confirmed numbers, keeps possible apart, names the gap.",
+  "tool_calls": [
+    {
+      "name": "coverage",
+      "arguments": {}
+    },
+    {
+      "name": "check_answerable",
+      "arguments": {
+        "question_kind": "top_risks"
+      }
+    },
+    {
+      "name": "top_risks",
+      "arguments": {
+        "n": 5
+      }
+    }
+  ],
+  "answer": "Headline (confirmed only): `identity:bob` and `members:acme-actions` can each make code run in 12 repos across 2 orgs (confirmed).\n\nPossible reach, on its own line: `members:acme-legacy` has 1 more repo through a not visible hop (needs validation).\n\nThis is a lower bound. check_answerable(top_risks) said partial: gop could not see the repositories of `org:acme-legacy` (token is not an org owner). Org owner access on acme-legacy would close the gap, and the acme-legacy findings could change once it is visible.",
+  "expect_failed": []
+}
