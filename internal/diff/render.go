@@ -359,8 +359,9 @@ var mdCell = strings.NewReplacer("|", `\|`, "&", "&amp;", "<", "&lt;", ">", "&gt
 
 // mdEsc makes a value safe in a Markdown table cell: unsafe characters
 // (newlines, control, bidi, zero-width) are escaped (sanitize.Clean), so a
-// GitHub name can never start a line, and it cannot end the cell or open HTML.
-func mdEsc(s string) string { return mdCell.Replace(sanitize.Clean(s)) }
+// GitHub name can never start a line, and it cannot end the cell, open HTML
+// or become a live link (sanitize.NoLinks).
+func mdEsc(s string) string { return mdCell.Replace(sanitize.NoLinks(sanitize.Clean(s))) }
 
 // mdCode is mdEsc for a value inside a code span: backticks are escaped too.
 func mdCode(s string) string { return mdCell.Replace(sanitize.Code(s)) }

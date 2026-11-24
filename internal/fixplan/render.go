@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // ReadOnlyNote is printed with every rendered plan.
@@ -164,8 +165,45 @@ func WriteText(w io.Writer, p Plan) {
 	}
 }
 
-// WriteMarkdown prints a plan as a checklist to paste into a ticket.
+// cleanMarkdown is a copy of p for the markdown checklist: every string
+// that can hold a GitHub name is escaped, so no value can start a new line
+// or hide text (sanitize.Clean). Fields in Markdown prose also have link and
+// autolink syntax escaped (sanitize.NoLinks), so a name such as
+// [fix](http://example.invalid) cannot become a live link. Fields the
+// markdown puts inside a code span or fence (file, edge, API, diff lines)
+// get backticks escaped instead (sanitize.Code), so a value cannot end the
+// span. A diff keeps its own line breaks; each of its lines is escaped.
+func cleanMarkdown(p Plan) Plan {
+	c := func(s string) string { return sanitize.NoLinks(sanitize.Clean(s)) }
+	p.Description = c(p.Description)
+	p.Caveats = append([]string{}, p.Caveats...)
+	for i := range p.Caveats {
+		p.Caveats[i] = c(p.Caveats[i])
+	}
+	p.Steps = append([]Step{}, p.Steps...)
+	for i := range p.Steps {
+		s := &p.Steps[i]
+		for _, f := range []*string{&s.Repo, &s.FileRef, &s.Change, &s.Setting, &s.Owner, &s.Note} {
+			*f = c(*f)
+		}
+		for _, f := range []*string{&s.File, &s.API, &s.Edge} {
+			*f = sanitize.Code(*f)
+		}
+		if s.Diff != "" {
+			lines := strings.Split(strings.TrimSuffix(s.Diff, "\n"), "\n")
+			for j := range lines {
+				lines[j] = sanitize.Code(lines[j])
+			}
+			s.Diff = strings.Join(lines, "\n") + "\n"
+		}
+	}
+	return p
+}
+
+// WriteMarkdown prints a plan as a checklist to paste into a ticket. Names
+// are escaped (cleanMarkdown); the CLI and the fix_plan tool both print it.
 func WriteMarkdown(w io.Writer, p Plan) {
+	p = cleanMarkdown(p)
 	code := func(s string) string { return "`" + s + "`" }
 	fmt.Fprintf(w, "## Fix plan: %s\n\n", p.Description)
 	fmt.Fprintf(w, "%s\n\n", delta(p))

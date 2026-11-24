@@ -85,39 +85,6 @@ func quotedDescription(f FixSpec) string {
 	return "fix " + sanitize.Value(f.Type)
 }
 
-// cleanPlan is a copy of p for the markdown text: every string that can hold
-// a GitHub name is escaped, so no value can start a new line or hide text
-// (sanitize.Clean). Fields the markdown puts inside a code span or fence
-// (file, edge, API, diff lines) also get backticks escaped (sanitize.Code),
-// so a value cannot end the span. A diff keeps its own line breaks; each of
-// its lines is escaped. The structured output keeps the raw plan.
-func cleanPlan(p fixplan.Plan) fixplan.Plan {
-	c, code := sanitize.Clean, sanitize.Code
-	p.Description = c(p.Description)
-	p.Caveats = append([]string{}, p.Caveats...)
-	for i := range p.Caveats {
-		p.Caveats[i] = c(p.Caveats[i])
-	}
-	p.Steps = append([]fixplan.Step{}, p.Steps...)
-	for i := range p.Steps {
-		s := &p.Steps[i]
-		for _, f := range []*string{&s.Repo, &s.FileRef, &s.Change, &s.Setting, &s.Owner, &s.Note} {
-			*f = c(*f)
-		}
-		for _, f := range []*string{&s.File, &s.API, &s.Edge} {
-			*f = code(*f)
-		}
-		if s.Diff != "" {
-			lines := strings.Split(strings.TrimSuffix(s.Diff, "\n"), "\n")
-			for j := range lines {
-				lines[j] = code(lines[j])
-			}
-			s.Diff = strings.Join(lines, "\n") + "\n"
-		}
-	}
-	return p
-}
-
 // addFixPlanTool registers fix_plan. Its text content is the summary and the
 // plan as a markdown checklist; the structured content is FixPlanOutput.
 func addFixPlanTool(s *mcp.Server, e *Engine) {
@@ -139,7 +106,7 @@ func addFixPlanTool(s *mcp.Server, e *Engine) {
 			return nil, FixPlanOutput{}, err
 		}
 		var md bytes.Buffer
-		fixplan.WriteMarkdown(&md, cleanPlan(out.Plan))
+		fixplan.WriteMarkdown(&md, out.Plan)
 		text := textContent(out.Summary, md.String())
 		if b := out.Brief; b != nil && b.Total["steps"] > len(out.Plan.Steps) {
 			text += fmt.Sprintf("\n(brief: %d of %s shown; pass detail full for the rest)\n",
