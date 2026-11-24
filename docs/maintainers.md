@@ -126,3 +126,13 @@ To turn it on:
 ### Rotating or revoking
 
 Create a new token with the same scope, replace the `HOMEBREW_TAP_TOKEN` secret, then delete the old token. To stop publishing, delete the secret: the next release skips the cask upload.
+
+## Project site (GitHub Pages): one-time setup
+
+`.github/workflows/pages.yml` publishes `site/` to <https://peleduri.github.io/gop/>: the landing page (`site/index.html`) and the demo report, rebuilt from the current source with `gop report --demo` on every publish. It runs on pushes to `main` that touch `site/`, `cmd/`, `internal/`, `go.mod`, `go.sum` or the workflow, and on manual dispatch.
+
+1. Settings, Pages, Build and deployment, Source: **GitHub Actions**. The first run creates the `github-pages` environment.
+2. Run the workflow once (Actions, pages, Run workflow) or push a change under `site/`.
+3. Settings, General (the repository's About panel, gear icon): set **Website** to `https://peleduri.github.io/gop/`. With the GitHub CLI: `gh repo edit peleduri/gop --homepage https://peleduri.github.io/gop/`.
+
+Local preview: `site/build.sh` writes `_site/`, then `(cd _site && python3 -m http.server 8080)`. The page carries a strict CSP with the hash of its one `<style>` block, and `go test ./site/` checks the hash, every link, and that each figure the page quotes (the `data-n` elements) still matches `gop report --demo`. After editing the style block, put the hash the test prints into the CSP `<meta>`.

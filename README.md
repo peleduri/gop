@@ -7,6 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/peleduri/gop)](https://goreportcard.com/report/github.com/peleduri/gop)
 [![License](https://img.shields.io/github/license/peleduri/gop)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/peleduri/gop?include_prereleases&sort=semver)](https://github.com/peleduri/gop/releases)
+[![Site](https://img.shields.io/badge/site-demo%20report-0969da)](https://peleduri.github.io/gop/)
 
 [![The gop HTML report for the synthetic demo enterprise: a critical-exposure verdict with confirmed reach figures, then ranked fixes with the share of confirmed reach each removes](docs/assets/report-light.png)](https://peleduri.github.io/gop/)
 
