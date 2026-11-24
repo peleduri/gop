@@ -40,6 +40,8 @@ const (
 	exitOK      = 0
 	exitRuntime = 1
 	exitUsage   = 2
+	// exitPartial: collect stopped early and wrote a partial graph.
+	exitPartial = 3
 )
 
 const usage = `gop maps who can make code run where in a GitHub Enterprise.
@@ -47,6 +49,7 @@ const usage = `gop maps who can make code run where in a GitHub Enterprise.
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH] [--oidc-trust <files>]
               [--github-url URL] [--verbose] [--advisories <zip|dir> | --advisories-live]
+              [--cache-dir DIR [--resume]] [--max-requests N] [--reserve N] [--priority a,b]
   gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json]
               [--advisories <zip|dir> | --advisories-live] --out graph2.json
   gop advisories update [--out PATH]
@@ -83,6 +86,14 @@ When the token cannot read the enterprise (an org-scoped App installation
 token, a non-owner token, or no read:enterprise), collect builds the graph
 per org: from --orgs, or else the token's own orgs. Enterprise-level facts
 are then not_visible and listed in coverage.
+A collect that stops early (Ctrl-C, SIGTERM, --max-requests spent, the rate
+limit exhausted, or --reserve reached with no reset to wait for) still writes
+the graph it has, marked "partial": true, with what it did not read
+not_visible and listed in coverage by org and phase, and exits 3. With
+--cache-dir, --resume then completes it. --priority orgs are collected
+first, then orgs by member count, largest first. --reserve N keeps N
+requests of the hourly rate limit unspent for other jobs on the same token
+(collect waits for the reset instead).
 GitHub App mode (--app-id and --app-key-file, or GOP_APP_ID and
 GOP_APP_PRIVATE_KEY with the PEM contents) mints a read-only installation
 token per org instead; it excludes GITHUB_TOKEN. The key stays in memory and
@@ -297,6 +308,12 @@ func (a *app) cmdCollect(args []string) error {
 		"gop creates it 0700; delete it after use and never commit it")
 	resume := fs.Bool("resume", false, "with --cache-dir, resume an interrupted collection of the same enterprise and orgs "+
 		"without re-requesting what it already fetched")
+	maxReq := fs.Int("max-requests", 0, "stop after this many API requests (0: no limit) and write a partial graph; "+
+		"with --cache-dir, --resume continues from there")
+	reserve := fs.Int("reserve", 0, "keep this many requests of the hourly rate limit unspent for other jobs on the same token: "+
+		"wait for the reset instead of dipping below it, and stop with a partial graph when the reset cannot be waited for")
+	priority := fs.String("priority", "", "comma-separated org logins to collect first, in this order "+
+		"(the rest follow by member count, largest first), so a stopped or budgeted run covers them")
 	verbose := fs.Bool("verbose", false, "log every per-repository not-visible error (for example collaborators the token "+
 		"cannot list) instead of one summary line per org (or set GOP_VERBOSE=1)")
 	var trusts trustFlag
@@ -313,6 +330,12 @@ func (a *app) cmdCollect(args []string) error {
 	}
 	if *resume && *cacheDir == "" {
 		return usagef("collect: --resume needs --cache-dir")
+	}
+	if *maxReq < 0 {
+		return usagef("collect: --max-requests must not be negative, got %d", *maxReq)
+	}
+	if *reserve < 0 {
+		return usagef("collect: --reserve must not be negative, got %d", *reserve)
 	}
 	ep, err := uf.resolve(a.getenv)
 	if err != nil {
@@ -339,14 +362,23 @@ func (a *app) cmdCollect(args []string) error {
 		GraphQLURL:       ep.graphql,
 		CacheDir:         *cacheDir,
 		Resume:           *resume,
+		MaxRequests:      *maxReq,
+		Reserve:          *reserve,
+		Priority:         splitList(*priority),
 		Verbose:          *verbose || envTrue(a.getenv("GOP_VERBOSE")),
 		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	g, err := a.collect(ctx, cfg)
-	if err != nil {
+	var partial *collect.PartialError
+	if err != nil && (!errors.As(err, &partial) || g == nil) {
 		return errors.New(cr.redact(err.Error()))
+	}
+	if partial != nil && partial.Reason == graph.PartialInterrupted {
+		// Writing the partial graph is quick; a second Ctrl-C now ends the
+		// process at once.
+		stop()
 	}
 	if len(trusts) > 0 {
 		if err := a.enrich(g, trusts, ""); err != nil {
@@ -354,7 +386,18 @@ func (a *app) cmdCollect(args []string) error {
 		}
 	}
 	a.applyAdvisories(ctx, "collect", g, adv)
-	return a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) })
+	if err := a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) }); err != nil {
+		return err
+	}
+	if partial == nil {
+		return nil
+	}
+	next := "re-run to complete it (add --cache-dir DIR so a later stop can resume)"
+	if *cacheDir != "" {
+		next = "re-run the same command with --resume to complete it"
+	}
+	return codeError{exitPartial, errors.New(cr.redact(fmt.Sprintf("stopped early (%s): wrote a partial graph to %s; %s: %v",
+		partial.Reason, *out, next, partial.Err)))}
 }
 
 // envTrue reports whether an environment value turns a switch on: "1",

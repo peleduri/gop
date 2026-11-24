@@ -620,6 +620,13 @@ func (m *merger) result() *graph.Graph {
 	if g.AuditRetentionDays == 0 {
 		g.AuditRetentionDays = m.b.AuditRetentionDays
 	}
+	// A partial graph stays partial through a merge: fresh's reason first.
+	switch {
+	case m.f.Partial:
+		g.Partial, g.PartialReason = true, m.f.PartialReason
+	case m.b.Partial:
+		g.Partial, g.PartialReason = true, m.b.PartialReason
+	}
 	if n, ok := m.enterprise(); ok {
 		g.Nodes = append(g.Nodes, n)
 	}

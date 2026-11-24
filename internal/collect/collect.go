@@ -94,6 +94,19 @@ type Config struct {
 	// MergeForce lets MergeInto merge graphs collected with different
 	// enterprise visibility (MergeOptions.Force).
 	MergeForce bool
+
+	// MaxRequests, when positive, stops the run after that many HTTP
+	// requests (responses the cache serves without a request do not count)
+	// and returns a partial graph with a *PartialError.
+	MaxRequests int
+	// Reserve, when positive, keeps that many requests of the rate limit
+	// unspent for other jobs on the same token: before a request that would
+	// leave fewer, the run waits for the reset, and stops partial when it
+	// cannot (the reset time is unknown or more than an hour away).
+	Reserve int
+	// Priority lists orgs to collect first, in this order. The rest follow
+	// by member count, largest first, then in listed order.
+	Priority []string
 }
 
 // Source API labels recorded on edges and used in coverage.
@@ -224,6 +237,12 @@ type collector struct {
 	calledWFs map[string][]byte
 	// scanned holds the files read for scanning, by repo, path and ref (readScanned).
 	scanned map[string]scannedFile
+
+	// phase is the run step in progress and phaseOrg the index in orgs of
+	// the org a per-org phase is on, for the coverage of a stopped run
+	// (partial.go).
+	phase    string
+	phaseOrg int
 }
 
 // Collect reads the enterprise and returns the evidence graph.
@@ -248,6 +267,15 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 			return nil, err
 		}
 	}
+	if cfg.MaxRequests < 0 || cfg.Reserve < 0 {
+		return nil, errors.New("collect: MaxRequests and Reserve must not be negative")
+	}
+	// Running out of the request budget or the rate limit cancels ctx with
+	// the cause, so every step stops as on an interrupt (budget.go).
+	ctx, stop := context.WithCancelCause(ctx)
+	defer stop(nil)
+	budget := &requestBudget{max: cfg.MaxRequests, reserve: cfg.Reserve, stop: stop}
+	c = c.withBudget(budget)
 	var cache *responseCache
 	if cfg.CacheDir != "" {
 		var err error
@@ -284,8 +312,18 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 			k.logf("collect: cache: resuming the interrupted run started %s", cache.resumeSince.UTC().Format(time.RFC3339))
 		}
 	}
-	if err := k.run(ctx); err != nil {
-		return nil, err
+	runErr := k.run(ctx)
+	if runErr == nil && ctx.Err() != nil {
+		// A step that records a failed request as coverage may have
+		// finished after the stop.
+		runErr = context.Cause(ctx)
+	}
+	if runErr != nil {
+		reason := partialReason(ctx, runErr)
+		if reason == "" {
+			return nil, runErr
+		}
+		return k.stopped(cache, reason, runErr, budget.Sent())
 	}
 	g := k.graph()
 	k.logCoverage(g)
@@ -300,6 +338,27 @@ func Collect(ctx context.Context, cfg Config) (*graph.Graph, error) {
 		return MergeWith(cfg.MergeInto, g, cfg.Orgs, MergeOptions{Force: cfg.MergeForce})
 	}
 	return g, nil
+}
+
+// stopped returns the partial graph of a run stopped for reason, with a
+// *PartialError. The cache keeps its run file, so --resume continues the run.
+func (k *collector) stopped(cache *responseCache, reason string, cause error, sent int) (*graph.Graph, error) {
+	phase := k.phase
+	g := k.partialGraph(reason)
+	k.logCoverage(g)
+	k.logf("collect: stopped (%s) in the %s phase after %d requests: the graph is partial", reason, phase, sent)
+	if cache != nil {
+		st := cache.Stats()
+		k.logf("collect: cache %d hits (304), %d fetched, %d resumed; --resume continues from here", st.Hits, st.Fetched, st.Resumed)
+	}
+	if k.cfg.MergeInto != nil {
+		merged, err := MergeWith(k.cfg.MergeInto, g, k.cfg.Orgs, MergeOptions{Force: k.cfg.MergeForce})
+		if err != nil {
+			return nil, err
+		}
+		g = merged
+	}
+	return g, &PartialError{Reason: reason, Err: cause}
 }
 
 // logCoverage logs one line per org (and the enterprise) that has unknown
@@ -321,9 +380,12 @@ func (k *collector) run(ctx context.Context) error {
 	if k.app != nil {
 		collectOrgs = k.collectOrgsApp
 	}
+	k.enter(PhaseOrgs)
 	if err := collectOrgs(ctx); err != nil {
 		return err
 	}
+	k.orderOrgs(false)
+	k.warnPriority()
 	if err := k.detectGHES(ctx, ent); err != nil {
 		return err
 	}
@@ -334,15 +396,20 @@ func (k *collector) run(ctx context.Context) error {
 		ent.Attrs["orgs"] = strconv.Itoa(len(k.entOrgs))
 	}
 	k.seedFromBase()
+	k.enter(PhaseSettings)
 	if err := k.collectSettings(ctx); err != nil {
 		return err
 	}
 	k.progress(PhaseSettings, 1, 1)
+	k.enter(PhaseMembers)
 	if err := k.collectMembers(ctx); err != nil {
 		return err
 	}
 	k.progress(PhaseMembers, 1, 1)
+	k.orderOrgs(true)
+	k.enter(PhaseRepos)
 	for i, o := range k.orgs {
+		k.phaseOrg = i
 		if o.archived {
 			k.cover(o.node.ID, attrRepositories, "organization is archived; not collected",
 				"none: archived organizations cannot run workflows")
@@ -368,10 +435,12 @@ func (k *collector) run(ctx context.Context) error {
 		k.flushNotVisible(o)
 		k.progress(PhaseRepos, i+1, len(k.orgs))
 	}
+	k.enter(PhaseWorkflows)
 	if err := k.collectAllWorkflows(ctx); err != nil {
 		return err
 	}
 	k.seedBaseActions()
+	k.enter(PhaseNested)
 	if err := k.expandNested(ctx); err != nil {
 		return err
 	}
@@ -379,31 +448,40 @@ func (k *collector) run(ctx context.Context) error {
 	k.linkJobWorkflowRefs()
 	k.coverUnknownOwners()
 	k.pushToStubs()
+	k.enter(phaseActionsAccess)
 	if err := k.collectActionsAccess(ctx); err != nil {
 		return err
 	}
+	k.enter(phaseRefs)
 	if err := k.resolveRefs(ctx); err != nil {
 		return err
 	}
+	k.enter(phaseTags)
 	if err := k.collectTagImmutability(ctx); err != nil {
 		return err
 	}
+	k.enter(PhaseProtection)
 	if err := k.collectBranchProtection(ctx); err != nil {
 		return err
 	}
+	k.enter(phaseIndirect)
 	if err := k.followIndirect(ctx); err != nil {
 		return err
 	}
+	k.enter(phaseBotScripts)
 	if err := k.followBotScripts(ctx); err != nil {
 		return err
 	}
+	k.enter(phaseActionsApprov)
 	if err := k.collectActionsApprove(ctx); err != nil {
 		return err
 	}
 	k.addBotMergePaths()
+	k.enter(phasePolicyFiles)
 	if err := k.collectPolicyFiles(ctx); err != nil {
 		return err
 	}
+	k.enter(phaseRefProtection)
 	return k.collectRefProtection(ctx)
 }
 

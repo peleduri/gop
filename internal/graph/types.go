@@ -157,6 +157,54 @@ type Graph struct {
 	// (collect.Merge) keeps the older times of the orgs it did not re-collect.
 	// Optional: graphs written before it existed omit it.
 	OrgCollectedAt map[string]time.Time `json:"org_collected_at,omitempty"`
+	// Partial marks a graph written by a collection that stopped before the
+	// end (interrupted, out of its request budget, or out of rate limit).
+	// What it did not read is not_visible, with coverage entries whose
+	// reason starts with CoverageNotCollected. Optional and additive: absent
+	// (false) in complete graphs and in graphs written before it existed.
+	Partial bool `json:"partial,omitempty"`
+	// PartialReason says why a partial graph stopped: one of the
+	// PartialReason* values. Empty when Partial is false.
+	PartialReason string `json:"partial_reason,omitempty"`
+}
+
+// PartialReason values (Graph.PartialReason).
+const (
+	// PartialInterrupted: SIGINT, SIGTERM or a cancelled context.
+	PartialInterrupted = "interrupted"
+	// PartialMaxRequests: the run sent its --max-requests budget.
+	PartialMaxRequests = "max_requests"
+	// PartialReserve: continuing would dip below the --reserve requests and
+	// the collector could not wait for the rate limit to reset.
+	PartialReserve = "reserve"
+	// PartialRateLimit: GitHub's rate limit ran out and the reset was further
+	// away than the collector waits.
+	PartialRateLimit = "rate_limit"
+)
+
+// CoverageNotCollected starts the reason of every coverage entry a partial
+// collection adds for what it did not read.
+const CoverageNotCollected = "not collected: run stopped"
+
+// PartialNote is one sentence that says a graph is partial and why, for
+// report banners, validate output and MCP summaries; "" for a complete graph.
+func PartialNote(g *Graph) string {
+	if g == nil || !g.Partial {
+		return ""
+	}
+	why := map[string]string{
+		PartialInterrupted: "the run was interrupted",
+		PartialMaxRequests: "the run reached its --max-requests budget",
+		PartialReserve:     "the run would have dipped into its --reserve requests",
+		PartialRateLimit:   "the GitHub rate limit ran out",
+	}[g.PartialReason]
+	if why == "" {
+		// An unknown reason is not echoed: the note reaches reports and MCP
+		// clients, and the field is free text in a file.
+		why = "the run stopped early"
+	}
+	return "Partial graph: " + why + ". What it did not read is not visible (unknown, not absent) and listed in coverage; " +
+		"re-run gop collect with --cache-dir and --resume to complete it."
 }
 
 // Org attribute keys (Node.Attrs on KindOrg). Values are strings for a flat JSON shape.

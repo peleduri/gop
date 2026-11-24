@@ -68,7 +68,10 @@ func Render(w io.Writer, g *graph.Graph, opts Options) error {
 }
 
 type data struct {
-	Demo        bool // synthetic graph from gop demo: the title says so
+	Demo bool // synthetic graph from gop demo: the title says so
+	// Partial is graph.PartialNote: set when the collection stopped early,
+	// shown as a banner at the top.
+	Partial     string
 	Version     string
 	Enterprise  string
 	CollectedAt string
@@ -352,7 +355,7 @@ type hardenFixRow struct {
 
 func build(g *graph.Graph, opts Options) data {
 	ix := graph.NewIndex(g)
-	d := data{Demo: graph.IsDemo(g), Version: opts.Version, Enterprise: g.Enterprise, ix: ix}
+	d := data{Demo: graph.IsDemo(g), Partial: graph.PartialNote(g), Version: opts.Version, Enterprise: g.Enterprise, ix: ix}
 	d.NonHumanLine = ix.NonHuman().Headline()
 	for _, e := range g.Edges {
 		if e.Kind == graph.CanAssume {
