@@ -21,6 +21,23 @@ flags may change in minor releases.
   Claude Code, Codex and other agents. A test in `skills/` parses the
   frontmatter and fails if the skill names an MCP tool, tool argument or field,
   or CLI command that does not exist.
+- `gh gop`: gop as a precompiled GitHub CLI extension that reuses the `gh`
+  login. goreleaser also builds the same program as bare `gh-gop-<os>-<arch>`
+  binaries (`.exe` on Windows; the names `gh extension install` matches) on
+  every release, listed in the signed `checksums.txt`; the `gop` binary,
+  archives, image and cask are unchanged. Installing with
+  `gh extension install peleduri/gh-gop` needs the `peleduri/gh-gop`
+  repository, which does not exist yet: the one-time setup, a workflow that
+  verifies and copies the binaries into its releases, is in
+  `docs/maintainers.md`.
+- `--use-gh-auth` on `collect`, `doctor` and `pin`: take the token of the
+  `gh` login (`gh auth token --hostname HOST`) instead of `GITHUB_TOKEN` or
+  `GH_TOKEN`. The order is the flag, then `GITHUB_TOKEN`, then `GH_TOKEN`,
+  then, only when `gh` started gop as an extension (`GH_EXTENSION=1`), the
+  `gh` login. A plain `gop` run never calls `gh` without the flag. With the
+  `gh` login gop follows `GH_HOST` to a GitHub Enterprise Server
+  (`--github-url` wins), prints which host's login it used and never prints
+  the token. `--use-gh-auth` and GitHub App mode are mutually exclusive.
 
 ## [0.4.0] - 2026-11-24
 

@@ -21,6 +21,24 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
+  # The same program built as gh-gop, for the GitHub CLI extension
+  # (`gh extension install peleduri/gh-gop`, then `gh gop ...`). gh installs a
+  # precompiled extension by picking the release asset whose name ends in
+  # <os>-<arch> (plus .exe on Windows), so these ship as bare binaries named
+  # gh-gop-<os>-<arch>[.exe] (archive gh-gop below). The gop binary and its
+  # archives are unchanged. See docs/maintainers.md for the gh-gop repository.
+  - id: gh-gop
+    main: ./cmd/gop
+    binary: gh-gop
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }} -X main.commit={{ .FullCommit }} -X main.date={{ .CommitDate }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
 
 archives:
   - id: gop
@@ -33,6 +51,10 @@ archives:
     files:
       - LICENSE
       - README.md
+  - id: gh-gop
+    ids: [gh-gop]
+    formats: [binary]
+    name_template: "gh-gop-{{ .Os }}-{{ .Arch }}"
 
 checksum:
   name_template: checksums.txt
@@ -136,6 +158,7 @@ release:
 # is still generated in dist/ but never uploaded.
 homebrew_casks:
   - name: gop
+    ids: [gop]
     binaries: [gop]
     repository:
       owner: peleduri

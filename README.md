@@ -259,6 +259,7 @@ GitHub Enterprise Server: `gop collect --github-url https://github.acme.example`
 ```sh
 brew install peleduri/tap/gop                         # Homebrew (tap coming soon, see docs/install.md)
 go install github.com/peleduri/gop/cmd/gop@latest     # from source
+gh extension install peleduri/gh-gop                  # as `gh gop`, reusing your gh login (coming soon, see docs/install.md)
 # or a signed archive from Releases: https://github.com/peleduri/gop/releases
 ```
 

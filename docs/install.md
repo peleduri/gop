@@ -5,6 +5,7 @@ gop is one static binary. Pick one way to install it, then [verify what you run]
 - [Homebrew](#homebrew-coming-soon) (macOS and Linux, tap coming soon)
 - [Release archive](#release-archive) (every platform, with checksum, signature and provenance checks)
 - [`go install`](#go-install) (builds from source)
+- [GitHub CLI extension](#github-cli-extension-gh-gop-coming-soon) (`gh gop`, reuses your `gh` login, coming soon)
 - [Container](#container) (`ghcr.io/peleduri/gop`, signed, for Kubernetes jobs and locked-down CI)
 
 After installing, connect your agent: [docs/mcp-clients.md](mcp-clients.md).
@@ -49,6 +50,33 @@ go install github.com/peleduri/gop/cmd/gop@latest
 ```
 
 This builds from source with your Go toolchain (the version in `go.mod`, fetched automatically). The result is not the signed release binary, so the checks below do not apply to it; `gop version` prints `dev`.
+
+## GitHub CLI extension: `gh gop` (coming soon)
+
+**Not available yet.** The extension repository `peleduri/gh-gop` does not exist yet, so the install command below fails today. Until it works, install `gop` another way and pass `--use-gh-auth` (below) to reuse your `gh` login.
+
+If you already use the [GitHub CLI](https://cli.github.com/) and are logged in (`gh auth login`), install gop as a `gh` extension and run it as `gh gop`. It then reads the token of your `gh` login, so you never paste a token into another tool:
+
+```sh
+gh extension install peleduri/gh-gop
+gh gop version
+gh gop doctor --enterprise acme
+gh gop collect --enterprise acme --out graph.json
+```
+
+`gh gop` is the same program as `gop` (every subcommand and flag is the same), built as a precompiled binary named `gh-gop-<os>-<arch>` (`.exe` on Windows) on each [gop release](https://github.com/peleduri/gop/releases). `gh extension install` downloads the binary for your platform from the latest `peleduri/gh-gop` release, which carries copies of those binaries; `gh extension upgrade gop` moves to a newer one. The binaries are listed in the release's `checksums.txt`, so the [checksum and signature checks](#verify-what-you-run) work on them too: download `gh-gop-<os>-<arch>` from the gop release and compare it with the extension binary (`gh extension list` shows where it lives).
+
+**Which token `gop` uses** (`collect`, `doctor` and `pin`), first match wins:
+
+1. `--use-gh-auth`: the token of your `gh` login, read with `gh auth token`. This flag works with a plain `gop` install too, and it wins over the variables below.
+2. `GITHUB_TOKEN`, then `GH_TOKEN`.
+3. Only when `gh` started gop (`gh gop ...`; `gh` sets `GH_EXTENSION=1` for its extensions) and neither variable is set: the `gh` login, as with `--use-gh-auth`.
+
+A plain `gop` run never calls `gh` unless you pass `--use-gh-auth`. When gop uses the `gh` login it says so on stderr (`using the token of the gh login for github.com`); it never prints, logs or stores the token. `--use-gh-auth` and GitHub App mode are mutually exclusive.
+
+**GitHub Enterprise Server.** With the `gh` login, gop follows `gh`'s `GH_HOST`: `GH_HOST=github.acme.example gh gop collect ...` reads `https://github.acme.example/api/v3` with the token of your `gh` login for that host (`gh auth login --hostname github.acme.example` first). `--github-url` (or `GOP_GITHUB_URL`) wins over `GH_HOST`, for both the endpoints and the host gop asks `gh` for. A plain `gop` run without `--use-gh-auth` ignores `GH_HOST`.
+
+The `gh` login token is usually an OAuth token with the scopes you granted `gh` (often `repo` and `read:org`), not a read-only token: `gh gop doctor` lists its scopes and what is missing for a full collection (for example `read:enterprise`). gop only reads with it.
 
 ## Container
 
@@ -135,4 +163,4 @@ The cask downloads the same archives and checks their SHA-256 against the value 
 
 ## For maintainers
 
-The one-time setup that turns on the Homebrew tap (tap repository, scoped token, `HOMEBREW_TAP_TOKEN` secret) is in [docs/maintainers.md](maintainers.md).
+The one-time setup that turns on the Homebrew tap (tap repository, scoped token, `HOMEBREW_TAP_TOKEN` secret) and the `peleduri/gh-gop` extension repository is in [docs/maintainers.md](maintainers.md).

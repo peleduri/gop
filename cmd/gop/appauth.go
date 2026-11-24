@@ -34,12 +34,9 @@ func addAppFlags(fs *flag.FlagSet) appFlags {
 
 // resolveCreds picks the token or the App credentials for cmd. Flags win over
 // environment variables. A token and App credentials together are a usage
-// error, as is half of the App credentials.
-func (a *app) resolveCreds(cmd string, f appFlags) (creds, error) {
-	token := a.getenv("GITHUB_TOKEN")
-	if token == "" {
-		token = a.getenv("GH_TOKEN")
-	}
+// error, as is half of the App credentials. useGH (--use-gh-auth) and host
+// pick the gh login token; see resolveToken for the order.
+func (a *app) resolveCreds(cmd string, f appFlags, useGH bool, host string) (creds, error) {
 	idText := strings.TrimSpace(*f.id)
 	if idText == "" {
 		idText = strings.TrimSpace(a.getenv("GOP_APP_ID"))
@@ -47,13 +44,20 @@ func (a *app) resolveCreds(cmd string, f appFlags) (creds, error) {
 	keyFile := strings.TrimSpace(*f.keyFile)
 	keyEnv := a.getenv("GOP_APP_PRIVATE_KEY")
 	if idText == "" && keyFile == "" && keyEnv == "" {
+		token, err := a.resolveToken(cmd, useGH, host)
+		if err != nil {
+			return creds{}, err
+		}
 		if token == "" {
-			return creds{}, usagef("%s: set GITHUB_TOKEN (or GH_TOKEN) to a read-only token, or use GitHub App mode "+
-				"(--app-id and --app-key-file, or GOP_APP_ID and GOP_APP_PRIVATE_KEY); gop never takes a token as a flag", cmd)
+			return creds{}, usagef("%s: set GITHUB_TOKEN (or GH_TOKEN) to a read-only token, pass --use-gh-auth to use the gh login, "+
+				"or use GitHub App mode (--app-id and --app-key-file, or GOP_APP_ID and GOP_APP_PRIVATE_KEY); gop never takes a token as a flag", cmd)
 		}
 		return creds{token: token}, nil
 	}
-	if token != "" {
+	if useGH {
+		return creds{}, usagef("%s: --use-gh-auth and GitHub App credentials are mutually exclusive; drop one", cmd)
+	}
+	if a.getenv("GITHUB_TOKEN") != "" || a.getenv("GH_TOKEN") != "" {
 		return creds{}, usagef("%s: GITHUB_TOKEN (or GH_TOKEN) and GitHub App credentials are mutually exclusive; unset one", cmd)
 	}
 	if idText == "" {

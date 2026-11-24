@@ -16,6 +16,7 @@ type urlFlags struct {
 	api      *string
 	graphql  *string
 	insecure *bool
+	useGH    *bool
 }
 
 // endpoints are the resolved GitHub endpoints. Empty rest and graphql mean
@@ -32,6 +33,8 @@ func addURLFlags(fs *flag.FlagSet, cmd string) *urlFlags {
 		api:      fs.String("api-url", "", "REST API root override, for a proxy (default derived from --github-url)"),
 		graphql:  fs.String("graphql-url", "", "GraphQL endpoint override, for a proxy (default derived from --github-url)"),
 		insecure: fs.Bool("insecure-http", false, "allow http:// URLs (local test servers only: the token then travels unencrypted)"),
+		useGH: fs.Bool("use-gh-auth", false, "use the token of the GitHub CLI login (gh auth token for the --github-url host, or GH_HOST) "+
+			"instead of GITHUB_TOKEN or GH_TOKEN; gop never prints it"),
 	}
 }
 
@@ -43,6 +46,11 @@ func (f *urlFlags) resolve(getenv func(string) string) (endpoints, error) {
 	gh := strings.TrimSpace(*f.github)
 	if gh == "" {
 		gh = strings.TrimSpace(getenv("GOP_GITHUB_URL"))
+	}
+	if gh == "" && ((f.useGH != nil && *f.useGH) || ghExtension(getenv)) {
+		// With the gh login, follow gh's GH_HOST to a GitHub Enterprise
+		// Server, as gh itself does.
+		gh = ghHostURL(getenv("GH_HOST"))
 	}
 	var ep endpoints
 	if gh != "" {
@@ -86,6 +94,19 @@ func (f *urlFlags) resolve(getenv func(string) string) (endpoints, error) {
 		ep.host = instanceHost(gh)
 	}
 	return ep, nil
+}
+
+// ghHostURL turns GH_HOST (a bare host such as github.acme.example) into an
+// instance URL, or "" for unset or github.com.
+func ghHostURL(h string) string {
+	h = strings.TrimSpace(h)
+	if h == "" || strings.EqualFold(h, graph.GitHubDotCom) {
+		return ""
+	}
+	if strings.Contains(h, "://") {
+		return h
+	}
+	return "https://" + h
 }
 
 // instanceHost is the lower-case host of a --github-url, with api.github.com
