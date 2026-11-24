@@ -2,6 +2,8 @@
 
 Enterprise **acme**, collected 2026-11-20T10:00:00Z
 
+**AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
+
 > Members of acme-actions can push code that runs in 5 repos across 2 orgs (confirmed), including 2 secret scopes.
 >
 > Lower the default repository permission of acme-actions to read to remove 100% of confirmed reach.

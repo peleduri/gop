@@ -97,6 +97,8 @@ type OrgSummary struct {
 
 // Summary is the gop://graph/summary resource.
 type Summary struct {
+	Headline      string                 `json:"headline" jsonschema:"one line: non-human actors (AI agent workflows, bot merge workflows, review bypass Apps, bot accounts) and how many can merge to a default branch without a human"`
+	NonHuman      graph.NonHuman         `json:"non_human"`
 	Enterprise    string                 `json:"enterprise"`
 	CollectedAt   time.Time              `json:"collected_at"`
 	AgeHours      int                    `json:"age_hours"`
@@ -138,6 +140,8 @@ func (e *Engine) Summary(now time.Time) Summary {
 		Orgs:         []OrgSummary{},
 		Note:         summaryNote,
 	}
+	s.NonHuman = e.ix.NonHuman()
+	s.Headline = s.NonHuman.Headline()
 	if st := e.ix.PinStats(); st.HasLock() {
 		s.ActionPins = &st
 	}

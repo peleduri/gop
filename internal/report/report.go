@@ -73,7 +73,10 @@ type data struct {
 	Enterprise  string
 	CollectedAt string
 	Headline    string
-	FixLine     string
+	// NonHumanLine is the first line of the report: the non-human actors
+	// and how many can merge to a default branch without a human.
+	NonHumanLine string
+	FixLine      string
 	// HasCloud is true when the graph has CAN_ASSUME edges (gop enrich
 	// --oidc-trust): the risks table gains a cloud roles column and the
 	// notes explain supplied evidence.
@@ -350,6 +353,7 @@ type hardenFixRow struct {
 func build(g *graph.Graph, opts Options) data {
 	ix := graph.NewIndex(g)
 	d := data{Demo: graph.IsDemo(g), Version: opts.Version, Enterprise: g.Enterprise, ix: ix}
+	d.NonHumanLine = ix.NonHuman().Headline()
 	for _, e := range g.Edges {
 		if e.Kind == graph.CanAssume {
 			d.HasCloud = true

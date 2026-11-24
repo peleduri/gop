@@ -2,6 +2,8 @@
 
 Enterprise **acme**, collected 2026-11-20T10:00:00Z
 
+**AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
+
 > 4 accounts that own 18 or more orgs can each push code that runs in 54 to 56 repos across 18 to 20 orgs (confirmed), including 3 secret scopes. The cause is standing org ownership: an org owner is admin on every repo of each org it owns.
 >
 > Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) to remove 62% of confirmed reach.

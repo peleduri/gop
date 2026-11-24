@@ -1,4 +1,11 @@
 {
+  "headline": "No non-human actors (AI agents, bot merges, bot accounts) in this graph.",
+  "non_human": {
+    "actors": 0,
+    "merge": 0,
+    "merge_confirmed": 0,
+    "merge_possible": 0
+  },
   "enterprise": "acme",
   "collected_at": "2026-11-20T10:00:00Z",
   "age_hours": 30,

@@ -22,6 +22,13 @@ flags may change in minor releases.
   service or a `docker://` step as `agentrun-server`, with the new
   `agent_source` value `image` (#185).
 
+- A headline line for AI agents and bots, first in the report (HTML and
+  Markdown) and as `headline` and `non_human` in the MCP
+  `gop://graph/summary` resource: "N non-human actors; M can merge to a
+  default branch without a human (C confirmed, P possible)". Non-human
+  actors are confirmed AI agent workflows, workflows that approve or merge
+  through a bot, review bypass Apps and bot accounts, each counted once (#188).
+
 - Project governance and community files, following the CNCF project
   template: `GOVERNANCE.md` (maintainer-led: decision making, adding and
   removing maintainers, conflict resolution, changing the governance),

@@ -49,6 +49,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <section id="verdict" class="hero v-{{.Verdict}}" aria-labelledby="verdict-h">
 <h2 id="verdict-h" class="vh">Verdict</h2>
 <div class="hero-top"><p class="verdict"><span class="dot" aria-hidden="true"></span>{{.VerdictLabel}}</p>{{if .PickWho}}<p class="meta">Widest confirmed reach: <strong>{{.PickWho}}</strong></p>{{end}}</div>
+<p class="nonhuman"><span class="tag">AI agents and bots</span> {{.NonHumanLine}} {{if .Agents}}<a href="#ai-agents">AI agents</a>{{end}}{{if .BotMerge}} <a href="#ai-self-merge">AI self-merge</a>{{end}}</p>
 <p class="big">{{.Headline}}</p>
 {{if .FixLine}}<p class="start"><span class="tag">Start here</span> {{.FixLine}} <a href="#fixes">All fixes</a></p>{{end}}
 {{- if .PinLine}}
