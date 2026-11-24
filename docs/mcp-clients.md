@@ -88,6 +88,45 @@ args:    serve --graph /path/to/graph.json
 
 Most clients accept the `mcpServers` shape shown for Cursor. To check the server by hand, start it and send an `initialize` request followed by `tools/list`; it answers with its name, version and the read-only tools. `resources/list` and `prompts/list` show the context resources (`gop://graph/summary`, `gop://graph/coverage`, `gop://graph/schema`, `gop://node/{+id}`) and the prompts (`triage_enterprise`, `review_action`, `explain_path`).
 
+## Check before you answer
+
+gop's server instructions and the `explain_path` prompt ask the agent to call `check_answerable` before it gives a security conclusion to a human. Pass `question_kind` (the query tool whose answer you want to give) and `subject` (the node ID or org the question is about). It is deterministic and uses no language model: it reads the coverage entries and the `not_visible` facts (and audit facts too old to trust) in the part of the graph the answer depends on, and returns `answerable`:
+
+- `yes`: every required fact was visible there. It never says `yes` when a required fact is `not_visible`.
+- `partial`: the answer is a lower bound. Confirmed reach in it is real, but more may exist.
+- `no`: gop could not see the subject itself or its org's repositories. Ask for the access instead of answering.
+
+`missing` lists each required fact gop could not see, with its scope (a repo, org or the enterprise), the reason, and the access that fixes it when known. The required facts per question kind:
+
+<!-- check_answerable table: generated from requiredFacts -->
+| Question kind | Graph checked | Required facts |
+|---|---|---|
+| `who_can_reach` | the subject (a node, or every repo of an org) and every node with a path into it | `repositories`, `members`, `teams`, `collaborators`, `default_permission`, `branch_protection`, `rulesets`, `workflows`, `actions`, `token_permissions`, `triggers`, `oidc`, `runners_and_secrets`, `other` |
+| `blast_radius` | the subject principal (an org means its members) and everything it reaches | `repositories`, `members`, `teams`, `collaborators`, `default_permission`, `branch_protection`, `rulesets`, `workflows`, `actions`, `token_permissions`, `triggers`, `oidc`, `runners_and_secrets`, `org_settings`, `other` |
+| `paths` | the subject principal (an org means its members) and everything it reaches | `repositories`, `members`, `teams`, `collaborators`, `default_permission`, `branch_protection`, `rulesets`, `workflows`, `actions`, `token_permissions`, `triggers`, `oidc`, `runners_and_secrets`, `other` |
+| `top_risks` | the whole enterprise | `repositories`, `members`, `teams`, `collaborators`, `default_permission`, `branch_protection`, `rulesets`, `workflows`, `actions`, `token_permissions`, `triggers`, `oidc`, `runners_and_secrets`, `org_settings`, `other` |
+| `what_if` | the whole enterprise (before and after totals are enterprise-wide) | `repositories`, `members`, `teams`, `collaborators`, `default_permission`, `branch_protection`, `rulesets`, `workflows`, `actions`, `token_permissions`, `triggers`, `oidc`, `runners_and_secrets`, `other` |
+| `fix_plan` | the whole enterprise (the plan reports the enterprise-wide reach it removes) | `repositories`, `members`, `teams`, `collaborators`, `default_permission`, `branch_protection`, `rulesets`, `workflows`, `actions`, `token_permissions`, `triggers`, `oidc`, `runners_and_secrets`, `other` |
+
+| Fact | Covers |
+|---|---|
+| `repositories` | the org itself and its repository list (org, installation, archived, enterprise membership, host repos gop did not list) |
+| `members` | org members and owners, and owners' admin access |
+| `teams` | teams, team members and team repository grants |
+| `collaborators` | direct and outside collaborators and custom repository roles |
+| `default_permission` | the org's default repository permission and the push access it grants members |
+| `branch_protection` | branch protection and branch rulesets of mutable action refs, and their bypass actors |
+| `rulesets` | tag rulesets and immutable releases that lock an action tag |
+| `workflows` | workflow files: the list, their contents and parse errors, expression `uses:` |
+| `actions` | action refs: nested `uses:`, ref kind, the actions access of the host repo, whether the owner is in the enterprise |
+| `token_permissions` | `GITHUB_TOKEN` write permission of workflows |
+| `triggers` | who can cause a risky trigger, and repo visibility |
+| `oidc` | OIDC tokens, their claims (environments) and cloud trust matches |
+| `runners_and_secrets` | self-hosted runners and secret scopes a workflow runs with |
+| `org_settings` | org security settings that weight scores: SSO, two-factor, IP allow list and member privileges |
+| `other` | any gap gop cannot classify |
+<!-- end check_answerable table -->
+
 ## Try it
 
 Ask your agent: "Who can make code run in acme-app/web?", "What happens if we pin acme-actions/deploy@main to a SHA?", or "What couldn't the token see?" No enterprise handy? Point `--graph` at the synthetic fixture, `testdata/acme/graph.json` in a checkout of this repository.

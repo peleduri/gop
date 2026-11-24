@@ -27,6 +27,7 @@ func TestGoldenToolText(t *testing.T) {
 		{"suggest_fixes.txt", "suggest_fixes", map[string]any{"budget": 3}},
 		{"explain.txt", "explain", map[string]any{"from": "repo:acme-actions/deploy", "to": "action:acme-actions/deploy@main"}},
 		{"coverage.txt", "coverage", map[string]any{}},
+		{"check_answerable.txt", "check_answerable", map[string]any{"question_kind": "who_can_reach", "subject": "acme-legacy"}},
 	} {
 		t.Run(tc.tool, func(t *testing.T) {
 			res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: tc.tool, Arguments: tc.args})

@@ -87,7 +87,7 @@ func TestToolsListed(t *testing.T) {
 	}
 	want := map[string]bool{"who_can_reach": true, "blast_radius": true, "paths": true, "top_risks": true,
 		"what_if": true, "suggest_fixes": true, "explain": true, "coverage": true, "diff": true,
-		"fix_plan": true}
+		"fix_plan": true, "check_answerable": true}
 	for _, tl := range res.Tools {
 		if !want[tl.Name] {
 			t.Errorf("unexpected tool %s", tl.Name)
@@ -326,15 +326,16 @@ func TestExplainFileLine(t *testing.T) {
 
 // demoCalls is one valid call per tool against the demo graph.
 var demoCalls = map[string]map[string]any{
-	"who_can_reach": {"target": "repo:acme-app/web"},
-	"blast_radius":  {"principal": demo.ActionsMembers},
-	"paths":         {"from": demo.ActionsMembers, "to": "oidc:acme-secure/signer"},
-	"top_risks":     {"n": 3},
-	"what_if":       {"fixes": []map[string]any{{"type": "pin_ref", "action": demo.DeployMain}}},
-	"suggest_fixes": {"budget": 2},
-	"explain":       {"from": demo.SetupMain, "to": demo.ReleaseSHA},
-	"coverage":      {},
-	"diff":          {},
+	"who_can_reach":    {"target": "repo:acme-app/web"},
+	"blast_radius":     {"principal": demo.ActionsMembers},
+	"paths":            {"from": demo.ActionsMembers, "to": "oidc:acme-secure/signer"},
+	"top_risks":        {"n": 3},
+	"what_if":          {"fixes": []map[string]any{{"type": "pin_ref", "action": demo.DeployMain}}},
+	"suggest_fixes":    {"budget": 2},
+	"explain":          {"from": demo.SetupMain, "to": demo.ReleaseSHA},
+	"coverage":         {},
+	"diff":             {},
+	"check_answerable": {"question_kind": "top_risks"},
 }
 
 func TestDemoMarkerOnEveryTool(t *testing.T) {

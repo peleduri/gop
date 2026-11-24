@@ -1,0 +1,50 @@
+top_risks about enterprise:acme: partial (a lower bound); 4 required facts not visible across 2 scopes
+
+{
+  "summary": "top_risks about enterprise:acme: partial (a lower bound); 4 required facts not visible across 2 scopes",
+  "question_kind": "top_risks",
+  "subject": "enterprise:acme",
+  "answerable": "partial",
+  "required": [
+    "repositories",
+    "members",
+    "teams",
+    "collaborators",
+    "default_permission",
+    "branch_protection",
+    "rulesets",
+    "workflows",
+    "actions",
+    "token_permissions",
+    "triggers",
+    "oidc",
+    "runners_and_secrets",
+    "org_settings",
+    "other"
+  ],
+  "missing": [
+    {
+      "fact": "repositories",
+      "scope": "org:acme-legacy",
+      "reason": "token is not an org owner",
+      "needs_fix": "org owner on acme-legacy (SAML enforced: join through the IdP first)"
+    },
+    {
+      "fact": "repositories",
+      "scope": "repo:acme-legacy/old-api",
+      "reason": "not_visible repo nodes: 1"
+    },
+    {
+      "fact": "default_permission",
+      "scope": "repo:acme-legacy/old-api",
+      "reason": "not_visible CAN_PUSH edges via default_perm: 1"
+    },
+    {
+      "fact": "org_settings",
+      "scope": "org:acme-legacy",
+      "reason": "token is not an org owner",
+      "needs_fix": "org owner on acme-legacy"
+    }
+  ],
+  "confidence_note": "The answer is a lower bound: confirmed reach in it is real, but gop could not see facts it depends on, so more reach may exist. Say so when you give the answer, and name the missing facts and the access that would make them visible."
+}

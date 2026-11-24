@@ -1,0 +1,26 @@
+who_can_reach about repo:acme-app/web: yes; every required fact was visible
+
+{
+  "summary": "who_can_reach about repo:acme-app/web: yes; every required fact was visible",
+  "question_kind": "who_can_reach",
+  "subject": "repo:acme-app/web",
+  "answerable": "yes",
+  "required": [
+    "repositories",
+    "members",
+    "teams",
+    "collaborators",
+    "default_permission",
+    "branch_protection",
+    "rulesets",
+    "workflows",
+    "actions",
+    "token_permissions",
+    "triggers",
+    "oidc",
+    "runners_and_secrets",
+    "other"
+  ],
+  "missing": [],
+  "confidence_note": "gop saw every fact this answer depends on in this snapshot. The answer is complete for the snapshot's collection time; it says nothing about changes made since."
+}
