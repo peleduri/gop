@@ -120,7 +120,7 @@ func TestDriver(t *testing.T) {
 	if d.Name != "gop" || d.Version != "v9.9.9" || d.InformationURI != InformationURI {
 		t.Errorf("driver: %+v", d)
 	}
-	if len(d.Rules) != 2 || d.Rules[0].ID != RuleMutableRef || d.Rules[0].Name != "mutable-action-ref-reachable" ||
+	if len(d.Rules) != 3 || d.Rules[0].ID != RuleMutableRef || d.Rules[0].Name != "mutable-action-ref-reachable" ||
 		d.Rules[1].ID != RuleDefaultPerm || d.Rules[1].Name != "default-permission-grants-push" {
 		t.Fatalf("rules: %+v", d.Rules)
 	}
@@ -367,7 +367,7 @@ func TestSplit(t *testing.T) {
 		if len(rs) == 0 {
 			t.Errorf("%s: empty log", key)
 		}
-		if len(sub.Runs[0].Tool.Driver.Rules) != 2 {
+		if len(sub.Runs[0].Tool.Driver.Rules) != len(Rules()) {
 			t.Errorf("%s: rules missing", key)
 		}
 		for _, r := range rs {

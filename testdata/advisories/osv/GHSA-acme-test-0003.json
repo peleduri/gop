@@ -1,0 +1,13 @@
+{
+  "id": "GHSA-acme-test-0003",
+  "modified": "2026-01-01T00:00:00Z",
+  "withdrawn": "2026-01-02T00:00:00Z",
+  "summary": "Synthetic, withdrawn: must be ignored",
+  "affected": [
+    {
+      "package": {"ecosystem": "GitHub Actions", "name": "acme-actions/lint-ish"},
+      "ranges": [{"type": "ECOSYSTEM", "events": [{"introduced": "0"}]}]
+    }
+  ],
+  "database_specific": {"severity": "CRITICAL"}
+}

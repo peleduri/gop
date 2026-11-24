@@ -71,7 +71,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{if .Risks}}<div class="scroll"><table>
 <caption class="vh">Top risks: confirmed reach per principal</caption>
 <thead><tr><th scope="col">Principal</th><th scope="col">Confirmed repos</th><th scope="col">Orgs</th>{{if .HasCloud}}<th scope="col">Cloud roles</th>{{end}}<th scope="col">OIDC</th><th scope="col">Secrets</th><th scope="col">Runners</th><th scope="col">Possible</th><th scope="col">Score</th></tr></thead>
-<tbody>{{range .Risks}}<tr><td><code>{{.Principal}}</code></td><td class="n">{{.Repos}}</td><td class="n">{{.Orgs}}</td>{{if $.HasCloud}}<td class="n">{{.Cloud}}</td>{{end}}<td class="n">{{.OIDC}}</td><td class="n">{{.Secrets}}</td><td class="n">{{.Runners}}</td><td class="n">{{.PossibleRepos}} {{if eq .PossibleRepos 1}}repo{{else}}repos{{end}}{{if .PossibleOther}} + {{.PossibleOther}} impact{{end}}</td><td class="n">{{.Score}}</td></tr>
+<tbody>{{range .Risks}}<tr><td><code>{{.Principal}}</code>{{if .Advisory}}<br><span class="badge nv"><span aria-hidden="true">!</span> {{.Advisory}}</span>{{end}}</td><td class="n">{{.Repos}}</td><td class="n">{{.Orgs}}</td>{{if $.HasCloud}}<td class="n">{{.Cloud}}</td>{{end}}<td class="n">{{.OIDC}}</td><td class="n">{{.Secrets}}</td><td class="n">{{.Runners}}</td><td class="n">{{.PossibleRepos}} {{if eq .PossibleRepos 1}}repo{{else}}repos{{end}}{{if .PossibleOther}} + {{.PossibleOther}} impact{{end}}</td><td class="n">{{.Score}}</td></tr>
 {{end}}</tbody></table></div>
 <p class="note">Score counts confirmed reach only. Possible reach depends on at least one fact gop could not see.</p>
 {{else}}<p class="note">The graph has no principals.</p>{{end}}

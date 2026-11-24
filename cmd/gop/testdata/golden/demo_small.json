@@ -54,6 +54,20 @@
       "evidence": "live"
     },
     {
+      "id": "action:acme-oss/checkout-ish@v2",
+      "kind": "action_ref",
+      "name": "acme-oss/checkout-ish@v2",
+      "attrs": {
+        "advisories": "GHSA-acme-demo-0001",
+        "advisory_fixed": "2.4.1",
+        "advisory_severity": "critical",
+        "in_enterprise": "false",
+        "ref_kind": "tag",
+        "source_api": "demo:planted-advisory"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "enterprise:acme",
       "kind": "enterprise",
       "name": "acme",
@@ -1080,6 +1094,15 @@
       "evidence": "live"
     },
     {
+      "id": "secret:acme-app/docs",
+      "kind": "secret",
+      "name": "acme-app/docs",
+      "attrs": {
+        "source_api": "demo:planted-advisory"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "secret:acme-app/payments",
       "kind": "secret",
       "name": "acme-app/payments",
@@ -1247,6 +1270,15 @@
       "name": "acme-app/docs/.github/workflows/ci.yml",
       "attrs": {
         "source_api": "demo:planted-cross-org"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/preview.yml",
+      "attrs": {
+        "source_api": "demo:planted-advisory"
       },
       "evidence": "live"
     },
@@ -2423,6 +2455,33 @@
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:planted-advisory",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "secret:acme-app/docs",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:planted-advisory",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/preview.yml",
+      "to": "action:acme-oss/checkout-ish@v2",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:planted-advisory",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "tag"
       }
     },
     {

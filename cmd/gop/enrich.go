@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -43,14 +44,18 @@ func (a *app) cmdEnrich(args []string) error {
 	fs.Var(&trusts, "oidc-trust", trustUsage)
 	carto := fs.String("cartography", "", cartographyUsage)
 	pout := fs.String("poutine", "", poutineUsage)
+	adv := addAdvisoryFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return err
 	}
 	if err := required("enrich", "graph", *gp, "out", *out); err != nil {
 		return err
 	}
-	if len(trusts) == 0 && *carto == "" && *pout == "" {
-		return usagef("enrich: --oidc-trust, --cartography or --poutine is required")
+	if err := adv.check("enrich"); err != nil {
+		return err
+	}
+	if len(trusts) == 0 && *carto == "" && *pout == "" && !adv.set() {
+		return usagef("enrich: --oidc-trust, --cartography or --poutine (or --advisories, --advisories-live) is required")
 	}
 	g, err := a.loadGraph("enrich", *gp, false)
 	if err != nil {
@@ -65,6 +70,9 @@ func (a *app) cmdEnrich(args []string) error {
 		if err := a.enrichPoutine(g, *pout); err != nil {
 			return err
 		}
+	}
+	if adv.set() {
+		a.applyAdvisories(context.Background(), "enrich", g, adv)
 	}
 	return a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) })
 }

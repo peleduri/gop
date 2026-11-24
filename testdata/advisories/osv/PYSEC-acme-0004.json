@@ -1,0 +1,11 @@
+{
+  "id": "PYSEC-acme-0004",
+  "modified": "2026-01-01T00:00:00Z",
+  "summary": "Synthetic, another ecosystem: must be ignored",
+  "affected": [
+    {
+      "package": {"ecosystem": "PyPI", "name": "acme-actions/checkout-ish"},
+      "ranges": [{"type": "ECOSYSTEM", "events": [{"introduced": "0"}]}]
+    }
+  ]
+}

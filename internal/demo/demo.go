@@ -18,6 +18,9 @@
 //  4. acme-legacy's repositories are not visible to the token: one possible
 //     (unconfirmed) path, with matching coverage entries.
 //  5. acme-app/worker runs on a self-hosted runner pool.
+//  6. acme-app/docs runs acme-oss/checkout-ish@v2, an action outside the
+//     enterprise whose v2 tag an advisory lists as compromised: it reaches
+//     the repo's secrets and ranks first.
 package demo
 
 import (
@@ -75,6 +78,13 @@ const (
 	legacyHiddenRep = "repo:acme-legacy/old-api"
 )
 
+// The planted action with a known advisory (story 6) and its synthetic
+// advisory ID.
+const (
+	CheckoutIsh  = "action:acme-oss/checkout-ish@v2"
+	DemoAdvisory = "GHSA-acme-demo-0001"
+)
+
 // Generator rules, used as "demo:<rule>" in source_api.
 const (
 	ruleEnterprise = "enterprise"
@@ -93,6 +103,7 @@ const (
 	ruleNested     = "planted-nested-action"
 	ruleHidden     = "planted-not-visible"
 	ruleRunner     = "planted-self-hosted-runner"
+	ruleAdvisory   = "planted-advisory"
 )
 
 type gen struct {
@@ -123,7 +134,7 @@ func refKind(action string) string {
 	switch action {
 	case DeployMain, SetupMain:
 		return "branch"
-	case DeployTag:
+	case DeployTag, CheckoutIsh:
 		return "tag"
 	}
 	return "sha"
@@ -376,6 +387,14 @@ func (g *gen) plant() []string {
 	signer := g.workflow("acme-secure", "signer", "release.yml", graph.Live, ruleNested)
 	g.uses(signer, ReleaseSHA, ruleNested)
 	g.terminal(signer, "oidc:acme-secure/signer", graph.KindOIDC, graph.Live, ruleNested)
+
+	// (6) An outside action whose tag was compromised (synthetic advisory).
+	g.node(CheckoutIsh, graph.KindActionRef, afterColon(CheckoutIsh), graph.Live, ruleAdvisory, map[string]string{
+		graph.AttrRefKind: "tag", "in_enterprise": "false", graph.AttrAdvisories: DemoAdvisory,
+		graph.AttrAdvisorySeverity: "critical", graph.AttrAdvisoryFixed: "2.4.1"})
+	preview := g.workflow("acme-app", "docs", "preview.yml", graph.Live, ruleAdvisory)
+	g.uses(preview, CheckoutIsh, ruleAdvisory)
+	g.terminal(preview, "secret:acme-app/docs", graph.KindSecret, graph.Live, ruleAdvisory)
 
 	// (4) One hop the token cannot see.
 	g.repo("acme-legacy", "old-api", graph.NotVisible, ruleHidden)

@@ -41,6 +41,9 @@ const FingerprintKey = "gopFixableEdge/v1"
 const (
 	RuleMutableRef  = "GOP001"
 	RuleDefaultPerm = "GOP002"
+	// RuleAdvisory: a workflow runs an action version with a known
+	// advisory (OSV GitHub Actions). Ranked above every other rule.
+	RuleAdvisory = "GOP003"
 )
 
 // Severities, lowest first.
@@ -210,6 +213,8 @@ type Properties struct {
 	Terminals           Terminals       `json:"terminals"`
 	Fix                 fixplan.FixSpec `json:"fix"`
 	ReachRemovedPct     float64         `json:"reach_removed_pct"`
+	// Advisories are the advisory IDs behind a GOP003 result.
+	Advisories []string `json:"advisories,omitempty"`
 }
 
 // Rules returns the rules gop reports, in ruleIndex order.
@@ -262,6 +267,28 @@ func Rules() []Rule {
 			DefaultConfiguration: Configuration{Level: "error"},
 			Properties:           map[string]any{"tags": tags, "precision": "high"},
 		},
+		{
+			ID:               RuleAdvisory,
+			Name:             "action-with-known-advisory-reachable",
+			ShortDescription: Message{Text: "A workflow runs an action version with a known compromise or vulnerability advisory"},
+			FullDescription: Message{Text: "The uses: line names an action version that an OSV GitHub Actions advisory lists as affected, " +
+				"for example a hijacked tag that shipped code stealing secrets. The workflow runs that code with its secrets, OIDC tokens and runners."},
+			Help: Help{
+				Text: "Move the action to the first fixed version the advisory names, or a commit SHA after it. Run gop fix-plan --pin <action> for every line to change. " +
+					"When the advisory is a compromise, also rotate the secrets and cloud credentials the workflow could reach while it ran the affected version.",
+				Markdown: "## Fix: move off the affected version\n\n" +
+					"An [OSV](https://osv.dev) advisory lists this action version as affected. A compromised action runs the attacker's code with " +
+					"the workflow's secrets, OIDC tokens and runners.\n\n" +
+					"- Move the `uses:` line to the first fixed version (`advisory_fixed` on the action node) or a commit SHA after it; " +
+					"`gop fix-plan --graph graph.json --pin action:<owner>/<repo>@<ref>` lists every line with a diff.\n" +
+					"- With no fixed version, remove or replace the action.\n" +
+					"- For a compromise, rotate the secrets and cloud credentials the workflow reached while it ran the affected version, and check its run logs.\n\n" +
+					"See docs/advisories.md for where the data comes from. gop never makes this change: make it with your own access.",
+			},
+			HelpURI:              HelpURI,
+			DefaultConfiguration: Configuration{Level: "error"},
+			Properties:           map[string]any{"tags": tags, "precision": "high"},
+		},
 	}
 }
 
@@ -304,6 +331,9 @@ func Build(g *graph.Graph, opts Options) (*Log, error) {
 	ix := graph.NewIndex(g)
 	en := &engine{ix: ix, reach: map[string]graph.Result{}, princs: ix.Principals()}
 	var results []Result
+	for _, a := range ix.AdvisoryActions() {
+		results = append(results, en.advisoryResults(a)...)
+	}
 	for _, f := range ix.Candidates() {
 		switch v := f.(type) {
 		case graph.PinRef:
@@ -349,6 +379,9 @@ func newLog(version string, results []Result) *Log {
 func sortResults(rs []Result) {
 	sort.SliceStable(rs, func(i, j int) bool {
 		a, b := rs[i], rs[j]
+		if aa, ba := a.RuleID == RuleAdvisory, b.RuleID == RuleAdvisory; aa != ba {
+			return aa
+		}
 		if a.Properties.Possible != b.Properties.Possible {
 			return !a.Properties.Possible
 		}
@@ -567,6 +600,80 @@ func (en *engine) pinResults(f graph.PinRef) []Result {
 		})
 	}
 	return out
+}
+
+// advisoryResults makes one GOP003 result per uses: line of an action with
+// a known advisory. Severity is the higher of the terminal impact and the
+// advisory's own (high when the advisory gives none).
+func (en *engine) advisoryResults(action string) []Result {
+	n, _ := en.ix.Node(action)
+	plan := fixplan.Build(en.ix, graph.PinRef{Action: action})
+	uses := strings.TrimPrefix(action, "action:")
+	_, ref := fixplanSplit(uses)
+	ids := strings.Join(graph.AdvisoryIDs(n), ", ")
+	advSev := n.Attrs[graph.AttrAdvisorySeverity]
+	if severityRank(advSev) < 0 {
+		advSev = SeverityHigh
+	}
+	fix := "Remove or replace it: the advisory names no fixed version."
+	if t := fixplan.FixedRef(n, ref); t != "" {
+		fix = fmt.Sprintf("Move to %s or a commit SHA after it.", t)
+	}
+	var out []Result
+	for _, s := range plan.Steps {
+		if s.Kind != fixplan.KindEditWorkflow {
+			continue
+		}
+		from, _, _ := strings.Cut(s.Edge, " "+string(graph.Uses)+" ")
+		possible := s.Unconfirmed
+		rr := en.reachOf(from)
+		reached := rr.Confirmed
+		if possible {
+			reached = union(rr.Confirmed, rr.Possible)
+		}
+		t := count(reached)
+		sev := severityOf(t)
+		if severityRank(advSev) > severityRank(sev) {
+			sev = advSev
+		}
+		ev := s.Evidence
+		if possible {
+			ev = graph.NotVisible
+		}
+		where := s.File
+		if where == "" {
+			where = logical(from).Name
+		}
+		msg := fmt.Sprintf("%s uses %s, a version with a known advisory (%s); it runs with %s. %s",
+			where, uses, ids, terminalPhrase(t), fix)
+		loc := Location{LogicalLocations: []LogicalLocation{logical(from)}}
+		if s.File != "" {
+			loc.PhysicalLocation = &PhysicalLocation{ArtifactLocation: ArtifactLocation{URI: s.File}}
+			if s.Line > 0 {
+				loc.PhysicalLocation.Region = &Region{StartLine: s.Line, StartColumn: s.Col}
+			}
+		}
+		out = append(out, Result{
+			RuleID: RuleAdvisory, RuleIndex: ruleIndex(RuleAdvisory), Level: level(sev, possible),
+			Message:             Message{Text: msg},
+			Locations:           []Location{loc},
+			PartialFingerprints: map[string]string{FingerprintKey: fingerprint(RuleAdvisory, s.Repo, s.File, uses)},
+			Properties: Properties{
+				Severity: sev, Repository: s.Repo, Edge: s.Edge, Evidence: ev, Possible: possible,
+				ConfirmedPrincipals: []string{}, PossiblePrincipals: []string{}, Terminals: t,
+				Fix: plan.Fix, Advisories: graph.AdvisoryIDs(n),
+			},
+		})
+	}
+	return out
+}
+
+// fixplanSplit splits "O/R[/path]@ref" at the last "@".
+func fixplanSplit(uses string) (base, ref string) {
+	if i := strings.LastIndex(uses, "@"); i >= 0 {
+		return uses[:i], uses[i+1:]
+	}
+	return uses, ""
 }
 
 func logical(id string) LogicalLocation {

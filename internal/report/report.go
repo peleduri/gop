@@ -146,6 +146,9 @@ type riskRow struct {
 	OIDC, Secrets, Runners       int
 	PossibleRepos, PossibleOther int
 	Score                        string
+	// Advisory is set when the row ranks first for a known advisory: the
+	// action's advisories, or the advisory actions its paths run through.
+	Advisory string
 }
 
 type fixRow struct {
@@ -230,7 +233,7 @@ func build(g *graph.Graph, opts Options) data {
 		d.Risks = append(d.Risks, riskRow{Principal: s.Principal, Repos: c.Repos, Orgs: c.Orgs,
 			Cloud: c.CloudTargets, OIDC: c.OIDC, Secrets: c.Secrets, Runners: c.Runners,
 			PossibleRepos: p.Repos, PossibleOther: p.CloudTargets + p.OIDC + p.Secrets + p.Runners,
-			Score: fmt.Sprintf("%.1f", s.Score)})
+			Score: fmt.Sprintf("%.1f", s.Score), Advisory: advisoryNote(ix, s)})
 		if pp := pickPaths(ix, s.Principal); len(pp) > 0 {
 			d.Paths = append(d.Paths, principalPaths{Principal: s.Principal, Paths: pp})
 		}
@@ -303,7 +306,7 @@ func orgCell(n graph.Node, key string) cell {
 func headlinePick(ix *graph.Index, top []graph.Score) graph.Score {
 	best := top[0]
 	for _, s := range top[1:] {
-		if s.Score != best.Score || s.PoutineInjectable != best.PoutineInjectable {
+		if s.Score != best.Score || s.PoutineInjectable != best.PoutineInjectable || (len(s.Advisories) > 0) != (len(best.Advisories) > 0) {
 			break
 		}
 		if ix.Kind(s.Principal) == graph.KindOrgMembers && ix.Kind(best.Principal) != graph.KindOrgMembers {
@@ -321,6 +324,10 @@ func headline(ix *graph.Index, s graph.Score) string {
 	}
 	out := fmt.Sprintf("%s can push code that runs in %s across %s (confirmed)", who,
 		plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
+	if len(s.Advisories) > 0 && s.Advisories[0] == s.Principal {
+		out = fmt.Sprintf("%s, a version with a known advisory (%s), runs in %s across %s (confirmed)",
+			strings.TrimPrefix(s.Principal, "action:"), advisoryLabel(ix, s.Principal), plural(c.Repos, "repo", "repos"), plural(c.Orgs, "org", "orgs"))
+	}
 	var term []string
 	if c.CloudTargets > 0 {
 		term = append(term, plural(c.CloudTargets, "cloud role", "cloud roles"))
@@ -357,6 +364,37 @@ func headline(ix *graph.Index, s graph.Score) string {
 		out += " Cloud hops from supplied trust files " + strings.Join(files, ", ") + ", not read from the cloud."
 	}
 	return out
+}
+
+// advisoryLabel is "GHSA-a, GHSA-b; severity critical; fixed in 2.0.1" for
+// an action with advisories.
+func advisoryLabel(ix *graph.Index, action string) string {
+	n, _ := ix.Node(action)
+	out := strings.Join(graph.AdvisoryIDs(n), ", ")
+	if sev := n.Attrs[graph.AttrAdvisorySeverity]; sev != "" {
+		out += "; severity " + sev
+	}
+	if f := n.Attrs[graph.AttrAdvisoryFixed]; f != "" {
+		out += "; fixed in " + f
+	} else {
+		out += "; no fixed version"
+	}
+	return out
+}
+
+// advisoryNote is the risks-table note for a row with Score.Advisories.
+func advisoryNote(ix *graph.Index, s graph.Score) string {
+	if len(s.Advisories) == 0 {
+		return ""
+	}
+	if s.Advisories[0] == s.Principal {
+		return "known advisory: " + advisoryLabel(ix, s.Principal)
+	}
+	names := make([]string, len(s.Advisories))
+	for i, a := range s.Advisories {
+		names[i] = strings.TrimPrefix(a, "action:")
+	}
+	return "paths run through an action with a known advisory: " + strings.Join(names, ", ")
 }
 
 func plural(n int, one, many string) string {

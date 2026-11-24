@@ -35,6 +35,14 @@ gop sarif --graph graph.json --split-by-repo DIR [same filters]
 |------|------|----------------|----------|
 | `GOP001` | `mutable-action-ref-reachable` | `uses:` line (USES edge) of a branch or tag action ref whose host repo a principal outside the consuming org can change | the consuming repo's workflow file and line (`artifactLocation.uri` relative to that repo, `properties.repository` names it) |
 | `GOP002` | `default-permission-grants-push` | org whose default repository permission gives members push (a `lower_default_perm` candidate) | logical location `org:<login>`, no file |
+| `GOP003` | `action-with-known-advisory-reachable` | `uses:` line (USES edge) of an action ref with a known compromise or vulnerability advisory (`advisories` attr, see [advisories.md](advisories.md)) | the consuming repo's workflow file and line, as for GOP001 |
+
+GOP003 results sort before every other result, whatever their severity, and
+`--top` keeps them first. Their fix is the `pin_ref` plan for the action, which
+for an advisory moves the line to the first fixed version (`advisory_fixed`) or
+a commit SHA after it. They have no principals: whoever compromised the version
+holds the reach, so `confirmed_principals` and `possible_principals` are empty
+and `reach_removed_pct` is 0.
 
 Results come from the same candidate fixes as `suggest_fixes` and `gop fix-plan`.
 A fix whose edges are all `not_visible` is never a result. Each rule's
@@ -51,7 +59,9 @@ recorded file (a nested action) has only a logical location.
 
 Severity comes from the terminal impact behind the result: for GOP001, what
 controlling the consuming workflow (or nested action) reaches; for GOP002, what
-the affected principals lose when the base permission is read.
+the affected principals lose when the base permission is read; for GOP003, what
+the consuming workflow reaches, raised to the advisory's own severity
+(`advisory_severity`, high when the advisory gives none) when that is higher.
 
 | Severity | Terminal impact | SARIF level |
 |----------|-----------------|-------------|
@@ -79,10 +89,11 @@ Every result carries a `properties` bag:
 | `terminals` | counts of `oidc`, `secrets`, `runners`, `cloud_targets` and `repos` behind the result |
 | `fix` | the fix in the shape the MCP tools take (`pin_ref` or `lower_default_perm`) |
 | `reach_removed_pct` | share of all confirmed (principal, repo) pairs the fix removes on its own |
+| `advisories` | GOP003: the advisory IDs behind the result |
 
 ## Fingerprints
 
 `partialFingerprints["gopFixableEdge/v1"]` is a SHA-256 of the rule, repo, file
-and action ref (GOP001) or the rule and org (GOP002). It does not include the
+and action ref (GOP001, GOP003) or the rule and org (GOP002). It does not include the
 line, so code scanning keeps tracking an alert when the `uses:` line moves, and
 it is identical across runs on the same graph.

@@ -347,3 +347,19 @@ const (
 	// missing). It counts as unpinned.
 	LockStale = "stale"
 )
+
+// Known-compromise and vulnerability advisories on action_ref nodes, from OSV
+// GitHub Actions advisories (gop collect or gop enrich with advisory data, see
+// docs/advisories.md). Set only when the node's ref is affected; a ref gop
+// cannot place gets a coverage entry (fact advisories) instead, never a
+// "safe" reading.
+const (
+	AttrAdvisories       = "advisories"        // comma list of advisory IDs, e.g. GHSA-xxxx-xxxx-xxxx
+	AttrAdvisorySeverity = "advisory_severity" // highest severity: critical | high | medium | low | unknown
+	AttrAdvisoryFixed    = "advisory_fixed"    // first fixed version that leaves every listed advisory; absent when one has no fix
+)
+
+// CoverageAdvisories is the coverage fact for advisory matching: skipped (no
+// data) on the enterprise scope, or one entry per action ref gop could not
+// place.
+const CoverageAdvisories = "advisories"

@@ -61,7 +61,7 @@ Running `gop enrich --poutine` again replaces the poutine attrs and `poutine_fin
 
 ## Ranking
 
-The rules `injection` and `untrusted_checkout_exec` are injection-class: attacker input becomes code in the workflow. For each principal, `poutine_injectable` on its score counts the confirmed-reached workflows with an injection-class finding. It is a separate rank factor, applied first: a principal whose confirmed reach includes such a workflow ranks above the same reach without one, in `top_risks` and the report. The `top_risks` summary says "N reached workflows with an injection finding from poutine (cited, not proved by gop)". Other rules (`debug_enabled`, `pr_runs_on_self_hosted`, ...) are recorded but do not change the order.
+The rules `injection` and `untrusted_checkout_exec` are injection-class: attacker input becomes code in the workflow. For each principal, `poutine_injectable` on its score counts the confirmed-reached workflows with an injection-class finding. It is a separate rank factor, applied right after known advisories (see [advisories.md](advisories.md#ranking)): a principal whose confirmed reach includes such a workflow ranks above the same reach without one, in `top_risks` and the report. The `top_risks` summary says "N reached workflows with an injection finding from poutine (cited, not proved by gop)". Other rules (`debug_enabled`, `pr_runs_on_self_hosted`, ...) are recorded but do not change the order.
 
 ## Evidence
 

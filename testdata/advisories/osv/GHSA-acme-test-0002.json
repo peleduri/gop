@@ -1,0 +1,12 @@
+{
+  "id": "GHSA-acme-test-0002",
+  "modified": "2026-01-01T00:00:00Z",
+  "summary": "Synthetic: script injection in acme-actions/lint-ish before 1.2.0",
+  "affected": [
+    {
+      "package": {"ecosystem": "GitHub Actions", "name": "acme-actions/lint-ish"},
+      "ranges": [{"type": "ECOSYSTEM", "events": [{"introduced": "0"}, {"fixed": "1.2.0"}]}]
+    }
+  ],
+  "database_specific": {"severity": "MODERATE"}
+}

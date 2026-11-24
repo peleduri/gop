@@ -2,7 +2,7 @@
 
 Enterprise **acme**, collected 2026-01-01T00:00:00Z
 
-> Members of acme-actions can push code that runs in 34 repos across 4 orgs (confirmed), including 4 cloud OIDC trusts, 6 secret scopes, 1 self-hosted runner pool.
+> acme-oss/checkout-ish@v2, a version with a known advisory (GHSA-acme-demo-0001; severity critical; fixed in 2.4.1), runs in 1 repo across 1 org (confirmed), including 1 secret scope.
 >
 > Lower the default repository permission of acme-actions to read to remove 59% of confirmed reach.
 >
@@ -14,6 +14,7 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |
 |---|---:|---:|---:|---:|---:|---:|---:|
+| action:acme-oss/checkout-ish@v2 (known advisory: GHSA-acme-demo-0001; severity critical; fixed in 2.4.1) | 1 | 1 | 0 | 1 | 0 | 0 repos | 8.5 |
 | identity:bob | 34 | 4 | 4 | 6 | 1 | 0 repos | 273.4 |
 | members:acme-actions | 34 | 4 | 4 | 6 | 1 | 0 repos | 273.4 |
 | identity:user-020 | 1 | 1 | 0 | 1 | 0 | 0 repos | 8.5 |
@@ -23,7 +24,6 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 | identity:user-013 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
 | identity:user-018 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
 | identity:alice | 1 | 1 | 0 | 0 | 0 | 0 repos | 3.5 |
-| identity:user-001 | 1 | 1 | 0 | 0 | 0 | 0 repos | 3.5 |
 
 Score counts confirmed reach only.
 
@@ -45,6 +45,12 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
 
 ## Top paths
+
+### action:acme-oss/checkout-ish@v2
+
+- **confirmed** to secret:acme-app/docs
+  1. action:acme-oss/checkout-ish@v2 → workflow:acme-app/docs/.github/workflows/preview.yml, USES (reversed), **live**, demo:planted-advisory
+  2. workflow:acme-app/docs/.github/workflows/preview.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, demo:planted-advisory
 
 ### identity:bob
 
@@ -124,11 +130,6 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 
 - **confirmed** to repo:acme-app/infra
   1. identity:alice → repo:acme-app/infra, CAN\_PUSH, **live**, demo:collaborator
-
-### identity:user-001
-
-- **confirmed** to repo:acme-app/search
-  1. identity:user-001 → repo:acme-app/search, CAN\_PUSH, **live**, demo:collaborator
 
 ## Org settings
 
