@@ -26,7 +26,15 @@ add a row there to detect a new action or CLI.
 | A step `uses:` a known agent action (any ref, any letter case; matched by `owner/repo[/path]`) | `uses` | `action` | `claude-code-action`, `claude-code-base-action`, `claude-code-security-review`, `codex-action`, `gemini-cli-action`, `pr-agent`, `opencode-action` |
 | The Copilot coding agent setup job (`copilot-setup-steps`) | `setup` | `action` | `copilot-coding-agent` |
 | A `run:` step invokes a known agent CLI non-interactively (a prompt flag or subcommand) | `run` | `cli` | `claude-cli` (`claude -p`), `codex-cli` (`codex exec`), `cursor-cli` (`cursor-agent -p`), `gemini-cli` (`gemini -p`), `aider` (`aider --message`), `opencode-cli` (`opencode run`), `llm-cli` (`llm "..."`) |
+| On a risky trigger, a job with no known agent has a step that holds a model API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN` and similar, as an env name or a secret name) and reads the pull request's content: a checkout of its head made by an earlier step (named in `run:`, `with:` or `env:`), `gh pr diff` or `gh pr view`, or attacker contexts | `heuristic` | `heuristic` | `llm-script` |
 | Only the workflow name, the file name or a job id or name contains `ai-`, `claude`, `codex`, `copilot` or `llm` | `name` | `name_only` | `unknown` |
+
+A heuristic match covers trusted code from the base branch that feeds the
+pull request's files or text to a model, a custom script rather than a known
+agent: it is untrusted text reaching an AI step that holds secrets, not
+untrusted code running. Its `CAN_TRIGGER` edges are `not_visible`, so it gives
+possible reach only and does not add to the `agent_exposed` rank factor.
+Its `agent_prompt_injection` includes `pr_content`.
 
 A name-only match is weak: it is listed in the report but never ranked, never
 reported in SARIF and never makes a path agentic. A bare `claude --version`
@@ -54,7 +62,7 @@ and `action.yml`:
 | `agent_jobs` | The agent job ids |
 | `agent_gate` | The weakest actor check of the agent steps: `write_access`, `listed_users`, `anyone`, `none`, `unknown` |
 | `agent_exposure` | Who can start an agent job with the base repo's token and secrets: `outsiders` (a risky trigger such as `pull_request_target`, `issue_comment`, `issues`, `discussion*` or `workflow_run`, and a gate that lets them in), `listed_users`, `fork_readonly` (only a fork's `pull_request`, which gets a read-only token and no secrets) or `maintainers` |
-| `agent_prompt_injection` | Attacker-controlled contexts (`${{ github.event.issue.title }}`, ...) interpolated into the agent step's `with:`, `env:` or `run:`, found by the same patterns as gop's injection heuristic |
+| `agent_prompt_injection` | Attacker-controlled contexts (`${{ github.event.issue.title }}`, ...) interpolated into the agent step's `with:`, `env:` or `run:`, found by the same patterns as gop's injection heuristic; `pr_content` when a heuristic match reads the pull request's files, diff or text |
 | `agent_permissions` | The agent jobs' token write scopes: `contents:write`, `pull-requests:write`, `id-token:write`, `write-all`, ..., or `default` when a job takes the repo default |
 | `agent_secrets` | How many secrets the agent jobs reference (`GITHUB_TOKEN` excluded) |
 | `agent_runner` | `hosted`, `self_hosted` or `unknown` |
@@ -66,7 +74,10 @@ When `agent_exposure` is `outsiders`, the collector adds
 can cause the trigger without push access (anyone on the internet for a
 public repo, the members of every org for an internal one, the org's members
 for a private one), exactly as for the other risky-trigger patterns. With an
-`unknown` gate the edge is `not_visible`: possible reach only.
+`unknown` gate, or a heuristic match, the edge is `not_visible`: possible
+reach only. A job `if:` that checks the comment author's `author_association`
+narrows who can trigger it (see [Triggers](schema.md#triggers)); note that
+`CONTRIBUTOR` includes outside contributors.
 
 Even when only maintainers can start an agent, it still reads the event's
 text: a maintainer who asks the agent to look at an outsider's issue hands it

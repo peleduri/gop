@@ -47,7 +47,7 @@ func init() {
 		graph.AttrAdvisories, graph.AttrAdvisorySeverity, graph.AttrAdvisoryFixed,
 		graph.AttrAgent, graph.AttrAgentSource, graph.AttrAgentConfidence, graph.AttrAgentJobs, graph.AttrAgentGate,
 		graph.AttrAgentExposure, graph.AttrAgentPrompt, graph.AttrAgentPerms, graph.AttrAgentSecrets, graph.AttrAgentRunner,
-		graph.AttrAgentTools, graph.AttrAgentRefKind,
+		graph.AttrAgentTools, graph.AttrAgentRefKind, graph.AttrUntrustedCheckout,
 		graph.AttrLockAdvisories, graph.AttrLockAdvisorySeverity, graph.AttrLockAdvisoryFixed,
 		graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview, graph.AttrBranchDismissStale,
 		graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits, graph.AttrBranchForcePush,
@@ -56,7 +56,7 @@ func init() {
 		graph.AttrCodeowners, graph.AttrCodeownersValid, graph.AttrCodeownersWorkflows,
 		graph.AttrSecretScanning, graph.AttrSecretPushProtection, graph.AttrSecretValidity,
 		// documented in the JSON Schema
-		"token_write", "token_scopes", "risky_triggers", "trigger", "exec",
+		"token_write", "token_scopes", "risky_triggers", "trigger", "exec", "author_association",
 		// named by the redaction itself
 		"secrets", "labels", "source_api",
 	} {
@@ -391,26 +391,29 @@ func init() {
 func init() {
 	policies[graph.AttrAgent] = words
 	policies[graph.AttrAgentSource] = words
-	policies[graph.AttrAgentConfidence] = enum(graph.AgentAction, graph.AgentCLI, graph.AgentNameOnly)
+	policies[graph.AttrAgentConfidence] = enum(graph.AgentAction, graph.AgentCLI, graph.AgentHeuristic, graph.AgentNameOnly)
 	policies[graph.AttrAgentJobs] = list(func(r *redactor, s string) string { return r.job(s) })
 	policies[graph.AttrAgentGate] = enum(graph.GateWriteAccess, graph.GateListed, graph.GateAnyone, graph.GateNone, graph.GateUnknown)
 	policies[graph.AttrAgentExposure] = enum(graph.ExposureOutsiders, graph.ExposureListed, graph.ExposureForkRO, graph.ExposureMaintainer)
-	policies[graph.AttrAgentPrompt] = contextList
+	policies[graph.AttrAgentPrompt] = promptList
 	policies[graph.AttrAgentPerms] = scopeList
 	policies[graph.AttrAgentSecrets] = integer
 	policies[graph.AttrAgentRunner] = enum("hosted", "self_hosted", "unknown")
 	policies[graph.AttrAgentTools] = enumList(graph.AgentToolFlags...)
 	policies[graph.AttrAgentRefKind] = enum("sha", "tag", "branch")
+	policies[graph.AttrUntrustedCheckout] = enum("exec", "read_only")
+	policies["author_association"] = enumList("OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER", "MANNEQUIN", "NONE")
 }
 
 var (
-	contextRe = regexp.MustCompile(`^github(\.[a-z_]+|\.\*|\[[0-9*]*\])+$`)
-	scopeRe   = regexp.MustCompile(`^([a-z][a-z-]*:write|write-all|default)$`)
+	promptRe = regexp.MustCompile(`^(pr_content|github(\.[a-z_]+|\.\*|\[[0-9*]*\])+)$`)
+	scopeRe  = regexp.MustCompile(`^([a-z][a-z-]*:write|write-all|default)$`)
 )
 
-// contextList keeps a comma list of GitHub expression context names.
-func contextList(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
-	return matchAll(contextRe, v)
+// promptList keeps agent_prompt_injection: a comma list of GitHub expression
+// context names and pr_content.
+func promptList(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
+	return matchAll(promptRe, v)
 }
 
 // scopeList keeps a comma list of token write scopes.

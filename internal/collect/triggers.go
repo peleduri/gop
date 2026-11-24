@@ -22,7 +22,7 @@ import (
 
 // Untrusted execution kinds (UntrustedExec.Kind, CAN_TRIGGER attr exec).
 const (
-	ExecCheckout  = "checkout"  // the job checks out the pull request's head
+	ExecCheckout  = "checkout"  // the job checks out the pull request's head and runs code from it (prcheckout.go)
 	ExecInjection = "injection" // attacker text is interpolated into a script
 	// ExecAgent (agents.go): an AI coding agent reads attacker text and acts
 	// with the job's token, secrets and tools.
@@ -39,6 +39,9 @@ type UntrustedExec struct {
 	// principals in (an agent action with an unknown actor check): the
 	// CAN_TRIGGER edge is not_visible, so it gives possible reach only.
 	Unverified bool
+	// Assoc are the author_association values the job's if: allows on this
+	// trigger (assocGate), sorted; nil when it has no such gate.
+	Assoc []string
 }
 
 // riskyTriggers run in the base repo's context with its secrets on events that
@@ -106,11 +109,14 @@ var exprRe = regexp.MustCompile(`\$\{\{(.*?)\}\}`)
 // every job. It is lenient: a shape it does not understand yields nothing
 // rather than an error (GitHub rejects such files anyway), so it never turns a
 // readable workflow into a parse error.
-func triggerFacts(doc *yaml.Node) (triggers []string, execs []UntrustedExec) {
+//
+// readOnly lists the checkouts of the pull request's code that no later step
+// runs (untrusted input, not execution), once per job and checkout.
+func triggerFacts(doc *yaml.Node) (triggers []string, execs, readOnly []UntrustedExec) {
 	w := &yamlWalk{}
 	root, err := w.mapping(rootMap(doc), "workflow")
 	if err != nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	triggers = parseOn(w, field(root, "on"))
 	var risky []string
@@ -120,12 +126,12 @@ func triggerFacts(doc *yaml.Node) (triggers []string, execs []UntrustedExec) {
 		}
 	}
 	if len(risky) == 0 {
-		return triggers, nil
+		return triggers, nil, nil
 	}
 	_, jobsNode := root.get("jobs")
 	jobs, err := w.mapping(jobsNode, "jobs")
 	if err != nil {
-		return triggers, nil
+		return triggers, nil, nil
 	}
 	ids := append([]string(nil), jobs.keys...)
 	sort.Strings(ids)
@@ -135,14 +141,19 @@ func triggerFacts(doc *yaml.Node) (triggers []string, execs []UntrustedExec) {
 		if err != nil {
 			continue
 		}
-		found := jobPatterns(w, job)
+		found, ro := jobPatterns(w, job)
 		for _, t := range risky {
+			assoc := assocGate(w, job, t)
 			for _, x := range found {
-				execs = append(execs, UntrustedExec{Job: id, Trigger: t, Kind: x.Kind, Detail: x.Detail, Line: x.Line})
+				execs = append(execs, UntrustedExec{Job: id, Trigger: t, Kind: x.Kind, Detail: x.Detail, Line: x.Line, Assoc: assoc})
 			}
 		}
+		for _, x := range ro {
+			x.Job = id
+			readOnly = append(readOnly, x)
+		}
 	}
-	return triggers, execs
+	return triggers, execs, readOnly
 }
 
 // parseOn reads on: as a string, a list or a map, sorted and deduplicated.
@@ -175,13 +186,17 @@ func parseOn(w *yamlWalk, n *yaml.Node) []string {
 }
 
 // jobPatterns returns the untrusted execution patterns in one job's steps, in
-// step order, at most one per (kind, detail) with the line of its first match.
-func jobPatterns(w *yamlWalk, job *yamlMap) []UntrustedExec {
+// step order, at most one per (kind, detail) with the line of its first match,
+// and the checkouts of the pull request's code that no later step runs.
+func jobPatterns(w *yamlWalk, job *yamlMap) (out, readOnly []UntrustedExec) {
 	steps, err := w.sequence(field(job, "steps"), "steps")
 	if err != nil {
-		return nil
+		return nil, nil
 	}
-	var out []UntrustedExec
+	checkouts := map[int][]prCheckout{}
+	for _, c := range prCheckouts(w, steps) {
+		checkouts[c.step] = append(checkouts[c.step], c)
+	}
 	type key struct{ kind, detail string }
 	seen := map[key]bool{}
 	add := func(kind, detail string, at *yaml.Node) {
@@ -195,23 +210,26 @@ func jobPatterns(w *yamlWalk, job *yamlMap) []UntrustedExec {
 			out = append(out, x)
 		}
 	}
-	for _, sn := range steps {
+	roSeen := map[string]bool{}
+	for i, sn := range steps {
 		step, err := w.mapping(sn, "step")
 		if err != nil {
 			continue
 		}
 		uses := strings.ToLower(scalarOf(w, field(step, "uses")))
 		with, _ := w.mapping(field(step, "with"), "with")
-		if strings.HasPrefix(uses, "actions/checkout@") {
-			for _, name := range []string{"ref", "repository"} {
-				v := scalarOf(w, field(with, name))
-				kn, _ := with.get(name)
-				for _, u := range untrustedRefs {
-					if strings.Contains(v, u) {
-						add(ExecCheckout, name+": "+strings.TrimSpace(v), kn)
-						break
-					}
+		for _, c := range checkouts[i] {
+			if checkoutRuns(w, job, steps, c) {
+				add(ExecCheckout, c.detail, c.at)
+				continue
+			}
+			if d := truncate(c.detail, 200); !roSeen[d] {
+				roSeen[d] = true
+				x := UntrustedExec{Kind: ExecCheckout, Detail: d}
+				if c.at != nil {
+					x.Line = c.at.Line
 				}
+				readOnly = append(readOnly, x)
 			}
 		}
 		run := scalarOf(w, field(step, "run"))
@@ -236,7 +254,7 @@ func jobPatterns(w *yamlWalk, job *yamlMap) []UntrustedExec {
 			}
 		}
 	}
-	return out
+	return out, readOnly
 }
 
 // injectedContexts returns the attacker-controlled contexts used inside ${{ }} in s.
@@ -264,11 +282,12 @@ func scalarOf(w *yamlWalk, n *yaml.Node) string {
 
 // Workflow attribute keys and the coverage fact for triggers.
 const (
-	attrRiskyTriggers = "risky_triggers" // comma list of the workflow's risky triggers
-	attrTrigger       = "trigger"        // CAN_TRIGGER: the trigger
-	attrExec          = "exec"           // CAN_TRIGGER: checkout | injection | agent
-	attrJob           = "job"            // CAN_TRIGGER: the job id
-	attrDetail        = "detail"         // CAN_TRIGGER: the matched value
+	attrRiskyTriggers = "risky_triggers"     // comma list of the workflow's risky triggers
+	attrTrigger       = "trigger"            // CAN_TRIGGER: the trigger
+	attrExec          = "exec"               // CAN_TRIGGER: checkout | injection | agent
+	attrJob           = "job"                // CAN_TRIGGER: the job id
+	attrDetail        = "detail"             // CAN_TRIGGER: the matched value
+	attrAssoc         = "author_association" // CAN_TRIGGER: the author_association values the job's if: allows
 	factTriggering    = "triggering_principals"
 )
 
@@ -287,6 +306,15 @@ type trigger struct {
 func (k *collector) addTriggerFacts(o *orgState, repo *graph.Node, wid string, wn *graph.Node, f *WorkflowFacts) {
 	if r := f.RiskyTriggers(); len(r) > 0 {
 		setAttr(wn, attrRiskyTriggers, strings.Join(r, ","), graph.Live)
+	}
+	for _, x := range f.UntrustedExec {
+		if x.Kind == ExecCheckout {
+			setAttr(wn, graph.AttrUntrustedCheckout, CheckoutExec, graph.Live)
+			break
+		}
+	}
+	if len(f.ReadOnlyCheckouts) > 0 && wn.Attrs[graph.AttrUntrustedCheckout] == "" {
+		setAttr(wn, graph.AttrUntrustedCheckout, CheckoutReadOnly, graph.Live)
 	}
 	if len(f.UntrustedExec) == 0 {
 		return
@@ -319,6 +347,9 @@ func (k *collector) addTriggerFacts(o *orgState, repo *graph.Node, wid string, w
 			attrJob:     t.exec.Job,
 			attrDetail:  t.exec.Detail,
 		}
+		if len(t.exec.Assoc) > 0 {
+			attrs[attrAssoc] = strings.Join(t.exec.Assoc, ",")
+		}
 		locate(attrs, f.File, f.FileRef, t.exec.Line, 0)
 		k.edge(p, wid, graph.CanTrigger, t.ev, srcWorkflow, attrs)
 	}
@@ -336,12 +367,31 @@ func (k *collector) addTriggerFacts(o *orgState, repo *graph.Node, wid string, w
 // A fork trigger on an internal or private repo also needs the repo's org to
 // allow forking private and internal repos. A fact the token can't read makes
 // the edge not_visible.
+//
+// A job whose if: checks the comment author's author_association (x.Assoc)
+// narrows this: MEMBER lets in only the members of the repo's org; OWNER
+// and COLLABORATOR alone let in only collaborators, whose read grants gop
+// does not collect (coverage). CONTRIBUTOR, and the first-timer and NONE
+// values, include people outside the org and do not narrow it.
 func (k *collector) triggerers(o *orgState, repo *graph.Node, x UntrustedExec) []trigger {
 	ev := graph.Live
 	if repo.AttrEvidence[graph.AttrVisibility] == graph.NotVisible {
 		ev = graph.NotVisible
 	}
 	vis := repo.Attrs[graph.AttrVisibility]
+	if len(x.Assoc) > 0 {
+		switch assocClass(x.Assoc) {
+		case assocCollaborators:
+			k.cover(repo.ID, factTriggering, "job "+x.Job+" runs on "+x.Trigger+" only for authors whose author_association is "+
+				strings.Join(x.Assoc, " or ")+": collaborators with read access can trigger it, and gop collects push grants only",
+				"none (gop does not collect read grants yet)")
+			return nil
+		case assocMembers:
+			if vis == "public" || vis == "internal" {
+				return []trigger{{principal: "members:" + o.login, ev: ev, exec: x}}
+			}
+		}
+	}
 	if vis == "public" || (vis != "internal" && vis != "private") {
 		if vis != "public" {
 			ev = graph.NotVisible // visibility unknown: maybe public

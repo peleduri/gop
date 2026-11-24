@@ -79,8 +79,12 @@ type WorkflowFacts struct {
 
 	// Triggers are the on: event names, sorted; UntrustedExec the jobs that
 	// run attacker input under a risky trigger (triggers.go).
-	Triggers      []string
-	UntrustedExec []UntrustedExec
+	// ReadOnlyCheckouts are the checkouts of the pull request's code under a
+	// risky trigger that no later step runs (prcheckout.go): untrusted input,
+	// not execution, so they make no CAN_TRIGGER edge.
+	Triggers          []string
+	UntrustedExec     []UntrustedExec
+	ReadOnlyCheckouts []UntrustedExec
 
 	// Agents are the jobs that run an AI coding agent (agents.go). Name and
 	// JobNames (job id -> name:, only when set) feed the weak name-only match.
@@ -582,7 +586,7 @@ func ParseWorkflow(data []byte) (*WorkflowFacts, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse workflow: %w", err)
 	}
-	f.Triggers, f.UntrustedExec = triggerFacts(&doc)
+	f.Triggers, f.UntrustedExec, f.ReadOnlyCheckouts = triggerFacts(&doc)
 	f.readAgents(&doc)
 	return f, nil
 }

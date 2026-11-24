@@ -101,6 +101,7 @@ jobs:
         with:
           repository: ${{ github.event.workflow_run.head_repository.full_name }}
           ref: ${{ github.event.workflow_run.head_sha }}
+      - run: make report
 `,
 			want: []UntrustedExec{
 				{Job: "report", Trigger: "workflow_run", Kind: ExecCheckout, Detail: "ref: ${{ github.event.workflow_run.head_sha }}", Line: 10},

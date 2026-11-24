@@ -435,8 +435,8 @@ const (
 // together: the weakest gate, the widest exposure, the union of the rest.
 const (
 	AttrAgent           = "agent"            // sorted comma list of agent kinds, e.g. claude-code-action,codex-cli
-	AttrAgentSource     = "agent_source"     // sorted comma list of how each was found: uses | run | setup | name
-	AttrAgentConfidence = "agent_confidence" // action | cli | name_only (strongest signal); name_only never makes a path agentic
+	AttrAgentSource     = "agent_source"     // sorted comma list of how each was found: uses | run | setup | heuristic | name
+	AttrAgentConfidence = "agent_confidence" // action | cli | heuristic | name_only (strongest signal); name_only never makes a path agentic
 	AttrAgentJobs       = "agent_jobs"       // sorted comma list of the agent job ids
 	AttrAgentGate       = "agent_gate"       // write_access | listed_users | anyone | none | unknown: who the agent itself lets start it
 	AttrAgentExposure   = "agent_exposure"   // outsiders | listed_users | fork_readonly | maintainers: who can start an agent job with the base repo's token and secrets
@@ -448,11 +448,23 @@ const (
 	AttrAgentRefKind    = "agent_ref_kind"    // sha | tag | branch: the least pinned ref of the agent actions (absent for CLIs)
 )
 
+// PromptPRContent is the agent_prompt_injection value for the pull request's
+// files, diff or text read by an LLM step found by heuristic (the other
+// values are attacker contexts interpolated into the agent steps).
+const PromptPRContent = "pr_content"
+
+// AttrUntrustedCheckout is set on a workflow that checks out the pull
+// request's head under a risky trigger: exec when a later step runs code from
+// that checkout (a CAN_TRIGGER edge with exec=checkout), read_only when gop
+// sees no step that does (untrusted input for trusted code, not execution).
+const AttrUntrustedCheckout = "untrusted_checkout"
+
 // Values of agent_confidence.
 const (
-	AgentAction   = "action"    // a step uses: a known agent action (or the Copilot setup workflow)
-	AgentCLI      = "cli"       // a run: step invokes a known agent CLI non-interactively
-	AgentNameOnly = "name_only" // only the workflow, job or file name looks like an agent: weak
+	AgentAction    = "action"    // a step uses: a known agent action (or the Copilot setup workflow)
+	AgentCLI       = "cli"       // a run: step invokes a known agent CLI non-interactively
+	AgentHeuristic = "heuristic" // a step holds a model API key and reads the pull request's content: its CAN_TRIGGER edges are not_visible
+	AgentNameOnly  = "name_only" // only the workflow, job or file name looks like an agent: weak
 )
 
 // Values of agent_gate: who the agent action lets start a run, read from
