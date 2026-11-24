@@ -71,6 +71,9 @@ Usage:
   gop version
 
 collect reads the token from GITHUB_TOKEN (or GH_TOKEN). It only reads.
+--use-gh-auth (collect, doctor, pin) takes the token of the gh login instead
+(gh auth token, for --github-url's host or GH_HOST). Run as a gh extension
+(gh gop ...), gop falls back to the gh login when neither variable is set.
 When the token cannot read the enterprise (an org-scoped App installation
 token, a non-owner token, or no read:enterprise), collect builds the graph
 per org: from --orgs, or else the token's own orgs. Enterprise-level facts
@@ -134,6 +137,9 @@ type app struct {
 	// server.
 	apiURL    string
 	transport http.RoundTripper
+	// gh reads the token of the GitHub CLI login (--use-gh-auth, or gop run
+	// as `gh gop`); nil means running gh. Tests set a fake.
+	gh ghTokener
 }
 
 func main() {
@@ -288,7 +294,7 @@ func (a *app) cmdCollect(args []string) error {
 			return usagef("collect: --oidc-trust: %v", err)
 		}
 	}
-	cr, err := a.resolveCreds("collect", af)
+	cr, err := a.resolveCreds("collect", af, *uf.useGH, ghHost(ep, a.getenv))
 	if err != nil {
 		return err
 	}

@@ -39,7 +39,7 @@ func (a *app) cmdDoctor(args []string) error {
 	if err != nil {
 		return err
 	}
-	cr, err := a.resolveCreds("doctor", af)
+	cr, err := a.resolveCreds("doctor", af, *uf.useGH, ghHost(ep, a.getenv))
 	if err != nil {
 		return err
 	}

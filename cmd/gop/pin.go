@@ -112,12 +112,13 @@ func (a *app) cmdPin(args []string) error {
 	if err != nil {
 		return err
 	}
-	token := a.getenv("GITHUB_TOKEN")
-	if token == "" {
-		token = a.getenv("GH_TOKEN")
+	token, err := a.resolveToken("pin", *uf.useGH, ghHost(ep, a.getenv))
+	if err != nil {
+		return err
 	}
 	if token == "" {
-		return usagef("pin: set GITHUB_TOKEN (or GH_TOKEN) to a read-only token; gop never takes a token as a flag")
+		return usagef("pin: set GITHUB_TOKEN (or GH_TOKEN) to a read-only token, or pass --use-gh-auth to use the gh login; " +
+			"gop never takes a token as a flag")
 	}
 	var g *graph.Graph
 	if *gp != "" {
