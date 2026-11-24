@@ -84,6 +84,7 @@ type data struct {
 	LockLine string
 	Paths    []principalPaths
 	Orgs     []orgRow
+	OrgWhy   []orgWhy // why each unknown org setting is unknown
 	Coverage []graph.Coverage
 	Banner   *banner // set only with Options.Changes
 
@@ -186,6 +187,9 @@ type pathView struct {
 	Confirmed bool
 	Hops      []hopView
 	Note      string // supplied-file caveat, "" for paths read only from GitHub
+	// Hardening is the target org's weak or unknown SSO and IP allow list
+	// (graph.OrgHardening.Line): context only, never part of the score.
+	Hardening string
 }
 
 type hopView struct {
@@ -194,24 +198,6 @@ type hopView struct {
 	Reverse                   bool
 	Evidence                  string // live | inferred | audit | audit, stale | supplied file | not visible
 	Class                     string // live | audit | supplied | nv
-}
-
-type orgRow struct {
-	Org   string
-	Cells []cell
-}
-
-type cell struct {
-	Value string
-	NV    bool
-}
-
-var orgCols = []struct{ Key, Title string }{
-	{graph.AttrDefaultPerm, "Default permission"},
-	{graph.AttrTwoFactor, "2FA"},
-	{graph.AttrSSO, "SSO"},
-	{graph.AttrIPAllowList, "IP allow list"},
-	{graph.AttrMembers, "Members"},
 }
 
 func build(g *graph.Graph, opts Options) data {
@@ -276,42 +262,12 @@ func build(g *graph.Graph, opts Options) data {
 	if st := ix.PinStats(); st.HasLock() {
 		d.LockLine = lockLine(st)
 	}
-	for _, n := range g.Nodes {
-		if n.Kind != graph.KindOrg {
-			continue
-		}
-		r := orgRow{Org: n.Name}
-		if r.Org == "" {
-			r.Org = n.ID
-		}
-		for _, col := range orgCols {
-			r.Cells = append(r.Cells, orgCell(n, col.Key))
-		}
-		d.Orgs = append(d.Orgs, r)
-	}
-	sort.Slice(d.Orgs, func(i, j int) bool { return d.Orgs[i].Org < d.Orgs[j].Org })
+	d.Orgs, d.OrgWhy = orgSettings(g)
 	d.Coverage = g.Coverage
 	if opts.Changes != nil {
 		d.Banner = buildBanner(opts.Changes, pick)
 	}
 	return d
-}
-
-// orgCell never turns an unseen setting into a value: not_visible evidence or
-// an "unknown" value reads "not visible"; a missing attribute reads "unknown".
-func orgCell(n graph.Node, key string) cell {
-	ev := n.Evidence
-	if e, ok := n.AttrEvidence[key]; ok {
-		ev = e
-	}
-	v, ok := n.Attrs[key]
-	if ev == graph.NotVisible || v == "unknown" {
-		return cell{Value: "not visible", NV: true}
-	}
-	if !ok || v == "" {
-		return cell{Value: "unknown", NV: true}
-	}
-	return cell{Value: v}
 }
 
 // headlinePick is the top-ranked row; among equal ranks a population wins
@@ -524,7 +480,11 @@ func pickPaths(ix *graph.Index, principal string) []pathView {
 	}
 	out := make([]pathView, 0, len(chosen))
 	for _, p := range chosen {
-		out = append(out, viewPath(p))
+		pv := viewPath(p)
+		if h := ix.TargetOrgHardening(p); h != nil {
+			pv.Hardening = h.Line()
+		}
+		out = append(out, pv)
 	}
 	return out
 }

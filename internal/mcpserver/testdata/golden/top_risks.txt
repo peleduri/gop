@@ -69,5 +69,17 @@ top risk: `identity:bob` can control 12 repos across 2 orgs (confirmed), includi
       "score": 3.5,
       "possible_score": 0
     }
+  ],
+  "target_org_hardening": [
+    {
+      "org": "org:acme-actions",
+      "sso": "configured",
+      "ip_allow_list": "unknown"
+    },
+    {
+      "org": "org:acme-app",
+      "sso": "enforced",
+      "ip_allow_list": "unknown"
+    }
   ]
 }

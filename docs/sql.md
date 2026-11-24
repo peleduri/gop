@@ -35,6 +35,8 @@ edges(run_id, edge_id, src, dst, label, evidence, confirmed, source_api, observe
 edge_attrs(run_id, edge_id, key, value)
 findings(run_id, rule, subject, severity, possible)
 reach(run_id, principal, target, target_kind, confirmed, evidence, hops, path)
+org_settings(run_id, org, sso, two_factor, ip_allow_list, ip_allow_list_entries, ip_allow_list_apps,
+             default_perm, members_create, change_visibility, delete_repos, private_forks, members)   -- view
 ```
 
 | Table | Rows |
@@ -45,6 +47,7 @@ reach(run_id, principal, target, target_kind, confirmed, evidence, hops, path)
 | `edges` | One per edge. `label` is the edge kind (`CAN_PUSH`, `USES`, ...). `confirmed` is 1 for `live`, `inferred`, `audit` and `supplied` evidence (an edge's own evidence: audit facts are not aged here; the `reach` table applies the audit age). `edge_id` numbers the edges of a run in a stable order. |
 | `edge_attrs` | One per edge attribute (`via`, `ref_kind`, `file`, `line`, ...), keyed by `edge_id`. |
 | `reach` | gop's computed reach, so SQL never reimplements the traversal: one row per scoring principal (org members, outside principals, and identities and teams with their own grants; see [schema.md](schema.md#principals-and-scoring)) and node it reaches (repos, workflows, action refs, secrets, OIDC, runners, cloud targets, ...). `confirmed` is 1 when every hop of the path is confirmed, 0 when the path needs a fact gop could not see (possible reach). `path` is the shortest path as a JSON array of node IDs, `hops` its length. |
+| `org_settings` | A view over `nodes` and `node_attrs`: one row per run and org with the settings of the report's Org settings table, each from the org attribute of the same name (see [schema.md](schema.md#attributes)). A setting that is `not_visible`, `unknown` or not collected reads `'unknown'`, never off or NULL. |
 | `findings` | `rule = 'top_risk'`: one row per scoring principal with any reach; `severity` is its confirmed blast-radius score (as in `top_risks` and the report) and `possible` its possible score. `rule = 'fix_pin'`, `'fix_default_perm'`, `'fix_restrict_token'`, `'fix_harden_trigger'`: one row per fix candidate, `subject` is the fix ID (`pin:action:acme-actions/deploy@main`), `severity` the confirmed (principal, repo) pairs that fix alone removes and `possible` the possible pairs it removes (each fix is evaluated on its own, unlike the greedy order of `suggest_fixes`). |
 
 For semantic-layer and text-to-SQL tools, [contrib/ossie](../contrib/ossie/README.md) has a reviewed [Apache Ossie](https://ossie.apache.org/) model of this schema (terms, joins and measures), with views to load after the export.

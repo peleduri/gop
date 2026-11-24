@@ -32,6 +32,7 @@ func init() {
 		// types.go
 		graph.AttrSSO, graph.AttrTwoFactor, graph.AttrDefaultPerm, graph.AttrMembersCreate, graph.AttrChangeVisiblity,
 		graph.AttrDeleteRepos, graph.AttrPrivateForks, graph.AttrIPAllowList, graph.AttrIPAllowEntries, graph.AttrMembers,
+		graph.AttrIPAllowListEntries, graph.AttrIPAllowListApps,
 		graph.AttrArchived, graph.AttrRefKind, graph.AttrVisibility, graph.AttrDemo,
 		graph.AttrFile, graph.AttrFileRef, graph.AttrLine, graph.AttrCol,
 		graph.AttrJobs, graph.AttrEnvironments, graph.AttrJobWorkflowRef, graph.AttrRepository, graph.AttrRepositoryOwner,
@@ -327,6 +328,10 @@ var policies = map[string]policy{
 	"in_enterprise":     boolish,
 	"teams_partial":     boolish,
 	"org":               ownerAttr,
+
+	// IP allow list details (counts and on/off only, never entry values).
+	graph.AttrIPAllowListEntries: bucket,
+	graph.AttrIPAllowListApps:    enum("on", "off", "unknown"),
 }
 
 // Advisory attrs (docs/advisories.md), registered apart from the table above.

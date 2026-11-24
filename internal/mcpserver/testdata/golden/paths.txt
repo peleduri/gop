@@ -41,7 +41,12 @@ paths: `members:acme-actions` can reach `oidc:acme-app/web` in 4 hops (confirmed
         }
       ],
       "evidence": "inferred",
-      "unverified": false
+      "unverified": false,
+      "target_org_hardening": {
+        "org": "org:acme-app",
+        "sso": "enforced",
+        "ip_allow_list": "unknown"
+      }
     }
   ],
   "possible": []

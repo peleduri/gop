@@ -168,6 +168,13 @@ const (
 	AttrDemo = "demo" // true
 )
 
+// IP allow list details on KindOrg, read by an org owner only. Counts and
+// on/off values only: entry values (IP ranges) are never collected.
+const (
+	AttrIPAllowListEntries = "ip_allow_list_entries" // active entries, integer as string, or unknown
+	AttrIPAllowListApps    = "ip_allow_list_apps"    // on | off | unknown: applies to installed GitHub Apps
+)
+
 // Source position attribute keys on USES and EXECUTES_WITH edges that come
 // from a workflow file or composite action. All optional; values are strings.
 const (

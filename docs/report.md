@@ -26,6 +26,14 @@ Each path item links to the filtered view for its principal (for example `#ev=co
 
 The GitHub Action passes `--previous` when `fail-on-reach-increase` downloaded a baseline. If the baseline cannot be compared, the Action writes the report without the banner.
 
+## Org settings and hardening context
+
+The **Org settings** section has one row per org: SSO, 2FA, IP allow list, default permission, the member capabilities (create, change visibility of and delete repositories, fork private repositories) and the member count. The values are the org attributes gop already records (see [schema.md](schema.md#attributes)); the section adds no claim of its own. When an org owner token could read them, the IP allow list cell also shows the number of active entries and whether the list applies to installed GitHub Apps, for example `on (2 active entries, installed apps on)`. Entry values (IP ranges) are never collected.
+
+A setting gop could not see reads `unknown`, never `off` or `none`. Each `unknown` links to a **Why unknown** list under the table that gives, per org, the coverage reason and the access that fixes it (for example "not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy"), or says the setting was not collected in this graph.
+
+In **Top paths**, a confirmed or possible path whose target repo's org has SSO not enforced or an IP allow list that is not on gets a context line, for example "Context, not part of the score: target org acme-actions: SSO not enforced (configured), IP allow list off". A stolen token is more useful against such an org. An unknown setting reads `unknown`, and a path into an org with SSO enforced and the IP allow list on gets no line. The line is context only: evidence levels, confirmed and possible counts, scores and rank order are the same with or without it. The `paths`, `who_can_reach` and `explain` MCP tools (and `gop paths`, `gop who`) carry the same context as `target_org_hardening: {org, sso, ip_allow_list}` on each such path, and `top_risks` lists the weak or unknown target orgs of the principals it returns. The `gop://graph/summary` resource and the SQL export's `org_settings` view hold the same per-org settings as the table.
+
 ## Graph tab
 
 Under "Explore paths", the **Graph** tab draws the paths that match the current filters as one left-to-right diagram: principals on the left, then repos, action refs and workflows, and the impact (OIDC, secrets, runners, cloud roles, CI reach into repos) on the right. `#view=graph` in the address opens it, together with any filter (`#org=acme-app&view=graph`).

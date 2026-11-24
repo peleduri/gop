@@ -26,6 +26,22 @@ flags may change in minor releases.
   its principal lists stay complete. Scores, counts and the rank order are
   unchanged: grouping is presentation only.
 
+- Org settings and hardening context (#126). The report's Org settings
+  section (HTML and Markdown) now has one row per org with SSO, 2FA, IP allow
+  list, default permission, member capabilities and members; a setting gop
+  could not see reads `unknown`, linked to a "Why unknown" list with the
+  coverage reason and the access that fixes it. For an org owner token,
+  `gop collect` adds the org attrs `ip_allow_list_entries` (active entries,
+  count only, never the IP ranges) and `ip_allow_list_apps` (`on`, `off`,
+  `unknown`), in the JSON Schema, `docs/schema.md` and the redaction default
+  attrs, with no schema bump. A confirmed or possible path whose target repo's
+  org has SSO not enforced or an IP allow list not on gets a context note: a
+  line in the report's Top paths and `target_org_hardening: {org, sso,
+  ip_allow_list}` in `paths`, `who_can_reach`, `explain`, `gop paths` and
+  `gop who`; `top_risks` lists those orgs for the principals it returns.
+  Context only: evidence levels, counts, scores and rank order do not change,
+  and unknown is never shown as off. The `gop://graph/summary` resource and a
+  new `org_settings` view in the SQL export carry the same per-org settings.
 - `skills/gop/SKILL.md`: an agent skill for MCP triage. It walks the agent
   through checking the graph (`gop validate`, or `gop doctor` then
   `gop collect`), `coverage` and `check_answerable` before any claim,

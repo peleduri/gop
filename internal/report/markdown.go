@@ -151,18 +151,22 @@ func writeMarkdown(w io.Writer, d data) error {
 			if pv.Note != "" {
 				p("  _%s_\n", md(pv.Note))
 			}
+			if pv.Hardening != "" {
+				p("  _Context, not part of the score: %s_\n", md(pv.Hardening))
+			}
 			writeMDHops(p, pv.Hops)
 		}
 		p("\n")
 	}
 
 	if len(d.Orgs) > 0 {
-		p("## Org settings\n\n| Org | Default permission | 2FA | SSO | IP allow list | Members |\n|---|---|---|---|---|---|\n")
+		titles := settingTitles()
+		p("## Org settings\n\n| Org | %s |\n|---|%s\n", strings.Join(titles, " | "), strings.Repeat("---|", len(titles)))
 		for _, o := range d.Orgs {
 			p("| %s |", md(o.Org))
 			for _, c := range o.Cells {
 				if c.NV {
-					p(" _%s_ |", md(c.Value))
+					p(" [_%s_](#why-unknown) |", md(c.Value))
 				} else {
 					p(" %s |", md(c.Value))
 				}
@@ -170,6 +174,20 @@ func writeMarkdown(w io.Writer, d data) error {
 			p("\n")
 		}
 		p("\n")
+		if len(d.OrgWhy) > 0 {
+			p("### Why unknown\n\n")
+			for _, w := range d.OrgWhy {
+				p("- **%s**\n", md(w.Org))
+				for _, it := range w.Items {
+					p("  - %s: %s", md(it.Settings), md(it.Reason))
+					if it.Fix != "" {
+						p(". Access that fixes it: %s", md(it.Fix))
+					}
+					p("\n")
+				}
+			}
+			p("\n")
+		}
 	}
 
 	p("## Coverage\n\n")

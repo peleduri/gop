@@ -179,6 +179,9 @@ func briefBlast(o BlastRadiusOutput, t *trimmer) BlastRadiusOutput {
 // reach share a row), so truncated is also true when n alone left rows out.
 func (e *Engine) briefTop(o TopRisksOutput, t *trimmer) TopRisksOutput {
 	o.Risks = trimList(t, "risks", o.Risks)
+	if len(o.TargetOrgHardening) > 0 {
+		o.TargetOrgHardening = trimList(t, "target_org_hardening", o.TargetOrgHardening)
+	}
 	if o.rows > len(o.Risks) {
 		t.b.Total["risks"] = o.rows
 		t.b.Truncated = true

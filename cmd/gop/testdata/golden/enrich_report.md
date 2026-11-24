@@ -32,22 +32,26 @@ Score counts confirmed reach only.
 
 - **confirmed** to cloud:aws:arn:aws:iam::111111111111:role/deploy
   _cloud hop from supplied trust file testdata/acme/trust/aws/deploy.json, not read from the cloud_
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
 - **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **possible: a hop is not visible** to cloud:azure:app:11111111-1111-1111-1111-111111111111
   _cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud_
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
@@ -58,22 +62,26 @@ Score counts confirmed reach only.
 
 - **confirmed** to cloud:aws:arn:aws:iam::111111111111:role/deploy
   _cloud hop from supplied trust file testdata/acme/trust/aws/deploy.json, not read from the cloud_
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
 - **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **possible: a hop is not visible** to cloud:azure:app:11111111-1111-1111-1111-111111111111
   _cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud_
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
@@ -83,16 +91,29 @@ Score counts confirmed reach only.
 ### identity:alice
 
 - **confirmed** to repo:acme-app/infra
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:alice → repo:acme-app/infra, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
 
 ## Org settings
 
-| Org | Default permission | 2FA | SSO | IP allow list | Members |
-|---|---|---|---|---|---|
-| acme-actions | write | not\_required | configured | _unknown_ | 40 |
-| acme-app | read | required | enforced | _unknown_ | 120 |
-| acme-legacy | write | not\_required | none | _not visible_ | _unknown_ |
-| acme-secure | read | required | enforced | _unknown_ | 8 |
+| Org | SSO | 2FA | IP allow list | Default permission | Members can create repos | Members can change visibility | Members can delete repos | Members can fork private repos | Members |
+|---|---|---|---|---|---|---|---|---|---|
+| acme-actions | configured | not\_required | [_unknown_](#why-unknown) | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 40 |
+| acme-app | enforced | required | [_unknown_](#why-unknown) | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 120 |
+| acme-legacy | none | not\_required | [_unknown_](#why-unknown) | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) |
+| acme-secure | enforced | required | [_unknown_](#why-unknown) | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 8 |
+
+### Why unknown
+
+- **acme-actions**
+  - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-app**
+  - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-legacy**
+  - IP allow list: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
+- **acme-secure**
+  - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
 
 ## Coverage
 

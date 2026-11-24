@@ -34,16 +34,19 @@ Score counts confirmed reach only.
 ### identity:bob
 
 - **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to runner:acme-app/worker
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/worker/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
@@ -52,16 +55,19 @@ Score counts confirmed reach only.
 ### members:acme-actions
 
 - **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to secret:acme-app/billing
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
   4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
 - **confirmed** to runner:acme-app/worker
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
   3. action:acme-actions/deploy@main → workflow:acme-app/worker/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
@@ -70,23 +76,37 @@ Score counts confirmed reach only.
 ### identity:alice
 
 - **confirmed** to repo:acme-app/infra
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
   1. identity:alice → repo:acme-app/infra, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
 
 ### members:acme-legacy
 
 - **possible: a hop is not visible** to secret:acme-legacy/old-api
+  _Context, not part of the score: target org acme-legacy: SSO not enforced (none), IP allow list unknown_
   1. members:acme-legacy → repo:acme-legacy/old-api, CAN\_PUSH, **not visible**, rest:/orgs/{org}
   2. repo:acme-legacy/old-api → workflow:acme-legacy/old-api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **audit**, rest:/repos/{owner}/{repo}/actions/workflows
   3. workflow:acme-legacy/old-api/.github/workflows/ci.yml → secret:acme-legacy/old-api, EXECUTES\_WITH, **audit**, contents:.github/workflows
 
 ## Org settings
 
-| Org | Default permission | 2FA | SSO | IP allow list | Members |
-|---|---|---|---|---|---|
-| acme-actions | write | not\_required | configured | _unknown_ | 40 |
-| acme-app | read | required | enforced | _unknown_ | 120 |
-| acme-legacy | write | not\_required | none | _not visible_ | _unknown_ |
-| acme-secure | read | required | enforced | _unknown_ | 8 |
+| Org | SSO | 2FA | IP allow list | Default permission | Members can create repos | Members can change visibility | Members can delete repos | Members can fork private repos | Members |
+|---|---|---|---|---|---|---|---|---|---|
+| acme-actions | configured | not\_required | [_unknown_](#why-unknown) | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 40 |
+| acme-app | enforced | required | [_unknown_](#why-unknown) | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 120 |
+| acme-legacy | none | not\_required | [_unknown_](#why-unknown) | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) |
+| acme-secure | enforced | required | [_unknown_](#why-unknown) | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 8 |
+
+### Why unknown
+
+- **acme-actions**
+  - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-app**
+  - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-legacy**
+  - IP allow list: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
+- **acme-secure**
+  - IP allow list, Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
 
 ## Coverage
 

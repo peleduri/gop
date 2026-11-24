@@ -107,6 +107,8 @@
       "description": "Node attributes. Known keys are typed below; unknown keys are allowed.",
       "allOf": [{"$ref": "#/$defs/Attrs"}],
       "properties": {
+        "ip_allow_list_entries": {"description": "org: number of active IP allow list entries (org owner only); entry values are never collected.", "type": "string", "pattern": "^([0-9]+|unknown)$"},
+        "ip_allow_list_apps": {"description": "org: whether the IP allow list also applies to installed GitHub Apps (org owner only).", "type": "string", "enum": ["on", "off", "unknown"]},
         "ref_protected": {"description": "action_ref on a branch: whether branch protection stops a pusher from changing it alone.", "type": "string", "enum": ["true", "false", "unknown"]},
         "ref_protection": {"description": "Comma list of the branch's rules, e.g. reviews,dismiss_stale,status_checks.", "type": "string", "minLength": 1},
         "bypass": {"description": "Comma list of principal IDs that can land code on the protected branch, or move the immutable tag, alone; none, or unknown.", "type": "string", "minLength": 1},

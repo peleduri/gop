@@ -49,12 +49,14 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 ### action:acme-oss/checkout-ish@v2
 
 - **confirmed** to secret:acme-app/docs
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. action:acme-oss/checkout-ish@v2 → workflow:acme-app/docs/.github/workflows/preview.yml, USES (reversed), **live**, demo:planted-advisory
   2. workflow:acme-app/docs/.github/workflows/preview.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, demo:planted-advisory
 
 ### identity:bob
 
 - **confirmed** to oidc:acme-app/payments
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. identity:bob → members:acme-actions, MEMBER\_OF, **live**, demo:membership
   2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
   3. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
@@ -62,6 +64,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   5. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
   6. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
 - **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, demo:collaborator
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, demo:planted-cross-org
@@ -77,12 +80,14 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 ### members:acme-actions
 
 - **confirmed** to oidc:acme-app/payments
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
   2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
   4. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
   5. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
 - **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, demo:default-perm
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, demo:planted-cross-org
@@ -97,6 +102,7 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 ### identity:user-020
 
 - **confirmed** to secret:acme-org-01/svc-009
+  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
   1. identity:user-020 → repo:acme-org-01/svc-009, CAN\_PUSH, **live**, demo:collaborator
   2. repo:acme-org-01/svc-009 → workflow:acme-org-01/svc-009/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
   3. workflow:acme-org-01/svc-009/.github/workflows/ci.yml → secret:acme-org-01/svc-009, EXECUTES\_WITH, **live**, demo:secrets
@@ -104,11 +110,13 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 ### identity:user-005
 
 - **confirmed** to repo:acme-app/sandbox
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. identity:user-005 → repo:acme-app/sandbox, CAN\_PUSH, **live**, demo:collaborator
 
 ### identity:user-006
 
 - **confirmed** to repo:acme-org-01/svc-003
+  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
   1. identity:user-006 → repo:acme-org-01/svc-003, CAN\_PUSH, **live**, demo:collaborator
 
 ### identity:user-012
@@ -119,27 +127,44 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 ### identity:user-013
 
 - **confirmed** to repo:acme-app/mobile
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. identity:user-013 → repo:acme-app/mobile, CAN\_PUSH, **live**, demo:collaborator
 
 ### identity:user-018
 
 - **confirmed** to repo:acme-org-01/svc-005
+  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
   1. identity:user-018 → repo:acme-org-01/svc-005, CAN\_PUSH, **live**, demo:collaborator
 
 ### identity:alice
 
 - **confirmed** to repo:acme-app/infra
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. identity:alice → repo:acme-app/infra, CAN\_PUSH, **live**, demo:collaborator
 
 ## Org settings
 
-| Org | Default permission | 2FA | SSO | IP allow list | Members |
-|---|---|---|---|---|---|
-| acme-actions | write | not\_required | configured | off | 40 |
-| acme-app | read | required | enforced | off | 120 |
-| acme-legacy | write | not\_required | none | _not visible_ | _unknown_ |
-| acme-org-01 | read | not\_required | enforced | off | 40 |
-| acme-secure | read | required | enforced | on | 8 |
+| Org | SSO | 2FA | IP allow list | Default permission | Members can create repos | Members can change visibility | Members can delete repos | Members can fork private repos | Members |
+|---|---|---|---|---|---|---|---|---|---|
+| acme-actions | configured | not\_required | off | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 40 |
+| acme-app | enforced | required | off | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 120 |
+| acme-legacy | none | not\_required | [_unknown_](#why-unknown) | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) |
+| acme-org-01 | enforced | not\_required | off | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 40 |
+| acme-secure | enforced | required | on | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 8 |
+
+### Why unknown
+
+- **acme-actions**
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-app**
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-legacy**
+  - IP allow list: not visible: token is not an org owner. Access that fixes it: org owner on acme-legacy
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
+- **acme-org-01**
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-secure**
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
 
 ## Coverage
 

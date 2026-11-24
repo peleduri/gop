@@ -75,8 +75,9 @@ func (m *EvidenceMix) add(ev graph.Evidence) {
 	}
 }
 
-// OrgSummary is one org's key settings. A setting the token could not read is
-// "not_visible" (unknown, never off); a setting that was not collected is omitted.
+// OrgSummary is one org's settings, the same per-org view as the report's
+// Org settings table. A setting the token could not read is "not_visible"
+// (unknown, never off); a setting that was not collected is omitted.
 type OrgSummary struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -84,6 +85,14 @@ type OrgSummary struct {
 	DefaultPerm string `json:"default_perm,omitempty"`
 	TwoFactor   string `json:"two_factor,omitempty"`
 	SSO         string `json:"sso,omitempty"`
+
+	IPAllowList        string `json:"ip_allow_list,omitempty"`
+	IPAllowListEntries string `json:"ip_allow_list_entries,omitempty" jsonschema:"active IP allow list entries (count only)"`
+	IPAllowListApps    string `json:"ip_allow_list_apps,omitempty" jsonschema:"whether the IP allow list applies to installed GitHub Apps"`
+	MembersCreate      string `json:"members_create,omitempty"`
+	ChangeVisibility   string `json:"change_visibility,omitempty"`
+	DeleteRepos        string `json:"delete_repos,omitempty"`
+	PrivateForks       string `json:"private_forks,omitempty"`
 }
 
 // Summary is the gop://graph/summary resource.
@@ -144,6 +153,14 @@ func (e *Engine) Summary(now time.Time) Summary {
 				DefaultPerm: orgAttr(n, graph.AttrDefaultPerm),
 				TwoFactor:   orgAttr(n, graph.AttrTwoFactor),
 				SSO:         orgAttr(n, graph.AttrSSO),
+
+				IPAllowList:        orgAttr(n, graph.AttrIPAllowList),
+				IPAllowListEntries: orgAttr(n, graph.AttrIPAllowListEntries),
+				IPAllowListApps:    orgAttr(n, graph.AttrIPAllowListApps),
+				MembersCreate:      orgAttr(n, graph.AttrMembersCreate),
+				ChangeVisibility:   orgAttr(n, graph.AttrChangeVisiblity),
+				DeleteRepos:        orgAttr(n, graph.AttrDeleteRepos),
+				PrivateForks:       orgAttr(n, graph.AttrPrivateForks),
 			})
 		}
 	}
@@ -210,7 +227,7 @@ func addResources(s *mcp.Server, e *Engine, now func() time.Time) {
 		Title:    "Graph summary",
 		MIMEType: "application/json",
 		Description: "Start here: enterprise, snapshot age, schema, node and edge counts by kind, evidence mix " +
-			"(live, inferred, audit, not_visible), orgs with default_perm, two_factor and sso, and the top 5 principals " +
+			"(live, inferred, audit, not_visible), orgs with their settings (default_perm, two_factor, sso, ip_allow_list and its details, member capabilities), and the top 5 principals " +
 			"by confirmed score. Use the node IDs it lists instead of guessing.",
 	}, func(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 		return jsonContents(req.Params.URI, e.Summary(now()))

@@ -63,7 +63,8 @@
       "evidence": "live",
       "default_perm": "write",
       "two_factor": "not_required",
-      "sso": "none"
+      "sso": "none",
+      "ip_allow_list": "unknown"
     },
     {
       "id": "org:acme-secure",

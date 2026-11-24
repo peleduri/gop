@@ -151,7 +151,8 @@ var nameFacts = map[string]string{
 	graph.AttrSSO:   factOrgSettings, graph.AttrTwoFactor: factOrgSettings, graph.AttrIPAllowList: factOrgSettings,
 	graph.AttrIPAllowEntries: factOrgSettings, graph.AttrMembersCreate: factOrgSettings,
 	graph.AttrChangeVisiblity: factOrgSettings, graph.AttrDeleteRepos: factOrgSettings,
-	graph.AttrPrivateForks: factOrgSettings,
+	graph.AttrPrivateForks: factOrgSettings, graph.AttrIPAllowListEntries: factOrgSettings,
+	graph.AttrIPAllowListApps: factOrgSettings,
 }
 
 // factOfName classifies a coverage entry's fact, or a node attribute, on

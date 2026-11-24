@@ -1,0 +1,216 @@
+{
+  "schema": "gop.graph/v2",
+  "collected_at": "2026-11-20T10:00:00Z",
+  "enterprise": "acme",
+  "nodes": [
+    {
+      "id": "enterprise:acme",
+      "kind": "enterprise",
+      "name": "acme",
+      "evidence": "live"
+    },
+    {
+      "id": "org:acme-app",
+      "kind": "org",
+      "name": "acme-app",
+      "evidence": "live",
+      "attrs": {
+        "sso": "enforced",
+        "two_factor": "required",
+        "ip_allow_list": "on",
+        "ip_allow_entries": "3",
+        "ip_allow_list_entries": "2",
+        "ip_allow_list_apps": "on",
+        "default_perm": "read",
+        "members_create": "false",
+        "change_visibility": "false",
+        "delete_repos": "false",
+        "private_forks": "false",
+        "members": "50"
+      }
+    },
+    {
+      "id": "org:acme-actions",
+      "kind": "org",
+      "name": "acme-actions",
+      "evidence": "live",
+      "attrs": {
+        "sso": "configured",
+        "two_factor": "not_required",
+        "ip_allow_list": "off",
+        "ip_allow_entries": "0",
+        "ip_allow_list_entries": "0",
+        "ip_allow_list_apps": "off",
+        "default_perm": "write",
+        "members_create": "true",
+        "change_visibility": "true",
+        "delete_repos": "true",
+        "private_forks": "true",
+        "members": "20"
+      }
+    },
+    {
+      "id": "org:acme-legacy",
+      "kind": "org",
+      "name": "acme-legacy",
+      "evidence": "live",
+      "attrs": {
+        "sso": "none",
+        "two_factor": "not_required",
+        "ip_allow_list": "unknown",
+        "ip_allow_entries": "unknown",
+        "ip_allow_list_entries": "unknown",
+        "ip_allow_list_apps": "unknown",
+        "default_perm": "write",
+        "members_create": "true",
+        "change_visibility": "false",
+        "delete_repos": "true",
+        "private_forks": "false",
+        "members": "5"
+      },
+      "attr_evidence": {
+        "ip_allow_list": "not_visible",
+        "ip_allow_entries": "not_visible",
+        "ip_allow_list_entries": "not_visible",
+        "ip_allow_list_apps": "not_visible"
+      }
+    },
+    {
+      "id": "members:acme-app",
+      "kind": "org_members",
+      "name": "all members of acme-app",
+      "evidence": "live"
+    },
+    {
+      "id": "members:acme-actions",
+      "kind": "org_members",
+      "name": "all members of acme-actions",
+      "evidence": "live"
+    },
+    {
+      "id": "members:acme-legacy",
+      "kind": "org_members",
+      "name": "all members of acme-legacy",
+      "evidence": "live"
+    },
+    {
+      "id": "identity:alice",
+      "kind": "identity",
+      "name": "alice",
+      "evidence": "live"
+    },
+    {
+      "id": "identity:bob",
+      "kind": "identity",
+      "name": "bob",
+      "evidence": "live"
+    },
+    {
+      "id": "identity:carol",
+      "kind": "identity",
+      "name": "carol",
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-app/web",
+      "kind": "repo",
+      "name": "acme-app/web",
+      "evidence": "live",
+      "attrs": {
+        "visibility": "private"
+      }
+    },
+    {
+      "id": "repo:acme-actions/deploy",
+      "kind": "repo",
+      "name": "acme-actions/deploy",
+      "evidence": "live",
+      "attrs": {
+        "visibility": "internal"
+      }
+    },
+    {
+      "id": "repo:acme-legacy/old-api",
+      "kind": "repo",
+      "name": "acme-legacy/old-api",
+      "evidence": "live",
+      "attrs": {
+        "visibility": "private"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "identity:alice",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/collaborators",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "identity:alice",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/collaborators",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "identity:bob",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/collaborators",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:/repos/{owner}/{repo}/collaborators",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "members:acme-legacy",
+      "to": "repo:acme-legacy/old-api",
+      "kind": "CAN_PUSH",
+      "evidence": "not_visible",
+      "source_api": "rest:/orgs/{org}",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "identity:alice",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "rest:GET /orgs/{org}/members",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "identity:alice",
+      "to": "org:acme-actions",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "rest:GET /orgs/{org}/members",
+      "observed_at": "2026-11-20T10:00:00Z"
+    },
+    {
+      "from": "identity:alice",
+      "to": "org:acme-legacy",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "rest:GET /orgs/{org}/members",
+      "observed_at": "2026-11-20T10:00:00Z"
+    }
+  ],
+  "coverage": [
+    {
+      "scope": "org:acme-legacy",
+      "fact": "ip_allow_list",
+      "reason": "token is not an org owner",
+      "needs_fix": "org owner on acme-legacy"
+    }
+  ]
+}
