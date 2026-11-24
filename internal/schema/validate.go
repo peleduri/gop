@@ -33,10 +33,15 @@ func (p Problem) String() string {
 // Result is the outcome of Validate. Errors make the graph invalid; warnings
 // do not.
 type Result struct {
-	Schema   string    `json:"schema,omitempty"`
-	Valid    bool      `json:"valid"`
-	Errors   []Problem `json:"errors"`
-	Warnings []Problem `json:"warnings"`
+	Schema string `json:"schema,omitempty"`
+	Valid  bool   `json:"valid"`
+	// Partial and PartialReason repeat the graph's top-level fields: a
+	// partial graph (a collection that stopped early) is valid, and also
+	// gets a warning at /partial.
+	Partial       bool      `json:"partial,omitempty"`
+	PartialReason string    `json:"partial_reason,omitempty"`
+	Errors        []Problem `json:"errors"`
+	Warnings      []Problem `json:"warnings"`
 }
 
 // Known maps each schema version gop understands to its JSON Schema document.
@@ -107,6 +112,12 @@ func Validate(data []byte) (*Result, error) {
 	r.Errors = append(r.Errors, checkEndpoints(top)...)
 	r.Errors = append(r.Errors, checkSupplied(top)...)
 	r.Warnings = append(r.Warnings, checkCoverage(top)...)
+	if p, _ := top["partial"].(bool); p {
+		r.Partial = true
+		r.PartialReason, _ = top["partial_reason"].(string)
+		note := graph.PartialNote(&graph.Graph{Partial: true, PartialReason: r.PartialReason})
+		r.Warnings = append(r.Warnings, Problem{Pointer: "/partial", Message: note})
+	}
 	sortProblems(r.Errors)
 	sortProblems(r.Warnings)
 	r.Valid = len(r.Errors) == 0

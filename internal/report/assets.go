@@ -46,6 +46,7 @@ p{margin:0 0 var(--s1)}
 h1{font-size:1.15rem;line-height:1.3;margin:0;letter-spacing:-.01em}
 .meta{color:var(--muted);font-size:.85rem;margin:2px 0 0}.sep{margin:0 6px}
 .demo{margin:0;padding:2px 10px;border:1px dashed var(--muted);border-radius:999px;color:var(--muted);font-size:.8rem;font-weight:600}
+.partial{margin:8px 0 0;padding:8px 12px;border:1px solid var(--high);border-radius:8px;background:var(--high-bg);color:var(--high-fg);font-weight:600}
 nav{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
 nav ul{list-style:none;display:flex;gap:4px;margin:0;padding:0;overflow-x:auto;scrollbar-width:none}
 nav a{display:block;padding:10px 10px;color:var(--muted);font-size:.85rem;font-weight:500;text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}

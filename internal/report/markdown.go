@@ -52,6 +52,9 @@ func writeMarkdown(w io.Writer, d data) error {
 		title = mcpserver.DemoMarker + " " + title
 	}
 	p("# %s\n\n", title)
+	if d.Partial != "" {
+		p("> **Warning:** %s\n\n", md(d.Partial))
+	}
 	if d.Enterprise != "" || d.CollectedAt != "" {
 		p("Enterprise **%s**, collected %s\n\n", md(d.Enterprise), md(d.CollectedAt))
 	}

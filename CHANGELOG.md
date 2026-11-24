@@ -59,6 +59,23 @@ flags may change in minor releases.
   (met and not met, with evidence), and holds a draft Sandbox application
   that has not been submitted. The README links all of these from a new
   Community section.
+- Partial graphs, request budgets and org priority for `gop collect`
+  (#176). A collection stopped by Ctrl-C or SIGTERM, by
+  `--max-requests N`, by an exhausted rate limit or by `--reserve` now
+  writes the graph it has instead of nothing: top-level `"partial": true`
+  and `partial_reason` (`interrupted`, `max_requests`, `rate_limit`,
+  `reserve`; additive, still `gop.graph/v2`), everything not yet read
+  `not_visible`, and one coverage entry per org and phase it did not finish
+  (fact `phase:<phase>`, reason `not collected: run stopped`). It exits 3.
+  `gop validate` warns at `/partial`, the report (HTML and Markdown) opens
+  with a partial banner, and the MCP summary (`partial`, `partial_reason`),
+  prompts and tool summaries (`[partial graph]`) say so. With `--cache-dir`,
+  `--resume` completes the run. `--priority a,b` collects those orgs first;
+  the rest go by member count, largest first. `--reserve N` keeps N
+  requests of the hourly budget unspent for other jobs on the same token,
+  waiting for the reset instead. Library: `collect.Config.MaxRequests`,
+  `Reserve` and `Priority`; `Collect` returns the partial graph with a
+  `*collect.PartialError`.
 
 - Plugin icon and Cursor logo, and a `version` in every plugin manifest (Claude Code, Cursor, Codex) so `claude plugin validate --strict` passes for directory submission. A test keeps the versions in step; bump them with each release.
 

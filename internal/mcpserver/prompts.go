@@ -74,6 +74,9 @@ func (e *Engine) RenderPrompt(name string, args map[string]string, now time.Time
 	if e.demo {
 		b.WriteString(DemoMarker + " This graph is synthetic demo data.\n\n")
 	}
+	if e.partial != "" {
+		b.WriteString(PartialMarker + " " + e.partial + " Say so in the answer: missing facts may be unread, not absent.\n\n")
+	}
 	if st := Staleness(e.ix.Graph().CollectedAt, now); st != "" {
 		fmt.Fprintf(&b, "Note: the %s (collected %s); findings may be out of date. Say so in the answer, and re-run gop collect for current state.\n\n",
 			st, e.ix.Graph().CollectedAt.UTC().Format(time.RFC3339))

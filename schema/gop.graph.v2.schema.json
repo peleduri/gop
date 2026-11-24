@@ -39,6 +39,14 @@
       "description": "Optional. When each org's facts were last read, keyed by org login (RFC 3339). A merge of a re-collection of some orgs into an older graph keeps the older time for the other orgs.",
       "type": "object",
       "additionalProperties": {"type": "string", "format": "date-time"}
+    },
+    "partial": {
+      "description": "Optional. true when the collection stopped before the end (interrupted, --max-requests, --reserve or rate limit exhausted). What it did not read is not_visible, with coverage entries whose reason starts with \"not collected: run stopped\". Absent in complete graphs.",
+      "type": "boolean"
+    },
+    "partial_reason": {
+      "description": "Optional. Why a partial graph stopped: interrupted, max_requests, reserve or rate_limit. Consumers must accept other values.",
+      "type": "string"
     }
   },
   "$defs": {
