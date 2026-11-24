@@ -12,7 +12,13 @@ connected first: see [docs/mcp-clients.md](../../docs/mcp-clients.md), or run
 
 ## Install
 
-A skill is a folder with a `SKILL.md`. Copy `skills/gop` into the folder your
+**As a plugin (with the MCP server).** In Claude Code, `/plugin marketplace add
+peleduri/gop` then `/plugin install gop@gop` installs this skill and the gop MCP
+server together. Codex installs the skill from the same marketplace
+(`codex plugin marketplace add peleduri/gop`, `codex plugin add gop@gop`). See
+[docs/mcp-clients.md](../../docs/mcp-clients.md).
+
+**By hand.** A skill is a folder with a `SKILL.md`. Copy `skills/gop` into the folder your
 agent loads skills from. Get it from a shallow clone:
 
 ```sh
@@ -32,9 +38,22 @@ Enterprise reach, or you can ask for it by name.
 
 ### Codex
 
+Codex loads user skills from `~/.agents/skills` (and, for one repository,
+`.agents/skills` in it):
+
 ```sh
-mkdir -p ~/.codex/skills
-cp -R /tmp/gop-src/skills/gop ~/.codex/skills/
+mkdir -p ~/.agents/skills
+cp -R /tmp/gop-src/skills/gop ~/.agents/skills/
+```
+
+### Cursor
+
+Cursor loads skills from `~/.cursor/skills` (every project) or
+`.cursor/skills` in a project:
+
+```sh
+mkdir -p ~/.cursor/skills
+cp -R /tmp/gop-src/skills/gop ~/.cursor/skills/
 ```
 
 ### Any other agent

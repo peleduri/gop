@@ -1,0 +1,17 @@
+{
+  "name": "gop",
+  "description": "gop: a read-only evidence graph of who can make code run where in a GitHub Enterprise, as an MCP server and agent skill.",
+  "owner": {
+    "name": "gop contributors",
+    "url": "https://github.com/peleduri/gop"
+  },
+  "plugins": [
+    {
+      "name": "gop",
+      "source": "./",
+      "description": "The gop MCP server over your graph.json and the gop triage skill. Read-only.",
+      "category": "security",
+      "tags": ["github", "security", "mcp", "skill"]
+    }
+  ]
+}

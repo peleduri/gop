@@ -225,3 +225,19 @@ jobs:
             echo "arm64 image architecture is '$arch'" >&2
             exit 1
           fi
+      - name: check the snapshot Claude Desktop extensions
+        # One .mcpb per target, each in checksums.txt, and the registry
+        # server.json the release job builds from them.
+        run: |
+          version=$(jq -r .version dist/metadata.json)
+          n=$(find dist/mcpb -name "gop_${version}_*.mcpb" | wc -l)
+          if [ "$n" -ne 6 ]; then
+            echo "want 6 .mcpb bundles, got $n" >&2
+            exit 1
+          fi
+          if [ "$(grep -c '\.mcpb$' dist/checksums.txt)" -ne 6 ]; then
+            echo "checksums.txt does not list the 6 bundles" >&2
+            exit 1
+          fi
+          unzip -l "dist/mcpb/gop_${version}_linux_amd64.mcpb" | grep -q ' server/gop$'
+          go run ./scripts/dist server-json --version "$version" --checksums dist/checksums.txt | jq -e '[.packages[] | select(.registryType == "mcpb")] | length == 6'

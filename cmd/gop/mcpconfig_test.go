@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,7 +40,7 @@ func TestMCPConfigClients(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, client := range []string{"claude", "cursor", "vscode", "VSCode"} {
+	for _, client := range []string{"claude", "codex", "cursor", "cursor-link", "vscode", "VSCode"} {
 		t.Run(client, func(t *testing.T) {
 			r := runApp(t, nil, nil, "mcp-config", "--client", client, "--graph", "./g.json")
 			if r.code != exitOK || r.stderr != "" {
@@ -46,17 +48,38 @@ func TestMCPConfigClients(t *testing.T) {
 			}
 			var args []string
 			switch strings.ToLower(client) {
-			case "claude":
+			case "claude", "codex":
 				line := strings.TrimSuffix(r.stdout, "\n")
 				if strings.Contains(line, "\n") {
 					t.Fatalf("want one line, got %q", r.stdout)
 				}
 				words := shellWords(t, line)
-				prefix := []string{"claude", "mcp", "add", "gop", "--", "gop"}
+				prefix := []string{client, "mcp", "add", "gop", "--", "gop"}
 				if len(words) != len(prefix)+3 || strings.Join(words[:len(prefix)], " ") != strings.Join(prefix, " ") {
 					t.Fatalf("words %q", words)
 				}
 				args = words[len(prefix):]
+			case "cursor-link":
+				line := strings.TrimSuffix(r.stdout, "\n")
+				u, err := url.Parse(line)
+				if err != nil || u.Scheme != "cursor" || u.Host != "anysphere.cursor-deeplink" || u.Path != "/mcp/install" {
+					t.Fatalf("not a Cursor MCP install link: %q (%v)", line, err)
+				}
+				if u.Query().Get("name") != "gop" {
+					t.Fatalf("name %q", u.Query().Get("name"))
+				}
+				raw, err := base64.StdEncoding.DecodeString(u.Query().Get("config"))
+				if err != nil {
+					t.Fatalf("config is not base64: %v", err)
+				}
+				var s mcpServer
+				if err := json.Unmarshal(raw, &s); err != nil {
+					t.Fatalf("config is not JSON: %v\n%s", err, raw)
+				}
+				if s.Command != "gop" || s.Type != "" {
+					t.Fatalf("server %+v", s)
+				}
+				args = s.Args
 			case "cursor":
 				var cfg struct {
 					MCPServers map[string]mcpServer `json:"mcpServers"`
@@ -130,19 +153,30 @@ func TestMCPConfigUsageErrors(t *testing.T) {
 		}
 	}
 	r := runApp(t, nil, nil, "mcp-config", "--client", "emacs", "--graph", "g.json")
-	if !strings.Contains(r.stderr, `unknown client "emacs"; valid clients: claude, cursor, vscode`) {
+	if !strings.Contains(r.stderr, `unknown client "emacs"; valid clients: claude, codex, cursor, cursor-link, vscode`) {
 		t.Errorf("stderr does not list valid clients: %q", r.stderr)
 	}
 }
 
-// TestGoldenMCPConfigClaude goldens the claude line for a fixed absolute path.
-func TestGoldenMCPConfigClaude(t *testing.T) {
+// TestGoldenMCPConfig goldens every client's output for a fixed absolute
+// path, so adding a client never changes another one's output.
+func TestGoldenMCPConfig(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("POSIX absolute path")
 	}
-	r := runApp(t, nil, nil, "mcp-config", "--client", "claude", "--graph", "/abs/graph.json")
-	if r.code != exitOK {
-		t.Fatalf("%+v", r)
+	for client, golden := range map[string]string{
+		"claude":      "mcpconfig_claude.txt",
+		"codex":       "mcpconfig_codex.txt",
+		"cursor":      "mcpconfig_cursor.json",
+		"cursor-link": "mcpconfig_cursor_link.txt",
+		"vscode":      "mcpconfig_vscode.json",
+	} {
+		t.Run(client, func(t *testing.T) {
+			r := runApp(t, nil, nil, "mcp-config", "--client", client, "--graph", "/abs/graph.json")
+			if r.code != exitOK {
+				t.Fatalf("%+v", r)
+			}
+			testutil.Golden(t, golden, []byte(r.stdout))
+		})
 	}
-	testutil.Golden(t, "mcpconfig_claude.txt", []byte(r.stdout))
 }

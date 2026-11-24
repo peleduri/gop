@@ -8,7 +8,7 @@ gop is one static binary. Pick one way to install it, then [verify what you run]
 - [GitHub CLI extension](#github-cli-extension-gh-gop-coming-soon) (`gh gop`, reuses your `gh` login, coming soon)
 - [Container](#container) (`ghcr.io/peleduri/gop`, signed, for Kubernetes jobs and locked-down CI)
 
-After installing, connect your agent: [docs/mcp-clients.md](mcp-clients.md).
+After installing, connect your agent: [docs/mcp-clients.md](mcp-clients.md). For Claude Desktop you can skip installing: each release after v0.6.0 has a `.mcpb` extension per platform that bundles gop ([Claude Desktop](mcp-clients.md#claude-desktop)).
 
 ## Homebrew (coming soon)
 

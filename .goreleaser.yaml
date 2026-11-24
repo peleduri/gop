@@ -21,6 +21,15 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
+    # One Claude Desktop extension (.mcpb) per target: manifest.json plus this
+    # binary, written to dist/mcpb/gop_<version>_<os>_<arch>.mcpb by
+    # scripts/dist. They are added to checksums.txt (so covered by its cosign
+    # signature) and uploaded with the release (extra_files below). Snapshot
+    # builds write them too. See docs/maintainers.md.
+    hooks:
+      post:
+        - cmd: go run ./scripts/dist mcpb --binary "{{ .Path }}" --os {{ .Os }} --arch {{ .Arch }} --version {{ .Version }} --out dist/mcpb
+          output: true
   # The same program built as gh-gop, for the GitHub CLI extension
   # (`gh extension install peleduri/gh-gop`, then `gh gop ...`). gh installs a
   # precompiled extension by picking the release asset whose name ends in
@@ -59,6 +68,8 @@ archives:
 checksum:
   name_template: checksums.txt
   algorithm: sha256
+  extra_files:
+    - glob: ./dist/mcpb/*.mcpb
 
 sboms:
   - id: archive-sbom
@@ -109,6 +120,9 @@ dockers_v2:
       "org.opencontainers.image.version": "{{ .Version }}"
       "org.opencontainers.image.created": "{{ .CommitDate }}"
       "org.opencontainers.image.licenses": "Apache-2.0"
+      # The official MCP Registry checks that this label equals the name in
+      # server.json before it lists the image (ownership proof).
+      "io.modelcontextprotocol.server.name": "io.github.peleduri/gop"
     annotations:
       # Shown on the GHCR package page, which reads the index. Empty (so
       # dropped) in snapshot builds, which load single-platform images where
@@ -149,6 +163,9 @@ release:
     owner: peleduri
     name: gop
   prerelease: auto
+  # The Claude Desktop extensions built by the gop build hook.
+  extra_files:
+    - glob: ./dist/mcpb/*.mcpb
 
 # Homebrew tap: `brew install peleduri/tap/gop`.
 # goreleaser pushes the cask to peleduri/homebrew-tap with the
