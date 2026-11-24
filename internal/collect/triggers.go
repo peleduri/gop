@@ -24,6 +24,8 @@ import (
 const (
 	ExecCheckout  = "checkout"  // the job checks out the pull request's head
 	ExecInjection = "injection" // attacker text is interpolated into a script
+	// ExecAgent (agents.go): an AI coding agent reads attacker text and acts
+	// with the job's token, secrets and tools.
 )
 
 // UntrustedExec is one job that runs attacker-controlled code under a risky trigger.
@@ -33,6 +35,10 @@ type UntrustedExec struct {
 	Kind    string // ExecCheckout | ExecInjection
 	Detail  string // the matched value, e.g. "ref: ${{ github.event.pull_request.head.sha }}" or a context name
 	Line    int    // 1-based line of the matched with.ref/with.repository, run: or script: key (0 if unknown)
+	// Unverified is set when gop cannot tell whether the step lets these
+	// principals in (an agent action with an unknown actor check): the
+	// CAN_TRIGGER edge is not_visible, so it gives possible reach only.
+	Unverified bool
 }
 
 // riskyTriggers run in the base repo's context with its secrets on events that
@@ -260,7 +266,7 @@ func scalarOf(w *yamlWalk, n *yaml.Node) string {
 const (
 	attrRiskyTriggers = "risky_triggers" // comma list of the workflow's risky triggers
 	attrTrigger       = "trigger"        // CAN_TRIGGER: the trigger
-	attrExec          = "exec"           // CAN_TRIGGER: checkout | injection
+	attrExec          = "exec"           // CAN_TRIGGER: checkout | injection | agent
 	attrJob           = "job"            // CAN_TRIGGER: the job id
 	attrDetail        = "detail"         // CAN_TRIGGER: the matched value
 	factTriggering    = "triggering_principals"
@@ -289,6 +295,9 @@ func (k *collector) addTriggerFacts(o *orgState, repo *graph.Node, wid string, w
 	var order []string
 	for _, x := range f.UntrustedExec {
 		for _, t := range k.triggerers(o, repo, x) {
+			if x.Unverified {
+				t.ev = graph.NotVisible
+			}
 			old, ok := best[t.principal]
 			if !ok {
 				order = append(order, t.principal)

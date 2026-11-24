@@ -21,6 +21,10 @@
 //  6. acme-app/docs runs acme-oss/checkout-ish@v2, an action outside the
 //     enterprise whose v2 tag an advisory lists as compromised: it reaches
 //     the repo's secrets and ranks first.
+//  7. acme-app/docs is public and runs claude-code-action on issue_comment
+//     with allowed_non_write_users: "*" and a token that can push: anyone
+//     on the internet can start the agent (agent_exposed), which ranks
+//     right after the advisory.
 package demo
 
 import (
@@ -104,7 +108,11 @@ const (
 	ruleHidden     = "planted-not-visible"
 	ruleRunner     = "planted-self-hosted-runner"
 	ruleAdvisory   = "planted-advisory"
+	ruleAgent      = "planted-ai-agent"
 )
+
+// The planted AI agent workflow (story 7).
+const AgentWorkflow = "workflow:acme-app/docs/.github/workflows/claude.yml"
 
 type gen struct {
 	nodes map[string]graph.Node
@@ -395,6 +403,27 @@ func (g *gen) plant() []string {
 	preview := g.workflow("acme-app", "docs", "preview.yml", graph.Live, ruleAdvisory)
 	g.uses(preview, CheckoutIsh, ruleAdvisory)
 	g.terminal(preview, "secret:acme-app/docs", graph.KindSecret, graph.Live, ruleAdvisory)
+
+	// (7) A public repo's AI agent that anyone can start by commenting.
+	docs := g.nodes["repo:acme-app/docs"]
+	docs.Attrs[graph.AttrVisibility] = "public"
+	agent := g.workflow("acme-app", "docs", "claude.yml", graph.Live, ruleAgent)
+	wn := g.nodes[agent]
+	for k, v := range map[string]string{
+		graph.AttrAgent: "claude-code-action", graph.AttrAgentSource: "uses", graph.AttrAgentConfidence: graph.AgentAction,
+		graph.AttrAgentJobs: "claude", graph.AttrAgentGate: graph.GateAnyone, graph.AttrAgentExposure: graph.ExposureOutsiders,
+		graph.AttrAgentPerms: "contents:write,pull-requests:write", graph.AttrAgentSecrets: "1", graph.AttrAgentRunner: "hosted",
+		graph.AttrAgentTools: "dangerously_skip_permissions", graph.AttrAgentRefKind: "tag", "risky_triggers": "issue_comment",
+	} {
+		wn.Attrs[k] = v
+	}
+	g.nodes[agent] = wn
+	g.node("external:anyone", graph.KindExternal, "anyone on the internet", graph.Live, ruleAgent, nil)
+	g.edge("external:anyone", graph.CanTrigger, agent, graph.Live, ruleAgent, map[string]string{
+		"trigger": "issue_comment", "exec": "agent", "job": "claude", "detail": "claude-code-action",
+		graph.AttrFile: ".github/workflows/claude.yml", graph.AttrLine: "16"})
+	g.edge(agent, graph.ExecutesWith, "secret:acme-app/docs", graph.Live, ruleAgent, nil)
+	g.edge(agent, graph.CanPush, "repo:acme-app/docs", graph.Live, ruleAgent, map[string]string{graph.AttrVia: graph.ViaTokenWrite, graph.AttrJobs: "claude"})
 
 	// (4) One hop the token cannot see.
 	g.repo("acme-legacy", "old-api", graph.NotVisible, ruleHidden)

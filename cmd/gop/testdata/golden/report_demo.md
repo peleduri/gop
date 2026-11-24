@@ -4,7 +4,7 @@ Enterprise **acme**, collected 2026-01-01T00:00:00Z
 
 > acme-oss/checkout-ish@v2, a version with a known advisory (GHSA-acme-demo-0001; severity critical; fixed in 2.4.1), runs in 1 repo across 1 org (confirmed), including 1 secret scope.
 >
-> Lower the default repository permission of acme-actions to read to remove 59% of confirmed reach.
+> Lower the default repository permission of acme-actions to read to remove 58% of confirmed reach.
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
@@ -15,6 +15,7 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | action:acme-oss/checkout-ish@v2 (known advisory: GHSA-acme-demo-0001; severity critical; fixed in 2.4.1) | 1 | 1 | 0 | 1 | 0 | 0 repos | 8.5 |
+| external:anyone | 1 | 1 | 0 | 1 | 0 | 0 repos | 9.5 |
 | identity:bob | 34 | 4 | 4 | 6 | 1 | 0 repos | 273.4 |
 | members:acme-actions | 34 | 4 | 4 | 6 | 1 | 0 repos | 273.4 |
 | identity:user-020 | 1 | 1 | 0 | 1 | 0 | 0 repos | 8.5 |
@@ -23,17 +24,38 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 | identity:user-012 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
 | identity:user-013 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
 | identity:user-018 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
-| identity:alice | 1 | 1 | 0 | 0 | 0 | 0 repos | 3.5 |
+
+- external:anyone can start 1 exposed AI agent workflow without push access (see AI agents in CI).
 
 Score counts confirmed reach only.
+
+## AI agents in CI
+
+1 workflow runs an AI coding agent; 1 can be started by people without push access, 1 of them while the agent holds write, secrets or OIDC. An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.
+
+### acme-app/docs/.github/workflows/claude.yml (claude-code-action)
+
+- Who can start it: outsiders: people without push access: anyone on the internet on issue\_comment
+- What it holds: contents:write, pull-requests:write, secrets
+- What it reaches: 1 secret scope, 1 repo
+- Prompt injection: reads the triggering comment text
+- Approvals off: dangerously\_skip\_permissions
+  1. Restrict who can start it: remove allowed\_non\_write\_users / allow-users (or allowed\_bots) so the action's write-access check applies, or move it off issue\_comment, or require approval for outside contributors (an environment with required reviewers).
+  2. Give the agent job a read-only token (permissions: contents: read; it now has contents:write, pull-requests:write) and make changes in a separate job that takes the agent's output.
+  3. Pin the agent action to a full commit SHA: a tag can be moved to code that runs with this job's token and secrets.
+  4. Drop dangerously\_skip\_permissions: keep the agent's own approval prompts and sandbox.
+  5. Scope the allowed tools to what the job needs, for example --allowedTools "Bash(gh pr comment:\*)".
+
+Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.
 
 ## Suggested fixes
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Lower the default repository permission of acme-actions to read | 47 | 59% |
-| 2 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 16 | 79% |
-| 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 84% |
+| 1 | Lower the default repository permission of acme-actions to read | 47 | 58% |
+| 2 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 16 | 78% |
+| 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 83% |
+| 4 | Stop acme-app/docs/.github/workflows/claude.yml from running attacker-controlled code on its risky triggers | 1 | 84% |
 
 ## Pinned, still reachable
 
@@ -52,6 +74,13 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. action:acme-oss/checkout-ish@v2 → workflow:acme-app/docs/.github/workflows/preview.yml, USES (reversed), **live**, demo:planted-advisory
   2. workflow:acme-app/docs/.github/workflows/preview.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, demo:planted-advisory
+
+### external:anyone
+
+- **confirmed** to secret:acme-app/docs
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
+  1. external:anyone → workflow:acme-app/docs/.github/workflows/claude.yml, CAN\_TRIGGER, **live**, demo:planted-ai-agent
+  2. workflow:acme-app/docs/.github/workflows/claude.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, demo:planted-ai-agent
 
 ### identity:bob
 
@@ -135,12 +164,6 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 - **confirmed** to repo:acme-org-01/svc-005
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
   1. identity:user-018 → repo:acme-org-01/svc-005, CAN\_PUSH, **live**, demo:collaborator
-
-### identity:alice
-
-- **confirmed** to repo:acme-app/infra
-  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:alice → repo:acme-app/infra, CAN\_PUSH, **live**, demo:collaborator
 
 ## Org settings
 

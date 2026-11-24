@@ -70,8 +70,10 @@ type Index struct {
 	fastOnce sync.Once
 	fastIx   *fastIndex // interned base control graph and fix overlay, built on first use (fast.go)
 
-	advOnce sync.Once
-	advAny  bool // some action carries an advisory (advisory.go)
+	advOnce   sync.Once
+	advAny    bool // some action carries an advisory (advisory.go)
+	agentOnce sync.Once
+	agentAny  bool // some workflow is AgentExposed (agent.go)
 }
 
 // NewIndex builds adjacency lookups. Edge lists are sorted (kind, to/from, source_api)

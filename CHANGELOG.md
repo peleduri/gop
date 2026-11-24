@@ -7,6 +7,26 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- AI coding agents in GitHub Actions (#139). `gop collect` marks workflows
+  that run a known agent action (`anthropics/claude-code-action`,
+  `claude-code-base-action`, `openai/codex-action`, the Copilot coding agent
+  setup job, AI reviewers) or an agent CLI in a `run:` step (`claude -p`,
+  `codex exec`, `cursor-agent`, `gemini`, `aider`, `opencode`, `llm`) with
+  `agent=<kind>` and risk facts: the action's actor check (`agent_gate`, read
+  from inputs such as `allowed_non_write_users` and `allow-users`), who can
+  start it (`agent_exposure`), untrusted contexts in the prompt, token write
+  scopes, secrets, runner and tool settings such as
+  `--dangerously-skip-permissions`. A name-only match is weak
+  (`agent_confidence=name_only`) and never ranked. Agents that people without
+  push access can start get `CAN_TRIGGER` edges with `exec=agent`
+  (`not_visible` when gop does not know the action's actor check). A new rank
+  factor `agent_exposed`, after advisories and poutine, puts a principal that
+  can start such an agent while it holds write, secrets or OIDC first; scores
+  and counts are unchanged. The report gains an "AI agents in CI" section,
+  SARIF gains rule `GOP004 agent-workflow-exposed`, `top_risks` marks
+  `[agent_exposed]`, `explain` adds an agent note, and the demo graph gets an
+  agent story. The agent table lives in one file
+  (`internal/collect/agenttable.go`). See `docs/agents-in-ci.md`.
 - Top risks group by cause (#137). After the exact groups of #125, principals
   whose confirmed repos come at least 90% through the same cause (org
   ownership, one team, or membership of one org) and whose confirmed reach

@@ -241,3 +241,18 @@ func TestValidatesClean(t *testing.T) {
 		}
 	}
 }
+
+// TestAgentStory: the planted AI agent workflow is exposed, and anyone on
+// the internet who can start it ranks right after the advisory.
+func TestAgentStory(t *testing.T) {
+	g := Generate(Options{Seed: 1})
+	ix := graph.NewIndex(g)
+	n, ok := ix.Node(AgentWorkflow)
+	if !ok || !graph.AgentExposed(n) {
+		t.Fatalf("agent workflow %+v", n)
+	}
+	top := ix.TopPaths(3)
+	if len(top[0].Advisories) == 0 || top[1].Principal != "external:anyone" || top[1].AgentExposed != 1 {
+		t.Errorf("top = %+v", top)
+	}
+}

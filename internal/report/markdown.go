@@ -110,12 +110,27 @@ func writeMarkdown(w io.Writer, d data) error {
 				p("| %s | %s | %s | %d | %d | %d | %s | %s |\n", principalCell(r), repos, orgs, r.OIDC, r.Secrets, r.Runners, poss, r.Score)
 			}
 		}
+		agent := map[string]int{}
+		for _, s := range d.ix.Scores() {
+			if s.AgentExposed > 0 {
+				agent[s.Principal] = s.AgentExposed
+			}
+		}
+		for _, r := range d.Risks {
+			if n := agent[r.Principal]; n > 0 {
+				p("\n- %s can start %s without push access (see AI agents in CI).", md(r.Principal), plural(n, "exposed AI agent workflow", "exposed AI agent workflows"))
+			}
+		}
+		if len(agent) > 0 {
+			p("\n")
+		}
 		p("\nScore counts confirmed reach only.")
 		if ranged {
 			p(" A row grouped by cause shows the range of its members' confirmed repos and orgs; its other columns are its first member's. The JSON (`top_risks`) lists each member's own figures.")
 		}
 		p("\n\n")
 	}
+	writeMDAgents(p, d)
 	if o := d.Ownership; o != nil {
 		p("## Org ownership\n\n%s\n\n| Orgs owned | Accounts |\n|---|---:|\n", md(o.Line))
 		for _, b := range o.Buckets {
@@ -241,6 +256,54 @@ func principalCell(r riskRow) string {
 		return who
 	}
 	return who + " (" + md(r.Advisory) + ")"
+}
+
+// writeMDAgents writes the AI agents in CI section.
+func writeMDAgents(p func(string, ...any), d data) {
+	if len(d.Agents) == 0 {
+		return
+	}
+	p("## AI agents in CI\n\n%s An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.\n\n", md(d.AgentLine))
+	for _, r := range d.Agents {
+		kind := r.Kind
+		if r.NameOnly {
+			kind = "name only"
+		}
+		p("### %s (%s)\n\n", md(r.Workflow), md(kind))
+		who := r.Exposure
+		if r.Who != "" {
+			if r.Possible {
+				who += ": possible: " + r.Who
+			} else {
+				who += ": " + r.Who
+			}
+		}
+		if r.Triggers != "" {
+			who += " on " + r.Triggers
+		}
+		p("- Who can start it: %s\n", md(who))
+		if !r.NameOnly {
+			p("- What it holds: %s\n- What it reaches: %s\n", md(r.Holds), md(r.Reach))
+			if r.Prompt != "" || r.Reads != "" {
+				var inj []string
+				if r.Prompt != "" {
+					inj = append(inj, r.Prompt+" in the prompt")
+				}
+				if r.Reads != "" {
+					inj = append(inj, "reads "+r.Reads)
+				}
+				p("- Prompt injection: %s\n", md(strings.Join(inj, "; ")))
+			}
+			if r.Tools != "" {
+				p("- Approvals off: %s\n", md(r.Tools))
+			}
+			for i, f := range r.Fixes {
+				p("  %d. %s\n", i+1, md(f))
+			}
+		}
+		p("\n")
+	}
+	p("Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.\n\n")
 }
 
 // writeMDHardening writes the repo hardening section: context only.

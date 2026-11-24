@@ -45,6 +45,9 @@ func init() {
 		graph.AttrSource, graph.AttrObservedUse, graph.AttrTimesUsed, graph.AttrLastUsed,
 		graph.AttrPoutineRules, graph.AttrPoutineSeverity, graph.AttrPoutineJobs, graph.AttrPoutineFile,
 		graph.AttrAdvisories, graph.AttrAdvisorySeverity, graph.AttrAdvisoryFixed,
+		graph.AttrAgent, graph.AttrAgentSource, graph.AttrAgentConfidence, graph.AttrAgentJobs, graph.AttrAgentGate,
+		graph.AttrAgentExposure, graph.AttrAgentPrompt, graph.AttrAgentPerms, graph.AttrAgentSecrets, graph.AttrAgentRunner,
+		graph.AttrAgentTools, graph.AttrAgentRefKind,
 		graph.AttrLockAdvisories, graph.AttrLockAdvisorySeverity, graph.AttrLockAdvisoryFixed,
 		graph.AttrBranchProtected, graph.AttrBranchReviews, graph.AttrBranchCodeOwnerReview, graph.AttrBranchDismissStale,
 		graph.AttrBranchLastPush, graph.AttrBranchStatusChecks, graph.AttrBranchSignedCommits, graph.AttrBranchForcePush,
@@ -346,7 +349,7 @@ var policies = map[string]policy{
 	"token_scopes":                  words,
 	"risky_triggers":                words,
 	"trigger":                       words,
-	"exec":                          enum("checkout", "injection"),
+	"exec":                          enum("checkout", "injection", "agent"),
 	"secrets":                       list(secretName),
 	"labels":                        list(func(r *redactor, s string) string { return r.label(s) }),
 	"source_api":                    sourceAPIAttr,
@@ -382,6 +385,60 @@ func init() {
 	policies[graph.AttrLockAdvisories] = list(advisoryID)
 	policies[graph.AttrLockAdvisorySeverity] = enum("critical", "high", "medium", "low", "unknown")
 	policies[graph.AttrLockAdvisoryFixed] = versionAttr
+}
+
+// Agent attrs (docs/agents-in-ci.md): gop's vocabulary, except job ids.
+func init() {
+	policies[graph.AttrAgent] = words
+	policies[graph.AttrAgentSource] = words
+	policies[graph.AttrAgentConfidence] = enum(graph.AgentAction, graph.AgentCLI, graph.AgentNameOnly)
+	policies[graph.AttrAgentJobs] = list(func(r *redactor, s string) string { return r.job(s) })
+	policies[graph.AttrAgentGate] = enum(graph.GateWriteAccess, graph.GateListed, graph.GateAnyone, graph.GateNone, graph.GateUnknown)
+	policies[graph.AttrAgentExposure] = enum(graph.ExposureOutsiders, graph.ExposureListed, graph.ExposureForkRO, graph.ExposureMaintainer)
+	policies[graph.AttrAgentPrompt] = contextList
+	policies[graph.AttrAgentPerms] = scopeList
+	policies[graph.AttrAgentSecrets] = integer
+	policies[graph.AttrAgentRunner] = enum("hosted", "self_hosted", "unknown")
+	policies[graph.AttrAgentTools] = enumList(graph.AgentToolFlags...)
+	policies[graph.AttrAgentRefKind] = enum("sha", "tag", "branch")
+}
+
+var (
+	contextRe = regexp.MustCompile(`^github(\.[a-z_]+|\.\*|\[[0-9*]*\])+$`)
+	scopeRe   = regexp.MustCompile(`^([a-z][a-z-]*:write|write-all|default)$`)
+)
+
+// contextList keeps a comma list of GitHub expression context names.
+func contextList(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
+	return matchAll(contextRe, v)
+}
+
+// scopeList keeps a comma list of token write scopes.
+func scopeList(_ *redactor, _ attrCtx, v string) (string, bool, bool) { return matchAll(scopeRe, v) }
+
+// enumList keeps a comma list whose every item is one of values.
+func enumList(values ...string) policy {
+	set := map[string]bool{}
+	for _, v := range values {
+		set[v] = true
+	}
+	return func(_ *redactor, _ attrCtx, v string) (string, bool, bool) {
+		for _, w := range strings.Split(v, ",") {
+			if !set[w] {
+				return "", false, false
+			}
+		}
+		return v, true, true
+	}
+}
+
+func matchAll(re *regexp.Regexp, v string) (string, bool, bool) {
+	for _, w := range strings.Split(v, ",") {
+		if !re.MatchString(w) {
+			return "", false, false
+		}
+	}
+	return v, true, true
 }
 
 // attrs rewrites an attr map. Keys outside the kept set are dropped; a kept

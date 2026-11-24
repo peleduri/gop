@@ -15,6 +15,7 @@ const (
 	attrJob     = "job"
 	attrDetail  = "detail"
 	execInject  = "injection"
+	execAgent   = "agent"
 	settingsAPI = "/actions/permissions/workflow" // in the source_api of a token edge decided by the default
 )
 
@@ -226,6 +227,9 @@ func hardenChange(g *trigStep) string {
 	job := orDefault(g.job, "(unknown)")
 	if g.exec == execInject {
 		return fmt.Sprintf("in job %s, move `${{ %s }}` out of the script into `env:` (for example `env: UNTRUSTED: ${{ %s }}`) and read it as \"$UNTRUSTED\", so the text is data, not code", job, g.detail, g.detail)
+	}
+	if g.exec == execAgent {
+		return fmt.Sprintf("in job %s, stop people without push access from starting the AI agent (%s): keep the action's write-access check (remove allowed_non_write_users / allow-users), move the job off this trigger, or require approval for outside contributors; give it a read-only token and scope its tools (see docs/agents-in-ci.md)", job, g.detail)
 	}
 	switch {
 	case strings.HasPrefix(g.detail, "ref:"), strings.HasPrefix(g.detail, "repository:"):

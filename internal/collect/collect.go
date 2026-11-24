@@ -1382,6 +1382,7 @@ func (k *collector) processWorkflowFile(o *orgState, repo *graph.Node, path stri
 	k.addWorkflowFacts(wid, full, facts)
 	pending = k.addTokenFacts(wid, wn, repo, facts, pending)
 	k.addTriggerFacts(o, repo, wid, wn, facts)
+	addAgentFacts(wn, facts)
 	return pending
 }
 

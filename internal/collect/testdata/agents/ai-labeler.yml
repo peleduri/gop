@@ -1,0 +1,8 @@
+# Synthetic fixture: only the file name looks like an agent (weak signal).
+name: Labeler
+on: issues
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "labeling issue"

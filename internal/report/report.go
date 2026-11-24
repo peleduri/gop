@@ -82,6 +82,10 @@ type data struct {
 	Fixes    []fixRow
 	PinLine  string
 	Pinned   []pinnedRow
+	// Agents is the "AI agents in CI" section, AgentLine its summary;
+	// empty when no workflow runs an agent.
+	Agents    []agentRow
+	AgentLine string
 	// LockLine counts workflow uses: lines pinned in the workflow file, by
 	// an actions.lock, stale in one, and unpinned; set only when the graph
 	// has an actions.lock fact.
@@ -190,6 +194,9 @@ type riskRow struct {
 	// Poutine counts the confirmed-reached workflows with an injection-class
 	// poutine finding (Score.PoutineInjectable); 0 without a poutine import.
 	Poutine int
+	// Agent counts the AI agent workflows the principal can start without
+	// push access while they hold write, secrets or OIDC (Score.AgentExposed).
+	Agent int
 }
 
 // ownership is the org ownership concentration block: how many accounts own
@@ -403,6 +410,7 @@ func build(g *graph.Graph, opts Options) data {
 	if st := ix.PinStats(); st.HasLock() {
 		d.LockLine = lockLine(st)
 	}
+	d.Agents, d.AgentLine = agentRows(ix)
 	if o, ok := ix.Ownership(); ok {
 		d.Ownership = ownershipView(o)
 	}
@@ -424,7 +432,7 @@ func headlinePick(ix *graph.Index, top []graph.RiskGroup) graph.RiskGroup {
 	}
 	best := top[0]
 	for _, g := range top[1:] {
-		if g.Score != best.Score || g.PoutineInjectable != best.PoutineInjectable || (len(g.Advisories) > 0) != (len(best.Advisories) > 0) {
+		if g.Score != best.Score || g.PoutineInjectable != best.PoutineInjectable || g.AgentExposed != best.AgentExposed || (len(g.Advisories) > 0) != (len(best.Advisories) > 0) {
 			break
 		}
 		if population(g) && !population(best) {

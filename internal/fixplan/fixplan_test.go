@@ -257,3 +257,14 @@ func TestPinSkipsActionsLock(t *testing.T) {
 		t.Errorf("lint plan: steps %+v caveats %v", p.Steps, p.Caveats)
 	}
 }
+
+func TestHardenAgentTrigger(t *testing.T) {
+	g, err := graph.LoadFile("../../testdata/agents/graph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := Build(graph.NewIndex(g), graph.HardenTrigger{Workflow: "workflow:acme-app/docs/.github/workflows/claude.yml"})
+	if len(p.Steps) == 0 || !strings.Contains(p.Steps[0].Change, "AI agent (claude-code-action)") || p.Steps[0].Line != 16 {
+		t.Fatalf("plan = %+v", p.Steps)
+	}
+}

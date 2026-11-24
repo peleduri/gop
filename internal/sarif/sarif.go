@@ -46,6 +46,9 @@ const (
 	// RuleAdvisory: a workflow runs an action version with a known
 	// advisory (OSV GitHub Actions). Ranked above every other rule.
 	RuleAdvisory = "GOP003"
+	// RuleAgent: an AI coding agent workflow that people without push
+	// access can start on a trigger that holds the repo's token and secrets.
+	RuleAgent = "GOP004"
 )
 
 // Severities, lowest first.
@@ -217,6 +220,10 @@ type Properties struct {
 	ReachRemovedPct     float64         `json:"reach_removed_pct"`
 	// Advisories are the advisory IDs behind a GOP003 result.
 	Advisories []string `json:"advisories,omitempty"`
+	// Agent is the agent kind list behind a GOP004 result (attr agent).
+	Agent string `json:"agent,omitempty"`
+	// AgentFixes are the changes that shrink a GOP004 result's exposure.
+	AgentFixes []string `json:"agent_fixes,omitempty"`
 }
 
 // Rules returns the rules gop reports, in ruleIndex order.
@@ -291,6 +298,32 @@ func Rules() []Rule {
 			DefaultConfiguration: Configuration{Level: "error"},
 			Properties:           map[string]any{"tags": tags, "precision": "high"},
 		},
+		{
+			ID:               RuleAgent,
+			Name:             "agent-workflow-exposed",
+			ShortDescription: Message{Text: "People without push access can start an AI coding agent that runs with the repo's token and secrets"},
+			FullDescription: Message{Text: "The workflow runs an AI coding agent (a known agent action or CLI) on a trigger that people without push access can cause, " +
+				"and the agent's own actor check does not stop them. The agent reads their text (a comment, an issue, a pull request) and acts with the job's " +
+				"GITHUB_TOKEN, secrets, OIDC token and tools, so a prompt injection uses all of them."},
+			Help: Help{
+				Text: "Restrict who can start the agent (keep the action's write-access check, drop allowed_non_write_users or allow-users, or require approval for " +
+					"outside contributors), give the agent job a read-only token and do writes in a separate job, pin the agent action to a commit SHA, drop " +
+					"--dangerously-skip-permissions and similar flags, and scope the allowed tools. See docs/agents-in-ci.md.",
+				Markdown: "## Fix: close the agent to outsiders and shrink what it holds\n\n" +
+					"An AI coding agent reads the text of whoever triggered it. When that can be anyone without push access, a prompt injection " +
+					"acts with the job's token, secrets, OIDC token and tools.\n\n" +
+					"- Restrict who can start it: keep the action's write-access check (remove `allowed_non_write_users` / `allow-users`), move it off " +
+					"`pull_request_target`, `issue_comment` and `issues`, or require approval for outside contributors.\n" +
+					"- Give the agent job `permissions: contents: read` and make changes in a separate job that takes the agent's output.\n" +
+					"- Pin the agent action to a full commit SHA.\n" +
+					"- Drop `--dangerously-skip-permissions`, `--yolo`, `bypassPermissions`, `safety-strategy: unsafe` and similar flags.\n" +
+					"- Scope the allowed tools, for example `--allowedTools \"Bash(gh pr comment:*)\"`.\n\n" +
+					"`properties.agent_fixes` lists the changes for this workflow. See docs/agents-in-ci.md. gop never makes this change: make it with your own access.",
+			},
+			HelpURI:              HelpURI,
+			DefaultConfiguration: Configuration{Level: "error"},
+			Properties:           map[string]any{"tags": []string{"security", "supply-chain", "github-actions", "ai-agent"}, "precision": "medium"},
+		},
 	}
 }
 
@@ -335,6 +368,11 @@ func Build(g *graph.Graph, opts Options) (*Log, error) {
 	var results []Result
 	for _, a := range ix.AdvisoryActions() {
 		results = append(results, en.advisoryResults(a)...)
+	}
+	for _, w := range ix.AgentWorkflows() {
+		if r, ok := en.agentResult(w); ok {
+			results = append(results, r)
+		}
 	}
 	for _, f := range ix.Candidates() {
 		switch v := f.(type) {
@@ -382,6 +420,9 @@ func sortResults(rs []Result) {
 	sort.SliceStable(rs, func(i, j int) bool {
 		a, b := rs[i], rs[j]
 		if aa, ba := a.RuleID == RuleAdvisory, b.RuleID == RuleAdvisory; aa != ba {
+			return aa
+		}
+		if aa, ba := a.RuleID == RuleAgent && !a.Properties.Possible, b.RuleID == RuleAgent && !b.Properties.Possible; aa != ba {
 			return aa
 		}
 		if a.Properties.Possible != b.Properties.Possible {
@@ -743,6 +784,116 @@ func (en *engine) advisoryResults(action string) []Result {
 		})
 	}
 	return out
+}
+
+// agentResult makes the GOP004 result for an agent workflow that people
+// without push access can start (exposure outsiders, a strong agent
+// signal): one per workflow, located at the agent step its CAN_TRIGGER
+// edges name. It is possible when no such edge is verified (the agent's
+// actor check is unknown, or who can trigger is not visible).
+func (en *engine) agentResult(w string) (Result, bool) {
+	n, _ := en.ix.Node(w)
+	if !graph.AgentConfirmed(n) || n.Attrs[graph.AttrAgentExposure] != graph.ExposureOutsiders {
+		return Result{}, false
+	}
+	var conf, poss []string
+	var at *graph.Edge
+	for _, e := range en.ix.In(w) {
+		// The collector keeps one CAN_TRIGGER edge per principal: an agent
+		// job under an injection or checkout exec of the same trigger may
+		// carry that exec instead. Every one of them starts the workflow.
+		if e.Kind != graph.CanTrigger {
+			continue
+		}
+		if graph.Verified(e.Evidence) {
+			conf = append(conf, e.From)
+		} else {
+			poss = append(poss, e.From)
+		}
+		if at == nil || edgeRank(e) > edgeRank(*at) {
+			e := e
+			at = &e
+		}
+	}
+	if at == nil {
+		return Result{}, false
+	}
+	sort.Strings(conf)
+	sort.Strings(poss)
+	possible := len(conf) == 0
+	rr := en.reachOf(w)
+	reached := rr.Confirmed
+	if possible {
+		reached = union(rr.Confirmed, rr.Possible)
+	}
+	t := count(reached)
+	sev := severityOf(t)
+	if len(graph.AgentImpact(n)) > 0 && severityRank(sev) < severityRank(SeverityHigh) {
+		sev = SeverityHigh // the agent's own token or secrets: it can write or leak them
+	}
+	repo, file := n.Attrs["repo"], n.Attrs["path"]
+	if f := at.Attrs[graph.AttrFile]; f != "" {
+		file = f
+	}
+	who := en.whoPhrase(conf, 3)
+	if possible {
+		who = en.whoPhrase(poss, 3) + " (possible)"
+	}
+	holds := strings.Join(graph.AgentImpact(n), ", ")
+	if holds == "" {
+		holds = "a read-only token"
+	}
+	msg := fmt.Sprintf("%s runs %s, which %s can start on %s; the agent job holds %s and reaches %s.",
+		orDefault(file, logical(w).Name), n.Attrs[graph.AttrAgent], who, at.Attrs["trigger"], holds, terminalPhrase(t))
+	if p := n.Attrs[graph.AttrAgentPrompt]; p != "" {
+		msg += " Untrusted text reaches the prompt: " + strings.ReplaceAll(p, ",", ", ") + "."
+	}
+	fixes := graph.AgentFixes(n)
+	if len(fixes) > 0 {
+		msg += " " + fixes[0]
+	}
+	loc := Location{LogicalLocations: []LogicalLocation{logical(w)}}
+	if file != "" {
+		loc.PhysicalLocation = &PhysicalLocation{ArtifactLocation: ArtifactLocation{URI: file}}
+		if l, _ := strconv.Atoi(at.Attrs[graph.AttrLine]); l > 0 {
+			loc.PhysicalLocation.Region = &Region{StartLine: l}
+		}
+	}
+	ev := at.Evidence
+	if possible {
+		ev = graph.NotVisible
+	}
+	spec, _ := fixplan.Spec(graph.HardenTrigger{Workflow: w})
+	return Result{
+		RuleID: RuleAgent, RuleIndex: ruleIndex(RuleAgent), Level: level(sev, possible),
+		Message:             Message{Text: msg},
+		Locations:           []Location{loc},
+		PartialFingerprints: map[string]string{FingerprintKey: fingerprint(RuleAgent, repo, file)},
+		Properties: Properties{
+			Severity: sev, Repository: repo, Edge: at.From + " " + string(at.Kind) + " " + at.To, Evidence: ev, Possible: possible,
+			ConfirmedPrincipals: nonNil(conf), PossiblePrincipals: nonNil(poss), Terminals: t,
+			Fix: spec, Agent: n.Attrs[graph.AttrAgent], AgentFixes: fixes,
+		},
+	}, true
+}
+
+// edgeRank prefers a verified edge, then one the agent exec created.
+func edgeRank(e graph.Edge) int {
+	r := 0
+	if graph.Verified(e.Evidence) {
+		r += 2
+	}
+	if e.Attrs["exec"] == "agent" {
+		r++
+	}
+	return r
+}
+
+func orDefault(s, d string) string {
+	if s == "" {
+		return d
+	}
+	return s
 }
 
 // fixplanSplit splits "O/R[/path]@ref" at the last "@".
