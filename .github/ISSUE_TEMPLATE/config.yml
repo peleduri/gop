@@ -3,3 +3,15 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/peleduri/gop/security/advisories/new
     about: Use private vulnerability reporting. Do not open a public issue.
+  - name: Quickstart and token setup
+    url: https://github.com/peleduri/gop/blob/main/docs/quickstart.md
+    about: The fewest steps from install to a report, including the read-only token or GitHub App.
+  - name: Documentation
+    url: https://github.com/peleduri/gop/tree/main/docs
+    about: Report guide, AI agents in CI, MCP clients, schema and threat model.
+  - name: How gop compares with other tools
+    url: https://github.com/peleduri/gop/blob/main/docs/compare.md
+    about: zizmor, poutine, Legitify, Scorecard, Gato-X and GitHub's security overview.
+  - name: Questions and help
+    url: https://github.com/peleduri/gop/blob/main/SUPPORT.md
+    about: Where to ask, and how to share a problem without sharing your enterprise's names.

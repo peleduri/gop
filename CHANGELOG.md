@@ -7,6 +7,26 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- First-run onboarding (#142). The README opens with the story (AI agents in
+  CI and cross-org reach), the redesigned report as the hero image, "Try it in
+  60 seconds" (`gop report --demo` with no token, then `doctor`, `collect` and
+  `report`), what you will see, "read-only, local, never phones home", and
+  links to the site (https://peleduri.github.io/gop/), docs, agent skill and
+  AI agents guide. The Roadmap lists only unshipped work; shipped items
+  (branch protection and rulesets, AI agents in CI, OSV advisories,
+  actions.lock, cause grouping, report redesign, `gop diff`) moved to the
+  feature list, and a repeated `gop diff` paragraph is gone. New
+  `docs/quickstart.md` (token or GitHub App in the fewest steps) and
+  `docs/compare.md` (zizmor, poutine, Legitify, OpenSSF Scorecard, Gato-X,
+  GitHub security overview and CSPM/ASPM, each claim linked to the tool's own
+  docs, with where each is stronger than gop). Issue forms "I ran gop" (label
+  `ran-it`) and "False positive or false negative" join the bug and feature
+  forms, each with a reminder to use synthetic names and `gop redact`;
+  `config.yml` links the quickstart, docs and comparison; new `SUPPORT.md`.
+  `docs/demo.tape` now records `doctor`, then the demo report's verdict, AI
+  agents section and fixes, with no token. The docs tests check every
+  relative link in the top-level Markdown files and `docs/`, and the issue
+  forms' structure.
 - AI coding agents in GitHub Actions (#139). `gop collect` marks workflows
   that run a known agent action (`anthropics/claude-code-action`,
   `claude-code-base-action`, `openai/codex-action`, the Copilot coding agent

@@ -1,7 +1,11 @@
 name: Feature request
-description: Suggest a new fact, path type, MCP tool or report section
+description: Suggest a new fact, path type, AI agent, MCP tool or report section
 labels: [enhancement]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public: describe your setup with synthetic names (`acme-actions`, `alice`), never real org, repo or user names.
   - type: textarea
     id: problem
     attributes:

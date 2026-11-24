@@ -1,0 +1,106 @@
+name: I ran gop
+description: Tell us how a run went, what it found and what was confusing
+title: "[ran gop] "
+labels: [ran-it]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying gop. This is the most useful issue you can open for us.
+
+        **Privacy first.** This issue is public. Do not paste real org, repo, team, user, secret or runner names, report excerpts with names, or tokens. Describe what you saw in general terms ("members of one org can push to an Action used in three other orgs"), or use the synthetic names from the demo (`acme-actions`, `acme-app`, `alice`). If a graph is needed, attach only the output of `gop redact --graph graph.json --out shareable.json`, never a raw graph.json, report or `--map-out` file.
+  - type: dropdown
+    id: how
+    attributes:
+      label: What did you run?
+      multiple: true
+      options:
+        - gop report --demo (no token)
+        - gop doctor
+        - gop collect + gop report on my enterprise or orgs
+        - gop serve (MCP) with an AI agent
+        - the GitHub Action
+        - something else
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size of what you collected
+      options:
+        - demo only
+        - 1 org
+        - 2-5 orgs
+        - 6-20 orgs
+        - more than 20 orgs
+        - GitHub Enterprise Server
+    validations:
+      required: true
+  - type: dropdown
+    id: repos
+    attributes:
+      label: Approximate number of repositories
+      options:
+        - demo only
+        - fewer than 100
+        - 100-1,000
+        - 1,000-10,000
+        - more than 10,000
+        - prefer not to say
+  - type: dropdown
+    id: credential
+    attributes:
+      label: Credential
+      options:
+        - none (demo)
+        - classic token, enterprise owner
+        - classic token, org owner
+        - fine-grained token
+        - GitHub App (gop App mode)
+        - other
+  - type: textarea
+    id: found
+    attributes:
+      label: What did it find?
+      description: In general terms, no names. Was anything new to you? Did the suggested fixes make sense?
+    validations:
+      required: true
+  - type: textarea
+    id: confusing
+    attributes:
+      label: What was confusing or got in the way?
+      description: Install, token setup, doctor output, run time, report wording, confirmed vs possible, anything.
+  - type: dropdown
+    id: useful
+    attributes:
+      label: Would you run it again?
+      options:
+        - yes, on a schedule
+        - yes, now and then
+        - not sure
+        - no
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where did you hear about gop?
+      options:
+        - Direct message
+        - Hacker News
+        - Reddit
+        - LinkedIn
+        - X or Bluesky
+        - A list or newsletter
+        - The AI agents guide
+        - Other
+  - type: input
+    id: version
+    attributes:
+      label: gop version
+      description: Output of `gop version`
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: This issue contains no real org, repo, user, secret or runner names and no tokens.
+          required: true
