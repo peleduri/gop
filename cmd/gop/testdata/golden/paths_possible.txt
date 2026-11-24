@@ -1,4 +1,4 @@
-members:acme-legacy has confirmed paths to 0 nodes; 3 more possible
+paths: `members:acme-legacy` has confirmed paths to 0 nodes; 3 more possible
 
 Possible (at least one hop not visible) (3):
   members:acme-legacy -> repo:acme-legacy/old-api  [possible: a hop is not visible]

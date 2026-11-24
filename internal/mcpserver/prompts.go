@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // promptFS holds the prompt texts, one text/template per prompt, so they can
@@ -76,6 +78,10 @@ func (e *Engine) RenderPrompt(name string, args map[string]string, now time.Time
 		fmt.Fprintf(&b, "Note: the %s (collected %s); findings may be out of date. Say so in the answer, and re-run gop collect for current state.\n\n",
 			st, e.ix.Graph().CollectedAt.UTC().Format(time.RFC3339))
 	}
+	// Names reach the prompt as data: escape control, bidi and zero-width
+	// characters so none can start a line or hide text. IDs are not cut,
+	// since the prompt tells the agent to pass them back to the tools.
+	d.Enterprise, d.Action, d.From, d.To = sanitize.Code(d.Enterprise), sanitize.Code(d.Action), sanitize.Code(d.From), sanitize.Code(d.To)
 	if err := promptTmpl.ExecuteTemplate(&b, name+".md", d); err != nil {
 		return "", err
 	}

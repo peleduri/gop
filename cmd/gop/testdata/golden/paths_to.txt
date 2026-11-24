@@ -1,4 +1,4 @@
-members:acme-actions can reach oidc:acme-app/web in 4 hops (confirmed)
+paths: `members:acme-actions` can reach `oidc:acme-app/web` in 4 hops (confirmed)
 
 Confirmed (every hop live, inferred, audit or supplied) (1):
   members:acme-actions -> oidc:acme-app/web  [confirmed]

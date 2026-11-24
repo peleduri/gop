@@ -1,4 +1,4 @@
-members:acme-actions has confirmed paths to 31 nodes; 0 more possible
+paths: `members:acme-actions` has confirmed paths to 31 nodes; 0 more possible
 
 Confirmed (every hop live, inferred, audit or supplied) (31):
   members:acme-actions -> repo:acme-actions/deploy  [confirmed]

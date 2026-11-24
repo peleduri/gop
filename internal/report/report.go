@@ -4,6 +4,7 @@
 package report
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"github.com/peleduri/gop/internal/diff"
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // Options tune the report.
@@ -46,7 +48,15 @@ func Render(w io.Writer, g *graph.Graph, opts Options) error {
 		if err := addEmbedded(&d, g); err != nil {
 			return err
 		}
-		return pageTmpl.Execute(w, d)
+		// html/template escapes markup; sanitize.HTML also turns raw
+		// control, bidi and zero-width characters from names into
+		// character references.
+		var page bytes.Buffer
+		if err := pageTmpl.Execute(&page, d); err != nil {
+			return err
+		}
+		_, err := w.Write(sanitize.HTML(page.Bytes()))
+		return err
 	case "md", "markdown":
 		return writeMarkdown(w, d)
 	}

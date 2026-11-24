@@ -1,7 +1,7 @@
-who_can_reach about repo:acme-app/web: yes; every required fact was visible
+who_can_reach about `repo:acme-app/web`: yes; every required fact was visible
 
 {
-  "summary": "who_can_reach about repo:acme-app/web: yes; every required fact was visible",
+  "summary": "who_can_reach about `repo:acme-app/web`: yes; every required fact was visible",
   "question_kind": "who_can_reach",
   "subject": "repo:acme-app/web",
   "answerable": "yes",

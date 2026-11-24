@@ -1,4 +1,4 @@
-Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 10 lines to edit across 9 repos; removes 18 of 25 confirmed (principal, repo) pairs (72%)
+Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it: 10 lines to edit across 9 repos; removes 18 of 25 confirmed (principal, repo) pairs (72%)
 
 ## Fix plan: Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it
 

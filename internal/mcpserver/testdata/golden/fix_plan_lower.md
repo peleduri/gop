@@ -1,4 +1,4 @@
-Lower the default repository permission of acme-actions to read: 1 setting to change; removes 5 of 14 confirmed (principal, repo) pairs (36%); 1 step is not visible, listed last
+Lower the default repository permission of `acme-actions` to `read`: 1 setting to change; removes 5 of 14 confirmed (principal, repo) pairs (36%); 1 step is not visible, listed last
 
 ## Fix plan: Lower the default repository permission of acme-actions to read
 

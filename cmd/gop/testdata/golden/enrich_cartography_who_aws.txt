@@ -1,4 +1,4 @@
-2 principals can control cloud:aws:arn:aws:iam::111111111111:role/deploy (confirmed); 0 more possible through a not visible hop (cloud hop from supplied trust file testdata/cartography/oidc-trusts.json, not read from the cloud)
+2 principals can control `cloud:aws:arn:aws:iam::111111111111:role/deploy` (confirmed); 0 more possible through a not visible hop (cloud hop from supplied trust file testdata/cartography/oidc-trusts.json, not read from the cloud)
 
 Confirmed (every hop live, inferred, audit or supplied) (2):
   identity:bob -> cloud:aws:arn:aws:iam::111111111111:role/deploy  [confirmed]

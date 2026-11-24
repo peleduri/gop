@@ -11,6 +11,7 @@ import (
 
 	"github.com/peleduri/gop/internal/fixplan"
 	"github.com/peleduri/gop/internal/graph"
+	"github.com/peleduri/gop/internal/sanitize"
 )
 
 // FixPlanInput is the fix_plan tool input: exactly one of Fix and SuggestionRank.
@@ -53,7 +54,58 @@ func (e *Engine) FixPlan(in FixPlanInput) (res FixPlanOutput, _ error) {
 		return FixPlanOutput{}, errors.New("give fix (" + fixShapes + ") or suggestion_rank")
 	}
 	p := fixplan.Build(e.ix, fx)
-	return FixPlanOutput{Summary: fixplan.Summary(p), Plan: p}, nil
+	q := p
+	q.Description = quotedDescription(p.Fix)
+	return FixPlanOutput{Summary: fixplan.Summary(q), Plan: p}, nil
+}
+
+// quotedDescription is fixplan.Spec's sentence for a fix with the name in
+// backticks (sanitize.Value), for text summaries.
+func quotedDescription(f FixSpec) string {
+	switch f.Type {
+	case "pin_ref":
+		return "Pin " + sanitize.Value(strings.TrimPrefix(f.Action, "action:")) + " to a commit SHA in every workflow that uses it"
+	case "lower_default_perm":
+		return "Lower the default repository permission of " + sanitize.Value(strings.TrimPrefix(f.Org, "org:")) + " to " + sanitize.Value(f.To)
+	case "restrict_token":
+		return "Set permissions: contents: read on the GITHUB_TOKEN of " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:"))
+	case "harden_trigger":
+		return "Stop " + sanitize.Value(strings.TrimPrefix(f.Workflow, "workflow:")) + " from running attacker-controlled code on its risky triggers"
+	}
+	return "fix " + sanitize.Value(f.Type)
+}
+
+// cleanPlan is a copy of p for the markdown text: every string that can hold
+// a GitHub name is escaped, so no value can start a new line or hide text
+// (sanitize.Clean). Fields the markdown puts inside a code span or fence
+// (file, edge, API, diff lines) also get backticks escaped (sanitize.Code),
+// so a value cannot end the span. A diff keeps its own line breaks; each of
+// its lines is escaped. The structured output keeps the raw plan.
+func cleanPlan(p fixplan.Plan) fixplan.Plan {
+	c, code := sanitize.Clean, sanitize.Code
+	p.Description = c(p.Description)
+	p.Caveats = append([]string{}, p.Caveats...)
+	for i := range p.Caveats {
+		p.Caveats[i] = c(p.Caveats[i])
+	}
+	p.Steps = append([]fixplan.Step{}, p.Steps...)
+	for i := range p.Steps {
+		s := &p.Steps[i]
+		for _, f := range []*string{&s.Repo, &s.FileRef, &s.Change, &s.Setting, &s.Owner, &s.Note} {
+			*f = c(*f)
+		}
+		for _, f := range []*string{&s.File, &s.API, &s.Edge} {
+			*f = code(*f)
+		}
+		if s.Diff != "" {
+			lines := strings.Split(strings.TrimSuffix(s.Diff, "\n"), "\n")
+			for j := range lines {
+				lines[j] = code(lines[j])
+			}
+			s.Diff = strings.Join(lines, "\n") + "\n"
+		}
+	}
+	return p
 }
 
 // addFixPlanTool registers fix_plan. Its text content is the summary and the
@@ -67,7 +119,7 @@ func addFixPlanTool(s *mcp.Server, e *Engine) {
 			"for restrict_token, where to set permissions: contents: read in the workflow (top level or per job); for " +
 			"harden_trigger, the job and line of each checkout of the pull request head or script injection, with the change. " +
 			"Pass fix (same shape as what_if) or suggestion_rank (1-based, from suggest_fixes). gop never runs the " +
-			"steps or calls write APIs: the REST call is text for whoever makes the change." + detailNote + evidenceNote,
+			"steps or calls write APIs: the REST call is text for whoever makes the change." + detailNote + evidenceNote + DataNote,
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true, IdempotentHint: true, OpenWorldHint: new(bool)},
 	}
 	mcp.AddTool(s, t, func(_ context.Context, _ *mcp.CallToolRequest, in FixPlanInput) (*mcp.CallToolResult, FixPlanOutput, error) {
@@ -76,8 +128,8 @@ func addFixPlanTool(s *mcp.Server, e *Engine) {
 			return nil, FixPlanOutput{}, err
 		}
 		var md bytes.Buffer
-		fixplan.WriteMarkdown(&md, out.Plan)
-		text := firstLine(out.Summary) + "\n\n" + md.String()
+		fixplan.WriteMarkdown(&md, cleanPlan(out.Plan))
+		text := textContent(out.Summary, md.String())
 		if b := out.Brief; b != nil && b.Total["steps"] > len(out.Plan.Steps) {
 			text += fmt.Sprintf("\n(brief: %d of %s shown; pass detail full for the rest)\n",
 				len(out.Plan.Steps), plural(b.Total["steps"], "step", "steps"))

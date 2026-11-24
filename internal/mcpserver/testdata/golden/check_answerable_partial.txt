@@ -1,7 +1,7 @@
-top_risks about enterprise:acme: partial (a lower bound); 4 required facts not visible across 2 scopes
+top_risks about `enterprise:acme`: partial (a lower bound); 4 required facts not visible across 2 scopes
 
 {
-  "summary": "top_risks about enterprise:acme: partial (a lower bound); 4 required facts not visible across 2 scopes",
+  "summary": "top_risks about `enterprise:acme`: partial (a lower bound); 4 required facts not visible across 2 scopes",
   "question_kind": "top_risks",
   "subject": "enterprise:acme",
   "answerable": "partial",

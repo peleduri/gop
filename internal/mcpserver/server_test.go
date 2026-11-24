@@ -132,7 +132,7 @@ func TestBlastRadius(t *testing.T) {
 	if out.Score.Confirmed.Repos != 12 {
 		t.Errorf("confirmed repos = %d, want 12", out.Score.Confirmed.Repos)
 	}
-	if !strings.HasPrefix(out.Summary, "members:acme-actions can control 12 repos across 2 orgs (confirmed)") {
+	if !strings.HasPrefix(out.Summary, "blast radius: `members:acme-actions` can control 12 repos across 2 orgs (confirmed)") {
 		t.Errorf("summary = %q", out.Summary)
 	}
 }
@@ -319,7 +319,7 @@ func TestExplainFileLine(t *testing.T) {
 	g.Edges[i].Attrs = map[string]string{graph.AttrFile: ".github/workflows/release.yml", graph.AttrLine: "42",
 		graph.AttrCol: "15", graph.AttrFileRef: "main"}
 	ex, err = NewEngine(g).Explain(ExplainInput{From: ed.From, To: ed.To, Kind: string(graph.Uses)})
-	if err != nil || !strings.HasSuffix(ex.Summary, ", at .github/workflows/release.yml:42 (main)") {
+	if err != nil || !strings.HasSuffix(ex.Summary, ", at `.github/workflows/release.yml:42 (main)`") {
 		t.Errorf("summary = %q err=%v", ex.Summary, err)
 	}
 }
