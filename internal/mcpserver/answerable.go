@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/peleduri/gop/internal/graph"
 )
@@ -236,18 +235,6 @@ func factOfNode(n graph.Node) string {
 	return factOther
 }
 
-// auditMaxAge is how old an audit fact may be, before the graph's
-// CollectedAt, and still count as visible. An older audit fact is stale and
-// counts as not visible.
-const auditMaxAge = 90 * 24 * time.Hour
-
-// staleAudit reports whether e is an audit edge older than auditMaxAge. An
-// edge or graph without a timestamp is never stale.
-func staleAudit(g *graph.Graph, e graph.Edge) bool {
-	return e.Evidence == graph.Audit && !e.ObservedAt.IsZero() && !g.CollectedAt.IsZero() &&
-		e.ObservedAt.Before(g.CollectedAt.Add(-auditMaxAge))
-}
-
 // gap is one thing gop could not see: a coverage entry, a not_visible (or
 // stale audit) edge, a not_visible node attribute or a not_visible node.
 type gap struct {
@@ -260,8 +247,12 @@ type gap struct {
 	node     string      // node or scope ID for the other gaps
 }
 
-// gaps lists every gap in g, in a stable order.
-func gaps(g *graph.Graph) []gap {
+// gaps lists every gap in the indexed graph, in a stable order. An audit edge
+// older than the graph's maximum audit age (half its audit_retention_days,
+// else graph.DefaultMaxAuditAge) is stale and counts as not visible.
+func gaps(ix *graph.Index) []gap {
+	g := ix.Graph()
+	maxAge := ix.MaxAuditAge(0)
 	var out []gap
 	for _, c := range g.Coverage {
 		out = append(out, gap{fact: factOfName(c.Fact, c.Scope), scope: scopeOf(c.Scope), detail: c.Reason,
@@ -287,8 +278,8 @@ func gaps(g *graph.Graph) []gap {
 		label := "not_visible " + string(e.Kind) + " edges"
 		switch {
 		case e.Evidence == graph.NotVisible:
-		case staleAudit(g, *e):
-			label = fmt.Sprintf("stale %s audit edges (older than %d days)", e.Kind, int(auditMaxAge.Hours()/24))
+		case ix.AuditStale(*e, maxAge):
+			label = fmt.Sprintf("stale %s audit edges (older than %d days)", e.Kind, int(maxAge.Hours()/24))
 		default:
 			continue
 		}
@@ -441,13 +432,12 @@ func (e *Engine) CheckAnswerable(in CheckAnswerableInput) (res CheckAnswerableOu
 	if err != nil {
 		return CheckAnswerableOutput{}, err
 	}
-	g := e.ix.Graph()
 	reg := e.questionRegion(req, subject)
 	required := map[string]bool{}
 	for _, f := range req.Facts {
 		required[f] = true
 	}
-	all := gaps(g)
+	all := gaps(e.ix)
 	type acc struct {
 		m       MissingFact
 		reasons []string

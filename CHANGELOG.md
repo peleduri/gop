@@ -46,8 +46,9 @@ flags may change in minor releases.
   answer depends on (the subject and everything upstream for `who_can_reach`,
   everything the subject reaches for `blast_radius` and `paths`, the whole
   enterprise for `top_risks`, `what_if` and `fix_plan`) it reads coverage
-  entries, `not_visible` edges, attributes and nodes, and audit facts older
-  than 90 days, and returns `answerable` (`yes`, `partial` for a lower bound,
+  entries, `not_visible` edges, attributes and nodes, and stale `audit` facts
+  (older than the graph's maximum audit age, so `audit_retention_days` is
+  honoured; `inferred` counts as visible), and returns `answerable` (`yes`, `partial` for a lower bound,
   or `no` when the subject or its org's repositories are not visible), the
   missing facts with scope, reason and fix, and a confidence note. It never
   says `yes` when a required fact is not visible. The required facts per

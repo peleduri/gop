@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"os"
 	"strings"
@@ -147,18 +148,22 @@ func TestCheckAnswerableEvidenceLevels(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct {
-		name string
-		ev   graph.Evidence
-		at   time.Time
-		want string
+		name      string
+		ev        graph.Evidence
+		at        time.Time
+		retention int
+		want      string
 	}{
-		{"inferred is visible", "inferred", answerT0, AnswerYes},
-		{"recent audit is visible", graph.Audit, answerT0.Add(-30 * 24 * time.Hour), AnswerYes},
-		{"stale audit is not visible", graph.Audit, answerT0.Add(-120 * 24 * time.Hour), AnswerPartial},
-		{"not_visible", graph.NotVisible, answerT0, AnswerPartial},
+		{"inferred is visible", graph.Inferred, answerT0, 0, AnswerYes},
+		{"recent audit is visible", graph.Audit, answerT0.Add(-30 * 24 * time.Hour), 0, AnswerYes},
+		{"stale audit is not visible", graph.Audit, answerT0.Add(-120 * 24 * time.Hour), 0, AnswerPartial},
+		{"audit stale under audit_retention_days", graph.Audit, answerT0.Add(-45 * 24 * time.Hour), 60, AnswerPartial},
+		{"audit fresh under audit_retention_days", graph.Audit, answerT0.Add(-100 * 24 * time.Hour), 400, AnswerYes},
+		{"not_visible", graph.NotVisible, answerT0, 0, AnswerPartial},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			g := answerGraph()
+			g.AuditRetentionDays = tc.retention
 			setPush(g, tc.ev, tc.at)
 			out := checkAnswerable(t, g, "who_can_reach", "repo:acme-app/web")
 			if out.Answerable != tc.want {
@@ -202,23 +207,40 @@ func TestCheckAnswerableErrors(t *testing.T) {
 	}
 }
 
+// TestUpstreamMatchesReach checks Upstream against Reach on the acme fixture
+// and on random graphs with not_visible, inferred, audit and stale audit hops.
 func TestUpstreamMatchesReach(t *testing.T) {
-	g := loadAcme(t)
-	ix := graph.NewIndex(g)
-	for _, target := range []string{"repo:acme-app/web", "oidc:acme-app/web", "action:acme-actions/deploy@main"} {
-		up := map[string]bool{}
-		for _, id := range ix.Upstream(target) {
-			up[id] = true
+	check := func(name string, g *graph.Graph, targets []string) {
+		ix := graph.NewIndex(g)
+		for _, target := range targets {
+			up := map[string]bool{}
+			for _, id := range ix.Upstream(target) {
+				up[id] = true
+			}
+			for _, n := range g.Nodes {
+				if n.ID == target {
+					continue
+				}
+				_, reaches := ix.Reach(n.ID, graph.Options{}).Paths[target]
+				if reaches != up[n.ID] {
+					t.Errorf("%s: %s: %s reaches=%v upstream=%v", name, target, n.ID, reaches, up[n.ID])
+				}
+			}
 		}
+	}
+	check("acme", loadAcme(t), []string{"repo:acme-app/web", "oidc:acme-app/web", "action:acme-actions/deploy@main"})
+	for seed := int64(1); seed <= 20; seed++ {
+		g := randomAnswerGraph(rand.New(rand.NewSource(seed)))
+		for i := range g.Edges {
+			if i%7 == 0 && g.Edges[i].Evidence == graph.Live {
+				g.Edges[i].Evidence = graph.Inferred
+			}
+		}
+		var targets []string
 		for _, n := range g.Nodes {
-			if n.ID == target {
-				continue
-			}
-			_, reaches := ix.Reach(n.ID, graph.Options{}).Paths[target]
-			if reaches != up[n.ID] {
-				t.Errorf("%s: %s reaches=%v upstream=%v", target, n.ID, reaches, up[n.ID])
-			}
+			targets = append(targets, n.ID)
 		}
+		check(fmt.Sprintf("seed %d", seed), g, targets)
 	}
 }
 
@@ -292,12 +314,13 @@ func randomAnswerGraph(r *rand.Rand) *graph.Graph {
 // flipAll makes every not_visible edge and node live and every audit edge
 // fresh: it flips every gap check_answerable could have reported.
 func flipAll(g *graph.Graph) (*graph.Graph, int) {
+	ix := graph.NewIndex(g)
 	f := *g
 	f.Edges = append([]graph.Edge{}, g.Edges...)
 	f.Nodes = append([]graph.Node{}, g.Nodes...)
 	n := 0
 	for i, e := range f.Edges {
-		if e.Evidence == graph.NotVisible || staleAudit(g, e) {
+		if !ix.EdgeVerified(e) {
 			f.Edges[i].Evidence, f.Edges[i].ObservedAt = graph.Live, g.CollectedAt
 			n++
 		}
