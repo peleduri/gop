@@ -1,5 +1,5 @@
 {
-  "summary": "Set permissions: contents: read on the GITHUB_TOKEN of acme-app/web/.github/workflows/ci.yml: 1 line to edit across 1 repo; removes 0 of 25 confirmed (principal, repo) pairs (0%); confirmed workflows 27 -> 25, score 176.8 -> 174.5",
+  "summary": "Set permissions: contents: read on the GITHUB_TOKEN of acme-app/web/.github/workflows/ci.yml: 1 line to edit across 1 repo; removes 0 of 24 confirmed (principal, repo) pairs (0%); confirmed workflows 27 -> 25, score 174.5 -> 172.2",
   "plan": {
     "fix_id": "restrict_token:workflow:acme-app/web/.github/workflows/ci.yml",
     "fix": {
@@ -14,7 +14,7 @@
       "before": {
         "principals": 6,
         "confirmed": {
-          "repos": 25,
+          "repos": 24,
           "orgs": 5,
           "workflows": 27,
           "secrets": 2,
@@ -29,15 +29,15 @@
           "oidc": 0,
           "runners": 0
         },
-        "confirmed_pairs": 25,
+        "confirmed_pairs": 24,
         "possible_pairs": 1,
-        "score": 176.75,
+        "score": 174.5,
         "possible_score": 19.125
       },
       "after": {
         "principals": 6,
         "confirmed": {
-          "repos": 25,
+          "repos": 24,
           "orgs": 5,
           "workflows": 25,
           "secrets": 2,
@@ -52,9 +52,9 @@
           "oidc": 0,
           "runners": 0
         },
-        "confirmed_pairs": 25,
+        "confirmed_pairs": 24,
         "possible_pairs": 1,
-        "score": 174.5,
+        "score": 172.25,
         "possible_score": 19.125
       },
       "per_principal": [

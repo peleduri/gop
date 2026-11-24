@@ -1,6 +1,6 @@
 ## Fix plan: Set permissions: contents: read on the GITHUB_TOKEN of acme-app/web/.github/workflows/ci.yml
 
-Confirmed (principal, repo) pairs: 25 -> 25 (0% removed); possible pairs: 1 -> 1.
+Confirmed (principal, repo) pairs: 24 -> 24 (0% removed); possible pairs: 1 -> 1.
 
 > gop never runs these steps or calls write APIs: make each change with your own access.
 

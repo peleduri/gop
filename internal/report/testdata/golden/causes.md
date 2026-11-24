@@ -4,7 +4,7 @@ Enterprise **acme**, collected 2026-11-20T10:00:00Z
 
 > 4 accounts that own 18 or more orgs can each push code that runs in 54 to 56 repos across 18 to 20 orgs (confirmed), including 3 secret scopes. The cause is standing org ownership: an org owner is admin on every repo of each org it owns.
 >
-> Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) to remove 60% of confirmed reach.
+> Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) to remove 62% of confirmed reach.
 
 Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.
 
@@ -27,7 +27,7 @@ Score counts confirmed reach only. A row grouped by cause shows the range of its
 
 ## Org ownership
 
-83% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 424 of 510 confirmed (principal, repo) pairs.
+88% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 448 of 510 confirmed (principal, repo) pairs.
 
 | Orgs owned | Accounts |
 |---|---:|
@@ -42,9 +42,9 @@ Score counts confirmed reach only. A row grouped by cause shows the range of its
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) | 306 | 60% |
-| 2 | Lower the default repository permission of acme-o22 to read | 9 | 62% |
-| 3 | Lower the default repository permission of acme-o23 to read | 9 | 64% |
+| 1 | Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) | 318 | 62% |
+| 2 | Lower the default repository permission of acme-o22 to read | 3 | 63% |
+| 3 | Lower the default repository permission of acme-o23 to read | 3 | 64% |
 
 ## Top paths
 

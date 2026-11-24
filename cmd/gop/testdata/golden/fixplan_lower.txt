@@ -1,5 +1,5 @@
-Lower the default repository permission of acme-actions to read: 1 setting to change; removes 13 of 25 confirmed (principal, repo) pairs (52%)
-Confirmed (principal, repo) pairs: 25 -> 12 (52% removed); possible pairs: 1 -> 1.
+Lower the default repository permission of acme-actions to read: 1 setting to change; removes 12 of 24 confirmed (principal, repo) pairs (50%)
+Confirmed (principal, repo) pairs: 24 -> 12 (50% removed); possible pairs: 1 -> 1.
 gop never runs these steps or calls write APIs: make each change with your own access.
 
 Steps (3):

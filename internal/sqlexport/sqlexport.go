@@ -374,10 +374,12 @@ func build(g *graph.Graph) dump {
 // shortest path the engine found: (principal, target, target_kind,
 // confirmed, evidence, hops, path). confirmed is 1 when every hop is
 // verified (Path.Unverified is false). path is a JSON array of node IDs.
+// Reach is graph.Index.PairReach, so the repo rows sum to the pair totals:
+// what an identity reaches only through members:X is on the members:X rows.
 func reachRows(ix *graph.Index) []row {
 	var out []row
 	for _, p := range ix.ScoringPrincipals() {
-		res := ix.Reach(p, graph.Options{})
+		res := ix.PairReach(p)
 		for _, id := range sortedKeys(res.Paths) {
 			path := res.Paths[id]
 			ids := []string{path.From}

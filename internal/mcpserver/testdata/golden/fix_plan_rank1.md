@@ -1,8 +1,8 @@
-Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it: 10 lines to edit across 9 repos; removes 18 of 25 confirmed (principal, repo) pairs (72%)
+Pin `acme-actions/deploy@main` to a commit SHA in every workflow that uses it: 10 lines to edit across 9 repos; removes 18 of 24 confirmed (principal, repo) pairs (75%)
 
 ## Fix plan: Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it
 
-Confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1.
+Confirmed (principal, repo) pairs: 24 -> 6 (75% removed); possible pairs: 1 -> 1.
 
 > gop never runs these steps or calls write APIs: make each change with your own access.
 

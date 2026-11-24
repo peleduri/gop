@@ -1,6 +1,6 @@
 ## Fix plan: Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it
 
-Confirmed (principal, repo) pairs: 14 -> 11 (21% removed); possible pairs: 5 -> 4.
+Confirmed (principal, repo) pairs: 14 -> 11 (21% removed); possible pairs: 4 -> 3.
 
 > gop never runs these steps or calls write APIs: make each change with your own access.
 

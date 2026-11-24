@@ -1,5 +1,5 @@
 {
-  "summary": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 10 lines to edit across 9 repos; removes 18 of 25 confirmed (principal, repo) pairs (72%)",
+  "summary": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it: 10 lines to edit across 9 repos; removes 18 of 24 confirmed (principal, repo) pairs (75%)",
   "plan": {
     "fix_id": "pin:action:acme-actions/deploy@main",
     "fix": {
@@ -14,7 +14,7 @@
       "before": {
         "principals": 6,
         "confirmed": {
-          "repos": 25,
+          "repos": 24,
           "orgs": 5,
           "workflows": 27,
           "secrets": 2,
@@ -29,15 +29,15 @@
           "oidc": 0,
           "runners": 0
         },
-        "confirmed_pairs": 25,
+        "confirmed_pairs": 24,
         "possible_pairs": 1,
-        "score": 176.75,
+        "score": 174.5,
         "possible_score": 19.125
       },
       "after": {
         "principals": 6,
         "confirmed": {
-          "repos": 7,
+          "repos": 6,
           "orgs": 5,
           "workflows": 5,
           "secrets": 0,
@@ -52,9 +52,9 @@
           "oidc": 0,
           "runners": 0
         },
-        "confirmed_pairs": 7,
+        "confirmed_pairs": 6,
         "possible_pairs": 1,
-        "score": 39.5,
+        "score": 37.25,
         "possible_score": 19.125
       },
       "per_principal": [

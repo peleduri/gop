@@ -192,7 +192,7 @@ func TestNotVisibleIsPossibleNotConfirmed(t *testing.T) {
 		t.Errorf("WhoCanReach = %+v", ws)
 	}
 	d := WhatIf(g, nil)
-	if d.Before.ConfirmedPairs != 25 || d.Before.PossiblePairs != 1 {
+	if d.Before.ConfirmedPairs != 24 || d.Before.PossiblePairs != 1 {
 		t.Errorf("pairs confirmed=%d possible=%d", d.Before.ConfirmedPairs, d.Before.PossiblePairs)
 	}
 	for _, c := range NewIndex(g).Candidates() {
@@ -264,8 +264,8 @@ func TestSuggestFixes(t *testing.T) {
 		remained int
 	}
 	want := []row{
-		{"pin:action:acme-actions/deploy@main", 18, 72, 7},
-		{"default_perm:org:acme-actions->read", 4, 88, 3},
+		{"pin:action:acme-actions/deploy@main", 18, 75, 6},
+		{"default_perm:org:acme-actions->read", 3, 87.5, 3},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got %d suggestions: %+v", len(got), got)
@@ -448,9 +448,13 @@ func TestScoringPrincipals(t *testing.T) {
 	if d.Before.Principals != 4 || len(d.PerPrincipal) != 4 {
 		t.Errorf("WhatIf principals = %d (%d rows), want 4", d.Before.Principals, len(d.PerPrincipal))
 	}
-	// alice: o/a through members:o plus o/b directly; members:o: o/a; tess: o/c.
-	if d.Before.ConfirmedPairs != 4 {
-		t.Errorf("confirmed pairs = %d, want 4", d.Before.ConfirmedPairs)
+	// members:o: o/a; alice: o/b directly (her o/a comes through members:o
+	// and is counted once, on its row); tess: o/c.
+	if d.Before.ConfirmedPairs != 3 {
+		t.Errorf("confirmed pairs = %d, want 3", d.Before.ConfirmedPairs)
+	}
+	if s := ix.BlastRadius("identity:alice"); s.Confirmed.Repos != 2 {
+		t.Errorf("alice's score: %d repos, want 2 (o/a through members:o and o/b)", s.Confirmed.Repos)
 	}
 	if len(ix.TopPaths(0)) != 4 {
 		t.Errorf("TopPaths should score the 4 scoring principals")
@@ -472,13 +476,13 @@ func TestScoringPrincipals(t *testing.T) {
 	}
 
 	// On the engine fixture every identity has a CAN_PUSH edge, so the scoring set
-	// equals the full set and the pair totals are unchanged.
+	// equals the full set.
 	fx := NewIndex(loadAcme(t))
 	if !reflect.DeepEqual(fx.ScoringPrincipals(), fx.Principals()) {
 		t.Errorf("fixture scoring set %v != principals %v", fx.ScoringPrincipals(), fx.Principals())
 	}
-	if d := fx.WhatIf(nil); d.Before.ConfirmedPairs != 25 {
-		t.Errorf("fixture confirmed pairs = %d, want 25", d.Before.ConfirmedPairs)
+	if d := fx.WhatIf(nil); d.Before.ConfirmedPairs != 24 {
+		t.Errorf("fixture confirmed pairs = %d, want 24", d.Before.ConfirmedPairs)
 	}
 }
 

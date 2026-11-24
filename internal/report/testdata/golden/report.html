@@ -271,7 +271,7 @@ footer{background:none}}
 <h2 id="verdict-h" class="vh">Verdict</h2>
 <div class="hero-top"><p class="verdict"><span class="dot" aria-hidden="true"></span>Critical exposure</p><p class="meta">Widest confirmed reach: <strong>members of acme-actions</strong></p></div>
 <p class="big">Members of acme-actions can push code that runs in 12 repos across 2 orgs (confirmed), including 1 cloud OIDC trust, 1 secret scope, 1 self-hosted runner pool.</p>
-<p class="start"><span class="tag">Start here</span> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 72% of confirmed reach. <a href="#fixes">All fixes</a></p>
+<p class="start"><span class="tag">Start here</span> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 75% of confirmed reach. <a href="#fixes">All fixes</a></p>
 <ul class="kpis" aria-label="Key figures; reach figures are for members of acme-actions, the widest confirmed reach"><li class="kpi t-med"><a href="#top-paths"><span class="k-label">Confirmed reach</span><span class="k-val">12 <span class="k-unit">repos</span></span><span class="k-sub">across 2 orgs</span></a></li><li class="kpi t-crit"><a href="#top-paths"><span class="k-label">Cloud OIDC trusts</span><span class="k-val">1 <span class="k-unit">trust</span></span><span class="k-sub">cloud credentials CI can mint</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Secret scopes</span><span class="k-val">1 <span class="k-unit">scope</span></span><span class="k-sub">repo, environment or org secrets</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Self-hosted runners</span><span class="k-val">1 <span class="k-unit">pool</span></span><span class="k-sub">runner pools jobs land on</span></a></li><li class="kpi t-crit"><a href="#top-risks"><span class="k-label">Top risks</span><span class="k-val">6 <span class="k-unit">principals</span></span><span class="k-sub">2 critical · 0 high</span></a></li><li class="kpi t-unk"><a href="#coverage"><span class="k-label">Coverage</span><span class="k-val">3/4 <span class="k-unit">orgs fully visible</span></span><span class="k-sub">2 facts not visible: unknown, not absent</span></a></li></ul>
 <p class="legend">Confirmed means every hop was read live, <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent. The two are separate figures and never added up.</p>
 </section>
@@ -285,9 +285,9 @@ footer{background:none}}
 <p class="fix-why">A branch or tag ref can be moved: whoever can push to acme-actions/deploy changes the code every workflow that uses it runs.</p>
 
 <p class="fix-id"><code>pin:action:acme-actions/deploy@main</code></p></div>
-<div class="fix-impact"><p class="fix-pct"><strong>72%</strong> of confirmed reach</p>
-<div class="track" aria-hidden="true"><span class="seg prev w0"></span><span class="seg cur w72"></span></div>
-<p class="fix-cum">18 confirmed pairs · <strong>72%</strong> cumulative</p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>75%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w0"></span><span class="seg cur w76"></span></div>
+<p class="fix-cum">18 confirmed pairs · <strong>75%</strong> cumulative</p></div>
 </li>
 <li class="card fix">
 <span class="fix-n" aria-hidden="true">2</span>
@@ -295,9 +295,9 @@ footer{background:none}}
 <p class="fix-why">Every member of acme-actions inherits write access to its repos by default, so any member account can push code that CI runs.</p>
 
 <p class="fix-id"><code>default_perm:org:acme-actions-&gt;read</code></p></div>
-<div class="fix-impact"><p class="fix-pct"><strong>16%</strong> of confirmed reach</p>
-<div class="track" aria-hidden="true"><span class="seg prev w72"></span><span class="seg cur w16"></span></div>
-<p class="fix-cum">4 confirmed pairs · <strong>88%</strong> cumulative</p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>12%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w76"></span><span class="seg cur w12"></span></div>
+<p class="fix-cum">3 confirmed pairs · <strong>88%</strong> cumulative</p></div>
 </li>
 <li class="card fix">
 <span class="fix-n" aria-hidden="true">3</span>

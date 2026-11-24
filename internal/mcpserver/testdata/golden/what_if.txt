@@ -1,7 +1,7 @@
-confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
+confirmed (principal, repo) pairs: 24 -> 6 (75% removed); possible pairs: 1 -> 1
 
 {
-  "summary": "confirmed (principal, repo) pairs: 25 -\u003e 7 (72% removed); possible pairs: 1 -\u003e 1",
+  "summary": "confirmed (principal, repo) pairs: 24 -\u003e 6 (75% removed); possible pairs: 1 -\u003e 1",
   "delta": {
     "fixes": [
       "pin:action:acme-actions/deploy@main"
@@ -9,7 +9,7 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
     "before": {
       "principals": 6,
       "confirmed": {
-        "repos": 25,
+        "repos": 24,
         "orgs": 5,
         "workflows": 27,
         "secrets": 2,
@@ -24,15 +24,15 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
         "oidc": 0,
         "runners": 0
       },
-      "confirmed_pairs": 25,
+      "confirmed_pairs": 24,
       "possible_pairs": 1,
-      "score": 176.75,
+      "score": 174.5,
       "possible_score": 19.125
     },
     "after": {
       "principals": 6,
       "confirmed": {
-        "repos": 7,
+        "repos": 6,
         "orgs": 5,
         "workflows": 5,
         "secrets": 0,
@@ -47,9 +47,9 @@ confirmed (principal, repo) pairs: 25 -> 7 (72% removed); possible pairs: 1 -> 1
         "oidc": 0,
         "runners": 0
       },
-      "confirmed_pairs": 7,
+      "confirmed_pairs": 6,
       "possible_pairs": 1,
-      "score": 39.5,
+      "score": 37.25,
       "possible_score": 19.125
     },
     "per_principal": [

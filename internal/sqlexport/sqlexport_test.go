@@ -338,7 +338,7 @@ type reachKey struct {
 }
 
 // TestReachMatchesGraph: on random graphs and demo graphs, the reach table
-// read back from SQLite equals graph.Index.Reach for every scoring
+// read back from SQLite equals graph.Index.PairReach for every scoring
 // principal, and confirmed agrees with the engine's confirmed/possible sets.
 func TestReachMatchesGraph(t *testing.T) {
 	var graphs []*graph.Graph
@@ -355,7 +355,7 @@ func TestReachMatchesGraph(t *testing.T) {
 		ix := graph.NewIndex(g)
 		want := map[reachKey]bool{}
 		for _, p := range ix.ScoringPrincipals() {
-			res := ix.Reach(p, graph.Options{})
+			res := ix.PairReach(p)
 			for id, path := range res.Paths {
 				want[reachKey{p, id, !path.Unverified}] = true
 			}

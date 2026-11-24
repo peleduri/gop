@@ -4,7 +4,7 @@ Enterprise **acme**, collected 2026-01-01T00:00:00Z
 
 > acme-oss/checkout-ish@v2, a version with a known advisory (GHSA-acme-demo-0001; severity critical; fixed in 2.4.1), runs in 1 repo across 1 org (confirmed), including 1 secret scope.
 >
-> Lower the default repository permission of acme-actions to read to remove 58% of confirmed reach.
+> Lower the default repository permission of acme-actions to read to remove 50% of confirmed reach.
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
@@ -52,10 +52,10 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Lower the default repository permission of acme-actions to read | 47 | 58% |
-| 2 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 16 | 78% |
-| 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 83% |
-| 4 | Stop acme-app/docs/.github/workflows/claude.yml from running attacker-controlled code on its risky triggers | 1 | 84% |
+| 1 | Lower the default repository permission of acme-actions to read | 34 | 50% |
+| 2 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 16 | 74% |
+| 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 79% |
+| 4 | Stop acme-app/docs/.github/workflows/claude.yml from running attacker-controlled code on its risky triggers | 1 | 81% |
 
 ## Pinned, still reachable
 

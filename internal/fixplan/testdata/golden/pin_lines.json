@@ -22,7 +22,7 @@
           "runners": 0
         },
         "possible": {
-          "repos": 5,
+          "repos": 4,
           "orgs": 3,
           "workflows": 3,
           "secrets": 0,
@@ -30,9 +30,9 @@
           "runners": 0
         },
         "confirmed_pairs": 14,
-        "possible_pairs": 5,
+        "possible_pairs": 4,
         "score": 56,
-        "possible_score": 12.5
+        "possible_score": 11.5
       },
       "after": {
         "principals": 5,
@@ -45,7 +45,7 @@
           "runners": 0
         },
         "possible": {
-          "repos": 4,
+          "repos": 3,
           "orgs": 2,
           "workflows": 2,
           "secrets": 0,
@@ -53,9 +53,9 @@
           "runners": 0
         },
         "confirmed_pairs": 11,
-        "possible_pairs": 4,
+        "possible_pairs": 3,
         "score": 41,
-        "possible_score": 9
+        "possible_score": 8
       },
       "per_principal": [
         {

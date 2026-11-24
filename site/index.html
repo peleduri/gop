@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-uVF+AnuKs41mwKYT5P92WCTwDu/iDdVT5rMmOd4lMrU='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-HIzlVn8tDHtQrhelfrVcYwqxeRgs8Q4zd8v2uFaBqf0='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>gop: who can make code run where in your GitHub Enterprise</title>
@@ -99,7 +99,7 @@ h2{font-size:clamp(1.6rem,3vw,2.15rem);font-weight:720;margin:0 0 var(--s2);text
 .bars b{color:var(--fg);text-align:right}
 .track{display:flex;height:8px;border-radius:999px;background:var(--track);overflow:hidden}
 .seg{display:block;height:100%}.seg.prev{background:var(--prev)}.seg.cur{background:var(--accent)}
-.w58{width:58%}.w20{width:20%}.w5{width:5%}
+.w50{width:50%}.w24{width:24%}.w5{width:5%}
 .src{margin:var(--s3) 0 0;font-size:.85rem;color:var(--muted)}
 .frame{border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--lift);overflow:hidden}
 .bar{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
@@ -237,12 +237,12 @@ th,td{padding:10px 12px}}
 </li>
 <li class="hook t-acc">
 <h3>Fixes ranked by impact</h3>
-<p class="big"><span data-n="fix1.pct">58</span>%<small>of reach, one setting</small></p>
-<p>Lowering the default repository permission of <code>acme-actions</code> to read removes <span data-n="fix1.pct">58</span>% of confirmed reach. The top three fixes remove <span data-n="fix3.cum">83</span>%.</p>
+<p class="big"><span data-n="fix1.pct">50</span>%<small>of reach, one setting</small></p>
+<p>Lowering the default repository permission of <code>acme-actions</code> to read removes <span data-n="fix1.pct">50</span>% of confirmed reach. The top three fixes remove <span data-n="fix3.cum">79</span>%.</p>
 <ol class="bars" aria-label="Share of confirmed reach each fix removes">
-<li><span>1</span><span class="track"><span class="seg cur w58"></span></span><b><span data-n="fix1.pct">58</span>%</b></li>
-<li><span>2</span><span class="track"><span class="seg prev w58"></span><span class="seg cur w20"></span></span><b><span data-n="fix2.cum">78</span>%</b></li>
-<li><span>3</span><span class="track"><span class="seg prev w58"></span><span class="seg prev w20"></span><span class="seg cur w5"></span></span><b><span data-n="fix3.cum">83</span>%</b></li>
+<li><span>1</span><span class="track"><span class="seg cur w50"></span></span><b><span data-n="fix1.pct">50</span>%</b></li>
+<li><span>2</span><span class="track"><span class="seg prev w50"></span><span class="seg cur w24"></span></span><b><span data-n="fix2.cum">74</span>%</b></li>
+<li><span>3</span><span class="track"><span class="seg prev w50"></span><span class="seg prev w24"></span><span class="seg cur w5"></span></span><b><span data-n="fix3.cum">79</span>%</b></li>
 </ol>
 </li>
 </ul>

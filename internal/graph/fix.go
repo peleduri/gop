@@ -144,6 +144,11 @@ func (f HardenTrigger) edges(ix *Index) []Edge {
 // Totals sums scores across the scoring principals (see ScoringPrincipals).
 // ConfirmedPairs is the number of (principal, repo) pairs with a fully verified
 // path; PossiblePairs the pairs that exist only through a not_visible hop.
+// Reach an identity holds only through an org_members population it belongs
+// to (members:X, via its MEMBER_OF org edge) is counted once, on the
+// population's row, not again for each member (see Index.pairReach); every
+// count and score in Totals follows that rule. A member's own grants and
+// teams still count for the member.
 type Totals struct {
 	Principals     int     `json:"principals"`
 	Confirmed      Counts  `json:"confirmed"`
@@ -167,7 +172,9 @@ func totalsOf(scores []Score) Totals {
 	return t
 }
 
-// PrincipalDelta is one principal's score before and after the fixes.
+// PrincipalDelta is one principal's score before and after the fixes. The
+// scores are the principal's full reach, including what it reaches through
+// an org_members population, so PerPrincipal does not sum to the Totals.
 type PrincipalDelta struct {
 	Principal string `json:"principal"`
 	Before    Score  `json:"before"`
@@ -190,9 +197,9 @@ func WhatIf(g *Graph, fixes []Fix) Delta { return NewIndex(g).WhatIf(fixes) }
 
 // WhatIf on a prebuilt index.
 func (ix *Index) WhatIf(fixes []Fix) Delta {
-	before := ix.allScores(ix.base)
-	after := ix.allScores(ix.control(fixes, 0))
-	d := Delta{Before: totalsOf(before), After: totalsOf(after), Caveats: fixCaveats(ix, fixes)}
+	before, beforePairs := ix.scoresAndPairs(ix.base)
+	after, afterPairs := ix.scoresAndPairs(ix.control(fixes, 0))
+	d := Delta{Before: totalsOf(beforePairs), After: totalsOf(afterPairs), Caveats: fixCaveats(ix, fixes)}
 	for _, f := range fixes {
 		d.Fixes = append(d.Fixes, f.ID())
 	}
@@ -203,8 +210,8 @@ func (ix *Index) WhatIf(fixes []Fix) Delta {
 }
 
 // FixSuggestion is one pick of SuggestFixes. Removed is the marginal number of
-// confirmed (principal, repo) pairs, summed over ScoringPrincipals, that this fix
-// removes on top of earlier picks.
+// confirmed (principal, repo) pairs, summed over ScoringPrincipals as Totals
+// counts them, that this fix removes on top of earlier picks.
 type FixSuggestion struct {
 	Fix               Fix      `json:"fix"`
 	FixID             string   `json:"fix_id"`
@@ -309,8 +316,11 @@ func (ix *Index) SuggestFixesOwners(budget, ownerThreshold int) []FixSuggestion 
 	return ix.suggestFixes(budget, ix.candidates(ownerThreshold))
 }
 
-// TotalsOf sums a set of scores (see Totals).
-func TotalsOf(scores []Score) Totals { return totalsOf(scores) }
+// Totals is the pair totals of the graph as collected (see Totals).
+func (ix *Index) Totals() Totals {
+	_, pairs := ix.scoresAndPairs(ix.base)
+	return totalsOf(pairs)
+}
 
 // Scores returns the blast radius of every scoring principal (ScoringPrincipals),
 // sorted by principal ID: the set TopPaths, WhatIf and Totals use.
