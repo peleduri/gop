@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-uVF+AnuKs41mwKYT5P92WCTwDu/iDdVT5rMmOd4lMrU='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>gop: who can make code run where in your GitHub Enterprise</title>
+<meta name="description" content="gop maps a GitHub Enterprise as an evidence graph: which AI agents and people can make code run where, across orgs and nested Actions, and the fewest changes that remove the most reach. Read-only, local, open source.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#f6f8fa;--card:#ffffff;--fg:#1f2328;--muted:#59636e;--line:#d1d9e0;--line2:#e8ecf0;--accent:#0969da;--accent-bg:#ddf4ff;--btn:#0969da;
+--live:#1a7f37;--live-bg:#dafbe1;--nv:#59636e;--nv-bg:#eff2f5;
+--crit:#cf222e;--crit-fg:#a40e26;--crit-bg:#ffebe9;--high:#e16f24;--high-fg:#953800;--high-bg:#fff1e5;
+--good:#1a7f37;--good-bg:#dafbe1;--c-oidc:#8250df;--c-secret:#bf3989;--c-runner:#0969da;--track:#e8ecf0;--prev:#9ec5f8;
+--term:#0d1117;--term-fg:#e6edf3;--term-muted:#8b949e;--term-line:#30363d;
+--shadow:0 1px 0 rgba(31,35,40,.04),0 1px 3px rgba(31,35,40,.06);--lift:0 8px 24px rgba(31,35,40,.08),0 1px 3px rgba(31,35,40,.06);
+--s1:8px;--s2:16px;--s3:24px;--s4:32px;--s6:48px;--s8:72px;--r:10px;
+--mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+@media screen and (prefers-color-scheme: dark){:root{--bg:#0d1117;--card:#151b23;--fg:#f0f6fc;--muted:#9198a1;--line:#3d444d;--line2:#262c36;--accent:#4493f8;--accent-bg:#0b2148;--btn:#1f6feb;
+--live:#3fb950;--live-bg:#12261e;--nv:#9198a1;--nv-bg:#212830;
+--crit:#f85149;--crit-fg:#ff9492;--crit-bg:#3c1618;--high:#db6d28;--high-fg:#ffa657;--high-bg:#3d1d06;
+--good:#3fb950;--good-bg:#12261e;--c-oidc:#a371f7;--c-secret:#db61a2;--c-runner:#4493f8;--track:#262c36;--prev:#1f4a8a;
+--term:#010409;--term-line:#262c36;
+--shadow:0 0 0 1px rgba(0,0,0,.2);--lift:0 0 0 1px rgba(0,0,0,.2),0 8px 24px rgba(0,0,0,.35)}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1120px;margin:0 auto;padding-left:var(--s2);padding-right:var(--s2)}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:8px;z-index:10}.skip:focus{left:16px;background:var(--card);padding:4px 8px}
+code{font:.88em/1.4 var(--mono);overflow-wrap:anywhere}
+p{margin:0 0 var(--s2)}
+h1,h2,h3{letter-spacing:-.02em;line-height:1.2;margin:0}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);height:60px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;font-weight:700;font-size:1.05rem}
+.mark{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--fg);color:var(--card);font:700 18px/1 var(--mono)}
+.top ul{list-style:none;display:flex;align-items:center;gap:4px;margin:0;padding:0}
+.top li a{display:block;padding:6px 10px;border-radius:6px;color:var(--muted);font-size:.9rem;font-weight:500;text-decoration:none}
+.top li a:hover{color:var(--fg);background:var(--bg)}
+.top li a.gh{color:var(--fg);border:1px solid var(--line)}
+.hero{padding:var(--s8) 0 var(--s6);background:var(--card);border-bottom:1px solid var(--line)}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:var(--s6);align-items:center}
+.eyebrow{display:inline-flex;flex-wrap:wrap;gap:6px;margin:0 0 var(--s3);padding:0;list-style:none}
+.eyebrow li{padding:2px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.78rem;font-weight:600}
+.hero h1{font-size:clamp(2rem,4.4vw,3.1rem);font-weight:750;letter-spacing:-.035em;margin:0 0 var(--s3);text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.sub{font-size:1.12rem;color:var(--muted);max-width:56ch;margin:0 0 var(--s4);text-wrap:pretty}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 var(--s3)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:8px;font-weight:600;font-size:.98rem;text-decoration:none;border:1px solid transparent}
+.btn.primary{background:var(--btn);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--card);color:var(--fg);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--muted)}
+.arr{transition:transform .15s}.btn:hover .arr{transform:translateX(3px)}
+.try{margin:0;color:var(--muted);font-size:.9rem}
+.try code{padding:2px 6px;border-radius:6px;background:var(--bg);border:1px solid var(--line2);color:var(--fg)}
+.path{margin:0;padding:var(--s3);border:1px solid var(--line);border-radius:14px;background:var(--bg);box-shadow:var(--lift);position:relative}
+.path figcaption{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2);margin:0 0 var(--s2);font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.path figcaption span{font-weight:500;letter-spacing:0;text-transform:none;font-family:var(--mono)}
+.chain{list-style:none;margin:0;padding:0}
+.chain>li{position:relative;padding:0 0 0 28px}
+.chain>li:before{content:"";position:absolute;left:8px;top:14px;bottom:-14px;border-left:2px solid var(--line)}
+.chain>li:last-child:before{display:none}
+.chain>li:after{content:"";position:absolute;left:3px;top:9px;width:12px;height:12px;border-radius:50%;background:var(--card);border:2px solid var(--muted)}
+.chain>li:first-child:after{border-color:var(--fg);background:var(--fg)}
+.chain>li:last-child:after{border-color:var(--c-oidc);background:var(--c-oidc)}
+.node{display:flex;flex-direction:column;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.node small{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.node code{font-size:.84rem}
+.chain>li:last-child .node{border:2px solid var(--c-oidc)}
+.hop{display:flex;align-items:center;gap:8px;padding:6px 0 8px 2px;font:600 .68rem/1.2 var(--mono);color:var(--muted)}
+.badge{display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;font:600 .7rem/1.6 system-ui,sans-serif;white-space:nowrap}
+.live{color:var(--live);background:var(--live-bg)}.inferred{color:var(--live);background:var(--live-bg);border:1px dashed var(--live)}
+.path .foot{margin:var(--s2) 0 0;padding-top:12px;border-top:1px dashed var(--line);font-size:.86rem;color:var(--muted)}
+.path .foot strong{color:var(--fg)}
+section{padding:var(--s8) 0;scroll-margin-top:60px}
+section+section{border-top:1px solid var(--line2)}
+.kicker{margin:0 0 var(--s1);font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h2{font-size:clamp(1.6rem,3vw,2.15rem);font-weight:720;margin:0 0 var(--s2);text-wrap:balance}
+.lede{color:var(--muted);font-size:1.05rem;max-width:68ch;margin:0 0 var(--s4)}
+.hooks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2)}
+.hook{display:flex;flex-direction:column;padding:var(--s3);background:var(--card);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.hook.t-crit{border-top-color:var(--crit)}.hook.t-high{border-top-color:var(--high)}.hook.t-acc{border-top-color:var(--accent)}
+.hook h3{font-size:.76rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 var(--s2)}
+.hook .big{display:flex;align-items:baseline;gap:0;margin:0 0 var(--s1);font-size:2.9rem;font-weight:760;line-height:1;letter-spacing:-.04em}
+.hook .big small{margin-left:10px;font-size:1rem;font-weight:500;letter-spacing:0;color:var(--muted)}
+.hook p{font-size:.95rem;margin:0 0 var(--s2)}
+.hook .facts{list-style:none;margin:auto 0 0;padding:var(--s2) 0 0;border-top:1px solid var(--line2);display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:6px;background:var(--bg);border:1px solid var(--line2);font-size:.8rem;color:var(--fg)}
+.sw{display:inline-block;width:8px;height:8px;border-radius:2px}
+.c-oidc{background:var(--c-oidc)}.c-secret{background:var(--c-secret)}.c-runner{background:var(--c-runner)}.c-crit{background:var(--crit)}.c-high{background:var(--high)}
+.bars{list-style:none;margin:auto 0 0;padding:var(--s2) 0 0;border-top:1px solid var(--line2);display:grid;gap:10px}
+.bars li{display:grid;grid-template-columns:1.4em 1fr 3em;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
+.bars b{color:var(--fg);text-align:right}
+.track{display:flex;height:8px;border-radius:999px;background:var(--track);overflow:hidden}
+.seg{display:block;height:100%}.seg.prev{background:var(--prev)}.seg.cur{background:var(--accent)}
+.w58{width:58%}.w20{width:20%}.w5{width:5%}
+.src{margin:var(--s3) 0 0;font-size:.85rem;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--lift);overflow:hidden}
+.bar{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+.dots{display:flex;gap:6px}.dots i{display:block;width:11px;height:11px;border-radius:50%;background:var(--line)}
+.url{flex:1;min-width:0;padding:3px 12px;border-radius:6px;background:var(--card);border:1px solid var(--line2);color:var(--muted);font:.8rem/1.5 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frame iframe{display:block;width:100%;height:860px;border:0;background:var(--bg)}
+.under{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin:var(--s2) 0 0;font-size:.9rem;color:var(--muted)}
+.under p{margin:0}.under a{font-weight:600}
+.steps{list-style:none;margin:0 0 var(--s4);padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);counter-reset:s}
+.steps>li{counter-increment:s;padding:var(--s3);background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0}
+.steps h3{display:flex;align-items:center;gap:10px;font-size:1rem;margin:0 0 var(--s1)}
+.steps h3:before{content:counter(s);display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:var(--fg);color:var(--card);font-size:.8rem}
+.steps>li:first-child h3:before{background:var(--btn);color:#fff}
+.steps p{font-size:.9rem;color:var(--muted);margin:0 0 12px}
+pre{margin:0;padding:12px 14px;border-radius:8px;background:var(--term);color:var(--term-fg);border:1px solid var(--term-line);font:.8rem/1.6 var(--mono);overflow-x:auto;white-space:pre}
+pre .c{color:var(--term-muted)}pre .p{color:var(--term-muted);user-select:none}
+.ways{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2)}
+.way{padding:var(--s2) 20px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);min-width:0}
+.way h3{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.95rem;margin:0 0 4px}
+.way p{font-size:.86rem;color:var(--muted);margin:0 0 10px}
+.soon{padding:0 8px;border-radius:999px;border:1px dashed var(--nv);color:var(--nv);background:var(--nv-bg);font-size:.7rem;font-weight:600;white-space:nowrap}
+.now{padding:0 8px;border-radius:999px;color:var(--good);background:var(--good-bg);font-size:.7rem;font-weight:600;white-space:nowrap}
+.sub-h{font-size:1.05rem;margin:0 0 var(--s2)}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.more{margin:var(--s3) 0 0;font-size:.9rem;color:var(--muted)}
+.trust{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s4);margin:0;padding:0;list-style:none}
+.trust li{padding-left:var(--s2);border-left:3px solid var(--good)}
+.trust h3{font-size:1.05rem;margin:0 0 6px}
+.trust p{color:var(--muted);font-size:.93rem;margin:0}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s6);align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line2);vertical-align:top}
+thead th{background:var(--bg);color:var(--muted);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line)}
+tbody tr:last-child>*{border-bottom:0}
+tbody th{font-weight:600;white-space:nowrap}
+tr.us>*{background:var(--accent-bg)}
+.cmp-note{margin:var(--s2) 0 0;font-size:.9rem;color:var(--muted)}
+.agents{display:grid;gap:var(--s2)}
+.agents .card{padding:var(--s3)}
+.agents h3{font-size:1.05rem;margin:0 0 6px}
+.agents p{color:var(--muted);font-size:.93rem;margin:0 0 12px}
+.agents .links{display:flex;flex-wrap:wrap;gap:6px 16px;margin:12px 0 0;padding:0;list-style:none;font-size:.9rem;font-weight:600}
+.asks{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
+.asks li{padding:8px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line2);font-size:.9rem}
+.asks li:before{content:"\201C";color:var(--muted)}.asks li:after{content:"\201D";color:var(--muted)}
+footer{border-top:1px solid var(--line);background:var(--card);color:var(--muted);font-size:.85rem}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s2);padding-top:var(--s4);padding-bottom:var(--s4)}
+footer ul{list-style:none;display:flex;flex-wrap:wrap;gap:6px 18px;margin:0;padding:0}
+footer p{margin:0}
+@media (max-width:960px){.hero .wrap,.split{grid-template-columns:1fr;gap:var(--s4)}.hooks,.steps,.ways{grid-template-columns:1fr 1fr}.trust{grid-template-columns:1fr;gap:var(--s3)}}
+@media (max-width:640px){body{font-size:15px}.hero{padding:var(--s6) 0 var(--s4)}section{padding:var(--s6) 0}
+.top .wrap{height:56px}.top li.opt{display:none}
+.hooks,.steps,.ways{grid-template-columns:1fr}.hook .big{font-size:2.4rem}
+.btn{flex:1 1 auto;justify-content:center}.frame iframe{height:640px}.path{padding:var(--s2)}
+th,td{padding:10px 12px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+<div class="wrap">
+<a class="brand" href="#main"><span class="mark" aria-hidden="true">g</span>gop</a>
+<nav aria-label="Site">
+<ul>
+<li class="opt"><a href="#demo">Demo</a></li>
+<li class="opt"><a href="#install">Install</a></li>
+<li class="opt"><a href="#agents">Agents</a></li>
+<li><a class="gh" href="https://github.com/peleduri/gop">GitHub</a></li>
+</ul>
+</nav>
+</div>
+</header>
+<main id="main">
+<div class="hero">
+<div class="wrap">
+<div>
+<ul class="eyebrow" aria-label="Project facts">
+<li>Open source, Apache-2.0</li>
+<li>Read-only</li>
+<li>Runs on your machine</li>
+</ul>
+<h1>Which AI agents and people can make code run <em>where</em> in your GitHub Enterprise.</h1>
+<p class="sub">gop maps every org, repo, workflow and Action into one evidence graph, follows reach across org boundaries and nested Actions, and ranks the few changes that remove the most of it. Every hop says how it is known.</p>
+<div class="ctas">
+<a class="btn primary" href="#install">Install <span class="arr" aria-hidden="true">&rarr;</span></a>
+<a class="btn ghost" href="#demo">See the demo report</a>
+</div>
+<p class="try">No token needed to try it: <code>gop report --demo --out report.html</code></p>
+</div>
+<figure class="path" aria-labelledby="path-cap">
+<figcaption id="path-cap">A confirmed path <span>gop paths</span></figcaption>
+<ol class="chain">
+<li><div class="node"><small>Org members</small><code>members:acme-actions</code></div>
+<div class="hop">CAN_PUSH <span class="badge inferred">inferred</span></div></li>
+<li><div class="node"><small>Repo</small><code>acme-actions/deploy</code></div>
+<div class="hop">RESOLVES_TO <span class="badge live">live</span></div></li>
+<li><div class="node"><small>Action, mutable ref</small><code>acme-actions/deploy@main</code></div>
+<div class="hop">USED BY <span class="badge live">live</span></div></li>
+<li><div class="node"><small>Workflow in another org</small><code>acme-app/web/.github/workflows/ci.yml</code></div>
+<div class="hop">EXECUTES_WITH <span class="badge live">live</span></div></li>
+<li><div class="node"><small>Cloud OIDC trust</small><code>oidc:acme-app/web</code></div></li>
+</ol>
+<p class="foot">Members of acme-actions can push to an Action that runs in acme-app with its cloud credentials. <strong>Fix:</strong> pin <code>deploy@main</code> to a commit SHA.</p>
+</figure>
+</div>
+</div>
+
+<section id="hooks" aria-labelledby="hooks-h">
+<div class="wrap">
+<p class="kicker">What it finds</p>
+<h2 id="hooks-h">Three answers a settings checklist cannot give you</h2>
+<p class="lede">Numbers from the synthetic demo enterprise <code>acme</code> (5 orgs, about 60 repos), straight from <code>gop report --demo</code>.</p>
+<ul class="hooks">
+<li class="hook t-crit">
+<h3>AI agents outsiders can start</h3>
+<p class="big"><span data-n="agents.exposed">1</span><small>exposed agent workflow</small></p>
+<p>Anyone on the internet can start <code>claude-code-action</code> in <code>acme-app/docs</code> with an <code>issue_comment</code>. The agent reads that comment and acts with the job's write token and secrets, so a prompt injection gets all of them.</p>
+<ul class="facts" aria-label="What the agent holds">
+<li class="chip"><span class="sw c-crit" aria-hidden="true"></span>contents:write</li>
+<li class="chip"><span class="sw c-secret" aria-hidden="true"></span>secrets</li>
+<li class="chip"><span class="sw c-high" aria-hidden="true"></span>approvals off</li>
+</ul>
+</li>
+<li class="hook t-high">
+<h3>Reach across org boundaries</h3>
+<p class="big"><span data-n="reach.repos">34</span><small>repos across <span data-n="reach.orgs">4</span> orgs</small></p>
+<p>Members of <code>acme-actions</code> (default permission Write) can push code that ends up running in other orgs' CI, through shared Actions and an Action nested inside a SHA-pinned one.</p>
+<ul class="facts" aria-label="What that reach includes">
+<li class="chip"><span class="sw c-oidc" aria-hidden="true"></span><span data-n="reach.oidc">4</span> cloud OIDC trusts</li>
+<li class="chip"><span class="sw c-secret" aria-hidden="true"></span><span data-n="reach.secrets">6</span> secret scopes</li>
+<li class="chip"><span class="sw c-runner" aria-hidden="true"></span><span data-n="reach.runners">1</span> self-hosted runner pool</li>
+</ul>
+</li>
+<li class="hook t-acc">
+<h3>Fixes ranked by impact</h3>
+<p class="big"><span data-n="fix1.pct">58</span>%<small>of reach, one setting</small></p>
+<p>Lowering the default repository permission of <code>acme-actions</code> to read removes <span data-n="fix1.pct">58</span>% of confirmed reach. The top three fixes remove <span data-n="fix3.cum">83</span>%.</p>
+<ol class="bars" aria-label="Share of confirmed reach each fix removes">
+<li><span>1</span><span class="track"><span class="seg cur w58"></span></span><b><span data-n="fix1.pct">58</span>%</b></li>
+<li><span>2</span><span class="track"><span class="seg prev w58"></span><span class="seg cur w20"></span></span><b><span data-n="fix2.cum">78</span>%</b></li>
+<li><span>3</span><span class="track"><span class="seg prev w58"></span><span class="seg prev w20"></span><span class="seg cur w5"></span></span><b><span data-n="fix3.cum">83</span>%</b></li>
+</ol>
+</li>
+</ul>
+<p class="src">Confirmed means every hop was read live, inferred by a documented rule, or read from a recent audit log entry. When the token cannot see a hop, gop reports the path as possible, never as absent.</p>
+</div>
+</section>
+
+<section id="demo" aria-labelledby="demo-h">
+<div class="wrap">
+<p class="kicker">Live demo</p>
+<h2 id="demo-h">The report, on a synthetic enterprise</h2>
+<p class="lede">This is the real HTML report, rebuilt from the current gop binary every time the site is published. Click a fix, filter the paths, open the graph: it is a single self-contained file with no network calls.</p>
+<div class="frame">
+<div class="bar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span class="url">report.html, enterprise acme, demo data</span></div>
+<iframe src="demo/" title="gop HTML report for the synthetic demo enterprise acme" loading="lazy"></iframe>
+</div>
+<div class="under">
+<p>Same report on your enterprise: <code>gop report --graph graph.json --out report.html</code></p>
+<p><a href="demo/">Open the full report</a> &middot; <a href="demo/report.md">Markdown</a></p>
+</div>
+</div>
+</section>
+
+<section id="install" aria-labelledby="install-h">
+<div class="wrap">
+<p class="kicker">Get started</p>
+<h2 id="install-h">From zero to your first answer in a minute</h2>
+<p class="lede">One static binary. Try it on the demo graph first, then point it at your enterprise with a read-only token.</p>
+<ol class="steps">
+<li><h3>Install</h3><p>Builds from source with your Go toolchain.</p>
+<pre><code><span class="p">$ </span>go install github.com/peleduri/gop/cmd/gop@latest</code></pre></li>
+<li><h3>Try it, no token</h3><p>A synthetic enterprise, no network.</p>
+<pre><code><span class="p">$ </span>gop report --demo --out report.html</code></pre></li>
+<li><h3>Run it on yours</h3><p>Read-only token, results stay on disk.</p>
+<pre><code><span class="p">$ </span>gop collect --enterprise acme \
+    --out graph.json
+<span class="p">$ </span>gop report --graph graph.json \
+    --out report.html</code></pre></li>
+</ol>
+<h3 class="sub-h" id="ways-h">Other ways to install</h3>
+<ul class="ways" aria-labelledby="ways-h">
+<li class="way"><h3>Signed release <span class="now">available</span></h3><p>Archives for Linux, macOS and Windows, signed with cosign, with SBOMs and SLSA provenance.</p>
+<pre><code>gh release download --repo peleduri/gop</code></pre></li>
+<li class="way"><h3>Container <span class="now">available</span></h3><p>Distroless, non-root, signed by digest. For Kubernetes jobs and locked-down CI.</p>
+<pre><code>docker run ghcr.io/peleduri/gop</code></pre></li>
+<li class="way"><h3>GitHub Action <span class="now">available</span></h3><p>Collects with a GitHub App token, builds the report, uploads both as an artifact.</p>
+<pre><code>uses: peleduri/gop/action@&lt;sha&gt;</code></pre></li>
+<li class="way"><h3>Homebrew <span class="soon">coming soon</span></h3><p>A cask on the same signed archives.</p>
+<pre><code>brew install peleduri/tap/gop</code></pre></li>
+<li class="way"><h3><code>gh gop</code> <span class="soon">coming soon</span></h3><p>A GitHub CLI extension that reuses your <code>gh</code> login.</p>
+<pre><code>gh extension install peleduri/gh-gop</code></pre></li>
+<li class="way"><h3>Quick start guide</h3><p>Tokens, permissions, GHES and the first questions to ask.</p>
+<p><a href="https://github.com/peleduri/gop/blob/main/docs/quickstart.md">Read the quick start</a></p></li>
+</ul>
+<p class="more">Checksums, signature and provenance checks for every install path: <a href="https://github.com/peleduri/gop/blob/main/docs/install.md">docs/install.md</a>.</p>
+</div>
+</section>
+
+<section id="trust" aria-labelledby="trust-h">
+<div class="wrap">
+<p class="kicker">Built to be trusted</p>
+<h2 id="trust-h">Read-only, local, never phones home</h2>
+<p class="lede">gop is meant to run with a token that can see your whole enterprise. It is built so that token can never be used to change anything.</p>
+<ul class="trust">
+<li><h3>Read-only</h3><p>The API client refuses every non-GET REST request and every GraphQL mutation before it is sent. Every MCP tool is annotated read-only.</p></li>
+<li><h3>Local</h3><p>The graph and the report are written to your disk with file mode 0600. The report is one HTML file with a strict content security policy.</p></li>
+<li><h3>Never phones home</h3><p>No telemetry. gop sends nothing anywhere except read requests to the GitHub API. This page has no cookies, analytics or external assets either.</p></li>
+</ul>
+<p class="more">Details: <a href="https://github.com/peleduri/gop/blob/main/docs/threat-model.md">threat model</a> &middot; <a href="https://github.com/peleduri/gop/blob/main/SECURITY.md">security policy</a></p>
+</div>
+</section>
+
+<section id="compare" aria-labelledby="compare-h">
+<div class="wrap split">
+<div>
+<p class="kicker">How it compares</p>
+<h2 id="compare-h">Use it with your linters and checklists</h2>
+<p class="lede">Scorecard tells you a repo lacks branch protection. A workflow linter tells you a workflow is unsafe. gop tells you that the members of another org can change what that workflow runs, and which one change removes most of that.</p>
+<p><a class="btn ghost" href="https://github.com/peleduri/gop/blob/main/docs/compare.md">Full comparison <span class="arr" aria-hidden="true">&rarr;</span></a></p>
+</div>
+<div class="card scroll">
+<table>
+<caption class="vh">gop compared with other GitHub security tools</caption>
+<thead><tr><th scope="col">Kind of tool</th><th scope="col">Answers</th></tr></thead>
+<tbody>
+<tr><th scope="row">Posture checklists</th><td>Is this repo or org configured well?</td></tr>
+<tr><th scope="row">Workflow linters</th><td>Is this workflow file safe?</td></tr>
+<tr><th scope="row">Offensive tooling</th><td>What can one token exploit?</td></tr>
+<tr class="us"><th scope="row">gop</th><td>Who can make code run where, across every org, through which hops, and what removes the most?</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="agents" aria-labelledby="agents-h">
+<div class="wrap split">
+<div>
+<p class="kicker">For AI agents</p>
+<h2 id="agents-h">Ask your agent, get evidence</h2>
+<p class="lede">gop is an MCP server and an agent skill. Your agent queries the graph, checks what the token could see before it claims anything, and keeps confirmed and possible reach apart.</p>
+<pre><code><span class="p">$ </span>claude mcp add gop -- gop serve --demo</code></pre>
+</div>
+<div class="agents">
+<div class="card">
+<h3>Questions to ask</h3>
+<ul class="asks">
+<li>Who can make code run in acme-app/web?</li>
+<li>Which AI agents in CI can people without push access start?</li>
+<li>What happens if we pin acme-actions/deploy@main to a SHA?</li>
+<li>What couldn't the token see?</li>
+</ul>
+</div>
+<div class="card">
+<h3>MCP, skill and the agents guide</h3>
+<p>Connect Claude Code, Cursor or VS Code, add the triage skill, and read how gop finds AI coding agents in GitHub Actions.</p>
+<ul class="links">
+<li><a href="https://github.com/peleduri/gop/blob/main/docs/mcp-clients.md">MCP clients</a></li>
+<li><a href="https://github.com/peleduri/gop/blob/main/skills/gop/README.md">Agent skill</a></li>
+<li><a href="https://github.com/peleduri/gop/blob/main/docs/agents-in-ci.md">AI agents in CI guide</a></li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer>
+<div class="wrap">
+<p>gop is open source under the Apache-2.0 license. All data on this page is synthetic.</p>
+<ul>
+<li><a href="https://github.com/peleduri/gop">Source</a></li>
+<li><a href="https://github.com/peleduri/gop/releases">Releases</a></li>
+<li><a href="https://github.com/peleduri/gop/blob/main/CHANGELOG.md">Changelog</a></li>
+<li><a href="https://github.com/peleduri/gop/blob/main/SECURITY.md">Security</a></li>
+</ul>
+</div>
+</footer>
+</body>
+</html>

@@ -27,6 +27,16 @@ flags may change in minor releases.
   agents section and fixes, with no token. The docs tests check every
   relative link in the top-level Markdown files and `docs/`, and the issue
   forms' structure.
+- Project site (#141). `site/index.html` is a one-page landing page
+  published to GitHub Pages by a new `pages.yml` workflow (actions pinned by
+  SHA, `contents: read` for the build, `pages: write` and `id-token: write`
+  only in the deploy job). It tells the story in one line, quotes the
+  synthetic demo's AI agent, cross-org reach and fix figures, and embeds the
+  demo report, which `site/build.sh` regenerates from the current source
+  with `gop report --demo` on every publish. No scripts, web fonts, external
+  assets or analytics; the page passes a strict CSP. `go test ./site/`
+  checks the CSP hash, every link, and that each quoted figure still matches
+  the demo report. Setup steps are in `docs/maintainers.md`.
 - AI coding agents in GitHub Actions (#139). `gop collect` marks workflows
   that run a known agent action (`anthropics/claude-code-action`,
   `claude-code-base-action`, `openai/codex-action`, the Copilot coding agent
