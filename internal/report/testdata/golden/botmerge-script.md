@@ -2,6 +2,8 @@
 
 Enterprise **acme**, collected 2026-11-24T12:00:00Z
 
+**AI agents and bots:** 3 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible).
+
 > identity:alice can push code that runs in 13 repos across 3 orgs (confirmed), including 2 cloud OIDC trusts, 3 secret scopes, 1 self-hosted runner pool.
 >
 > Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 32% of confirmed reach.

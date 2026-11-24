@@ -2,6 +2,8 @@
 
 Enterprise **acme**, collected 2026-11-20T10:00:00Z
 
+**AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
+
 > Members of acme-actions can push code that runs in 12 repos across 2 orgs (confirmed), including 1 cloud role, 1 cloud OIDC trust, 1 secret scope, 1 self-hosted runner pool. Cloud hops from supplied trust files testdata/acme/trust/aws/deploy.json, not read from the cloud.
 >
 > Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 75% of confirmed reach.

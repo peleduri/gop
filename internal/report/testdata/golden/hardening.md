@@ -2,6 +2,8 @@
 
 Enterprise **acme**, collected 2026-11-20T10:00:00Z
 
+**AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
+
 > identity:alice can push code that runs in 2 repos across 2 orgs (confirmed). 1 repo more possible through facts gop could not see.
 
 Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.

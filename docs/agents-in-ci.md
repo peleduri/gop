@@ -14,6 +14,18 @@ and 14. The short version: treat everything an agent reads as untrusted,
 give it the least privilege its task needs, and keep the people who can start
 it to the people you would let push.
 
+## The headline
+
+The report opens, and the MCP `gop://graph/summary` resource starts, with
+one line: `N non-human actors; M can merge to a default branch without a
+human (C confirmed, P possible)`. Non-human actors are the workflows below
+that run a confirmed agent (not a name-only match), the workflows that
+approve or merge through a bot (`CAN_MERGE_VIA_BOT`, see "AI approve +
+self-merge"), the review bypass Apps and the bot accounts (`[bot]` logins),
+each counted once. M counts the merging workflows: confirmed when one of
+their `CAN_MERGE_VIA_BOT` edges is verified, possible when all are
+`not_visible`.
+
 ## What gop detects
 
 `gop collect` marks a workflow node with `agent=<kind>` (a comma list when it

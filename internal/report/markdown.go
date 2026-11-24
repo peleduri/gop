@@ -75,6 +75,7 @@ func writeMarkdown(w io.Writer, d data) error {
 		}
 		p("\n")
 	}
+	p("**AI agents and bots:** %s\n\n", md(d.NonHumanLine))
 	p("> %s\n", md(d.Headline))
 	if d.FixLine != "" {
 		p(">\n> %s\n", md(d.FixLine))
