@@ -7,6 +7,8 @@ flags may change in minor releases.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-24
+
 ### Added
 
 - `contrib/ossie/`: a reviewed [Apache Ossie](https://ossie.apache.org/) semantic
@@ -131,7 +133,6 @@ flags may change in minor releases.
   for the same graph; every graph value is an escaped string literal and
   labels, relationship types and keys come from fixed lists. gop writes
   text only and has no Neo4j dependency. See `docs/cartography.md`.
-
 - The Action runs on Windows runners (x64 and ARM64): the download step
   (now `action/install-gop.sh`) fetches the `.zip` release, verifies it with
   `sha256sum` from Git Bash, extracts `gop.exe` with `unzip` (or the Windows
@@ -177,31 +178,6 @@ flags may change in minor releases.
   different token modes unless forced. New optional top-level field
   `org_collected_at` (per-org freshness); a collection fills it for every org
   it collected. The schema version is unchanged. The CLI flag is planned.
-
-### Changed
-
-- `SuggestFixes` (`suggest_fixes`, `fix_plan` and the report's suggested
-  fixes) is incremental: the control graph is built once and each candidate
-  fix is scored as an overlay of removed edges, counting only confirmed
-  repos, recomputing only the principals a fix can affect, and evaluating
-  principals in parallel. On the 10k-repo benchmark a budget of 10 takes
-  about 1 s on 4 cores (about 27 h before, extrapolated). `WhoCanReach`
-  (`who_can_reach`, `gop who`) walks back from the target first and
-  traverses forward only from principals that can reach it: about 10 ms
-  instead of 4 s. Output is unchanged; property tests check both against the
-  previous implementations on 200 generated graphs.
-
-### Fixed
-
-- `fix_plan`, `gop fix-plan --pin`, `gop pin` and the report's "Pinned, still
-  reachable" section now use the same `ref_immutable`/`ref_protected` gate as
-  reach. A nested tag that is an immutable release (or a protected branch)
-  with no matching bypass is no longer reported as a mutable ref ("pin those
-  too") or as a pinned exposure, and a locked outer ref counts as pinned. A
-  nested ref whose gate is not visible stays listed, labelled "possibly
-  mutable (immutability not visible)", and its exposure path is possible.
-  `PinnedExposure` gains `via_note`, and `Via` is also set when the path
-  enters the nested ref through a `ref_bypass` push.
 - Opt-in SARIF output: `gop sarif --graph g.json --out gop.sarif [--top N]
   [--min-severity low|medium|high|critical] [--include-possible]` writes one
   SARIF 2.1.0 result per fixable edge. `GOP001 mutable-action-ref-reachable`
@@ -245,6 +221,21 @@ flags may change in minor releases.
   `pull_request` with only `pull-requests: read`) and every repo-relative
   Markdown link and anchor (lychee, offline).
 
+- `gop redact --graph g.json --out shareable.json [--salt-file key]
+  [--keep-attr k1,k2] [--map-out mapping.json]` pseudonymizes a graph for bug
+  reports: orgs, repos, users, teams, actions, workflow files, secret names,
+  runner labels, environments and cloud names become stable synthetic names
+  (HMAC-SHA256 under the salt; SHAs stay 40-hex, tags become `v1.N`, branches
+  `branch-N`, third-party owners `ext-NN`), member, IP allow list and
+  Cartography `times_used` counts are bucketed, timestamps (including
+  `last_used`) shift by one offset and coverage text is rewritten through the
+  same map. Structure, evidence and reach are unchanged: reach
+  counts and scores on the redacted graph equal the original's, and it passes
+  `gop validate`. Attr keys gop does not define are dropped unless
+  `--keep-attr` names them. A self-check fails the run, writing nothing, if an
+  original name of 3+ characters is still in the output. The bug report
+  template asks for `gop redact` output, never a raw graph.
+
 ### Changed
 
 - Graph schema `gop.graph/v2` (breaking): a new evidence level `inferred` for
@@ -269,6 +260,28 @@ flags may change in minor releases.
   issuer of the graph's host (`https://token.actions.githubusercontent.com`
   for github.com, `https://HOST/_services/token` for GHES). Graphs without
   `host` match any GitHub issuer, as before.
+- `SuggestFixes` (`suggest_fixes`, `fix_plan` and the report's suggested
+  fixes) is incremental: the control graph is built once and each candidate
+  fix is scored as an overlay of removed edges, counting only confirmed
+  repos, recomputing only the principals a fix can affect, and evaluating
+  principals in parallel. On the 10k-repo benchmark a budget of 10 takes
+  about 1 s on 4 cores (about 27 h before, extrapolated). `WhoCanReach`
+  (`who_can_reach`, `gop who`) walks back from the target first and
+  traverses forward only from principals that can reach it: about 10 ms
+  instead of 4 s. Output is unchanged; property tests check both against the
+  previous implementations on 200 generated graphs.
+
+### Fixed
+
+- `fix_plan`, `gop fix-plan --pin`, `gop pin` and the report's "Pinned, still
+  reachable" section now use the same `ref_immutable`/`ref_protected` gate as
+  reach. A nested tag that is an immutable release (or a protected branch)
+  with no matching bypass is no longer reported as a mutable ref ("pin those
+  too") or as a pinned exposure, and a locked outer ref counts as pinned. A
+  nested ref whose gate is not visible stays listed, labelled "possibly
+  mutable (immutability not visible)", and its exposure path is possible.
+  `PinnedExposure` gains `via_note`, and `Via` is also set when the path
+  enters the nested ref through a `ref_bypass` push.
 
 ### Security
 
@@ -276,20 +289,6 @@ flags may change in minor releases.
   leaves the configured REST or GraphQL scheme and host. `net/http` alone
   keeps it for a subdomain, another port on the same host name, or an
   `https` to `http` downgrade.
-- `gop redact --graph g.json --out shareable.json [--salt-file key]
-  [--keep-attr k1,k2] [--map-out mapping.json]` pseudonymizes a graph for bug
-  reports: orgs, repos, users, teams, actions, workflow files, secret names,
-  runner labels, environments and cloud names become stable synthetic names
-  (HMAC-SHA256 under the salt; SHAs stay 40-hex, tags become `v1.N`, branches
-  `branch-N`, third-party owners `ext-NN`), member, IP allow list and
-  Cartography `times_used` counts are bucketed, timestamps (including
-  `last_used`) shift by one offset and coverage text is rewritten through the
-  same map. Structure, evidence and reach are unchanged: reach
-  counts and scores on the redacted graph equal the original's, and it passes
-  `gop validate`. Attr keys gop does not define are dropped unless
-  `--keep-attr` names them. A self-check fails the run, writing nothing, if an
-  original name of 3+ characters is still in the output. The bug report
-  template asks for `gop redact` output, never a raw graph.
 
 ## [0.3.0] - 2026-11-24
 
