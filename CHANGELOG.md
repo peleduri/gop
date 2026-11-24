@@ -32,6 +32,14 @@ flags may change in minor releases.
   authors from triggering the merge, and keep approve rights from the
   reviewer. Scores of principals without the edge are unchanged. See
   `docs/agents-in-ci.md` "AI approve + self-merge".
+- Ollama and vLLM steps in CI (#153). A `run:` step that prompts a local
+  model with `ollama run MODEL "..."`, `ollama run MODEL --ask "..." < file`
+  or `... | ollama run MODEL` is the agent kind `ollama-cli` (gate `none`);
+  `ollama pull`, `ollama serve` and a bare `ollama run MODEL` are not agent
+  runs. `OLLAMA_API_KEY` and `VLLM_API_KEY` count as model API keys for the
+  `llm-script` heuristic. A CLI step whose script reads the pull request's
+  diff or text (`gh pr diff`, `gh pr view`) now gets `pr_content` in
+  `agent_prompt_injection`.
 - First-run onboarding (#142). The README opens with the story (AI agents in
   CI and cross-org reach), the redesigned report as the hero image, "Try it in
   60 seconds" (`gop report --demo` with no token, then `doctor`, `collect` and

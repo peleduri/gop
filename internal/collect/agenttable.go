@@ -77,6 +77,12 @@ type agentCLI struct {
 	markers []string
 	// quoted: a quoted first argument is a prompt (llm "...").
 	quoted bool
+	// model: the subcommand marker takes a model, and the run counts only
+	// when a prompt follows it: a prompt argument, --ask, or stdin from a
+	// redirect or a pipe (ollama run llama3 "..."). The values of
+	// modelValueFlags are not prompts.
+	model           bool
+	modelValueFlags []string
 }
 
 var agentCLIs = []agentCLI{
@@ -89,6 +95,12 @@ var agentCLIs = []agentCLI{
 	{kind: "aider", bins: []string{"aider", "aider-chat"}, markers: []string{"-m", "--message", "--message-file", "--yes", "--yes-always"}},
 	{kind: "opencode-cli", bins: []string{"opencode", "opencode-ai"}, markers: []string{"run"}},
 	{kind: "llm-cli", bins: []string{"llm"}, markers: []string{"prompt", "-m", "--model", "-s", "--system", "-t", "--template", "-T", "--tool"}, quoted: true},
+	// Ollama CLI docs (docs.ollama.com/cli, November 2026): ollama run MODEL
+	// "prompt", ollama run MODEL --ask "..." < file, echo ... | ollama run
+	// MODEL. ollama serve, ollama pull and a bare ollama run MODEL are not
+	// agent runs.
+	{kind: "ollama-cli", bins: []string{"ollama"}, markers: []string{"run"}, model: true,
+		modelValueFlags: []string{"--format", "--keepalive", "--choice", "--level", "--voice"}},
 }
 
 // agentToolFlags maps a lower-case substring of a run: command or an args

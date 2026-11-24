@@ -1,0 +1,15 @@
+# Synthetic: a local Ollama model summarizes the pull request's diff on
+# pull_request_target with a write token (issue #153, case a).
+name: ollama-review
+on: pull_request_target
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ollama pull llama3
+      - run: gh pr diff ${{ github.event.pull_request.number }} | ollama run llama3 "summarize"
+        env:
+          GH_TOKEN: ${{ github.token }}
