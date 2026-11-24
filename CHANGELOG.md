@@ -127,6 +127,19 @@ flags may change in minor releases.
 
 ### Fixed
 
+- Advisories: a `uses:` that `.github/workflows/actions.lock` pins is now
+  checked on the locked commit (`locked_sha`), not only on the workflow's ref.
+  A lock that pins a commit an OSV advisory lists as affected used to count as
+  safely pinned. It now sets `lock_advisories`, `lock_advisory_severity` and
+  `lock_advisory_fixed` on that `USES` edge (additive, typed in the JSON
+  Schema), ranks the action first in `top_risks` with the reach of the locked
+  workflows, fires SARIF GOP003 for those lines only, and `fix_plan` says
+  "actions.lock pins an affected commit: rerun gh actions-lock after moving to
+  `<lock_advisory_fixed>`". Other uses of the same ref, whose ref is not
+  affected, get no advisory. The action pin counts gain
+  `actions_lock_affected_commit`. A locked commit the advisory does not list
+  is unknown and gets an `advisories` coverage entry; a fixed commit is not
+  affected.
 - `gop doctor` predicted no gaps for orgs the token does not own, and its repo
   count for them was 0 or 1. It now reads the token's role in each org
   (`viewerCanAdminister` and `viewerIsAMember` in the enterprise query, or

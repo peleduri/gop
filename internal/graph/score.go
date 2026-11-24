@@ -136,7 +136,11 @@ func (ix *Index) multiplier(principal string) float64 {
 }
 
 func (ix *Index) score(cg *controlGraph, principal string) Score {
-	r := ix.reach(cg, principal)
+	return ix.scoreOf(principal, ix.reach(cg, principal))
+}
+
+// scoreOf scores a reach result r of principal.
+func (ix *Index) scoreOf(principal string, r Result) Score {
 	s := Score{Principal: principal, Confirmed: countsOf(r.Confirmed), Possible: countsOf(r.Possible), Multiplier: ix.multiplier(principal)}
 	s.Score = rawScore(s.Confirmed) * s.Multiplier
 	s.PossibleScore = rawScore(s.Possible) * s.Multiplier

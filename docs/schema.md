@@ -107,6 +107,9 @@ Values are strings to keep the JSON flat. Other keys may appear; consumers must 
 | `locked_sha` | `USES` edge with `actions_lock=locked` | The commit the lockfile pins (40 or 64 hex). |
 | `lock_entry` | `USES` edge with `actions_lock=stale` | Comma list of the lockfile's pin keys (`owner/repo@ref`) for the same action repo, when there are any (the lock was made for another ref). |
 | `lock_missing` | `USES` edge with `actions_lock=stale` | Comma list of nested refs (`owner/repo@ref`) under the action that the lockfile does not pin for this workflow. |
+| `lock_advisories` | `USES` edge with `actions_lock=locked` | Comma list of the advisory IDs that list `locked_sha` as affected (the advisory check, see [advisories](advisories.md)). It describes the locked commit only: the action node's `advisories` attrs stay the match on the ref, and other uses of the same ref are not flagged. |
+| `lock_advisory_severity` | `USES` edge with `lock_advisories` | The highest severity among them: `critical`, `high`, `medium`, `low` or `unknown`. |
+| `lock_advisory_fixed` | `USES` edge with `lock_advisories` | The first fixed version that leaves every one of them; absent when one has no fix. |
 | `consumer_org` | `USES` edge into an action that resolves to an enterprise repo | Org login of the using workflow's repo, or of the using composite action's host repo. Informational: the engine reads the repos from `DEFINED_IN` and `RESOLVES_TO`. |
 | `file` | `USES`, `EXECUTES_WITH` edge | Repo-relative path of the workflow or action file the edge was read from, e.g. `.github/workflows/release.yml`. |
 | `file_ref` | `USES`, `EXECUTES_WITH` edge | Commit or branch the file was read at, when known (the repo's default branch for top-level workflows, the parent `uses:` ref for nested files). |
@@ -355,3 +358,4 @@ v2 adds the evidence value `inferred`, the top-level field `audit_retention_days
 | `gop.graph/v2` | unreleased | Breaking: evidence value `inferred` (with edge attr `rule`), top-level `audit_retention_days`, stale `audit` facts. See [Changes](#changes). |
 | `gop.graph/v2` | unreleased | Additive: `actions_lock` on repo nodes and workflow `USES` edges, `locked_sha`, `lock_entry` and `lock_missing` on `USES` edges (typed in the JSON Schema), coverage facts `actions_lock` and `actions_lock:<pin>`. |
 | `gop.graph/v2` | unreleased | Additive: `advisories`, `advisory_severity` and `advisory_fixed` on action_ref nodes (typed in the JSON Schema as `NodeAttrs`); coverage fact `advisories`. |
+| `gop.graph/v2` | unreleased | Additive: `lock_advisories`, `lock_advisory_severity` and `lock_advisory_fixed` on `USES` edges with `actions_lock=locked` (typed in the JSON Schema). |

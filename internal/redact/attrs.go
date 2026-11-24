@@ -44,6 +44,7 @@ func init() {
 		graph.AttrSource, graph.AttrObservedUse, graph.AttrTimesUsed, graph.AttrLastUsed,
 		graph.AttrPoutineRules, graph.AttrPoutineSeverity, graph.AttrPoutineJobs, graph.AttrPoutineFile,
 		graph.AttrAdvisories, graph.AttrAdvisorySeverity, graph.AttrAdvisoryFixed,
+		graph.AttrLockAdvisories, graph.AttrLockAdvisorySeverity, graph.AttrLockAdvisoryFixed,
 		// documented in the JSON Schema
 		"token_write", "token_scopes", "risky_triggers", "trigger", "exec",
 		// named by the redaction itself
@@ -333,6 +334,9 @@ func init() {
 	policies[graph.AttrAdvisories] = list(advisoryID)
 	policies[graph.AttrAdvisorySeverity] = enum("critical", "high", "medium", "low", "unknown")
 	policies[graph.AttrAdvisoryFixed] = versionAttr
+	policies[graph.AttrLockAdvisories] = list(advisoryID)
+	policies[graph.AttrLockAdvisorySeverity] = enum("critical", "high", "medium", "low", "unknown")
+	policies[graph.AttrLockAdvisoryFixed] = versionAttr
 }
 
 // attrs rewrites an attr map. Keys outside the kept set are dropped; a kept

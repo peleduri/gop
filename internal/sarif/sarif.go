@@ -16,6 +16,7 @@ import (
 	"io"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/peleduri/gop/internal/fixplan"
@@ -637,7 +638,9 @@ func (en *engine) pinResults(f graph.PinRef) []Result {
 }
 
 // advisoryResults makes one GOP003 result per uses: line of an action with
-// a known advisory. Severity is the higher of the terminal impact and the
+// a known advisory on its ref, and per uses: line an actions.lock pins to a
+// commit an advisory lists as affected (only those lines: the others run
+// the ref). Severity is the higher of the terminal impact and the
 // advisory's own (high when the advisory gives none).
 func (en *engine) advisoryResults(action string) []Result {
 	n, _ := en.ix.Node(action)
@@ -653,49 +656,89 @@ func (en *engine) advisoryResults(action string) []Result {
 	if t := fixplan.FixedRef(n, ref); t != "" {
 		fix = fmt.Sprintf("Move to %s or a commit SHA after it.", t)
 	}
-	var out []Result
+	// One line per uses: gop could edit, plus one per uses: an actions.lock
+	// pins to a commit the advisory lists as affected.
+	type line struct {
+		from, repo, file, edge string
+		line, col              int
+		ev                     graph.Evidence
+		possible               bool
+		lock                   *fixplan.LockUse
+	}
+	var lines []line
 	for _, s := range plan.Steps {
-		if s.Kind != fixplan.KindEditWorkflow {
+		// An edit line runs the ref: report it only when the advisory names
+		// the ref, not when only a lock elsewhere pins an affected commit.
+		if s.Kind != fixplan.KindEditWorkflow || !graph.HasAdvisory(n) {
 			continue
 		}
 		from, _, _ := strings.Cut(s.Edge, " "+string(graph.Uses)+" ")
-		possible := s.Unconfirmed
-		rr := en.reachOf(from)
+		lines = append(lines, line{from: from, repo: s.Repo, file: s.File, edge: s.Edge, line: s.Line, col: s.Col, ev: s.Evidence, possible: s.Unconfirmed})
+	}
+	for _, u := range fixplan.LockGoverned(en.ix, action) {
+		if u.State != graph.LockLocked || u.Advisories == "" {
+			continue
+		}
+		e := u.Edge
+		col, _ := strconv.Atoi(e.Attrs[graph.AttrCol])
+		lines = append(lines, line{from: e.From, repo: u.Repo, file: u.File, edge: e.From + " " + string(e.Kind) + " " + e.To,
+			line: u.Line, col: col, ev: e.Evidence, possible: !graph.Verified(e.Evidence), lock: &u})
+	}
+	var out []Result
+	for _, s := range lines {
+		rr := en.reachOf(s.from)
 		reached := rr.Confirmed
-		if possible {
+		if s.possible {
 			reached = union(rr.Confirmed, rr.Possible)
 		}
 		t := count(reached)
 		sev := severityOf(t)
-		if severityRank(advSev) > severityRank(sev) {
-			sev = advSev
+		lineSev := advSev
+		if s.lock != nil {
+			lineSev = s.lock.Edge.Attrs[graph.AttrLockAdvisorySeverity]
+			if severityRank(lineSev) < 0 {
+				lineSev = SeverityHigh
+			}
 		}
-		ev := s.Evidence
-		if possible {
+		if severityRank(lineSev) > severityRank(sev) {
+			sev = lineSev
+		}
+		ev := s.ev
+		if s.possible {
 			ev = graph.NotVisible
 		}
-		where := s.File
+		where := s.file
 		if where == "" {
-			where = logical(from).Name
+			where = logical(s.from).Name
 		}
+		advs := graph.AdvisoryIDs(n)
 		msg := fmt.Sprintf("%s uses %s, a version with a known advisory (%s); it runs with %s. %s",
 			where, uses, ids, terminalPhrase(t), fix)
-		loc := Location{LogicalLocations: []LogicalLocation{logical(from)}}
-		if s.File != "" {
-			loc.PhysicalLocation = &PhysicalLocation{ArtifactLocation: ArtifactLocation{URI: s.File}}
-			if s.Line > 0 {
-				loc.PhysicalLocation.Region = &Region{StartLine: s.Line, StartColumn: s.Col}
+		if s.lock != nil {
+			advs = strings.Split(s.lock.Advisories, ",")
+			lfix := "Remove or replace it, then rerun gh actions-lock: the advisory names no fixed version."
+			if s.lock.Fixed != "" {
+				lfix = fmt.Sprintf("Rerun gh actions-lock after moving to %s.", s.lock.Fixed)
+			}
+			msg = fmt.Sprintf("%s uses %s, which actions.lock pins to %s, a commit with a known advisory (%s); it runs with %s. %s",
+				where, uses, s.lock.SHA, strings.Join(advs, ", "), terminalPhrase(t), lfix)
+		}
+		loc := Location{LogicalLocations: []LogicalLocation{logical(s.from)}}
+		if s.file != "" {
+			loc.PhysicalLocation = &PhysicalLocation{ArtifactLocation: ArtifactLocation{URI: s.file}}
+			if s.line > 0 {
+				loc.PhysicalLocation.Region = &Region{StartLine: s.line, StartColumn: s.col}
 			}
 		}
 		out = append(out, Result{
-			RuleID: RuleAdvisory, RuleIndex: ruleIndex(RuleAdvisory), Level: level(sev, possible),
+			RuleID: RuleAdvisory, RuleIndex: ruleIndex(RuleAdvisory), Level: level(sev, s.possible),
 			Message:             Message{Text: msg},
 			Locations:           []Location{loc},
-			PartialFingerprints: map[string]string{FingerprintKey: fingerprint(RuleAdvisory, s.Repo, s.File, uses)},
+			PartialFingerprints: map[string]string{FingerprintKey: fingerprint(RuleAdvisory, s.repo, s.file, uses)},
 			Properties: Properties{
-				Severity: sev, Repository: s.Repo, Edge: s.Edge, Evidence: ev, Possible: possible,
+				Severity: sev, Repository: s.repo, Edge: s.edge, Evidence: ev, Possible: s.possible,
 				ConfirmedPrincipals: []string{}, PossiblePrincipals: []string{}, Terminals: t,
-				Fix: plan.Fix, Advisories: graph.AdvisoryIDs(n),
+				Fix: plan.Fix, Advisories: advs,
 			},
 		})
 	}

@@ -511,10 +511,26 @@ type LockUse struct {
 	SHA     string `json:"locked_sha,omitempty"`
 	Entry   string `json:"lock_entry,omitempty"`
 	Missing string `json:"lock_missing,omitempty"`
+	// Advisories lists the advisories that name the locked commit as
+	// affected (lock_advisories); Fixed is the ref to move to before the
+	// lock is refreshed (lock_advisory_fixed), "" when an advisory names no
+	// fixed version.
+	Advisories string `json:"lock_advisories,omitempty"`
+	Fixed      string `json:"advisory_fixed,omitempty"`
+	// Edge is the USES edge, for callers that report the line (SARIF).
+	Edge graph.Edge `json:"-"`
 }
 
 // Reason says, in one sentence, why the line is left alone.
 func (u LockUse) Reason() string {
+	if u.State == graph.LockLocked && u.Advisories != "" {
+		ids := strings.ReplaceAll(u.Advisories, ",", ", ")
+		which := " (it pins " + u.SHA + ", listed by " + ids + ")"
+		if u.Fixed == "" {
+			return "actions.lock pins an affected commit and the advisory names no fixed version: remove or replace the action, then rerun gh actions-lock" + which
+		}
+		return "actions.lock pins an affected commit: rerun gh actions-lock after moving to " + u.Fixed + which
+	}
 	if u.State == graph.LockLocked {
 		return "actions.lock governs this uses: and pins it to " + u.SHA + ": nothing to edit"
 	}
@@ -540,8 +556,14 @@ func LockGoverned(ix *graph.Index, action string) []LockUse {
 			continue
 		}
 		repo, file, _ := location(ix, e)
-		out = append(out, LockUse{Repo: repo, File: file, Line: atoi(e.Attrs[graph.AttrLine]), State: st,
-			SHA: e.Attrs[graph.AttrLockedSHA], Entry: e.Attrs[graph.AttrLockEntry], Missing: e.Attrs[graph.AttrLockMissing]})
+		u := LockUse{Repo: repo, File: file, Line: atoi(e.Attrs[graph.AttrLine]), State: st,
+			SHA: e.Attrs[graph.AttrLockedSHA], Entry: e.Attrs[graph.AttrLockEntry], Missing: e.Attrs[graph.AttrLockMissing],
+			Advisories: e.Attrs[graph.AttrLockAdvisories], Edge: e}
+		if u.Advisories != "" && st == graph.LockLocked {
+			_, ref := splitRef(strings.TrimPrefix(action, "action:"))
+			u.Fixed = withV(e.Attrs[graph.AttrLockAdvisoryFixed], ref)
+		}
+		out = append(out, u)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		a, b := out[i], out[j]
@@ -560,7 +582,12 @@ func LockGoverned(ix *graph.Index, action string) []LockUse {
 // advisory_fixed version, written with a leading v when the current ref has
 // one and the version does not. "" when no fixed version is known.
 func FixedRef(n graph.Node, ref string) string {
-	f := n.Attrs[graph.AttrAdvisoryFixed]
+	return withV(n.Attrs[graph.AttrAdvisoryFixed], ref)
+}
+
+// withV writes a fixed version f with a leading v when ref has one and f
+// does not. "" stays "".
+func withV(f, ref string) string {
 	if f == "" {
 		return ""
 	}

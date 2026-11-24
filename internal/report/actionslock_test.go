@@ -38,3 +38,13 @@ func TestRenderActionsLock(t *testing.T) {
 		t.Error("pin line shown for a graph without any actions.lock")
 	}
 }
+
+func TestLockLineCountsAffectedLocks(t *testing.T) {
+	got := lockLine(graph.PinStats{InWorkflow: 1, ByLock: 2, LockAffected: 1, Locks: 2})
+	if !strings.Contains(got, "2 pinned by actions.lock (2 repos have a lockfile), 1 pinned by actions.lock to a commit with a known advisory") {
+		t.Errorf("lock line %q", got)
+	}
+	if strings.Contains(lockLine(graph.PinStats{ByLock: 1, Locks: 1}), "known advisory") {
+		t.Error("no affected lock: the line must not mention advisories")
+	}
+}

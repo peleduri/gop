@@ -55,6 +55,16 @@ advisories whose package is `owner/repo/path` or `owner/repo`:
   is a fixed commit. Any other SHA is **unknown**: gop does not walk git history.
 - **A branch** (`main`) or an abbreviated SHA is **unknown**.
 
+- **A `uses:` an actions.lock pins** (`actions_lock=locked`, see
+  [actions-lock.md](actions-lock.md)) runs the lockfile's commit, not the ref,
+  so its `locked_sha` is matched too, with the same rules as a full commit SHA.
+  An affected commit sets `lock_advisories`, `lock_advisory_severity` and
+  `lock_advisory_fixed` on that `USES` edge only. The action node's attrs stay
+  the match on the ref, so another repo that uses the same ref without the
+  lock (or with a lock on a clean commit) is not flagged. A locked commit the
+  advisory does not list is **unknown** and gets its own coverage entry
+  ("actions.lock pins it to ..."); a fixed commit is not affected.
+
 Unknown is never read as safe. Each unknown ref gets a coverage entry
 (`scope: action:<ref>`, `fact: advisories`) naming the advisories and why it
 could not be placed.
@@ -90,7 +100,16 @@ A known compromise outranks everything else:
   moves each `uses:` line to the first fixed version (`advisory_fixed`, with a
   `v` when the current ref has one) or a commit SHA after it, instead of pinning
   the affected version. With no fixed version, the plan says to remove or
-  replace the action.
+  replace the action. A `uses:` line whose actions.lock pins an affected
+  commit is not edited: the plan's caveat for that line says "actions.lock
+  pins an affected commit: rerun gh actions-lock after moving to
+  `<lock_advisory_fixed>`", and GOP003 reports that line with the locked
+  commit.
+- **Locked affected commits.** An action whose ref is not affected but that
+  an actions.lock pins to an affected commit is ranked like an affected
+  action, with the reach of only those locked workflows. GOP003 and the
+  fix-plan caveat name only the locked lines; the other `uses:` lines of the
+  ref get neither.
 
 For a compromise, moving off the version is not the end: rotate the secrets and
 cloud credentials the workflows could reach while they ran it.
