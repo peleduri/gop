@@ -446,7 +446,7 @@ func agentPathFor(ix *graph.Index, n graph.Node) agentPath {
 	if writes > 0 {
 		var cuts []int
 		for _, s := range []int{hopMerge, hopOIDC, hopRole} {
-			if hn(s) > 0 && !(s == hopMerge && botMerge) {
+			if hn(s) > 0 && (s != hopMerge || !botMerge) {
 				cuts = append(cuts, hn(s))
 			}
 		}
