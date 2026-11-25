@@ -419,7 +419,7 @@ func kpis(d *data, top *graph.Score, orgs, gapOrgs, gaps int) []kpi {
 	case orgs > 0:
 		cov.Value, cov.Unit = fmt.Sprintf("%d/%d", orgs-gapOrgs, orgs), "orgs fully visible"
 	case gaps == 0:
-		cov.Value, cov.Unit = "—", "no orgs in this graph"
+		cov.Value, cov.Unit = "none", "no orgs in this graph"
 	default:
 		cov.Value, cov.Unit = fmt.Sprint(gaps), unit(gaps, "gap", "gaps")
 	}

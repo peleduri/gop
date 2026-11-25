@@ -33,7 +33,7 @@ func writeMDHops(p func(string, ...any), hops []hopView) {
 		if h.Reverse {
 			kind += " (reversed)"
 		}
-		p("  %d. %s → %s, %s, **%s**, %s\n", i+1, md(h.From), md(h.To), md(kind), h.Evidence, md(h.SourceAPI))
+		p("  %d. %s → %s, %s, %s **%s**, %s\n", i+1, md(h.From), md(h.To), md(kind), evIcon(h.Class), h.Evidence, md(h.SourceAPI))
 		if h.Reason != "" {
 			p("     undecided: %s\n", md(h.Reason))
 		}
@@ -47,7 +47,7 @@ func writeMarkdown(w io.Writer, d data) error {
 	b := bufio.NewWriter(w)
 	p := func(format string, a ...any) { fmt.Fprintf(b, format, a...) }
 
-	title := "gop: who can make code run where"
+	title := tagline
 	if d.Demo {
 		title = mcpserver.DemoMarker + " " + title
 	}
@@ -56,7 +56,7 @@ func writeMarkdown(w io.Writer, d data) error {
 		p("> **Warning:** %s\n\n", md(d.Partial))
 	}
 	if d.Enterprise != "" || d.CollectedAt != "" {
-		p("Enterprise **%s**, collected %s\n\n", md(d.Enterprise), md(d.CollectedAt))
+		p("gop report: enterprise **%s**, collected %s\n\n", md(d.Enterprise), md(d.CollectedAt))
 	}
 	if bn := d.Banner; bn != nil {
 		p("## What changed\n\nPrevious snapshot %s → this snapshot %s. %s\n\n", md(bn.Since), md(bn.Until), md(bn.Summary))
@@ -67,7 +67,13 @@ func writeMarkdown(w io.Writer, d data) error {
 			p("- %s: %d\n", g.Title, g.Count)
 			for _, it := range g.Items {
 				ev := ""
-				if it.Ev != "" {
+				switch it.Ev {
+				case "confirmed":
+					ev = "✓ confirmed: "
+				case "possible":
+					ev = "? possible: "
+				case "":
+				default:
 					ev = it.Ev + ": "
 				}
 				p("  - %s%s\n", ev, md(it.Text))
@@ -87,9 +93,9 @@ func writeMarkdown(w io.Writer, d data) error {
 		p(">\n> %s\n", md(d.PinLine))
 	}
 	if d.HasCloud {
-		p("\nConfirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry, or (a cloud hop) from a supplied file: a cloud trust policy you supplied, not read from the cloud. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
+		p("\nConfirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺), or (a cloud hop) from a supplied file (≡): a cloud trust policy you supplied, not read from the cloud. Possible (?) means at least one hop is not visible to the token: unknown, not absent.\n\n")
 	} else {
-		p("\nConfirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.\n\n")
+		p("\nConfirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.\n\n")
 	}
 
 	p("## Top risks\n\n")
@@ -182,9 +188,9 @@ func writeMarkdown(w io.Writer, d data) error {
 			p("- **%s** (used by %s) runs %s. %s can change it", md(r.Action),
 				plural(r.Consumers, "workflow", "workflows"), via, md(r.Principal))
 			if r.Path.Confirmed {
-				p(" (confirmed):\n")
+				p(" (✓ confirmed):\n")
 			} else {
-				p(" (possible: a hop is not visible):\n")
+				p(" (? possible: a hop is not visible):\n")
 			}
 			writeMDHops(p, r.Path.Hops)
 		}
@@ -199,9 +205,9 @@ func writeMarkdown(w io.Writer, d data) error {
 			p("### %s\n\n", md(pp.Principal))
 		}
 		for _, pv := range pp.Paths {
-			status := "confirmed"
+			status := "✓ confirmed"
 			if !pv.Confirmed {
-				status = "possible: a hop is not visible"
+				status = "? possible: a hop is not visible"
 			}
 			p("- **%s** to %s\n", status, md(pv.To))
 			if pv.Note != "" {
@@ -294,7 +300,7 @@ func writeMDAgents(p func(string, ...any), d data) {
 		who := r.Exposure
 		if r.Who != "" {
 			if r.Possible {
-				who += ": possible: " + r.Who
+				who += ": ? possible: " + r.Who
 			} else {
 				who += ": " + r.Who
 			}
@@ -344,7 +350,7 @@ func writeMDAgentPaths(p func(string, ...any), d data) {
 	for i, ap := range d.AgentPaths {
 		agent := ap.Agent
 		if ap.Mode != "" {
-			agent += " (dangerous mode: " + ap.Mode + ")"
+			agent += " (▲ dangerous mode: " + ap.Mode + ")"
 		}
 		p("%d. %s → %s in %s → %s. Evidence: %s.\n", i+1, md(ap.Present[0].Title), md(agent), md(ap.Workflow), md(ap.Reach), md(ap.EvCount))
 	}

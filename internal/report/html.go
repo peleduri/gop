@@ -2,14 +2,25 @@ package report
 
 import "html/template"
 
-// evIcon is the icon shown before every evidence label, so evidence never
-// depends on color alone: a check for what was read, a question mark for
-// what was not visible, a page for a supplied file, an approximately-equal
+// tagline is the brand headline (BRAND.md, brand/tokens.json).
+const tagline = "Which AI agents and people can make code run where."
+
+// markSVG is brand/logo/gop-mark-color.svg inline, with its colors moved to
+// the report's style block (the CSP allows no other style element), so it
+// follows the light and dark tokens.
+const markSVG = `<svg class="mark" viewBox="4 4 24 24" aria-hidden="true" focusable="false"><path class="mk-l" d="M9 23H16V19.6M16 12.4V9H23" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle class="mk-s" cx="9" cy="23" r="3.4"/><circle class="mk-l" cx="16" cy="16" r="2.6" fill="none" stroke-width="2.2"/><rect class="mk-f" x="19.6" y="5.6" width="6.8" height="6.8" rx="1.6"/></svg>`
+
+// evIcon is the glyph shown before every evidence label, so evidence never
+// depends on color alone (BRAND.md, Evidence badges): a check for what was
+// read live, a loop arrow for an audit log entry, a question mark for what
+// was not visible, three bars for a supplied file, an approximately-equal
 // sign for a fact inferred from other observed facts.
 func evIcon(class string) string {
 	switch class {
-	case "live", "audit":
+	case "live":
 		return "✓"
+	case "audit":
+		return "↺"
 	case "inferred":
 		return "≈"
 	case "supplied":
@@ -23,7 +34,7 @@ func evIcon(class string) string {
 // content section is server-rendered, so the report reads the same with
 // JavaScript off; the script only adds filtering and per-org views.
 // html/template escapes every value.
-var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon": evIcon, "nkind": nodeKind, "nshort": nodeShort, "ntitle": nodeTitle, "settingTitles": settingTitles, "ticks": ticks}).Parse(`<!doctype html>
+var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon": evIcon, "nkind": nodeKind, "nshort": nodeShort, "ntitle": nodeTitle, "settingTitles": settingTitles, "ticks": ticks, "nshape": nodeShape}).Parse(`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -37,11 +48,12 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <body>
 <a class="skip" href="#main">Skip to the report</a>
 <header class="top"><div class="wrap">
-<div class="brand"><span class="mark" aria-hidden="true">g</span><div>
-<h1>{{if .Demo}}[demo data] {{end}}gop: who can make code run where</h1>
+<div class="brand">` + markSVG + `<div>
+<p class="wm">gop <span>report</span></p>
+<h1>{{if .Demo}}[demo data] {{end}}` + tagline + `</h1>
 <p class="meta">{{if .Enterprise}}Enterprise <strong>{{.Enterprise}}</strong>{{end}}{{if .CollectedAt}}<span class="sep" aria-hidden="true">·</span>collected <time>{{.CollectedAt}}</time>{{end}}</p>
 </div></div>
-{{if .Demo}}<p class="demo">Synthetic demo graph</p>{{end}}{{if .Partial}}<p class="partial" role="note"><span aria-hidden="true">⚠</span> {{.Partial}}</p>{{end}}
+{{if .Demo}}<p class="demo"><span aria-hidden="true">ⓘ</span> Synthetic demo graph</p>{{end}}{{if .Partial}}<p class="partial" role="note"><span aria-hidden="true">?</span> {{.Partial}}</p>{{end}}
 </div></header>
 <nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li>{{if .Banner}}<li><a href="#changes">What changed</a></li>{{end}}<li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li>{{if .Agents}}<li><a href="#ai-agents">AI agents</a></li>{{end}}{{if .AgentPaths}}<li><a href="#agent-paths">Agent paths</a></li>{{end}}{{if .BotMerge}}<li><a href="#ai-self-merge">AI self-merge</a></li>{{end}}{{if .Ownership}}<li><a href="#org-ownership">Org ownership</a></li>{{end}}<li><a href="#coverage">Not visible</a></li>{{if .Pinned}}<li><a href="#pinned">Pinned, still reachable</a></li>{{end}}<li><a href="#top-paths">Top paths</a></li>{{if .Orgs}}<li><a href="#org-settings">Org settings</a></li>{{end}}{{if .RepoHardening}}<li><a href="#repo-hardening">Repo hardening</a></li>{{end}}<li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
 <main id="main" class="wrap">
@@ -120,13 +132,14 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <section aria-labelledby="agent-paths">
 <h2 id="agent-paths">Agent paths</h2>
 <p class="lede">{{.AgentPathsLine}} Follow the code from who can start each agent to what it reaches. Step through the hops, and tick a fix to see where it cuts the path.</p>
+<ul class="ap-key" aria-label="How to read the diagram"><li><svg width="34" height="10" aria-hidden="true"><path class="k-path" d="M1 5H33" stroke-width="2.5"/></svg><span aria-hidden="true">✓</span> path, hop read</li><li><svg width="34" height="10" aria-hidden="true"><path class="k-poss" d="M1 5H33" stroke-width="2" stroke-dasharray="10 3"/></svg><span aria-hidden="true">≈</span> inferred hop</li><li><svg width="34" height="10" aria-hidden="true"><path class="k-red" d="M1 5H33" stroke-width="3"/></svg><span aria-hidden="true">▲</span> attacker-controlled</li><li><svg width="34" height="10" aria-hidden="true"><path class="k-cut" d="M1 5H12M22 5H33M13 1L21 9M21 1L13 9" stroke-width="2"/></svg><span aria-hidden="true">✕</span> cut by a fix</li><li><svg width="34" height="10" aria-hidden="true"><path class="k-nv" d="M1 5H33" stroke-width="2" stroke-dasharray="2 4"/></svg><span aria-hidden="true">?</span> not held or not visible</li></ul>
 {{range .AgentPaths}}<div class="card ap t-{{.Tone}}" id="{{.ID}}" data-ap>
-<p class="ag-h"><code>{{.Workflow}}</code> <span class="ag-k">{{.Agent}}</span>{{if .Mode}} <span class="adv">dangerous mode: {{.Mode}}</span>{{end}}</p>
+<p class="ag-h"><code>{{.Workflow}}</code> <span class="ag-k">{{.Agent}}</span>{{if .Mode}} <span class="adv"><span aria-hidden="true">▲</span> dangerous mode: {{.Mode}}</span>{{end}}</p>
 <p class="ap-banner{{if eq .Tone "crit"}} crit{{end}}" data-ap-banner role="status">{{.Banner}}</p>
 <div class="ap-canvas"><svg class="ap-svg" viewBox="0 0 1210 500" role="group" aria-label="Agent path diagram for {{.Workflow}}" aria-describedby="{{.ID}}-hops">
 {{range .Zones}}<g class="ap-zone{{if .Danger}} danger{{end}}"><rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" rx="14"/><text class="t" x="{{.X}}" y="{{.Y}}" dx="14" dy="24">{{.Title}}</text><text class="s" x="{{.X}}" y="{{.Y}}" dx="14" dy="42">{{.Sub}}</text></g>
-{{end}}{{range .Edges}}<path class="ap-edge" d="{{.D}}" data-to="{{.To}}"/>
-{{end}}{{range .Hops}}<g class="ap-node{{if not .Present}} off{{end}}{{if .Danger}} danger{{end}}{{if .Red}} red{{end}}" transform="translate({{.X}},{{.Y}})"{{if .Present}} data-n="{{.N}}" tabindex="0" role="button" aria-label="Hop {{.N}}: {{.Kind}}: {{.Title}}"{{end}}>{{if .Danger}}<rect class="ring" x="-5" y="-5" width="170" height="60" rx="12"/>{{end}}<rect class="box" width="160" height="50" rx="9"/><text class="t" x="12" y="21">{{.Short}}</text><text class="s" x="12" y="38">{{.ShortSub}}</text></g>
+{{end}}{{range .Edges}}<g class="ap-edge ev-{{.Ev}}" data-to="{{.To}}"><path d="{{.D}}"/><text class="x" x="{{.MX}}" y="{{.MY}}">✕</text></g>
+{{end}}{{range .Hops}}<g class="ap-node{{if not .Present}} off{{end}}{{if .Danger}} danger{{end}}{{if .Red}} red{{end}}" transform="translate({{.X}},{{.Y}})"{{if .Present}} data-n="{{.N}}" tabindex="0" role="button" aria-label="Hop {{.N}}: {{.Kind}}: {{.Title}}"{{end}}>{{if .Danger}}<rect class="ring" x="-5" y="-5" width="170" height="60" rx="12"/><text class="dml" x="0" y="-11">▲ dangerous mode</text>{{end}}<rect class="box" width="160" height="50" rx="9"/><g class="ap-ic c-{{.Tone}}" transform="translate(8 17) scale(.667)">{{nshape .Shape}}</g><text class="t" x="30" y="21">{{.Short}}</text><text class="s" x="30" y="38">{{.ShortSub}}</text></g>
 {{end}}{{with index .Present 0}}<circle class="ap-dot" r="7" cx="{{.CX}}" cy="{{.CY}}" data-ap-dot/>{{end}}
 </svg></div>
 <div class="ap-card" data-ap-card aria-live="polite">{{with index .Present 0}}<p class="ap-k{{if or .Danger .Red}} crit{{end}}" data-k>Hop 1 · {{.Kind}}</p><p class="ap-h" data-h>{{.Title}}</p><p class="ap-d" data-d>{{.Detail}}</p><p class="ap-m{{if or .Danger .Red}} crit{{end}}" data-m>{{.Risk}}</p><span class="badge {{.Ev}}" data-ev><span aria-hidden="true">{{icon .Ev}}</span> {{.EvLabel}}</span>{{end}}</div>
@@ -135,7 +148,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{end}}</ol>
 {{if .Fixes}}<fieldset class="ap-fix"><legend>What if we fix it?</legend>{{range .Fixes}}<label><input type="checkbox" data-cuts="{{.CutsAttr}}" data-chain="{{.Chain}}" disabled> <span><strong>{{.Label}}</strong> <span class="muted">{{.Detail}}</span>{{if .Command}} <code>{{.Command}}</code>{{end}}</span></label>
 {{end}}</fieldset>{{end}}
-<p class="note">Evidence on this path: {{.EvCount}}. Dimmed boxes are hops this agent does not have.</p>
+<p class="note">Evidence on this path: {{.EvCount}}. Boxes with a dotted grey outline are hops this agent does not have.</p>
 </div>
 {{end}}</section>{{end}}{{if .BotMerge}}
 <section aria-labelledby="ai-self-merge">
@@ -206,7 +219,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{template "chain" .}}
 </details>
 {{end}}</div>
-{{else}}<p class="note">No paths.</p>{{end}}{{if .Paths}}</div>{{end}}
+{{else}}<p class="note">No paths to show: no principal in this graph reaches a repo, secret, runner or cloud role.</p>{{end}}{{if .Paths}}</div>{{end}}
 </section>
 {{if .Orgs}}<section aria-labelledby="org-settings">
 <h2 id="org-settings">Org settings</h2>
@@ -256,7 +269,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <div class="tabs" role="tablist" aria-label="Path views"><button type="button" role="tab" id="gop-tab-list" aria-controls="gop-list-panel" aria-selected="true">List</button><button type="button" role="tab" id="gop-tab-graph" aria-controls="gop-graph-panel" aria-selected="false" tabindex="-1">Graph</button></div>
 <div id="gop-list-panel" role="tabpanel" aria-labelledby="gop-tab-list"><div id="gop-paths"></div></div>
 <div id="gop-graph-panel" role="tabpanel" aria-labelledby="gop-tab-graph" hidden>
-<p class="note">The filtered paths as one diagram, principals on the left, impact on the right, each hop drawn in control direction. Lines: solid is live, long dashes are inferred, dashed is audit, thin dashed marked "stale" is an audit fact too old to confirm (possible only), dotted with a question mark is not visible (unknown, not absent), dash-dot is a supplied file, and a thin grey line is an evidence class this report does not know, named in the hop's details. Select a node (click, or Tab to it and press Enter) to keep only the paths through it; select it again to clear. Hover or focus shows each hop's source.</p>
+<p class="note">The filtered paths as one diagram, principals on the left, impact on the right, each hop drawn in control direction. Node shapes follow the kind: people are round (a ringed circle is attacker-controlled), code is angular, and targets (secrets, OIDC, cloud roles, runners) are square, shield or stadium shaped. Lines: solid is live, long dashes are inferred, dashed is audit, dash-dot is a supplied file, dotted with a question mark is not visible (unknown, not absent), thin dotted marked "stale" is an audit fact too old to confirm (possible only), and a thin grey line is an evidence class this report does not know, named in the hop's details. Select a node (click, or Tab to it and press Enter) to keep only the paths through it; select it again to clear. Hover or focus shows each hop's source.</p>
 <fieldset id="gop-pins" class="pins" hidden><legend>Simulate a pin</legend><div id="gop-pin-options"></div></fieldset>
 <p id="gop-graph-status" class="note" role="status" aria-live="polite"></p>
 <div id="gop-graph" class="graph"></div>

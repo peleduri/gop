@@ -1,6 +1,6 @@
-# gop: who can make code run where
+# Which AI agents and people can make code run where.
 
-Enterprise **acme**, collected 2026-11-20T10:00:00Z
+gop report: enterprise **acme**, collected 2026-11-20T10:00:00Z
 
 **AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
 
@@ -8,7 +8,7 @@ Enterprise **acme**, collected 2026-11-20T10:00:00Z
 >
 > Lower the default repository permission of acme-actions to read to remove 100% of confirmed reach.
 
-Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.
+Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks
 
@@ -29,18 +29,18 @@ Score counts confirmed reach only.
 
 ### members:acme-actions
 
-- **confirmed** to secret:acme-app/api
+- **✓ confirmed** to secret:acme-app/api
   _Context, not part of the score: target org acme-app: SSO unknown, IP allow list unknown_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/api/.github/workflows/deploy.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/api/.github/workflows/deploy.yml → secret:acme-app/api, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/docs
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/api/.github/workflows/deploy.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/api/.github/workflows/deploy.yml → secret:acme-app/api, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/docs
   _Context, not part of the score: target org acme-app: SSO unknown, IP allow list unknown_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/docs/.github/workflows/build.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/docs/.github/workflows/build.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ## Org settings
 

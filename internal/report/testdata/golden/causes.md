@@ -1,6 +1,6 @@
-# gop: who can make code run where
+# Which AI agents and people can make code run where.
 
-Enterprise **acme**, collected 2026-11-20T10:00:00Z
+gop report: enterprise **acme**, collected 2026-11-20T10:00:00Z
 
 **AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
 
@@ -8,7 +8,7 @@ Enterprise **acme**, collected 2026-11-20T10:00:00Z
 >
 > Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) to remove 62% of confirmed reach.
 
-Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.
+Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks
 
@@ -52,108 +52,108 @@ Score counts confirmed reach only. A row grouped by cause shows the range of its
 
 ### identity:admin-a, one of 4 owners of 18 to 20 orgs
 
-- **confirmed** to secret:acme-o01/api
+- **✓ confirmed** to secret:acme-o01/api
   _Context, not part of the score: target org acme-o01: SSO enforced, IP allow list unknown_
-  1. identity:admin-a → repo:acme-o01/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-o02/api
+  1. identity:admin-a → repo:acme-o01/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-o02/api
   _Context, not part of the score: target org acme-o02: SSO enforced, IP allow list unknown_
-  1. identity:admin-a → repo:acme-o02/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-o03/api
+  1. identity:admin-a → repo:acme-o02/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-o03/api
   _Context, not part of the score: target org acme-o03: SSO enforced, IP allow list unknown_
-  1. identity:admin-a → repo:acme-o03/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, **live**, contents:.github/workflows
+  1. identity:admin-a → repo:acme-o03/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
 
 ### identity:bob
 
-- **confirmed** to secret:acme-o01/api
+- **✓ confirmed** to secret:acme-o01/api
   _Context, not part of the score: target org acme-o01: SSO enforced, IP allow list unknown_
-  1. identity:bob → repo:acme-o01/api, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
-  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-o02/api
+  1. identity:bob → repo:acme-o01/api, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
+  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-o02/api
   _Context, not part of the score: target org acme-o02: SSO enforced, IP allow list unknown_
-  1. identity:bob → repo:acme-o02/api, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
-  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-o03/api
+  1. identity:bob → repo:acme-o02/api, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
+  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-o03/api
   _Context, not part of the score: target org acme-o03: SSO enforced, IP allow list unknown_
-  1. identity:bob → repo:acme-o03/api, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
-  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, **live**, contents:.github/workflows
+  1. identity:bob → repo:acme-o03/api, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
+  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
 
 ### identity:lead-9
 
-- **confirmed** to secret:acme-o01/api
+- **✓ confirmed** to secret:acme-o01/api
   _Context, not part of the score: target org acme-o01: SSO enforced, IP allow list unknown_
-  1. identity:lead-9 → repo:acme-o01/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-o02/api
+  1. identity:lead-9 → repo:acme-o01/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-o02/api
   _Context, not part of the score: target org acme-o02: SSO enforced, IP allow list unknown_
-  1. identity:lead-9 → repo:acme-o02/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-o03/api
+  1. identity:lead-9 → repo:acme-o02/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-o03/api
   _Context, not part of the score: target org acme-o03: SSO enforced, IP allow list unknown_
-  1. identity:lead-9 → repo:acme-o03/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, **live**, contents:.github/workflows
+  1. identity:lead-9 → repo:acme-o03/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
 
 ### identity:lead-3
 
-- **confirmed** to repo:acme-o16/api
+- **✓ confirmed** to repo:acme-o16/api
   _Context, not part of the score: target org acme-o16: SSO enforced, IP allow list unknown_
-  1. identity:lead-3 → repo:acme-o16/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
+  1. identity:lead-3 → repo:acme-o16/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
 
 ### identity:lead-7
 
-- **confirmed** to repo:acme-o13/api
+- **✓ confirmed** to repo:acme-o13/api
   _Context, not part of the score: target org acme-o13: SSO enforced, IP allow list unknown_
-  1. identity:lead-7 → repo:acme-o13/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
+  1. identity:lead-7 → repo:acme-o13/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
 
 ### identity:lead-2
 
-- **confirmed** to repo:acme-o11/api
+- **✓ confirmed** to repo:acme-o11/api
   _Context, not part of the score: target org acme-o11: SSO enforced, IP allow list unknown_
-  1. identity:lead-2 → repo:acme-o11/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
+  1. identity:lead-2 → repo:acme-o11/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
 
 ### identity:lead-6
 
-- **confirmed** to repo:acme-o08/api
+- **✓ confirmed** to repo:acme-o08/api
   _Context, not part of the score: target org acme-o08: SSO enforced, IP allow list unknown_
-  1. identity:lead-6 → repo:acme-o08/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
+  1. identity:lead-6 → repo:acme-o08/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
 
 ### identity:lead-5
 
-- **confirmed** to secret:acme-o03/api
+- **✓ confirmed** to secret:acme-o03/api
   _Context, not part of the score: target org acme-o03: SSO enforced, IP allow list unknown_
-  1. identity:lead-5 → repo:acme-o03/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, **live**, contents:.github/workflows
+  1. identity:lead-5 → repo:acme-o03/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o03/api → workflow:acme-o03/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o03/api/.github/workflows/ci.yml → secret:acme-o03/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
 
 ### identity:lead-4
 
-- **confirmed** to secret:acme-o01/api
+- **✓ confirmed** to secret:acme-o01/api
   _Context, not part of the score: target org acme-o01: SSO enforced, IP allow list unknown_
-  1. identity:lead-4 → repo:acme-o01/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-o02/api
+  1. identity:lead-4 → repo:acme-o01/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o01/api → workflow:acme-o01/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o01/api/.github/workflows/ci.yml → secret:acme-o01/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-o02/api
   _Context, not part of the score: target org acme-o02: SSO enforced, IP allow list unknown_
-  1. identity:lead-4 → repo:acme-o02/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
-  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, rest:/repos/{owner}/{repo}/actions/workflows
-  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, **live**, contents:.github/workflows
+  1. identity:lead-4 → repo:acme-o02/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
+  2. repo:acme-o02/api → workflow:acme-o02/api/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, rest:/repos/{owner}/{repo}/actions/workflows
+  3. workflow:acme-o02/api/.github/workflows/ci.yml → secret:acme-o02/api, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
 
 ### identity:lead-1
 
-- **confirmed** to repo:acme-o06/api
+- **✓ confirmed** to repo:acme-o06/api
   _Context, not part of the score: target org acme-o06: SSO enforced, IP allow list unknown_
-  1. identity:lead-1 → repo:acme-o06/api, CAN\_PUSH, **inferred**, rest:/orgs/{org}/members?role=admin
+  1. identity:lead-1 → repo:acme-o06/api, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}/members?role=admin
 
 ## Org settings
 
