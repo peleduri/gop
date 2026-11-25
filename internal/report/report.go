@@ -30,6 +30,39 @@ type Options struct {
 	// Changes is diff.Compare(previous, current) (gop report --previous):
 	// the report opens with a "what changed" banner. Nil means no banner.
 	Changes *diff.Report
+	// Rows caps the long sections (AI agents in CI, pinned actions, repos
+	// on the top paths): 0 is DefaultRows, negative lists every row. A
+	// capped section keeps its best rows, says how many it left out, and
+	// its counts stay exact.
+	Rows int
+}
+
+// DefaultRows is how many rows each long section lists by default.
+const DefaultRows = 25
+
+// moreHint is how to list a capped section in full.
+const moreHint = "gop report --rows 0 lists every one"
+
+// moreLine is the note under a capped section: "40 more agent workflows
+// are not listed here (the counts above include them): ...", "" when
+// nothing was left out.
+func moreLine(n int, one, many string) string {
+	if n <= 0 {
+		return ""
+	}
+	what, verb, them := many, "are", "them"
+	if n == 1 {
+		what, verb, them = one, "is", "it"
+	}
+	return fmt.Sprintf("%s more %s %s not listed here (the counts above include %s): %s.", mcpserver.Num(n), what, verb, them, moreHint)
+}
+
+// rowsCap returns how many rows to keep of n under limit (negative: all).
+func rowsCap(n, limit int) int {
+	if limit < 0 || n <= limit {
+		return n
+	}
+	return limit
 }
 
 const maxPathsPerPrincipal = 3
@@ -88,10 +121,14 @@ type data struct {
 	Fixes    []fixRow
 	PinLine  string
 	Pinned   []pinnedRow
+	// PinnedMore counts the pinned actions left out by Options.Rows.
+	PinnedMore int
 	// Agents is the "AI agents in CI" section, AgentLine its summary;
-	// empty when no workflow runs an agent.
-	Agents    []agentRow
-	AgentLine string
+	// empty when no workflow runs an agent. AgentsMore counts the rows
+	// left out by Options.Rows (AgentLine counts them all).
+	Agents     []agentRow
+	AgentLine  string
+	AgentsMore int
 	// AgentPaths is the "Agent paths" view, AgentPathsLine its lede.
 	AgentPaths     []agentPath
 	AgentPathsLine string
@@ -112,8 +149,13 @@ type data struct {
 	RepoHardening []hardeningRow
 	HardenRepos   []hardenRepoRow
 	HardenFixes   []hardenFixRow
-	Coverage      []graph.Coverage
-	Banner        *banner // set only with Options.Changes
+	// HardenReposMore counts the top-path repos left out by Options.Rows.
+	HardenReposMore int
+	// AgentsMoreLine, PinnedMoreLine and HardenReposMoreLine say how many
+	// rows a capped section left out and how to list them; "" when none.
+	AgentsMoreLine, PinnedMoreLine, HardenReposMoreLine string
+	Coverage                                            []graph.Coverage
+	Banner                                              *banner // set only with Options.Changes
 	// Ownership is the org ownership concentration; nil when no account
 	// owns an org in this graph.
 	Ownership *ownership
@@ -171,10 +213,10 @@ func addEmbedded(d *data, g *graph.Graph) error {
 	if n := len(e.Truncated); n > 0 {
 		parts := make([]string, 0, n)
 		for _, t := range e.Truncated {
-			parts = append(parts, fmt.Sprintf("%s (%d)", t.Org, t.Total))
+			parts = append(parts, fmt.Sprintf("%s (%s)", t.Org, mcpserver.Num(t.Total)))
 		}
-		d.Truncated = fmt.Sprintf("To keep this file small, the filters below hold the top %d paths per target org; %s cut: %s. The sections above are complete.",
-			e.MaxPerOrg, plural(n, "org was", "orgs were"), strings.Join(parts, ", "))
+		d.Truncated = fmt.Sprintf("To keep this file small, the filters below hold the top %d paths per target org (%d of %s paths); %s cut: %s. The counts and rankings above cover every path; gop paths --from <principal> lists a principal's paths.",
+			e.MaxPerOrg, len(e.Paths), mcpserver.Num(e.total), plural(n, "org was", "orgs were"), strings.Join(parts, ", "))
 	}
 	return nil
 }
@@ -357,6 +399,9 @@ type hardenFixRow struct {
 }
 
 func build(g *graph.Graph, opts Options) data {
+	if opts.Rows == 0 {
+		opts.Rows = DefaultRows
+	}
 	ix := graph.NewIndex(g)
 	d := data{Demo: graph.IsDemo(g), Partial: graph.PartialNote(g), Version: opts.Version, Enterprise: g.Enterprise, ix: ix}
 	d.NonHumanLine = ix.NonHuman().Headline()
@@ -411,12 +456,25 @@ func build(g *graph.Graph, opts Options) data {
 	if len(d.Fixes) > 0 {
 		d.FixLine = fmt.Sprintf("%s to remove %s of confirmed reach.", d.Fixes[0].Description, d.Fixes[0].CumulativePct)
 	}
-	for _, pe := range ix.PinnedExposures() {
+	pes := ix.PinnedExposures()
+	if keep := rowsCap(len(pes), opts.Rows); keep < len(pes) {
+		// Keep the ones to act on first: confirmed, then most consumers.
+		sort.SliceStable(pes, func(i, j int) bool {
+			a, b := pes[i], pes[j]
+			if a.Path.Unverified != b.Path.Unverified {
+				return !a.Path.Unverified
+			}
+			return a.Consumers > b.Consumers
+		})
+		d.PinnedMore = len(pes) - keep
+		pes = pes[:keep]
+	}
+	for _, pe := range pes {
 		d.Pinned = append(d.Pinned, pinnedRow{Action: strings.TrimPrefix(pe.Action, "action:"),
 			Via: strings.TrimPrefix(pe.Via, "action:"), ViaNote: pe.ViaNote, Consumers: pe.Consumers,
 			Principal: pe.Path.From, Path: viewPath(ix, pe.Path)})
 	}
-	if n := len(d.Pinned); n > 0 {
+	if n := len(d.Pinned) + d.PinnedMore; n > 0 {
 		verb := "run"
 		if n == 1 {
 			verb = "runs"
@@ -427,7 +485,7 @@ func build(g *graph.Graph, opts Options) data {
 	if st := ix.PinStats(); st.HasLock() {
 		d.LockLine = lockLine(st)
 	}
-	d.Agents, d.AgentLine = agentRows(ix)
+	d.Agents, d.AgentLine, d.AgentsMore = agentRows(ix, opts.Rows)
 	if d.AgentPaths = buildAgentPaths(ix); len(d.AgentPaths) > 0 {
 		d.AgentPathsLine = agentPathsLine(d.AgentPaths)
 	}
@@ -438,7 +496,10 @@ func build(g *graph.Graph, opts Options) data {
 		d.Ownership = ownershipView(o)
 	}
 	d.Orgs, d.OrgWhy = orgSettings(g)
-	addHardening(&d, ix, opts.Top)
+	addHardening(&d, ix, opts.Top, opts.Rows)
+	d.AgentsMoreLine = moreLine(d.AgentsMore, "agent workflow", "agent workflows")
+	d.PinnedMoreLine = moreLine(d.PinnedMore, "pinned action", "pinned actions")
+	d.HardenReposMoreLine = moreLine(d.HardenReposMore, "repo", "repos")
 	d.Coverage = g.Coverage
 	if opts.Changes != nil {
 		d.Banner = buildBanner(opts.Changes, pick)
@@ -787,7 +848,7 @@ const hardeningFixes = 5
 
 // addHardening fills the repo hardening section: the per-org rollup, the
 // state of the repos the top principals push to, and advisory fixes.
-func addHardening(d *data, ix *graph.Index, top int) {
+func addHardening(d *data, ix *graph.Index, top, rows int) {
 	for _, r := range ix.HardeningRollups() {
 		d.RepoHardening = append(d.RepoHardening, hardeningRow{Org: orgName(r.Org), Repos: r.Repos,
 			Protected: r.Protected.String(), Reviews: r.Reviews.String(), CodeownersWF: r.CodeownersWF.String(),
@@ -802,6 +863,10 @@ func addHardening(d *data, ix *graph.Index, top int) {
 		n, _ := ix.Node(repo)
 		h, ok := graph.RepoHardening(n)
 		if !ok {
+			continue
+		}
+		if rows >= 0 && len(d.HardenRepos) >= rows {
+			d.HardenReposMore++
 			continue
 		}
 		d.HardenRepos = append(d.HardenRepos, hardenRepoRow{Repo: strings.TrimPrefix(repo, "repo:"), State: h.Summary()})

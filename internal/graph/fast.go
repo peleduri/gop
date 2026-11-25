@@ -24,8 +24,11 @@ type fastIndex struct {
 	start []int32 // edges of node u are start[u]:start[u+1]
 	to    []int32
 	ci    []bool
-	ok    []bool // Verified(hop evidence)
-	hop   []Hop
+	ok    []bool     // Verified(hop evidence)
+	ev    []Evidence // hop evidence of each edge
+	// cg is the base control graph the edges come from: edge e of node u
+	// is cg.out[ids[u]][e-start[u]] (see hopAt), so hops are not copied.
+	cg *controlGraph
 
 	// Reverse adjacency: redge[rstart[v]:rstart[v+1]] are the edges into v.
 	rstart []int32
@@ -153,7 +156,7 @@ func (ix *Index) buildFast() *fastIndex {
 	for _, p := range ix.Principals() {
 		set[p] = true
 	}
-	fx := &fastIndex{ids: sortedKeys(set), num: map[string]int32{}, tagNum: map[string]int32{}}
+	fx := &fastIndex{ids: sortedKeys(set), num: map[string]int32{}, tagNum: map[string]int32{}, cg: ix.base}
 	n := len(fx.ids)
 	fx.isRepo = make([]bool, n)
 	fx.isPop = make([]bool, n)
@@ -175,7 +178,7 @@ func (ix *Index) buildFast() *fastIndex {
 			fx.to = append(fx.to, v)
 			fx.ci = append(fx.ci, ce.ci)
 			fx.ok = append(fx.ok, ok)
-			fx.hop = append(fx.hop, ce.hop)
+			fx.ev = append(fx.ev, ce.hop.Evidence)
 			indeg[v+1]++
 			if !ok {
 				continue
@@ -327,6 +330,11 @@ func sortWho(out []Path) {
 	})
 }
 
+// hopAt is the hop of edge e, whose source node is u.
+func (fx *fastIndex) hopAt(u, e int32) Hop {
+	return fx.cg.out[fx.ids[u]][e-fx.start[u]].hop
+}
+
 // from returns the source node of edge e (binary search over start).
 func (fx *fastIndex) from(e int32) int32 {
 	return int32(sort.Search(len(fx.ids), func(u int) bool { return fx.start[u+1] > e }))
@@ -400,7 +408,7 @@ func (s *pathScratch) bfsTo(fx *fastIndex, from, target int32, verifiedOnly bool
 					continue
 				}
 				ctrl := !fx.ci[e]
-				ev := weakest(base, fx.hop[e].Evidence)
+				ev := weakest(base, fx.ev[e])
 				if s.candStamp[v] != candMark {
 					s.candStamp[v] = candMark
 					s.touched = append(s.touched, v)
@@ -429,9 +437,9 @@ func (s *pathScratch) bfsTo(fx *fastIndex, from, target int32, verifiedOnly bool
 			// The reported path: the control path of the node that first
 			// reached target, plus that hop.
 			var rev []Hop
-			rev = append(rev, fx.hop[s.firstEdge[target]])
+			rev = append(rev, fx.hopAt(s.firstFrom[target], s.firstEdge[target]))
 			for u := s.firstFrom[target]; s.ctrlEdge[u] >= 0; u = s.ctrlFrom[u] {
-				rev = append(rev, fx.hop[s.ctrlEdge[u]])
+				rev = append(rev, fx.hopAt(s.ctrlFrom[u], s.ctrlEdge[u]))
 			}
 			hops := make([]Hop, len(rev))
 			for i, h := range rev {
@@ -441,4 +449,60 @@ func (s *pathScratch) bfsTo(fx *fastIndex, from, target int32, verifiedOnly bool
 		}
 	}
 	return nil, false
+}
+
+// bestPathTo is WhoCanReach(target)[0] without a forward walk per
+// principal: two reverse walks give every node's hop distance to target,
+// over verified edges and over all edges, with the same rule as the
+// forward traversal (any edge may be the last hop, only control edges come
+// before it). WhoCanReach orders confirmed paths first, then fewer hops,
+// then principal ID, and a principal's reported path is a shortest one in
+// the traversal it comes from, so the first entry is the principal with the
+// least verified distance (ID breaks ties), else the least distance overall.
+// Only that principal's path is built.
+func (ix *Index) bestPathTo(target string) (Path, bool) {
+	fx := ix.fast()
+	t, ok := fx.num[target]
+	if !ok {
+		return Path{}, false
+	}
+	dist := func(verifiedOnly bool) []int32 {
+		d := make([]int32, len(fx.ids))
+		for i := range d {
+			d[i] = -1
+		}
+		d[t] = 0
+		queue := []int32{t}
+		for len(queue) > 0 {
+			x := queue[0]
+			queue = queue[1:]
+			for _, e := range fx.redge[fx.rstart[x]:fx.rstart[x+1]] {
+				if (fx.ci[e] && x != t) || (verifiedOnly && !fx.ok[e]) {
+					continue
+				}
+				if u := fx.from(e); d[u] < 0 {
+					d[u] = d[x] + 1
+					queue = append(queue, u)
+				}
+			}
+		}
+		return d
+	}
+	ps := ix.Principals()
+	for _, verified := range []bool{true, false} {
+		d := dist(verified)
+		best := int32(-1)
+		for _, p := range ps { // ID order: the first at the least distance wins
+			if p == target {
+				continue
+			}
+			if u := fx.num[p]; d[u] > 0 && (best < 0 || d[u] < d[best]) {
+				best = u
+			}
+		}
+		if best >= 0 {
+			return newPathScratch(len(fx.ids)).pathTo(fx, best, t)
+		}
+	}
+	return Path{}, false
 }

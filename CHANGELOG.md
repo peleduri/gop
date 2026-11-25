@@ -296,6 +296,19 @@ flags may change in minor releases.
   Codex loads user skills from `~/.agents/skills`.
 
 ### Changed
+- `gop report` scales to large enterprises: on a synthetic enterprise of 40
+  orgs, 8,000 repos, 264 agent workflows and about a million edges the HTML
+  report takes about 35 s instead of 3 minutes, peaks at about 3.6 GB instead
+  of 15 GB and writes 3.4 MB instead of 24 MB; Markdown takes about 16 s
+  instead of 2 minutes and is about 900 lines instead of 6,500 (its peak,
+  about 3.4 GB, is mostly the loaded graph and its index). The
+  embedded paths have a budget of about 2,500 (per-org cap down to 2,500 /
+  target orgs), the AI agents in CI, pinned and top-path repo lists show
+  their first 25 rows with an exact "N more" line (`--rows N`, `--rows 0`
+  for all), and the engine walks principals on a worker pool with shared
+  count-only and reverse walks. Counts, scores and rankings are unchanged.
+  The embedded `principals` list now holds the principals with an
+  embedded path (`principals_total` counts all).
 - Direct collaborators are read in batched GraphQL queries (#177): one
   `collaborators(affiliation: DIRECT)` query per 25 repositories of an org
   replaces one REST `GET /repos/{o}/{r}/collaborators` per repository. A

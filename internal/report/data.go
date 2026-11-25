@@ -20,21 +20,34 @@ import (
 // keep the best-ranked paths per target org and the report says so.
 const maxPathsPerOrg = 500
 
+// maxEmbeddedPaths is the budget of embedded paths over all target orgs: with
+// many orgs the per-org cap drops to maxEmbeddedPaths / orgs (never below
+// minPathsPerOrg), so the page stays a size a browser opens comfortably.
+const (
+	maxEmbeddedPaths = 2500
+	minPathsPerOrg   = 25
+)
+
 // dataVersion is the shape of the embedded JSON, for anyone parsing it.
 const dataVersion = 1
 
 type embedded struct {
-	V          int           `json:"v"`
-	Orgs       []embOrg      `json:"orgs"`
-	Principals []embPrinc    `json:"principals"`
-	Paths      []embPath     `json:"paths"`
-	Fixes      []embFix      `json:"fixes"`
-	Coverage   []embCoverage `json:"coverage"`
+	V    int      `json:"v"`
+	Orgs []embOrg `json:"orgs"`
+	// Principals are the principals with an embedded path;
+	// PrincipalsTotal counts every scoring principal.
+	Principals      []embPrinc    `json:"principals"`
+	PrincipalsTotal int           `json:"principals_total"`
+	Paths           []embPath     `json:"paths"`
+	Fixes           []embFix      `json:"fixes"`
+	Coverage        []embCoverage `json:"coverage"`
 	// Truncated lists target orgs whose paths were cut to MaxPerOrg.
 	Truncated []embTrunc `json:"truncated"`
 	MaxPerOrg int        `json:"max_per_org"`
 	// Graph is the Graph tab's layout and what-if data over Paths.
 	Graph embGraph `json:"graph"`
+
+	total int // paths before the per-org cap
 }
 
 type embOrg struct {
@@ -241,64 +254,31 @@ func buildEmbedded(ix *graph.Index, g *graph.Graph, scores []graph.Score, fixes 
 	}
 	sort.Slice(e.Orgs, func(i, j int) bool { return e.Orgs[i].Name < e.Orgs[j].Name })
 
-	byOrg := map[string][]embPath{}
-	for _, s := range scores {
-		p := s.Principal
-		porgs := principalOrgs(ix, p)
-		e.Principals = append(e.Principals, embPrinc{ID: p, Kind: string(ix.Kind(p)), Orgs: porgs,
-			Score: s.Score, Conf: s.Confirmed, Possible: s.Possible})
-		r := ix.Reach(p, graph.Options{})
-		for _, to := range sortedPathKeys(r.Paths) {
-			tk := targetKind(ix.Kind(to))
-			if tk == "" {
-				continue
-			}
-			path := r.Paths[to]
-			ep := embPath{From: p, FromOrgs: porgs, To: to, ToKind: tk, ToOrg: orgName(graph.OrgOf(to)),
-				Ev: "confirmed", Refs: []string{}, Note: path.SuppliedNote()}
-			if tk == "cloud" && len(path.Hops) > 0 {
-				// A cloud role has no org: file it under the org of the workflow that assumes it.
-				ep.ToOrg = orgName(graph.OrgOf(path.Hops[len(path.Hops)-1].From))
-			}
-			if path.Unverified {
-				ep.Ev = "possible"
-			}
-			refs := map[string]bool{}
-			for _, h := range ix.Annotate(path).Hops {
-				ep.Hops = append(ep.Hops, embHop{From: h.From, To: h.To, Kind: string(h.Kind),
-					Ev: mcpserver.HopEvidenceLabel(h), API: h.SourceAPI, Rev: h.Reverse, Why: h.Reason, Note: h.Note, raw: h.Evidence, stale: h.Stale})
-				for _, id := range []string{h.From, h.To} {
-					if ix.Kind(id) == graph.KindActionRef {
-						refs[refKind(ix, id)] = true
-					}
-				}
-			}
-			ep.Refs = sortedSet(refs)
-			byOrg[ep.ToOrg] = append(byOrg[ep.ToOrg], ep)
+	sel := selectPaths(ix, scores, maxPerOrg)
+	for _, o := range sel.orgs {
+		if o.total > sel.perOrg {
+			e.Truncated = append(e.Truncated, embTrunc{Org: o.org, Total: o.total})
+		}
+		e.total += o.total
+		for _, c := range o.kept {
+			e.Paths = append(e.Paths, embPathOf(ix, c, sel.porgs[c.pi]))
 		}
 	}
-	orgKeys := make([]string, 0, len(byOrg))
-	for k := range byOrg {
-		orgKeys = append(orgKeys, k)
-	}
-	sort.Strings(orgKeys)
-	for _, o := range orgKeys {
-		ps := byOrg[o]
-		if len(ps) > maxPerOrg {
-			sort.SliceStable(ps, func(i, j int) bool {
-				a, b := ps[i], ps[j]
-				if a.Ev != b.Ev {
-					return a.Ev == "confirmed"
-				}
-				if termRank(a.ToKind) != termRank(b.ToKind) {
-					return termRank(a.ToKind) < termRank(b.ToKind)
-				}
-				return len(a.Hops) < len(b.Hops)
-			})
-			e.Truncated = append(e.Truncated, embTrunc{Org: o, Total: len(ps)})
-			ps = ps[:maxPerOrg]
+	e.MaxPerOrg = sel.perOrg
+	// Principals: the ones with an embedded path; PrincipalsTotal counts
+	// every scoring principal.
+	e.PrincipalsTotal = len(scores)
+	with := map[int]bool{}
+	for _, o := range sel.orgs {
+		for _, c := range o.kept {
+			with[int(c.pi)] = true
 		}
-		e.Paths = append(e.Paths, ps...)
+	}
+	for i, s := range scores {
+		if with[i] {
+			e.Principals = append(e.Principals, embPrinc{ID: s.Principal, Kind: string(ix.Kind(s.Principal)), Orgs: sel.porgs[i],
+				Score: s.Score, Conf: s.Confirmed, Possible: s.Possible})
+		}
 	}
 	sort.SliceStable(e.Paths, func(i, j int) bool {
 		a, b := e.Paths[i], e.Paths[j]

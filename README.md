@@ -212,7 +212,7 @@ gop advisories update [--out PATH]
 gop doctor  --enterprise <slug> [--github-url URL] [--orgs a,b] [--format text|json] [--app-id N --app-key-file PATH [--parallel N]]
 gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
 gop serve   --graph graph.json | --demo  [--baseline old.json]
-gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N] [--previous old.json]
+gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N] [--rows N] [--previous old.json]
 gop paths   --graph graph.json --from <principal> [--to <node>]
 gop who     --graph graph.json --target <node>
 gop validate --graph graph.json [--format text|json]

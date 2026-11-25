@@ -377,3 +377,19 @@ func TestServeBaseline(t *testing.T) {
 		t.Fatalf("serve without --baseline: %+v baseline=%v", r, opts.Baseline != nil)
 	}
 }
+
+// TestReportRows: --rows caps the long sections, 0 lists every row, and a
+// negative value is a usage error.
+func TestReportRows(t *testing.T) {
+	if r := runApp(t, nil, nil, "report", "--demo", "--out", "-", "--rows", "-1"); r.code != exitUsage || !strings.Contains(r.stderr, "--rows must be 0") {
+		t.Errorf("--rows -1: %+v", r)
+	}
+	all := runApp(t, nil, nil, "report", "--demo", "--format", "md", "--out", "-", "--rows", "0")
+	one := runApp(t, nil, nil, "report", "--demo", "--format", "md", "--out", "-", "--rows", "1")
+	if all.code != 0 || one.code != 0 {
+		t.Fatalf("report --rows: %+v %+v", all, one)
+	}
+	if strings.Contains(all.stdout, "not listed here") || !strings.Contains(one.stdout, "more agent workflow") {
+		t.Errorf("--rows 0 must list every row and --rows 1 must cap the agents section")
+	}
+}

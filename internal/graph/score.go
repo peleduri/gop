@@ -238,13 +238,13 @@ func RanksAbove(a, b Score) bool {
 	return a.Principal < b.Principal
 }
 
-// allScores scores every principal in ScoringPrincipals.
+// allScores scores every principal in ScoringPrincipals. The walks run on
+// a worker pool; each score is written at its principal's index, so the
+// result does not depend on scheduling.
 func (ix *Index) allScores(cg *controlGraph) []Score {
 	ps := ix.ScoringPrincipals()
-	out := make([]Score, 0, len(ps))
-	for _, p := range ps {
-		out = append(out, ix.score(cg, p))
-	}
+	out := make([]Score, len(ps))
+	parallelFor(len(ps), workers(), func(_, i int) { out[i] = ix.score(cg, ps[i]) })
 	return out
 }
 
@@ -254,16 +254,17 @@ func (ix *Index) allScores(cg *controlGraph) []Score {
 // org_members population other than the principal itself.
 func (ix *Index) scoresAndPairs(cg *controlGraph) (full, pair []Score) {
 	ps := ix.ScoringPrincipals()
-	full, pair = make([]Score, 0, len(ps)), make([]Score, 0, len(ps))
-	for _, p := range ps {
+	full, pair = make([]Score, len(ps)), make([]Score, len(ps))
+	parallelFor(len(ps), workers(), func(_, i int) {
+		p := ps[i]
 		r := ix.reach(cg, p)
 		s := ix.scoreOf(p, r)
-		full = append(full, s)
+		full[i] = s
 		if ix.entersPopulation(p, r) {
 			s = ix.scoreOf(p, ix.pairReach(cg, p))
 		}
-		pair = append(pair, s)
-	}
+		pair[i] = s
+	})
 	return full, pair
 }
 

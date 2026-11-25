@@ -64,7 +64,7 @@ Usage:
               [--app-id N --app-key-file PATH [--parallel N]]
   gop demo    [--size small|medium|large] [--seed N] [--out graph.json]
   gop serve   --graph graph.json | --demo  [--baseline old.json]
-  gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N]
+  gop report  --graph graph.json | --demo  --out report.html [--format html|md] [--top N] [--rows N]
               [--previous old.json] [--owner-threshold N]
   gop paths   --graph graph.json --from <principal> [--to <node>]
   gop who     --graph graph.json --target <node>
@@ -657,6 +657,7 @@ func (a *app) cmdReport(args []string) error {
 	top := fs.Int("top", 10, "principals in the risks table and paths section")
 	prev := fs.String("previous", "", "older graph.json: open the report with what changed since it (gop diff)")
 	ownerT := fs.Int("owner-threshold", graph.DefaultOwnerThreshold, "the suggested reduce_owners fix removes standing ownership from accounts that own this many orgs or more")
+	rows := fs.Int("rows", report.DefaultRows, "rows in each long section (AI agents in CI, pinned actions, repos on the top paths); 0 lists every row")
 	useDemo := demoFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err
@@ -680,11 +681,17 @@ func (a *app) cmdReport(args []string) error {
 	if *ownerT <= 0 {
 		return usagef("report: --owner-threshold must be positive, got %d", *ownerT)
 	}
+	if *rows < 0 {
+		return usagef("report: --rows must be 0 (every row) or positive, got %d", *rows)
+	}
+	if *rows == 0 {
+		*rows = -1 // report.Options: negative lists every row
+	}
 	g, err := a.loadGraph("report", *gp, *useDemo)
 	if err != nil {
 		return err
 	}
-	opts := report.Options{Format: f, Top: *top, Version: version, OwnerThreshold: *ownerT}
+	opts := report.Options{Format: f, Top: *top, Version: version, OwnerThreshold: *ownerT, Rows: *rows}
 	if strings.TrimSpace(*prev) != "" {
 		old, err := graph.LoadFile(*prev)
 		if err != nil {

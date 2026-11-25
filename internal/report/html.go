@@ -127,7 +127,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 </dl>
 {{if .Fixes}}<ol class="ag-fix">{{range .Fixes}}<li>{{.}}</li>{{end}}</ol>{{end}}
 </div>
-{{end}}<p class="note">Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.</p>
+{{end}}{{if .AgentsMoreLine}}<p class="note">{{.AgentsMoreLine}}</p>{{end}}<p class="note">Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.</p>
 </section>{{end}}{{if .AgentPaths}}
 <section aria-labelledby="agent-paths">
 <h2 id="agent-paths">Agent paths</h2>
@@ -202,7 +202,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: {{.Path.PushNote}}</p>{{end}}
 {{template "chain" .Path}}
 </div>
-{{end}}</section>
+{{end}}{{if .PinnedMoreLine}}<p class="note">{{.PinnedMoreLine}}</p>{{end}}</section>
 {{end}}
 <section aria-labelledby="top-paths">
 <h2 id="top-paths">Top paths</h2>
@@ -244,7 +244,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{end}}</tbody></table></div>
 {{if .HardenRepos}}<h3 id="repo-hardening-top">Repos on the top paths</h3>
 <ul class="card whys">{{range .HardenRepos}}<li><code>{{.Repo}}</code>: {{.State}}</li>
-{{end}}</ul>{{end}}
+{{end}}</ul>{{if .HardenReposMoreLine}}<p class="note">{{.HardenReposMoreLine}}</p>{{end}}{{end}}
 {{if .HardenFixes}}<h3 id="repo-hardening-fixes">Hardening suggestions</h3>
 <p class="lede">Advisory: these settings are not counted as removing confirmed reach.</p>
 <ul class="card whys">{{range .HardenFixes}}<li>{{.Description}} ({{.Reason}})</li>

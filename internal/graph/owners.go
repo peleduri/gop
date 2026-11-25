@@ -118,9 +118,10 @@ func (ix *Index) Ownership() (OrgOwnership, bool) {
 			all = append(all, OwnerCut{Principal: p, Org: o})
 		}
 	}
-	d := ix.WhatIf([]Fix{ReduceOwners{Cuts: all}})
-	out.ConfirmedPairs = d.Before.ConfirmedPairs
-	out.OwnerPairs = d.Before.ConfirmedPairs - d.After.ConfirmedPairs
+	// WhatIf(ReduceOwners{all}) pair totals, counted without paths.
+	before, after := ix.confirmedPairs([]Fix{ReduceOwners{Cuts: all}})
+	out.ConfirmedPairs = before
+	out.OwnerPairs = before - after
 	if out.ConfirmedPairs > 0 {
 		out.OwnerPct = 100 * float64(out.OwnerPairs) / float64(out.ConfirmedPairs)
 	}
