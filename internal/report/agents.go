@@ -35,6 +35,8 @@ type agentRow struct {
 	Fixes          []string
 	// Exposed: AgentExposed, the rank factor's workflow side.
 	Exposed bool
+
+	id string // workflow node ID
 }
 
 // readsByTrigger is the event text an agent reads by itself on each trigger.
@@ -44,17 +46,20 @@ var readsByTrigger = map[string]string{
 	"discussion": "discussion", "discussion_comment": "discussion comment", "workflow_run": "upstream run",
 }
 
-// agentRows builds the AI agents section, exposed agents first.
-func agentRows(ix *graph.Index) (rows []agentRow, line string) {
+// agentRows builds the AI agents section, exposed agents first, and keeps
+// the first limit rows (negative: all); more is how many it left out. The
+// summary line counts every agent workflow. Reach is walked only for the
+// rows kept.
+func agentRows(ix *graph.Index, limit int) (rows []agentRow, line string, more int) {
 	ids := ix.AgentWorkflows()
 	if len(ids) == 0 {
-		return nil, ""
+		return nil, "", 0
 	}
 	exposedN, outsiders := 0, 0
 	for _, id := range ids {
 		n, _ := ix.Node(id)
 		r := agentRow{Workflow: strings.TrimPrefix(id, "workflow:"), Kind: n.Attrs[graph.AttrAgent],
-			Confidence: n.Attrs[graph.AttrAgentConfidence], NameOnly: !graph.AgentConfirmed(n), Exposed: graph.AgentExposed(n)}
+			Confidence: n.Attrs[graph.AttrAgentConfidence], NameOnly: !graph.AgentConfirmed(n), Exposed: graph.AgentExposed(n), id: id}
 		if r.NameOnly {
 			r.Kind = "unknown"
 			r.Exposure, r.Tone = "name only: not counted as an agent", "unk"
@@ -114,8 +119,6 @@ func agentRows(ix *graph.Index) (rows []agentRow, line string) {
 		if r.Exposed {
 			exposedN++
 		}
-		res := ix.Reach(id, graph.Options{})
-		r.Reach = reachPhrase(res.Confirmed)
 		r.Prompt = strings.ReplaceAll(n.Attrs[graph.AttrAgentPrompt], ",", ", ")
 		if r.Tone == "crit" || r.Tone == "high" {
 			var reads []string
@@ -148,13 +151,22 @@ func agentRows(ix *graph.Index) (rows []agentRow, line string) {
 		return map[string]int{"crit": 2, "high": 2, "med": 3, "ok": 4}[r.Tone]
 	}
 	sort.SliceStable(rows, func(i, j int) bool { return rank(rows[i]) < rank(rows[j]) })
+	if keep := rowsCap(len(rows), limit); keep < len(rows) {
+		more = len(rows) - keep
+		rows = rows[:keep]
+	}
+	for i := range rows {
+		if !rows[i].NameOnly {
+			rows[i].Reach = reachPhrase(ix.Reach(rows[i].id, graph.Options{}).Confirmed)
+		}
+	}
 	verb := "run"
 	if len(ids) == 1 {
 		verb = "runs"
 	}
 	line = fmt.Sprintf("%s %s an AI coding agent; %d can be started by people without push access, %d of them while the agent holds write, secrets or OIDC.",
 		plural(len(ids), "workflow", "workflows"), verb, outsiders, exposedN)
-	return rows, line
+	return rows, line, more
 }
 
 // whoList names up to three principals, then a count.

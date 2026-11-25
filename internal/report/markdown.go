@@ -194,6 +194,9 @@ func writeMarkdown(w io.Writer, d data) error {
 			}
 			writeMDHops(p, r.Path.Hops)
 		}
+		if d.PinnedMoreLine != "" {
+			p("\n%s\n", md(d.PinnedMoreLine))
+		}
 		p("\n")
 	}
 
@@ -337,6 +340,9 @@ func writeMDAgents(p func(string, ...any), d data) {
 		}
 		p("\n")
 	}
+	if d.AgentsMoreLine != "" {
+		p("%s\n\n", md(d.AgentsMoreLine))
+	}
 	p("Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.\n\n")
 }
 
@@ -370,6 +376,9 @@ func writeMDHardening(p func(string, ...any), d data) {
 		p("Repos on the top paths:\n\n")
 		for _, r := range d.HardenRepos {
 			p("- **%s**: %s\n", md(r.Repo), md(r.State))
+		}
+		if d.HardenReposMoreLine != "" {
+			p("\n%s\n", md(d.HardenReposMoreLine))
 		}
 		p("\n")
 	}

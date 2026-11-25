@@ -352,30 +352,6 @@
       }
     },
     {
-      "id": "members:acme-app",
-      "kind": "org_members",
-      "orgs": [
-        "acme-app"
-      ],
-      "score": 0,
-      "confirmed": {
-        "repos": 0,
-        "orgs": 0,
-        "workflows": 0,
-        "secrets": 0,
-        "oidc": 0,
-        "runners": 0
-      },
-      "possible": {
-        "repos": 0,
-        "orgs": 0,
-        "workflows": 0,
-        "secrets": 0,
-        "oidc": 0,
-        "runners": 0
-      }
-    },
-    {
       "id": "members:acme-legacy",
       "kind": "org_members",
       "orgs": [
@@ -398,32 +374,9 @@
         "oidc": 0,
         "runners": 0
       }
-    },
-    {
-      "id": "members:acme-secure",
-      "kind": "org_members",
-      "orgs": [
-        "acme-secure"
-      ],
-      "score": 0,
-      "confirmed": {
-        "repos": 0,
-        "orgs": 0,
-        "workflows": 0,
-        "secrets": 0,
-        "oidc": 0,
-        "runners": 0
-      },
-      "possible": {
-        "repos": 0,
-        "orgs": 0,
-        "workflows": 0,
-        "secrets": 0,
-        "oidc": 0,
-        "runners": 0
-      }
     }
   ],
+  "principals_total": 6,
   "paths": [
     {
       "from": "identity:bob",

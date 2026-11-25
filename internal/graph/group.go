@@ -1,8 +1,10 @@
 package graph
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 )
@@ -143,14 +145,16 @@ func (ix *Index) GroupRisksExact(ranked []Score) []RiskGroup {
 		bucket[skey[i]] = append(bucket[skey[i]], i)
 	}
 	sig := make([]string, len(ranked))
+	var need []int
 	for _, idx := range bucket {
-		if len(idx) < 2 {
-			continue
-		}
-		for _, i := range idx {
-			sig[i] = ix.confirmedSig(ranked[i].Principal)
+		if len(idx) >= 2 {
+			need = append(need, idx...)
 		}
 	}
+	parallelFor(len(need), workers(), func(_, k int) {
+		i := need[k]
+		sig[i] = ix.confirmedSig(ranked[i].Principal)
+	})
 	type key struct{ score, sig string }
 	at := map[key]int{}
 	var out []RiskGroup
@@ -184,9 +188,44 @@ func scoreKey(s Score) string {
 	return string(b)
 }
 
-// confirmedSig is a principal's GroupKey.
+// confirmedSig stands for a principal's GroupKey: a SHA-256 digest of it
+// (the same targets give the same digest), "" when the key is "". The
+// digest is streamed from the sorted targets, so the long key string is
+// never built: GroupRisksExact holds one per principal it compares.
 func (ix *Index) confirmedSig(principal string) string {
-	return ix.GroupKey(ix.reach(ix.base, principal))
+	r := ix.reach(ix.base, principal)
+	if k := ix.Kind(r.From); k == KindOrgMembers || k == KindExternal {
+		return ""
+	}
+	ids := confirmedTargets(r)
+	if len(ids) == 0 {
+		return ""
+	}
+	h := sha256.New()
+	for i, id := range ids {
+		if i > 0 {
+			_, _ = io.WriteString(h, "\n")
+		}
+		_, _ = io.WriteString(h, id)
+	}
+	return string(h.Sum(nil))
+}
+
+// confirmedTargets lists the targets ConfirmedKey joins, sorted. The strings
+// are the result's own, so the list costs only its slice.
+func confirmedTargets(r Result) []string {
+	c := r.Confirmed
+	n := 0
+	lists := [][]string{c.Repos, c.Orgs, c.Workflows, c.Actions, c.Secrets, c.OIDC, c.Runners, c.CloudTargets}
+	for _, l := range lists {
+		n += len(l)
+	}
+	ids := make([]string, 0, n)
+	for _, l := range lists {
+		ids = append(ids, l...)
+	}
+	sort.Strings(ids)
+	return ids
 }
 
 // GroupKey is the key principals with identical reach share: the result's
@@ -209,15 +248,10 @@ func (ix *Index) GroupKey(r Result) string {
 // their keys are equal. "" when nothing is confirmed, which never groups
 // (such rows have nothing in common to say).
 func (r Result) ConfirmedKey() string {
-	c := r.Confirmed
-	var ids []string
-	for _, l := range [][]string{c.Repos, c.Orgs, c.Workflows, c.Actions, c.Secrets, c.OIDC, c.Runners, c.CloudTargets} {
-		ids = append(ids, l...)
-	}
+	ids := confirmedTargets(r)
 	if len(ids) == 0 {
 		return ""
 	}
-	sort.Strings(ids)
 	return strings.Join(ids, "\n")
 }
 
@@ -282,21 +316,28 @@ type causeRow struct {
 // groupCauses merges exact-group rows into cause groups (see GroupRisks).
 func (ix *Index) groupCauses(ranked []Score, rows []RiskGroup) []RiskGroup {
 	info := make([]causeRow, len(rows))
-	byCause := map[string][]int{}
-	for i, g := range rows {
+	parallelFor(len(rows), workers(), func(_, i int) {
+		g := rows[i]
 		if g.Confirmed.Repos == 0 || !ix.mayHaveCause(g.Principal) {
-			continue
+			return
 		}
 		r := ix.reach(ix.base, g.Principal)
-		if ix.GroupKey(r) == "" {
-			continue
+		if k := ix.Kind(r.From); k == KindOrgMembers || k == KindExternal {
+			return // GroupKey "": never grouped
 		}
-		c := ix.causeOf(g.Principal, r)
-		if c == "" {
-			continue
+		ids := confirmedTargets(r)
+		if len(ids) == 0 {
+			return
 		}
-		info[i] = causeRow{cause: c, ids: strings.Split(r.ConfirmedKey(), "\n")}
-		byCause[c] = append(byCause[c], i)
+		if c := ix.causeOf(g.Principal, r); c != "" {
+			info[i] = causeRow{cause: c, ids: ids}
+		}
+	})
+	byCause := map[string][]int{}
+	for i := range rows {
+		if c := info[i].cause; c != "" {
+			byCause[c] = append(byCause[c], i)
+		}
 	}
 	if len(byCause) == 0 {
 		return rows

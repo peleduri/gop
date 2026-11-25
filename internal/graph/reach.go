@@ -5,6 +5,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -532,6 +533,7 @@ type visit struct {
 	path       []Hop // first (shortest) path found, reported
 	ctrlPath   []Hop // shortest path that gives full control (used for expansion)
 	controlled bool
+	ctrlEv     Evidence // pathEvidence(ctrlPath)
 }
 
 func pathEvidence(hops []Hop) Evidence {
@@ -546,31 +548,36 @@ func pathEvidence(hops []Hop) Evidence {
 // keeps the one with the strongest evidence (ties: first in sorted order), so the
 // output is deterministic. verifiedOnly skips not_visible hops; skip, when
 // set, names nodes the walk never enters.
+//
+// A candidate is the control path of the node it leaves plus one hop; its
+// path is copied only when it wins its node, so a walk allocates one path
+// per reached node, not one per edge it looks at. Its evidence is folded
+// from the parent's (weakest is a running minimum, as in pathEvidence).
 func (cg *controlGraph) bfs(from string, verifiedOnly bool, skip func(string) bool) map[string]*visit {
-	seen := map[string]*visit{from: {controlled: true}}
+	seen := map[string]*visit{from: {controlled: true, ctrlEv: Live}}
 	frontier := []string{from}
 	type cand struct {
-		path []Hop
+		base []Hop
+		hop  *Hop
 		ev   Evidence
 		ctrl bool
 	}
 	for len(frontier) > 0 {
-		next := map[string]*cand{}
+		next := map[string]cand{}
 		for _, u := range frontier {
-			base := seen[u].ctrlPath
-			for _, e := range cg.out[u] {
+			src := seen[u]
+			es := cg.out[u]
+			for k := range es {
+				e := &es[k]
 				if (verifiedOnly && !Verified(e.hop.Evidence)) || (skip != nil && skip(e.to)) {
 					continue
 				}
 				if st := seen[e.to]; st != nil && (st.controlled || e.ci) {
 					continue
 				}
-				p := make([]Hop, len(base)+1)
-				copy(p, base)
-				p[len(base)] = e.hop
-				c := &cand{path: p, ev: pathEvidence(p), ctrl: !e.ci}
-				old := next[e.to]
-				if old == nil || (c.ctrl && !old.ctrl) || (c.ctrl == old.ctrl && evRank(c.ev) > evRank(old.ev)) {
+				c := cand{base: src.ctrlPath, hop: &e.hop, ev: weakest(src.ctrlEv, e.hop.Evidence), ctrl: !e.ci}
+				old, ok := next[e.to]
+				if !ok || (c.ctrl && !old.ctrl) || (c.ctrl == old.ctrl && evRank(c.ev) > evRank(old.ev)) {
 					next[e.to] = c
 				}
 			}
@@ -578,14 +585,18 @@ func (cg *controlGraph) bfs(from string, verifiedOnly bool, skip func(string) bo
 		frontier = frontier[:0]
 		for _, v := range sortedCandKeys(next) {
 			c := next[v]
+			p := make([]Hop, len(c.base)+1)
+			copy(p, c.base)
+			p[len(c.base)] = *c.hop
 			st := seen[v]
 			if st == nil {
-				st = &visit{path: c.path}
+				st = &visit{path: p}
 				seen[v] = st
 			}
 			if c.ctrl {
 				st.controlled = true
-				st.ctrlPath = c.path
+				st.ctrlPath = p
+				st.ctrlEv = c.ev
 				frontier = append(frontier, v)
 			}
 		}
@@ -633,6 +644,10 @@ func (ix *Index) ReachEach(from []string, opts Options, fn func(Result)) {
 // without them. A walk only reads the out-edges of nodes it reaches, so a
 // principal that reaches no node whose out-edges the fixes change walks the
 // same graph either way.
+//
+// The walks run on a worker pool and fn is called once per changed
+// principal, never concurrently, in no fixed order: callers must not depend
+// on the order of the calls.
 func (ix *Index) ReachEachChanged(from []string, opts Options, fn func(Result)) {
 	if len(from) == 0 || len(opts.Fixes) == 0 {
 		return
@@ -640,11 +655,19 @@ func (ix *Index) ReachEachChanged(from []string, opts Options, fn func(Result)) 
 	before := ix.control(nil, opts.MaxAuditAge)
 	after := ix.control(opts.Fixes, opts.MaxAuditAge)
 	hit := ix.upstreamOfChanges(before, after)
+	var changed []string
 	for _, p := range from {
 		if hit[p] {
-			fn(ix.reach(after, p))
+			changed = append(changed, p)
 		}
 	}
+	var mu sync.Mutex
+	parallelFor(len(changed), workers(), func(_, i int) {
+		r := ix.reach(after, changed[i])
+		mu.Lock()
+		defer mu.Unlock()
+		fn(r)
+	})
 }
 
 // upstreamOfChanges returns the nodes of before whose out-edges differ in
@@ -823,24 +846,17 @@ func (ix *Index) PinnedExposures() []PinnedExposure {
 	if len(cands) == 0 {
 		return nil
 	}
-	better := func(a, b Path) bool {
-		if a.Unverified != b.Unverified {
-			return !a.Unverified
-		}
-		if len(a.Hops) != len(b.Hops) {
-			return len(a.Hops) < len(b.Hops)
-		}
-		return a.From < b.From
-	}
+	// The best path per action is WhoCanReach's first (confirmed, then
+	// fewer hops, then principal ID), found without walking every
+	// principal (bestPathTo).
+	acts := sortedKeys(cands)
+	paths := make([]Path, len(acts))
+	found := make([]bool, len(acts))
+	parallelFor(len(acts), workers(), func(_, i int) { paths[i], found[i] = ix.bestPathTo(acts[i]) })
 	best := map[string]Path{}
-	for _, p := range ix.Principals() {
-		r := ix.reach(ix.base, p)
-		for a := range cands {
-			if path, ok := r.Paths[a]; ok {
-				if old, seen := best[a]; !seen || better(path, old) {
-					best[a] = path
-				}
-			}
+	for i, a := range acts {
+		if found[i] {
+			best[a] = paths[i]
 		}
 	}
 	out := make([]PinnedExposure, 0, len(best))

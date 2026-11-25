@@ -25,6 +25,14 @@ The report reads top to bottom, most important first. Light and dark themes foll
 
 Screenshots of the demo report: [light](assets/report-light.png), [dark](assets/report-dark.png), [390 px](assets/report-narrow.png), [print](assets/report-print.png), [hop chains](assets/report-paths.png), [org settings and hardening context](assets/report-settings.png), [AI agents and AI approve + self-merge](assets/report-agents.png).
 
+## Large graphs
+
+The report keeps the same shape on an enterprise with tens of orgs, thousands of repos and hundreds of agent workflows:
+
+- **Long sections are capped.** AI agents in CI, Pinned, still reachable and the repos on the top paths list their first 25 rows (`--rows N` to change it, `--rows 0` for every row), most exposed first: agents in the section's own rank order, pinned actions confirmed first and then by how many workflows use them, repos in principal rank order. A capped section ends with a line such as "239 more agent workflows are not listed here (the counts above include them)". The section's summary line, the verdict, the counts and the scores always cover every row.
+- **Embedded paths have a budget.** The filters and the Graph tab hold at most 500 paths per target org, and about 2,500 in all: with many orgs the per-org cap drops to 2,500 divided by the number of target orgs (never below 25). The best-ranked paths are kept (confirmed first, then OIDC and cloud, secrets, runners, repos, then fewer hops), and a note above the filters names each cut org with its full count. `gop paths --from <principal>` lists a principal's paths. The embedded `principals` list holds the principals that have an embedded path; `principals_total` counts every scoring principal.
+- **Shared, parallel walks.** Scores, risk groups, pinned exposures and the embedded paths walk each principal on a worker pool; org ownership and pinned exposures use count-only and reverse walks, and the embedded paths keep only what fits the budget, so memory does not grow with principals times targets.
+
 ## Repo hardening
 
 When the graph has repo hardening facts (`gop collect` records them, see [docs/schema.md](schema.md#repo-hardening)), the report gets a "Repo hardening" section after the org settings:

@@ -279,3 +279,40 @@ func covers(tags, live []int32) bool {
 	}
 	return true
 }
+
+// confirmedPairs is WhatIf(fixes).Before.ConfirmedPairs and
+// .After.ConfirmedPairs without building paths or a control graph per fix
+// set: the fast index's counting walk over the fix overlay, on a worker pool.
+// Every fix must have overlay tags (fixTags); a fix with none changes
+// nothing here.
+func (ix *Index) confirmedPairs(fixes []Fix) (before, after int) {
+	fx := ix.fast()
+	sps := ix.ScoringPrincipals()
+	applied := make([]bool, len(fx.tagNum))
+	for _, f := range fixes {
+		for _, t := range fixTags(f) {
+			if n, ok := fx.tagNum[t]; ok {
+				applied[n] = true
+			}
+		}
+	}
+	nw := workers()
+	scratch := make([]*countScratch, nw)
+	b, a := make([]int, len(sps)), make([]int, len(sps))
+	parallelFor(len(sps), nw, func(w, i int) {
+		if scratch[w] == nil {
+			scratch[w] = newCountScratch(len(fx.ids), len(fx.tagNum), 0)
+		}
+		s := scratch[w]
+		p := fx.num[sps[i]]
+		clear(s.off)
+		b[i] = s.count(fx, p, false)
+		copy(s.off, applied)
+		a[i] = s.count(fx, p, false)
+	})
+	for i := range sps {
+		before += b[i]
+		after += a[i]
+	}
+	return before, after
+}
