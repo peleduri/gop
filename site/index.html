@@ -3,32 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-jxse70D5MMKAwK0zHbyvAa0/185yBw8MVIhfAxwcSt4='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-mNoDdpPpX3D3qHGSVbHb21RYhQ6hLGWi4St7dxPMpbI='; img-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
-<title>gop: who can make code run where in your GitHub Enterprise</title>
-<meta name="description" content="gop maps a GitHub Enterprise as an evidence graph: which AI agents and people can make code run where, across orgs and nested Actions, and the fewest changes that remove the most reach. Read-only, local, open source.">
+<title>gop: which AI agents and people can make code run where</title>
+<meta name="description" content="gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, with evidence per hop and fixes ranked.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="gop">
+<meta property="og:url" content="https://peleduri.github.io/gop/">
+<meta property="og:title" content="gop: which AI agents and people can make code run where">
+<meta property="og:description" content="gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, with evidence per hop and fixes ranked.">
+<meta property="og:image" content="https://peleduri.github.io/gop/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="The gop mark and the tagline: which AI agents and people can make code run where.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="alternate" type="text/plain" href="llms.txt" title="gop for language models">
 <style>
-:root{--bg:#f6f8fa;--card:#ffffff;--fg:#1f2328;--muted:#59636e;--line:#d1d9e0;--line2:#e8ecf0;--accent:#0969da;--accent-bg:#ddf4ff;--btn:#0969da;
---live:#1a7f37;--live-bg:#dafbe1;--nv:#59636e;--nv-bg:#eff2f5;
---crit:#cf222e;--crit-fg:#a40e26;--crit-bg:#ffebe9;--high:#e16f24;--high-fg:#953800;--high-bg:#fff1e5;
---good:#1a7f37;--good-bg:#dafbe1;--c-oidc:#8250df;--c-secret:#bf3989;--c-runner:#0969da;--track:#e8ecf0;--prev:#9ec5f8;
---term:#0d1117;--term-fg:#e6edf3;--term-muted:#8b949e;--term-line:#30363d;
---shadow:0 1px 0 rgba(31,35,40,.04),0 1px 3px rgba(31,35,40,.06);--lift:0 8px 24px rgba(31,35,40,.08),0 1px 3px rgba(31,35,40,.06);
---s1:8px;--s2:16px;--s3:24px;--s4:32px;--s6:48px;--s8:72px;--r:10px;
---mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
-@media screen and (prefers-color-scheme: dark){:root{--bg:#0d1117;--card:#151b23;--fg:#f0f6fc;--muted:#9198a1;--line:#3d444d;--line2:#262c36;--accent:#4493f8;--accent-bg:#0b2148;--btn:#1f6feb;
---live:#3fb950;--live-bg:#12261e;--nv:#9198a1;--nv-bg:#212830;
---crit:#f85149;--crit-fg:#ff9492;--crit-bg:#3c1618;--high:#db6d28;--high-fg:#ffa657;--high-bg:#3d1d06;
---good:#3fb950;--good-bg:#12261e;--c-oidc:#a371f7;--c-secret:#db61a2;--c-runner:#4493f8;--track:#262c36;--prev:#1f4a8a;
---term:#010409;--term-line:#262c36;
+:root{--gop-accent:#3a46c9;--gop-accent-bg:#e8eafc;--gop-bg:#f6f7f9;--gop-danger:#b42318;--gop-danger-bg:#fdecea;--gop-danger-solid:#b42318;--gop-ev-audit:#6f3bbf;--gop-ev-audit-bg:#f1eafc;--gop-ev-inferred:#3a46c9;--gop-ev-inferred-bg:#f3f4fd;--gop-ev-live:#3a46c9;--gop-ev-live-bg:#e8eafc;--gop-ev-not-visible:#5c6470;--gop-ev-not-visible-bg:#eceff3;--gop-ev-supplied:#0b6a74;--gop-ev-supplied-bg:#e0f3f4;--gop-fg:#15181d;--gop-line:#cfd5dd;--gop-line-strong:#7d8592;--gop-line-subtle:#e4e8ed;--gop-muted:#545c68;--gop-neutral:#5c6470;--gop-neutral-bg:#eceff3;--gop-ok:#1a6e3c;--gop-ok-bg:#e2f3e8;--gop-on-accent:#ffffff;--gop-on-danger:#ffffff;--gop-possible:#3d5f8f;--gop-possible-bg:#e7edf6;--gop-sunken:#eef1f4;--gop-surface:#ffffff;--gop-target:#a3245f;--gop-target-bg:#fbe9f1;--gop-font-mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;--gop-font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--gop-text-base:1rem;--gop-text-lg:1.2rem;--gop-text-sm:.85rem;--gop-text-xl:1.6rem;--gop-text-xs:.72rem;--gop-text-xxl:2.4rem;--gop-space-1:8px;--gop-space-2:16px;--gop-space-3:24px;--gop-space-4:32px;--gop-space-6:48px;--gop-space-8:72px;--gop-space-half:4px;--gop-radius-lg:14px;--gop-radius-md:10px;--gop-radius-pill:999px;--gop-radius-sm:6px;--gop-dash-ev-audit:6 4;--gop-dash-ev-inferred:10 3;--gop-dash-ev-live:none;--gop-dash-ev-not-visible:2 4;--gop-dash-ev-supplied:12 3 2 3;--gop-dash-reach-confirmed:none;--gop-dash-reach-cut:none;--gop-dash-reach-danger:none;--gop-dash-reach-possible:6 4;}
+@media screen and (prefers-color-scheme: dark){:root{--gop-accent:#9aa5ff;--gop-accent-bg:#1f2552;--gop-bg:#0e1116;--gop-danger:#ff8a80;--gop-danger-bg:#3b1618;--gop-danger-solid:#e5484d;--gop-ev-audit:#c7a4ff;--gop-ev-audit-bg:#2a1e47;--gop-ev-inferred:#9aa5ff;--gop-ev-inferred-bg:#181c38;--gop-ev-live:#9aa5ff;--gop-ev-live-bg:#1f2552;--gop-ev-not-visible:#9ba4b0;--gop-ev-not-visible-bg:#242a33;--gop-ev-supplied:#55d0d8;--gop-ev-supplied-bg:#0f2b2e;--gop-fg:#e8ecf1;--gop-line:#353c47;--gop-line-strong:#6f7886;--gop-line-subtle:#252b33;--gop-muted:#9ba4b0;--gop-neutral:#9ba4b0;--gop-neutral-bg:#242a33;--gop-ok:#5fd394;--gop-ok-bg:#10291b;--gop-on-accent:#0e1116;--gop-on-danger:#0e1116;--gop-possible:#93b0dc;--gop-possible-bg:#1a2638;--gop-sunken:#1d222a;--gop-surface:#161a21;--gop-target:#f48fbd;--gop-target-bg:#3a1528;}}
+/* site variables, all mapped to the gop tokens above (BRAND.md) */
+:root{--bg:var(--gop-bg);--card:var(--gop-surface);--sunken:var(--gop-sunken);--fg:var(--gop-fg);--muted:var(--gop-muted);--line:var(--gop-line);--line2:var(--gop-line-subtle);--line3:var(--gop-line-strong);
+--accent:var(--gop-accent);--accent-bg:var(--gop-accent-bg);--on-accent:var(--gop-on-accent);
+--live:var(--gop-ev-live);--live-bg:var(--gop-ev-live-bg);--inf:var(--gop-ev-inferred);--inf-bg:var(--gop-ev-inferred-bg);--nv:var(--gop-neutral);--nv-bg:var(--gop-neutral-bg);
+--danger:var(--gop-danger);--danger-bg:var(--gop-danger-bg);--ok:var(--gop-ok);--ok-bg:var(--gop-ok-bg);--possible:var(--gop-possible);--target:var(--gop-target);--target-bg:var(--gop-target-bg);
+--term:#0e1116;--term-fg:#e8ecf1;--term-muted:#9ba4b0;--term-line:#353c47;
+--shadow:0 1px 0 rgba(21,24,29,.04),0 1px 3px rgba(21,24,29,.06);--lift:0 8px 24px rgba(21,24,29,.08),0 1px 3px rgba(21,24,29,.06);
+--s1:var(--gop-space-1);--s2:var(--gop-space-2);--s3:var(--gop-space-3);--s4:var(--gop-space-4);--s6:var(--gop-space-6);--s8:var(--gop-space-8);--r:var(--gop-radius-md);
+--sans:var(--gop-font-sans);--mono:var(--gop-font-mono)}
+@media screen and (prefers-color-scheme: dark){:root{--term:#0e1116;--term-line:#252b33;
 --shadow:0 0 0 1px rgba(0,0,0,.2);--lift:0 0 0 1px rgba(0,0,0,.2),0 8px 24px rgba(0,0,0,.35)}}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--sans);font-variant-numeric:tabular-nums}
 .wrap{max-width:1120px;margin:0 auto;padding-left:var(--s2);padding-right:var(--s2)}
 a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
@@ -38,8 +51,8 @@ p{margin:0 0 var(--s2)}
 h1,h2,h3{letter-spacing:-.02em;line-height:1.2;margin:0}
 .top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);height:60px}
-.brand{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;font-weight:700;font-size:1.05rem}
-.mark{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--fg);color:var(--card);font:700 18px/1 var(--mono)}
+.brand{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;font:700 1.1rem/1 var(--mono)}
+.mark{flex:none;width:28px;height:28px}.mk-l{stroke:var(--accent)}.mk-f{fill:var(--accent)}.mk-s{fill:var(--fg)}
 .top ul{list-style:none;display:flex;align-items:center;gap:4px;margin:0;padding:0}
 .top li a{display:block;padding:6px 10px;border-radius:6px;color:var(--muted);font-size:.9rem;font-weight:500;text-decoration:none}
 .top li a:hover{color:var(--fg);background:var(--bg)}
@@ -53,7 +66,7 @@ h1,h2,h3{letter-spacing:-.02em;line-height:1.2;margin:0}
 .sub{font-size:1.12rem;color:var(--muted);max-width:56ch;margin:0 0 var(--s4);text-wrap:pretty}
 .ctas{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 var(--s3)}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:8px;font-weight:600;font-size:.98rem;text-decoration:none;border:1px solid transparent}
-.btn.primary{background:var(--btn);color:#fff}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.ghost{background:var(--card);color:var(--fg);border-color:var(--line)}
 .btn.ghost:hover{border-color:var(--muted)}
@@ -64,19 +77,23 @@ h1,h2,h3{letter-spacing:-.02em;line-height:1.2;margin:0}
 .path figcaption{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2);margin:0 0 var(--s2);font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .path figcaption span{font-weight:500;letter-spacing:0;text-transform:none;font-family:var(--mono)}
 .chain{list-style:none;margin:0;padding:0}
-.chain>li{position:relative;padding:0 0 0 28px}
-.chain>li:before{content:"";position:absolute;left:8px;top:14px;bottom:-14px;border-left:2px solid var(--line)}
+.chain>li{position:relative;padding:0 0 0 30px}
+.chain>li:before{content:"";position:absolute;left:9px;top:18px;bottom:-12px;border-left:2.5px solid var(--accent)}
+.chain>li.e-inferred:before{border-left:0;width:2.5px;background:repeating-linear-gradient(to bottom,var(--accent) 0 10px,transparent 10px 13px)}
 .chain>li:last-child:before{display:none}
-.chain>li:after{content:"";position:absolute;left:3px;top:9px;width:12px;height:12px;border-radius:50%;background:var(--card);border:2px solid var(--muted)}
-.chain>li:first-child:after{border-color:var(--fg);background:var(--fg)}
-.chain>li:last-child:after{border-color:var(--c-oidc);background:var(--c-oidc)}
+.chain>li:after{content:"";position:absolute;box-sizing:border-box;left:3px;top:11px;width:15px;height:15px;background:var(--bg)}
+.chain>li.k-members:after{border:5px double var(--fg);border-radius:50%}
+.chain>li.k-repo:after{left:2px;top:13px;width:17px;height:12px;border:2px solid var(--muted);border-radius:4px}
+.chain>li.k-action:after{left:4.5px;top:12.5px;width:12px;height:12px;border:2px solid var(--muted);transform:rotate(45deg)}
+.chain>li.k-workflow:after{left:4.5px;top:12.5px;width:12px;height:12px;background:var(--muted);transform:rotate(45deg)}
+.chain>li.k-oidc:after{top:10px;height:17px;background:var(--target);clip-path:polygon(50% 0,100% 16%,100% 55%,50% 100%,0 55%,0 16%)}
 .node{display:flex;flex-direction:column;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
 .node small{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .node code{font-size:.84rem}
-.chain>li:last-child .node{border:2px solid var(--c-oidc)}
+.chain>li.k-oidc .node{border:2px solid var(--target)}
 .hop{display:flex;align-items:center;gap:8px;padding:6px 0 8px 2px;font:600 .68rem/1.2 var(--mono);color:var(--muted)}
-.badge{display:inline-flex;align-items:center;padding:0 7px;border-radius:999px;font:600 .7rem/1.6 system-ui,sans-serif;white-space:nowrap}
-.live{color:var(--live);background:var(--live-bg)}.inferred{color:var(--live);background:var(--live-bg);border:1px dashed var(--live)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:0 7px;border-radius:999px;font:600 .7rem/1.6 var(--sans);white-space:nowrap;border:1px solid transparent}
+.live{color:var(--live);background:var(--live-bg)}.inferred{color:var(--inf);background:var(--inf-bg);border:1px dashed var(--inf)}
 .path .foot{margin:var(--s2) 0 0;padding-top:12px;border-top:1px dashed var(--line);font-size:.86rem;color:var(--muted)}
 .path .foot strong{color:var(--fg)}
 section{padding:var(--s8) 0;scroll-margin-top:60px}
@@ -86,20 +103,23 @@ h2{font-size:clamp(1.6rem,3vw,2.15rem);font-weight:720;margin:0 0 var(--s2);text
 .lede{color:var(--muted);font-size:1.05rem;max-width:68ch;margin:0 0 var(--s4)}
 .hooks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2)}
 .hook{display:flex;flex-direction:column;padding:var(--s3);background:var(--card);border:1px solid var(--line);border-top:3px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
-.hook.t-crit{border-top-color:var(--crit)}.hook.t-high{border-top-color:var(--high)}.hook.t-acc{border-top-color:var(--accent)}
+.hook.t-danger{border-top-color:var(--danger)}.hook.t-reach{border-top-color:var(--accent)}.hook.t-ok{border-top-color:var(--ok)}
 .hook h3{font-size:.76rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 var(--s2)}
 .hook .big{display:flex;align-items:baseline;gap:0;margin:0 0 var(--s1);font-size:2.9rem;font-weight:760;line-height:1;letter-spacing:-.04em}
 .hook .big small{margin-left:10px;font-size:1rem;font-weight:500;letter-spacing:0;color:var(--muted)}
 .hook p{font-size:.95rem;margin:0 0 var(--s2)}
 .hook .facts{list-style:none;margin:auto 0 0;padding:var(--s2) 0 0;border-top:1px solid var(--line2);display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:6px;background:var(--bg);border:1px solid var(--line2);font-size:.8rem;color:var(--fg)}
-.sw{display:inline-block;width:8px;height:8px;border-radius:2px}
-.c-oidc{background:var(--c-oidc)}.c-secret{background:var(--c-secret)}.c-runner{background:var(--c-runner)}.c-crit{background:var(--crit)}.c-high{background:var(--high)}
+.sw{display:inline-block;flex:none;width:9px;height:9px}
+.sw.k-secret{background:var(--target);border-radius:1px}
+.sw.k-runner{border:1.5px solid var(--target);border-top-width:4px;border-radius:1px}
+.sw.k-oidc{background:var(--target);height:10px;clip-path:polygon(50% 0,100% 16%,100% 55%,50% 100%,0 55%,0 16%)}
+.sw.k-danger{background:var(--danger);height:8px;clip-path:polygon(50% 0,100% 100%,0 100%)}
 .bars{list-style:none;margin:auto 0 0;padding:var(--s2) 0 0;border-top:1px solid var(--line2);display:grid;gap:10px}
 .bars li{display:grid;grid-template-columns:1.4em 1fr 3em;align-items:center;gap:10px;font-size:.8rem;color:var(--muted)}
 .bars b{color:var(--fg);text-align:right}
-.track{display:flex;height:8px;border-radius:999px;background:var(--track);overflow:hidden}
-.seg{display:block;height:100%}.seg.prev{background:var(--prev)}.seg.cur{background:var(--accent)}
+.track{display:flex;height:8px;border-radius:999px;background:var(--sunken);overflow:hidden}
+.seg{display:block;height:100%}.seg.prev{background:var(--ok);opacity:.4}.seg.cur{background:var(--ok)}
 .w42{width:42%}.w18{width:18%}.w4{width:4%}
 .src{margin:var(--s3) 0 0;font-size:.85rem;color:var(--muted)}
 .frame{border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--lift);overflow:hidden}
@@ -113,7 +133,7 @@ h2{font-size:clamp(1.6rem,3vw,2.15rem);font-weight:720;margin:0 0 var(--s2);text
 .steps>li{counter-increment:s;padding:var(--s3);background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0}
 .steps h3{display:flex;align-items:center;gap:10px;font-size:1rem;margin:0 0 var(--s1)}
 .steps h3:before{content:counter(s);display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:var(--fg);color:var(--card);font-size:.8rem}
-.steps>li:first-child h3:before{background:var(--btn);color:#fff}
+.steps>li:first-child h3:before{background:var(--accent);color:var(--on-accent)}
 .steps p{font-size:.9rem;color:var(--muted);margin:0 0 12px}
 pre{margin:0;padding:12px 14px;border-radius:8px;background:var(--term);color:var(--term-fg);border:1px solid var(--term-line);font:.8rem/1.6 var(--mono);overflow-x:auto;white-space:pre}
 pre .c{color:var(--term-muted)}pre .p{color:var(--term-muted);user-select:none}
@@ -122,12 +142,12 @@ pre .c{color:var(--term-muted)}pre .p{color:var(--term-muted);user-select:none}
 .way h3{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.95rem;margin:0 0 4px}
 .way p{font-size:.86rem;color:var(--muted);margin:0 0 10px}
 .soon{padding:0 8px;border-radius:999px;border:1px dashed var(--nv);color:var(--nv);background:var(--nv-bg);font-size:.7rem;font-weight:600;white-space:nowrap}
-.now{padding:0 8px;border-radius:999px;color:var(--good);background:var(--good-bg);font-size:.7rem;font-weight:600;white-space:nowrap}
+.now{padding:0 8px;border-radius:999px;color:var(--ok);background:var(--ok-bg);font-size:.7rem;font-weight:600;white-space:nowrap}
 .sub-h{font-size:1.05rem;margin:0 0 var(--s2)}
 .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .more{margin:var(--s3) 0 0;font-size:.9rem;color:var(--muted)}
 .trust{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s4);margin:0;padding:0;list-style:none}
-.trust li{padding-left:var(--s2);border-left:3px solid var(--good)}
+.trust li{padding-left:var(--s2);border-left:3px solid var(--accent)}
 .trust h3{font-size:1.05rem;margin:0 0 6px}
 .trust p{color:var(--muted);font-size:.93rem;margin:0}
 .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s6);align-items:start}
@@ -152,6 +172,8 @@ tr.us>*{background:var(--accent-bg)}
 .asks{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
 .asks li{padding:8px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--line2);font-size:.9rem}
 .asks li:before{content:"\201C";color:var(--muted)}.asks li:after{content:"\201D";color:var(--muted)}
+.arch{margin:0}.arch img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:var(--gop-radius-lg);background:var(--card)}
+.arch figcaption{margin:var(--s2) 0 0;font-size:.88rem;color:var(--muted)}
 footer{border-top:1px solid var(--line);background:var(--card);color:var(--muted);font-size:.85rem}
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s2);padding-top:var(--s4);padding-bottom:var(--s4)}
 footer ul{list-style:none;display:flex;flex-wrap:wrap;gap:6px 18px;margin:0;padding:0}
@@ -168,7 +190,7 @@ th,td{padding:10px 12px}}
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
 <div class="wrap">
-<a class="brand" href="#main"><span class="mark" aria-hidden="true">g</span>gop</a>
+<a class="brand" href="#main"><svg class="mark" viewBox="4 4 24 24" aria-hidden="true" focusable="false"><path class="mk-l" d="M9 23H16V19.6M16 12.4V9H23" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle class="mk-s" cx="9" cy="23" r="3.4"/><circle class="mk-l" cx="16" cy="16" r="2.6" fill="none" stroke-width="2.2"/><rect class="mk-f" x="19.6" y="5.6" width="6.8" height="6.8" rx="1.6"/></svg>gop</a>
 <nav aria-label="Site">
 <ul>
 <li class="opt"><a href="#demo">Demo</a></li>
@@ -189,8 +211,8 @@ th,td{padding:10px 12px}}
 <li>Read-only</li>
 <li>Runs on your machine</li>
 </ul>
-<h1>Which AI agents and people can make code run <em>where</em> in your GitHub Enterprise.</h1>
-<p class="sub">gop maps every org, repo, workflow and Action into one evidence graph, follows reach across org boundaries and nested Actions, and ranks the few changes that remove the most of it. Every hop says how it is known.</p>
+<h1>Which AI agents and people can make code run <em>where</em>.</h1>
+<p class="sub">gop reads your GitHub Enterprise read-only, maps every org, repo, workflow and Action into one evidence graph, follows reach across org boundaries and nested Actions, and ranks the few changes that remove the most of it. Every hop says how it is known.</p>
 <div class="ctas">
 <a class="btn primary" href="#install">Install <span class="arr" aria-hidden="true">&rarr;</span></a>
 <a class="btn ghost" href="#demo">See the demo report</a>
@@ -200,15 +222,15 @@ th,td{padding:10px 12px}}
 <figure class="path" aria-labelledby="path-cap">
 <figcaption id="path-cap">A confirmed path <span>gop paths</span></figcaption>
 <ol class="chain">
-<li><div class="node"><small>Org members</small><code>members:acme-actions</code></div>
-<div class="hop">CAN_PUSH <span class="badge inferred">inferred</span></div></li>
-<li><div class="node"><small>Repo</small><code>acme-actions/deploy</code></div>
-<div class="hop">RESOLVES_TO <span class="badge live">live</span></div></li>
-<li><div class="node"><small>Action, mutable ref</small><code>acme-actions/deploy@main</code></div>
-<div class="hop">USED BY <span class="badge live">live</span></div></li>
-<li><div class="node"><small>Workflow in another org</small><code>acme-app/web/.github/workflows/ci.yml</code></div>
-<div class="hop">EXECUTES_WITH <span class="badge live">live</span></div></li>
-<li><div class="node"><small>Cloud OIDC trust</small><code>oidc:acme-app/web</code></div></li>
+<li class="k-members e-inferred"><div class="node"><small>Org members</small><code>members:acme-actions</code></div>
+<div class="hop">CAN_PUSH <span class="badge inferred"><span aria-hidden="true">&#8776;</span>inferred</span></div></li>
+<li class="k-repo"><div class="node"><small>Repo</small><code>acme-actions/deploy</code></div>
+<div class="hop">RESOLVES_TO <span class="badge live"><span aria-hidden="true">&#10003;</span>live</span></div></li>
+<li class="k-action"><div class="node"><small>Action, mutable ref</small><code>acme-actions/deploy@main</code></div>
+<div class="hop">USED BY <span class="badge live"><span aria-hidden="true">&#10003;</span>live</span></div></li>
+<li class="k-workflow"><div class="node"><small>Workflow in another org</small><code>acme-app/web/.github/workflows/ci.yml</code></div>
+<div class="hop">EXECUTES_WITH <span class="badge live"><span aria-hidden="true">&#10003;</span>live</span></div></li>
+<li class="k-oidc"><div class="node"><small>Cloud OIDC trust</small><code>oidc:acme-app/web</code></div></li>
 </ol>
 <p class="foot">Members of acme-actions can push to an Action that runs in acme-app with its cloud credentials. <strong>Fix:</strong> pin <code>deploy@main</code> to a commit SHA.</p>
 </figure>
@@ -221,27 +243,27 @@ th,td{padding:10px 12px}}
 <h2 id="hooks-h">Three answers a settings checklist cannot give you</h2>
 <p class="lede">Numbers from the synthetic demo enterprise <code>acme</code> (7 orgs, about 65 repos), straight from <code>gop report --demo</code>.</p>
 <ul class="hooks">
-<li class="hook t-crit">
+<li class="hook t-danger">
 <h3>AI agents outsiders can start</h3>
 <p class="big"><span data-n="agents.exposed">3</span><small>exposed agent workflows</small></p>
 <p>Anyone on the internet can start <code>claude-code-action</code> in <code>acme-app/docs</code> with an <code>issue_comment</code>. The agent reads that comment and acts with the job's write token and secrets, so a prompt injection gets all of them. In <code>acme-app/web</code>, an AI reviewer approves pull requests and the author can merge them with an App that bypasses the rules: code lands on <code>main</code> with no human review.</p>
 <ul class="facts" aria-label="What the agent holds">
-<li class="chip"><span class="sw c-crit" aria-hidden="true"></span>contents:write</li>
-<li class="chip"><span class="sw c-secret" aria-hidden="true"></span>secrets</li>
-<li class="chip"><span class="sw c-high" aria-hidden="true"></span>approvals off</li>
+<li class="chip"><span class="sw k-danger" aria-hidden="true"></span>contents:write</li>
+<li class="chip"><span class="sw k-secret" aria-hidden="true"></span>secrets</li>
+<li class="chip"><span class="sw k-danger" aria-hidden="true"></span>approvals off</li>
 </ul>
 </li>
-<li class="hook t-high">
+<li class="hook t-reach">
 <h3>Reach across org boundaries</h3>
 <p class="big"><span data-n="reach.repos">34</span><small>repos across <span data-n="reach.orgs">6</span> orgs</small></p>
 <p>Members of <code>acme-actions</code> (default permission Write) can push code that ends up running in other orgs' CI, through shared Actions and an Action nested inside a SHA-pinned one.</p>
 <ul class="facts" aria-label="What that reach includes">
-<li class="chip"><span class="sw c-oidc" aria-hidden="true"></span><span data-n="reach.oidc">6</span> cloud OIDC trusts</li>
-<li class="chip"><span class="sw c-secret" aria-hidden="true"></span><span data-n="reach.secrets">7</span> secret scopes</li>
-<li class="chip"><span class="sw c-runner" aria-hidden="true"></span><span data-n="reach.runners">1</span> self-hosted runner pool</li>
+<li class="chip"><span class="sw k-oidc" aria-hidden="true"></span><span data-n="reach.oidc">6</span> cloud OIDC trusts</li>
+<li class="chip"><span class="sw k-secret" aria-hidden="true"></span><span data-n="reach.secrets">7</span> secret scopes</li>
+<li class="chip"><span class="sw k-runner" aria-hidden="true"></span><span data-n="reach.runners">1</span> self-hosted runner pool</li>
 </ul>
 </li>
-<li class="hook t-acc">
+<li class="hook t-ok">
 <h3>Fixes ranked by impact</h3>
 <p class="big"><span data-n="fix1.pct">42</span>%<small>of reach, one change</small></p>
 <p>Removing standing org ownership from the <span data-n="fix1.accounts">3</span> accounts that own 5 or more orgs, while every org keeps two owners, removes <span data-n="fix1.pct">42</span>% of confirmed reach. The top three fixes remove <span data-n="fix3.cum">64</span>%.</p>
@@ -253,6 +275,21 @@ th,td{padding:10px 12px}}
 </li>
 </ul>
 <p class="src">Confirmed means every hop was read live, inferred by a documented rule, or read from a recent audit log entry. When the token cannot see a hop, gop reports the path as possible, never as absent.</p>
+</div>
+</section>
+
+<section id="how" aria-labelledby="how-h">
+<div class="wrap">
+<p class="kicker">How it works</p>
+<h2 id="how-h">One read-only pass, one evidence graph, every answer from it</h2>
+<p class="lede">gop collect reads the enterprise with GET and GraphQL queries only and writes <code>graph.json</code> to your disk. Every node and edge records how it is known. The CLI, the report and the MCP server all answer from that one file.</p>
+<figure class="arch">
+<picture>
+<source media="(max-width:640px)" srcset="architecture-narrow.svg">
+<img src="architecture.svg" width="1120" height="396" alt="gop collect reads the GitHub API with a read-only token and writes graph.json, an evidence graph that stays on your disk. The engine computes confirmed and possible reach, scores and ranked fixes. The CLI, the HTML and Markdown report and the MCP server read from it.">
+</picture>
+<figcaption>Solid lines are confirmed hops, dashed lines are possible hops, dotted lines are facts not visible to the token. Node shapes follow the <a href="https://github.com/peleduri/gop/blob/main/BRAND.md">graph language</a>.</figcaption>
+</figure>
 </div>
 </section>
 

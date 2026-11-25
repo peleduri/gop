@@ -89,7 +89,7 @@ Two themes, light and dark, selected by `prefers-color-scheme` (screen only: pri
 | `target` | `#a3245f` | `#f48fbd` | Targets, the "where": secret, oidc, cloud_target, runner nodes |
 | `target-bg` | `#fbe9f1` | `#3a1528` | Target tint |
 
-**No yellow.** The brand uses no yellow, amber, gold or mustard anywhere: palette, logo, site, report, icons, diagrams. `go test ./brand/` fails if any color token has an HSL hue between 40 and 70 degrees with saturation above 30%. Possible reach, which other tools often draw in amber, is blue-gray with a dashed line and a ? glyph.
+**No yellow.** The brand uses no yellow, amber, gold or mustard anywhere: palette, logo, site, report, icons, diagrams. `go test ./brand/` fails if any color token or brand SVG color has an HSL hue between 30 and 70 degrees with saturation above 30% (30, not 40, so amber counts), and `go test ./site/` applies the same check to every color in the site's HTML, CSS and SVG. Possible reach, which other tools often draw in amber, is blue-gray with a dashed line and a ? glyph.
 
 ### Semantic roles
 
@@ -145,6 +145,21 @@ The mark is a path: a person (filled circle) reaches through a step (ring) to a 
 Sizes: favicon uses the SVG (`gop-mark.svg`) with a 32px PNG fallback; Apple touch icon 180; web manifest 192 and 512; the Claude plugin directory wants a square PNG between 512 and 2048 px under 2 MB (`.claude-plugin/icon.png`, use the 1024); the Cursor marketplace logo uses the same 1024; MCPB `icons` take `{src, size}` entries (ship 512 and 1024). Regenerate PNGs with `rsvg-convert -w N -h N brand/logo/gop-mark.svg -o brand/logo/png/gop-mark-N.png`.
 
 Rules: keep clear space of one quarter of the tile width on every side. Minimum size 16px. Do not recolor the mark outside the accent, fg and mono variants, do not rotate it, add effects or gradients, or put it inside another shape. The wordmark is always lowercase.
+
+## Social preview
+
+[`brand/social-preview.png`](brand/social-preview.png) (1280x640) is the image link previews show for the repository and the site. It is rendered from [`brand/social-preview.svg`](brand/social-preview.svg): dark theme tokens, the tile mark and wordmark, the tagline, and a confirmed path in `accent` with a possible hop (dashed, `possible`) and a not_visible hop (dotted, `neutral`). The site's `og:image` points at the copy `site/build.sh` publishes.
+
+Regenerate after editing the SVG: `rsvg-convert -w 1280 -h 640 brand/social-preview.svg -o brand/social-preview.png`. `go test ./site/` checks the size, that every color is a token, and that none is yellow.
+
+Upload it as the repository's social preview (a maintainer step; it is a repository setting, not a file in the repo):
+
+1. Open the repository on GitHub and go to **Settings**, then **General**.
+2. Under **Social preview**, choose **Edit**, then **Upload an image...**.
+3. Pick `brand/social-preview.png` from a checkout of `main` and save.
+4. Check the result by pasting the repository URL into a link preview (a chat message or a pull request comment).
+
+`docs/assets/social-preview.png` is the old image (it uses amber); replace or remove it once the upload is done.
 
 ## Graph visual language
 
@@ -204,7 +219,6 @@ Recorded when this file was written, for the stage that applies it. Remove an it
 - **Headline.** README says "gop: GitHub Enterprise Org Posture"; the site title, plugin `displayName`, `server.json` title, MCPB `display_name` and the Markdown report heading say "gop: who can make code run where"; the HTML report title says "gop report"; the README lede and site description use "Which AI agents and people can make code run where". At least six other variants of "who can make code run where ..." appear across docs, manifests and the MCP server instructions.
 - **Palette.** The site and the HTML report both copy GitHub's own Primer colors (`#0969da`, `#1a7f37`, `#cf222e`, `#0d1117`), which makes gop read as a GitHub product. The README site badge also uses `0969da`. The social preview uses amber (`#f2a33a`) for the hot path; the brand has no yellow or amber, so it must go.
 - **Evidence colors.** In the report, live evidence and "good/fixed" share one green, so "observed" and "fixed" look the same; audit shares the medium-severity amber (`--med`, `--audit` are yellow hues the brand forbids); supplied borrows the accent; the badge glyph for audit is the generic ✓. Edge dashes differ from the site's hero path (the site's `inferred` badge uses the live green with a dashed border).
-- **Logo.** Two surfaces still use other marks: the site favicon and the report and site header `.mark` are a bold mono "g" on a dark tile; the social preview uses a "gop" wordmark with an amber graph (forbidden hue).
-- **Social preview.** `docs/assets/social-preview.png` exists but the site has no `og:image`, `og:title` or `twitter:card` tags.
+- **Logo.** One surface still uses another mark: the report header `.mark` is a bold mono "g" on a dark tile (the site now uses the brand mark and favicon, and `brand/social-preview.png` replaces the amber social preview once uploaded).
 - **Punctuation.** One user-visible em dash: the empty coverage value in `internal/report/view.go` renders an em dash (U+2014).
 - **Fonts.** Already system stacks everywhere (good); the mono stack differs slightly between the report, site and social preview (`"Liberation Mono"` missing).

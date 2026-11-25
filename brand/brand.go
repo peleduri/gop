@@ -156,3 +156,31 @@ func luminance(hex string) (float64, error) {
 	}
 	return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2], nil
 }
+
+// IsYellow reports whether an sRGB color (0 to 255 per channel) is yellow,
+// amber, gold or mustard, which the brand forbids everywhere: an HSL hue of
+// 30 to 70 degrees with saturation above 30%. The range starts at 30, not 40,
+// so amber such as #f2a33a (hue 34) counts too.
+func IsYellow(r, g, b uint8) bool {
+	rf, gf, bf := float64(r)/255, float64(g)/255, float64(b)/255
+	mx, mn := math.Max(rf, math.Max(gf, bf)), math.Min(rf, math.Min(gf, bf))
+	if mx == mn {
+		return false
+	}
+	d, l := mx-mn, (mx+mn)/2
+	sat := d / (1 - math.Abs(2*l-1))
+	var h float64
+	switch mx {
+	case rf:
+		h = math.Mod((gf-bf)/d, 6)
+	case gf:
+		h = (bf-rf)/d + 2
+	default:
+		h = (rf-gf)/d + 4
+	}
+	h *= 60
+	if h < 0 {
+		h += 360
+	}
+	return h >= 30 && h <= 70 && sat > 0.30
+}

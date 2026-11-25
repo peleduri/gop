@@ -219,25 +219,26 @@ func TestContrastKnownValues(t *testing.T) {
 }
 
 // TestNoYellow: the brand has no yellow, amber, gold or mustard. Any color
-// token with an HSL hue of 40 to 70 degrees and saturation above 30% fails.
+// token or brand SVG color that IsYellow reports (HSL hue 30 to 70 degrees,
+// saturation above 30%) fails. site/site_test.go applies the same check to
+// the site's HTML, CSS and SVG.
 func TestNoYellow(t *testing.T) {
 	tk := MustLoad()
 	for theme, c := range tk.Color {
 		for tok, hex := range c {
-			h, sat := hsl(t, hex)
-			if h >= 40 && h <= 70 && sat > 0.30 {
+			if yellowHex(t, hex) {
+				h, sat := hsl(t, hex)
 				t.Errorf("%s: %s %s is yellow (hue %.0f, saturation %.0f%%); the brand forbids yellow", theme, tok, hex, h, sat*100)
 			}
 		}
 	}
-	for _, f := range []string{"graph-language.svg", "logo/gop-mark.svg", "logo/gop-mark-color.svg", "logo/gop-mark-mono.svg", "logo/gop-logo.svg"} {
+	for _, f := range []string{"graph-language.svg", "logo/gop-mark.svg", "logo/gop-mark-color.svg", "logo/gop-mark-mono.svg", "logo/gop-logo.svg", "social-preview.svg"} {
 		b, err := os.ReadFile(f)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, hex := range regexp.MustCompile(`#[0-9a-fA-F]{6}\b`).FindAllString(string(b), -1) {
-			h, sat := hsl(t, strings.ToLower(hex))
-			if h >= 40 && h <= 70 && sat > 0.30 {
+			if yellowHex(t, strings.ToLower(hex)) {
 				t.Errorf("%s uses yellow %s", f, hex)
 			}
 		}
@@ -252,7 +253,7 @@ func TestNoYellowPNG(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	files = append(files, "../.claude-plugin/icon.png", "../.cursor-plugin/logo.png")
+	files = append(files, "../.claude-plugin/icon.png", "../.cursor-plugin/logo.png", "social-preview.png")
 	for _, f := range files {
 		r, err := os.Open(f)
 		if err != nil {
@@ -270,8 +271,7 @@ func TestNoYellowPNG(t *testing.T) {
 				if c.A < 64 {
 					continue
 				}
-				h, sat := hslRGB(float64(c.R)/255, float64(c.G)/255, float64(c.B)/255)
-				if h >= 40 && h <= 70 && sat > 0.30 {
+				if IsYellow(c.R, c.G, c.B) {
 					yellow++
 				}
 			}
@@ -280,6 +280,28 @@ func TestNoYellowPNG(t *testing.T) {
 			t.Errorf("%s has %d yellow pixels; the brand forbids yellow", f, yellow)
 		}
 	}
+}
+
+// TestIsYellow keeps the exported check in step with the token test above.
+func TestIsYellow(t *testing.T) {
+	for c, want := range map[[3]uint8]bool{{255, 255, 0}: true, {0xf2, 0xa3, 0x3a}: true, {0xe1, 0x6f, 0x24}: false, {0xd4, 0xa0, 0x17}: true, {0xc9, 0xa2, 0x27}: true, {0x3a, 0x46, 0xc9}: false, {0x80, 0x80, 0x80}: false, {0xee, 0xee, 0xe0}: false} {
+		if got := IsYellow(c[0], c[1], c[2]); got != want {
+			t.Errorf("IsYellow(%v) = %v, want %v", c, got, want)
+		}
+	}
+}
+
+func yellowHex(t *testing.T, hex string) bool {
+	t.Helper()
+	var c [3]uint8
+	for i := range c {
+		v, err := strconv.ParseUint(hex[1+2*i:3+2*i], 16, 8)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c[i] = uint8(v)
+	}
+	return IsYellow(c[0], c[1], c[2])
 }
 
 func TestHSL(t *testing.T) {
