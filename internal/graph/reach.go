@@ -2,6 +2,7 @@ package graph
 
 import (
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -409,6 +410,7 @@ func (ix *Index) buildControl(fixes []Fix, maxAuditAge time.Duration) *controlGr
 // collapse. The fix overlay (overlay.go) uses it to learn which fixes can
 // remove each control edge.
 func (ix *Index) buildControlRec(fixes []Fix, maxAuditAge time.Duration, rec func(ce cedge, e Edge)) *controlGraph {
+	controlBuilds.Add(1)
 	var fs fixSet
 	for _, f := range fixes {
 		f.apply(&fs)
@@ -609,6 +611,94 @@ func Reach(g *Graph, from string, opts Options) Result {
 // Reach on a prebuilt index.
 func (ix *Index) Reach(from string, opts Options) Result {
 	return ix.reach(ix.control(opts.Fixes, opts.MaxAuditAge), from)
+}
+
+// ReachEach is Reach for each principal in from, in order, with the control
+// graph for opts built once and shared by every walk. A loop of Reach calls
+// with fixes rebuilds the whole control graph on every call.
+func (ix *Index) ReachEach(from []string, opts Options, fn func(Result)) {
+	if len(from) == 0 {
+		return
+	}
+	cg := ix.control(opts.Fixes, opts.MaxAuditAge)
+	for _, p := range from {
+		fn(ix.reach(cg, p))
+	}
+}
+
+// ReachEachChanged is ReachEach that skips every principal whose reach the
+// fixes cannot change: fn gets the reach with opts for each principal in from
+// that may differ from its reach without the fixes (same audit age), and no
+// call for the rest, whose reach with the fixes is exactly their reach
+// without them. A walk only reads the out-edges of nodes it reaches, so a
+// principal that reaches no node whose out-edges the fixes change walks the
+// same graph either way.
+func (ix *Index) ReachEachChanged(from []string, opts Options, fn func(Result)) {
+	if len(from) == 0 || len(opts.Fixes) == 0 {
+		return
+	}
+	before := ix.control(nil, opts.MaxAuditAge)
+	after := ix.control(opts.Fixes, opts.MaxAuditAge)
+	hit := ix.upstreamOfChanges(before, after)
+	for _, p := range from {
+		if hit[p] {
+			fn(ix.reach(after, p))
+		}
+	}
+}
+
+// upstreamOfChanges returns the nodes of before whose out-edges differ in
+// after, and every node with a path in before to one of them.
+func (ix *Index) upstreamOfChanges(before, after *controlGraph) map[string]bool {
+	hit := map[string]bool{}
+	var queue []string
+	mark := func(u string) {
+		if !hit[u] {
+			hit[u] = true
+			queue = append(queue, u)
+		}
+	}
+	for u, es := range before.out {
+		if !slices.Equal(es, after.out[u]) {
+			mark(u)
+		}
+	}
+	for u, es := range after.out {
+		if _, ok := before.out[u]; !ok && len(es) > 0 {
+			mark(u)
+		}
+	}
+	if len(queue) == 0 {
+		return hit
+	}
+	rev := ix.reverseOf(before)
+	for len(queue) > 0 {
+		v := queue[0]
+		queue = queue[1:]
+		for _, u := range rev[v] {
+			mark(u)
+		}
+	}
+	return hit
+}
+
+// reverseOf maps each node of cg to the nodes with a control edge into it.
+// The base graph's map is built once and kept.
+func (ix *Index) reverseOf(cg *controlGraph) map[string][]string {
+	build := func() map[string][]string {
+		rev := map[string][]string{}
+		for u, es := range cg.out {
+			for _, e := range es {
+				rev[e.to] = append(rev[e.to], u)
+			}
+		}
+		return rev
+	}
+	if cg != ix.base {
+		return build()
+	}
+	ix.revOnce.Do(func() { ix.baseRev = build() })
+	return ix.baseRev
 }
 
 func (ix *Index) reach(cg *controlGraph, from string) Result { return ix.reachSkip(cg, from, nil) }

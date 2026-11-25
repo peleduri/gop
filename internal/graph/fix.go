@@ -1,6 +1,9 @@
 package graph
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // Fix is a hypothetical remediation. Each Fix is one grouped change (a set of
 // edges) with cost 1. Implementations: PinRef, LowerDefaultPerm, RestrictToken,
@@ -330,7 +333,14 @@ func (ix *Index) Totals() Totals {
 
 // Scores returns the blast radius of every scoring principal (ScoringPrincipals),
 // sorted by principal ID: the set TopPaths, WhatIf and Totals use.
-func (ix *Index) Scores() []Score { return ix.allScores(ix.base) }
+func (ix *Index) Scores() []Score { return slices.Clone(ix.baseScores()) }
+
+// baseScores is allScores(ix.base), computed once per Index: the report and
+// TopPaths read it several times. Callers must not modify it.
+func (ix *Index) baseScores() []Score {
+	ix.scoresOnce.Do(func() { ix.scores = ix.allScores(ix.base) })
+	return ix.scores
+}
 
 // ScoresAndTotals returns Scores and Totals from one traversal of the graph
 // as collected: the same values as calling both, with each scoring

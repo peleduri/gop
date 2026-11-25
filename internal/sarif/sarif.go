@@ -1045,8 +1045,11 @@ func (en *engine) lowerResult(f graph.LowerDefaultPerm) (Result, bool) {
 			continue
 		}
 		c = append(c, pd.Principal)
-		before := en.reachOf(pd.Principal).Confirmed
-		after := en.ix.Reach(pd.Principal, graph.Options{Fixes: []graph.Fix{f}}).Confirmed
+	}
+	// One control graph for the fix, shared by every principal it changes.
+	en.ix.ReachEach(c, graph.Options{Fixes: []graph.Fix{f}}, func(r graph.Result) {
+		before := en.reachOf(r.From).Confirmed
+		after := r.Confirmed
 		diff := func(kind string, b, a []string) {
 			have := map[string]bool{}
 			for _, id := range a {
@@ -1066,7 +1069,7 @@ func (en *engine) lowerResult(f graph.LowerDefaultPerm) (Result, bool) {
 		diff("secrets", before.Secrets, after.Secrets)
 		diff("runners", before.Runners, after.Runners)
 		diff("cloud", before.CloudTargets, after.CloudTargets)
-	}
+	})
 	if len(c) == 0 && len(p) == 0 {
 		return Result{}, false
 	}
