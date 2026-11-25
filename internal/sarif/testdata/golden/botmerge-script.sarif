@@ -141,6 +141,34 @@
                   "code-review"
                 ]
               }
+            },
+            {
+              "id": "GOP006",
+              "name": "agent-memory-poisoning-across-runs",
+              "shortDescription": {
+                "text": "An AI agent that people without push access can start saves a cache that a privileged job restores on a later run"
+              },
+              "fullDescription": {
+                "text": "The agent job runs on a trigger outsiders can cause and resolves to the default branch, opts into cache writes (cache-mode: write or write-only), and saves an actions/cache entry. A job holding secrets or a write token restores the same key and paths on a later run. Whatever the agent was steered into writing there (notes, instructions, skills, tools) is loaded by the trusted run: a prompt injection persists across runs and trust levels."
+              },
+              "help": {
+                "text": "Drop cache-mode: write from the agent job so GitHub's read-only cache default applies, or restore only (actions/cache/restore). Give privileged jobs their own key prefix and drop restore-keys that match the agent's key. Rebuild agent memory from reviewed files on each run instead of caching it. See docs/agents-in-ci.md.",
+                "markdown": "## Fix: stop untrusted runs from planting state for trusted ones\n\nAn agent outsiders can start saves a cache entry in the default branch's scope, and a job with secrets or a write token restores it later. Text planted in one run (agent notes, rules, skills) steers the next.\n\n- Remove `cache-mode: write` / `write-only` from the agent job: `pull_request_target`, `issue_comment` and `workflow_run` then get read-only cache access.\n- Or use `actions/cache/restore` only in that job.\n- Give privileged jobs their own key prefix and drop `restore-keys` that match the agent's key.\n- Rebuild agent memory on each run from reviewed files on the default branch (`CLAUDE.md`, `AGENTS.md`).\n\n`properties.memory_readers` lists the restoring workflows. See docs/agents-in-ci.md. gop never makes this change: make it with your own access."
+              },
+              "helpUri": "https://github.com/peleduri/gop/blob/main/docs/sarif.md",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "precision": "medium",
+                "tags": [
+                  "security",
+                  "supply-chain",
+                  "github-actions",
+                  "ai-agent",
+                  "cache-poisoning"
+                ]
+              }
             }
           ]
         }

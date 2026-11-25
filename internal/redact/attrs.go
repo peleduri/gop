@@ -48,6 +48,8 @@ func init() {
 		graph.AttrAgent, graph.AttrAgentSource, graph.AttrAgentConfidence, graph.AttrAgentJobs, graph.AttrAgentGate,
 		graph.AttrAgentExposure, graph.AttrAgentPrompt, graph.AttrAgentPerms, graph.AttrAgentSecrets, graph.AttrAgentRunner,
 		graph.AttrAgentTools, graph.AttrAgentRefKind, graph.AttrUntrustedCheckout,
+		graph.AttrAgentMemoryStore, graph.AttrAgentMemoryReaders, graph.AttrAgentMemoryTriggers, graph.AttrAgentMemoryPaths,
+		graph.AttrAgentMemoryDirs, graph.AttrAgentMemoryMatch, graph.AttrAgentMemoryLine,
 		graph.AttrBotApproves, graph.AttrBotApproveToken, graph.AttrBotApproveJobs, graph.AttrBotApproveStart,
 		graph.AttrBotMerges, graph.AttrBotMergeToken, graph.AttrBotMergeJobs, graph.AttrBotMergeStart, graph.AttrBotMergeGate,
 		graph.AttrBotMergeAdmin, graph.AttrBotMergeTriggers,
@@ -414,6 +416,13 @@ func init() {
 	policies[graph.AttrAgentRunner] = enum("hosted", "self_hosted", "unknown")
 	policies[graph.AttrAgentTools] = enumList(graph.AgentToolFlags...)
 	policies[graph.AttrAgentRefKind] = enum("sha", "tag", "branch")
+	policies[graph.AttrAgentMemoryStore] = enum(graph.MemoryStoreCache)
+	policies[graph.AttrAgentMemoryReaders] = list(func(r *redactor, s string) string { return r.id(s) })
+	policies[graph.AttrAgentMemoryTriggers] = words
+	policies[graph.AttrAgentMemoryPaths] = list(func(r *redactor, s string) string { return r.path(s) })
+	policies[graph.AttrAgentMemoryDirs] = enumList(graph.AgentMemoryDirs...)
+	policies[graph.AttrAgentMemoryMatch] = enum("exact", "prefix", "expression")
+	policies[graph.AttrAgentMemoryLine] = integer
 	policies[graph.AttrUntrustedCheckout] = enum("exec", "read_only")
 	policies["author_association"] = enumList("OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", "FIRST_TIMER", "MANNEQUIN", "NONE")
 }

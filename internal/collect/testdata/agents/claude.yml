@@ -19,3 +19,10 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_non_write_users: "*"
           claude_args: --dangerously-skip-permissions
+      # Keep what the agent learned for the next run.
+      - uses: actions/cache/save@v4
+        with:
+          path: .claude/memory
+          key: claude-memory-${{ github.run_id }}
+    # Opts out of the read-only cache default for issue_comment.
+    cache-mode: write

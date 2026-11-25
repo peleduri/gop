@@ -20,6 +20,17 @@ flags may change in minor releases.
   with a GitHub OIDC token (audience `gop-cloud`). Needs
   `permissions: id-token: write`; fails before collecting without it. The
   gop Cloud service is not live yet. See docs/cloud.md.
+- Cross-run agent memory poisoning (#184): an AI agent job that people
+  without push access can start (`issue_comment`, `pull_request_target`,
+  `workflow_run`, ...) that opts into cache writes (`cache-mode: write` or
+  `write-only`) and saves an `actions/cache` entry that a job with secrets or
+  a write token restores later. gop matches keys and paths by GitHub's cache
+  rules (exact, key prefix, `restore-keys` prefix; `inferred` when an
+  expression decides it), flags agent memory paths (`.claude`, `.codex`,
+  `memory-bank`, ...), writes `agent_memory_*` attrs on the agent workflow,
+  reports `GOP006` (`agent-memory-poisoning-across-runs`) in `gop sarif` and
+  a "Memory across runs" line on the report's agent card. Research on where
+  agents keep state in CI is in docs/agents-in-ci.md.
 - "Agent paths" in `gop report`: for each AI agent workflow, the chain from
   who can start it, through the untrusted text it reads, the workflow and its
   token, the agent (flagged when it runs in a dangerous mode such as

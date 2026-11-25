@@ -20,7 +20,7 @@ func TestRenderAgents(t *testing.T) {
 	testutil.Golden(t, "agents.md", []byte(md), "dev")
 	sec := md[strings.Index(md, "## AI agents in CI"):]
 	for _, want := range []string{
-		"4 workflows run an AI coding agent; 2 can be started by people without push access, 2 of them while the agent holds write, secrets or OIDC.",
+		"5 workflows run an AI coding agent; 2 can be started by people without push access, 2 of them while the agent holds write, secrets or OIDC.",
 		"### acme-app/docs/.github/workflows/claude.yml (claude-code-action)",
 		"- Who can start it: outsiders: people without push access: anyone on the internet on issue\\_comment",
 		"- What it holds: contents:write, issues:write, pull-requests:write, secrets",
@@ -30,6 +30,7 @@ func TestRenderAgents(t *testing.T) {
 		"### acme-app/docs/.github/workflows/gemini-review.yml (gemini-cli-action)",
 		"anyone, from a fork's pull\\_request (read-only token, no secrets)",
 		"### acme-app/docs/.github/workflows/ai-labeler.yml (name only)",
+		"- Memory across runs [GOP006]: the agent job saves the cache .claude/memory (agent memory: .claude) on issue\\_comment, and acme-app/docs/.github/workflows/claude-nightly.yml restores it",
 	} {
 		if !strings.Contains(sec, want) {
 			t.Errorf("agents section lacks %q", want)
@@ -44,7 +45,7 @@ func TestRenderAgents(t *testing.T) {
 
 	html := render(t, g, "html")
 	for _, want := range []string{`<h2 id="ai-agents">AI agents in CI</h2>`, `href="#ai-agents">AI agents</a>`,
-		`<span class="adv">exposed: ranks first</span>`, "starts 1 exposed AI agent"} {
+		`<span class="adv">exposed: ranks first</span>`, "starts 1 exposed AI agent", "<dt>Memory across runs</dt>"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("html lacks %q", want)
 		}

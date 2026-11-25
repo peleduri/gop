@@ -295,6 +295,7 @@ var agentFixtures = map[string]string{
 	"acme-app/docs/claude.yml":            "claude.yml",
 	"acme-app/docs/gemini-review.yml":     "gemini-review.yml",
 	"acme-app/docs/ai-labeler.yml":        "ai-labeler.yml",
+	"acme-app/docs/claude-nightly.yml":    "claude-nightly.yml",
 	"acme-actions/setup/codex-review.yml": "codex-review.yml",
 }
 
@@ -303,6 +304,7 @@ const (
 	geminiWF  = "workflow:acme-app/docs/.github/workflows/gemini-review.yml"
 	labelerWF = "workflow:acme-app/docs/.github/workflows/ai-labeler.yml"
 	codexWF   = "workflow:acme-actions/setup/.github/workflows/codex-review.yml"
+	nightlyWF = "workflow:acme-app/docs/.github/workflows/claude-nightly.yml"
 )
 
 // collectAgents collects the acme fixture with acme-app/docs public and the
@@ -345,6 +347,27 @@ func TestAgentFixtureGraph(t *testing.T) {
 		t.Errorf("claude edge = %+v", e)
 	}
 
+	// claude.yml saves .claude/memory with cache-mode: write; the
+	// maintainer-only nightly agent restores it by key prefix with a token
+	// that can push (agentmemory.go).
+	cn := ix.node(t, claudeWF)
+	for k, v := range map[string]string{
+		graph.AttrAgentMemoryStore: graph.MemoryStoreCache, graph.AttrAgentMemoryReaders: nightlyWF,
+		graph.AttrAgentMemoryTriggers: "issue_comment", graph.AttrAgentMemoryPaths: ".claude/memory",
+		graph.AttrAgentMemoryDirs: ".claude", graph.AttrAgentMemoryMatch: MatchPrefix, graph.AttrAgentMemoryLine: "23",
+	} {
+		if cn.Attrs[k] != v {
+			t.Errorf("claude %s = %q, want %q", k, cn.Attrs[k], v)
+		}
+	}
+	if !graph.AgentMemoryPoisoned(cn) || !graph.AgentMemoryConfirmed(cn) {
+		t.Errorf("claude memory not confirmed: %v", cn.AttrEvidence)
+	}
+	if n := ix.node(t, nightlyWF); n.Attrs[graph.AttrAgentExposure] != graph.ExposureMaintainer || n.Attrs[graph.AttrAgentMemoryReaders] != "" {
+		t.Errorf("nightly attrs = %v", n.Attrs)
+	}
+	ix.noEdge(t, externalAnyone, nightlyWF, graph.CanTrigger)
+
 	codex := ix.node(t, codexWF).Attrs
 	if codex[graph.AttrAgent] != "codex-cli" || codex[graph.AttrAgentConfidence] != graph.AgentCLI ||
 		codex[graph.AttrAgentExposure] != graph.ExposureOutsiders || codex[graph.AttrAgentPrompt] != "github.event.pull_request.title" ||
@@ -375,7 +398,7 @@ func TestAgentFixtureGraph(t *testing.T) {
 
 	// A non-agent workflow gets no agent attrs.
 	for _, n := range ix.g.Nodes {
-		if n.Kind != graph.KindWorkflow || slices.Contains([]string{claudeWF, geminiWF, labelerWF, codexWF}, n.ID) {
+		if n.Kind != graph.KindWorkflow || slices.Contains([]string{claudeWF, geminiWF, labelerWF, codexWF, nightlyWF}, n.ID) {
 			continue
 		}
 		for k := range n.Attrs {

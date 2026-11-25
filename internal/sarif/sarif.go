@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -53,6 +54,10 @@ const (
 	// default branch through a bot approve and a bot merge, with no human
 	// review (review_bypass=bot_self_merge).
 	RuleBotSelfMerge = "GOP005"
+	// RuleAgentMemory: an AI agent job that people without push access can
+	// start saves a cache entry that a job with secrets or a write token
+	// restores on a later run (cross-run agent memory poisoning).
+	RuleAgentMemory = "GOP006"
 )
 
 // Severities, lowest first.
@@ -231,6 +236,12 @@ type Properties struct {
 	// BotMergeFixes are the changes that close a GOP005 result's review
 	// bypass, most effective first (graph.BotMergeFixes).
 	BotMergeFixes []string `json:"bot_merge_fixes,omitempty"`
+	// MemoryReaders are the workflows that restore a GOP006 result's cache;
+	// MemoryDirs the agent memory stores among its paths; MemoryFixes the
+	// changes that close it.
+	MemoryReaders []string `json:"memory_readers,omitempty"`
+	MemoryDirs    []string `json:"memory_dirs,omitempty"`
+	MemoryFixes   []string `json:"memory_fixes,omitempty"`
 }
 
 // Rules returns the rules gop reports, in ruleIndex order.
@@ -357,6 +368,29 @@ func Rules() []Rule {
 			DefaultConfiguration: Configuration{Level: "error"},
 			Properties:           map[string]any{"tags": []string{"security", "supply-chain", "github-actions", "ai-agent", "code-review"}, "precision": "medium"},
 		},
+		{
+			ID:               RuleAgentMemory,
+			Name:             "agent-memory-poisoning-across-runs",
+			ShortDescription: Message{Text: "An AI agent that people without push access can start saves a cache that a privileged job restores on a later run"},
+			FullDescription: Message{Text: "The agent job runs on a trigger outsiders can cause and resolves to the default branch, opts into cache writes (cache-mode: write or write-only), " +
+				"and saves an actions/cache entry. A job holding secrets or a write token restores the same key and paths on a later run. Whatever the agent was steered " +
+				"into writing there (notes, instructions, skills, tools) is loaded by the trusted run: a prompt injection persists across runs and trust levels."},
+			Help: Help{
+				Text: "Drop cache-mode: write from the agent job so GitHub's read-only cache default applies, or restore only (actions/cache/restore). Give privileged jobs their own key prefix " +
+					"and drop restore-keys that match the agent's key. Rebuild agent memory from reviewed files on each run instead of caching it. See docs/agents-in-ci.md.",
+				Markdown: "## Fix: stop untrusted runs from planting state for trusted ones\n\n" +
+					"An agent outsiders can start saves a cache entry in the default branch's scope, and a job with secrets or a write token restores it later. " +
+					"Text planted in one run (agent notes, rules, skills) steers the next.\n\n" +
+					"- Remove `cache-mode: write` / `write-only` from the agent job: `pull_request_target`, `issue_comment` and `workflow_run` then get read-only cache access.\n" +
+					"- Or use `actions/cache/restore` only in that job.\n" +
+					"- Give privileged jobs their own key prefix and drop `restore-keys` that match the agent's key.\n" +
+					"- Rebuild agent memory on each run from reviewed files on the default branch (`CLAUDE.md`, `AGENTS.md`).\n\n" +
+					"`properties.memory_readers` lists the restoring workflows. See docs/agents-in-ci.md. gop never makes this change: make it with your own access.",
+			},
+			HelpURI:              HelpURI,
+			DefaultConfiguration: Configuration{Level: "error"},
+			Properties:           map[string]any{"tags": []string{"security", "supply-chain", "github-actions", "ai-agent", "cache-poisoning"}, "precision": "medium"},
+		},
 	}
 }
 
@@ -404,6 +438,11 @@ func Build(g *graph.Graph, opts Options) (*Log, error) {
 	}
 	for _, w := range ix.AgentWorkflows() {
 		if r, ok := en.agentResult(w); ok {
+			results = append(results, r)
+		}
+	}
+	for _, w := range ix.AgentWorkflows() {
+		if r, ok := en.memoryResult(w); ok {
 			results = append(results, r)
 		}
 	}
@@ -911,6 +950,99 @@ func (en *engine) agentResult(w string) (Result, bool) {
 			Severity: sev, Repository: repo, Edge: at.From + " " + string(at.Kind) + " " + at.To, Evidence: ev, Possible: possible,
 			ConfirmedPrincipals: nonNil(conf), PossiblePrincipals: nonNil(poss), Terminals: t,
 			Fix: spec, Agent: n.Attrs[graph.AttrAgent], AgentFixes: fixes,
+		},
+	}, true
+}
+
+// memoryResult makes the GOP006 result for an agent workflow whose saved
+// cache a privileged job restores (graph.AgentMemoryPoisoned): one per
+// workflow, located at the save step. Who can poison it are the principals
+// with a CAN_TRIGGER edge into the workflow; it reaches what the restoring
+// workflows reach. It is possible when the match or every such edge is not
+// verified.
+func (en *engine) memoryResult(w string) (Result, bool) {
+	n, _ := en.ix.Node(w)
+	if !graph.AgentMemoryPoisoned(n) {
+		return Result{}, false
+	}
+	var conf, poss []string
+	var at *graph.Edge
+	for _, e := range en.ix.In(w) {
+		if e.Kind != graph.CanTrigger {
+			continue
+		}
+		if graph.Verified(e.Evidence) {
+			conf = append(conf, e.From)
+		} else {
+			poss = append(poss, e.From)
+		}
+		if at == nil || edgeRank(e) > edgeRank(*at) {
+			e := e
+			at = &e
+		}
+	}
+	if at == nil {
+		return Result{}, false
+	}
+	sort.Strings(conf)
+	sort.Strings(poss)
+	possible := len(conf) == 0 || !graph.AgentMemoryConfirmed(n)
+	var reached graph.Reached
+	for _, r := range graph.AgentMemoryReaders(n) {
+		rr := en.reachOf(r)
+		reached = union(reached, rr.Confirmed)
+		if possible {
+			reached = union(reached, rr.Possible)
+		}
+	}
+	for _, xs := range []*[]string{&reached.Repos, &reached.OIDC, &reached.Secrets, &reached.Runners, &reached.CloudTargets} {
+		sort.Strings(*xs)
+		*xs = slices.Compact(*xs)
+	}
+	t := count(reached)
+	sev := severityOf(t)
+	if severityRank(sev) < severityRank(SeverityHigh) {
+		sev = SeverityHigh // the restoring job holds secrets or a write token
+	}
+	repo, file := n.Attrs["repo"], n.Attrs["path"]
+	who := en.whoPhrase(conf, 3)
+	if len(conf) == 0 {
+		who = en.whoPhrase(poss, 3) + " (possible)"
+	}
+	msg := fmt.Sprintf("%s runs %s, which %s can start; %s, so text planted in one run steers later trusted runs. The restoring jobs reach %s.",
+		orDefault(file, logical(w).Name), n.Attrs[graph.AttrAgent], who, graph.AgentMemoryNote(n), terminalPhrase(t))
+	fixes := graph.AgentMemoryFixes(n)
+	if len(fixes) > 0 {
+		msg += " " + fixes[0]
+	}
+	loc := Location{LogicalLocations: []LogicalLocation{logical(w)}}
+	if file != "" {
+		loc.PhysicalLocation = &PhysicalLocation{ArtifactLocation: ArtifactLocation{URI: file}}
+		if l, _ := strconv.Atoi(n.Attrs[graph.AttrAgentMemoryLine]); l > 0 {
+			loc.PhysicalLocation.Region = &Region{StartLine: l}
+		}
+	}
+	ev := n.Evidence
+	if e, ok := n.AttrEvidence[graph.AttrAgentMemoryReaders]; ok {
+		ev = e
+	}
+	if possible {
+		ev = graph.NotVisible
+	}
+	spec, _ := fixplan.Spec(graph.HardenTrigger{Workflow: w})
+	var dirs []string
+	if d := n.Attrs[graph.AttrAgentMemoryDirs]; d != "" {
+		dirs = strings.Split(d, ",")
+	}
+	return Result{
+		RuleID: RuleAgentMemory, RuleIndex: ruleIndex(RuleAgentMemory), Level: level(sev, possible),
+		Message:             Message{Text: msg},
+		Locations:           []Location{loc},
+		PartialFingerprints: map[string]string{FingerprintKey: fingerprint(RuleAgentMemory, repo, file)},
+		Properties: Properties{
+			Severity: sev, Repository: repo, Edge: at.From + " " + string(at.Kind) + " " + at.To, Evidence: ev, Possible: possible,
+			ConfirmedPrincipals: nonNil(conf), PossiblePrincipals: nonNil(poss), Terminals: t,
+			Fix: spec, Agent: n.Attrs[graph.AttrAgent], MemoryReaders: graph.AgentMemoryReaders(n), MemoryDirs: dirs, MemoryFixes: fixes,
 		},
 	}, true
 }

@@ -109,6 +109,34 @@
       }
     },
     {
+      "id": "action:actions/cache/restore@v4",
+      "kind": "action_ref",
+      "name": "actions/cache/restore@v4",
+      "attrs": {
+        "in_enterprise": "false",
+        "owner": "actions",
+        "path": "restore",
+        "ref": "v4",
+        "ref_kind": "tag",
+        "repo": "cache"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "action:actions/cache/save@v4",
+      "kind": "action_ref",
+      "name": "actions/cache/save@v4",
+      "attrs": {
+        "in_enterprise": "false",
+        "owner": "actions",
+        "path": "save",
+        "ref": "v4",
+        "ref_kind": "tag",
+        "repo": "cache"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "action:actions/checkout@0123456789abcdef0123456789abcdef01234567",
       "kind": "action_ref",
       "name": "actions/checkout@0123456789abcdef0123456789abcdef01234567",
@@ -537,7 +565,7 @@
         "secret_scanning_push_protection": "off",
         "secret_scanning_validity_checks": "off",
         "visibility": "public",
-        "workflows": "5"
+        "workflows": "6"
       },
       "evidence": "live"
     },
@@ -939,6 +967,27 @@
       "evidence": "live"
     },
     {
+      "id": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+      "kind": "workflow",
+      "name": "acme-app/docs/.github/workflows/claude-nightly.yml",
+      "attrs": {
+        "agent": "claude-code-action",
+        "agent_confidence": "action",
+        "agent_exposure": "maintainers",
+        "agent_gate": "write_access",
+        "agent_jobs": "nightly",
+        "agent_permissions": "contents:write",
+        "agent_ref_kind": "tag",
+        "agent_runner": "hosted",
+        "agent_secrets": "1",
+        "agent_source": "uses",
+        "path": ".github/workflows/claude-nightly.yml",
+        "repo": "acme-app/docs",
+        "token_write": "true"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "workflow:acme-app/docs/.github/workflows/claude.yml",
       "kind": "workflow",
       "name": "acme-app/docs/.github/workflows/claude.yml",
@@ -948,6 +997,13 @@
         "agent_exposure": "outsiders",
         "agent_gate": "anyone",
         "agent_jobs": "claude",
+        "agent_memory_dirs": ".claude",
+        "agent_memory_line": "23",
+        "agent_memory_match": "prefix",
+        "agent_memory_paths": ".claude/memory",
+        "agent_memory_readers": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+        "agent_memory_store": "cache",
+        "agent_memory_triggers": "issue_comment",
         "agent_permissions": "contents:write,issues:write,pull-requests:write",
         "agent_ref_kind": "tag",
         "agent_runner": "hosted",
@@ -2203,6 +2259,86 @@
       }
     },
     {
+      "from": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T12:00:00Z",
+      "attrs": {
+        "jobs": "nightly",
+        "permission": "contents: write",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+      "to": "repo:acme-app/docs",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/.github/workflows",
+      "observed_at": "2026-11-20T12:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+      "to": "secret:acme-app/docs",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T12:00:00Z",
+      "attrs": {
+        "secrets": "ANTHROPIC_API_KEY"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+      "to": "action:actions/cache/restore@v4",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T12:00:00Z",
+      "attrs": {
+        "col": "15",
+        "file": ".github/workflows/claude-nightly.yml",
+        "job": "nightly",
+        "level": "step",
+        "line": "15",
+        "ref_kind": "tag"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+      "to": "action:actions/checkout@v4",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T12:00:00Z",
+      "attrs": {
+        "col": "15",
+        "file": ".github/workflows/claude-nightly.yml",
+        "job": "nightly",
+        "level": "step",
+        "line": "14",
+        "ref_kind": "tag"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude-nightly.yml",
+      "to": "action:anthropics/claude-code-action@v1",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T12:00:00Z",
+      "attrs": {
+        "col": "15",
+        "file": ".github/workflows/claude-nightly.yml",
+        "job": "nightly",
+        "level": "step",
+        "line": "20",
+        "ref_kind": "tag"
+      }
+    },
+    {
       "from": "workflow:acme-app/docs/.github/workflows/claude.yml",
       "to": "repo:acme-app/docs",
       "kind": "CAN_PUSH",
@@ -2232,6 +2368,22 @@
       "observed_at": "2026-11-20T12:00:00Z",
       "attrs": {
         "secrets": "ANTHROPIC_API_KEY"
+      }
+    },
+    {
+      "from": "workflow:acme-app/docs/.github/workflows/claude.yml",
+      "to": "action:actions/cache/save@v4",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "rest:GET /repos/{owner}/{repo}/contents/{path}",
+      "observed_at": "2026-11-20T12:00:00Z",
+      "attrs": {
+        "col": "15",
+        "file": ".github/workflows/claude.yml",
+        "job": "claude",
+        "level": "step",
+        "line": "23",
+        "ref_kind": "tag"
       }
     },
     {

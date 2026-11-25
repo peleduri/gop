@@ -28,7 +28,11 @@ type agentRow struct {
 	Prompt   string // untrusted contexts interpolated into the agent steps
 	Reads    string // event text the agent reads on its own (comments, issues, pull requests)
 	Tools    string // approval or sandbox settings turned off
-	Fixes    []string
+	// Memory is the cross-run agent memory line (graph.AgentMemoryNote),
+	// MemoryPossible set when the match is not verified.
+	Memory         string
+	MemoryPossible bool
+	Fixes          []string
 	// Exposed: AgentExposed, the rank factor's workflow side.
 	Exposed bool
 }
@@ -126,6 +130,10 @@ func agentRows(ix *graph.Index) (rows []agentRow, line string) {
 		}
 		r.Tools = strings.Join(graph.AgentUnrestricted(n), ", ")
 		r.Fixes = graph.AgentFixes(n)
+		if graph.AgentMemoryPoisoned(n) {
+			r.Memory, r.MemoryPossible = graph.AgentMemoryNote(n), !graph.AgentMemoryConfirmed(n)
+			r.Fixes = append(r.Fixes, graph.AgentMemoryFixes(n)...)
+		}
 		rows = append(rows, r)
 	}
 	rank := func(r agentRow) int {

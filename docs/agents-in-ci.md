@@ -398,6 +398,95 @@ possible, not confirmed); it follows only literal script paths (not
 stale-approval check is a text heuristic; and a scheduled job that merges
 approved pull requests is not modeled.
 
+## Agent memory across runs
+
+Some agents keep what they "learned" between runs: notes, rules, skills or
+workflows that the next run loads and trusts. If a run that outsiders can
+start writes to that store and a later trusted run reads it, one crafted
+comment or pull request plants instructions that every later run follows
+(cross-run memory poisoning). gop reports one form of it that it can verify
+from workflow files alone: the agent's state carried in the Actions cache.
+
+### Where agents keep state in CI
+
+| Store | Who can write it from an outsider-triggered job | Read by a later trusted run |
+|-------|------------------------------------------------|-----------------------------|
+| Instruction files in the repo: `CLAUDE.md`, `.claude/rules/`, `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.github/instructions/`, Cline's `memory-bank/` ([Claude Code](https://code.claude.com/docs/en/memory), [Copilot](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions), [Cline](https://docs.cline.bot/prompting/cline-memory-bank)) | only through a push: a job with `contents: write` (covered by `CAN_PUSH via=token_write` and the agent's write scopes) | yes, every run that checks out that ref |
+| Agent home directories: `~/.claude` (Claude Code auto memory, `~/.claude/projects/<project>/memory/`), `$CODEX_HOME` / `~/.codex` (Codex memories, [docs](https://developers.openai.com/codex/memories)), `~/.gemini` ([Gemini CLI](https://geminicli.com/docs/tools/memory/)) | lost when a GitHub-hosted job ends; survives only through a cache, an artifact or a non-ephemeral self-hosted runner | yes, if restored |
+| `actions/cache` entries | a save in the default branch's scope (below) | yes, by any branch's run whose key and paths match |
+| Artifacts | any run can upload | only when a later run downloads them explicitly (`actions/download-artifact` with `run-id`); untrusted artifacts in privileged `workflow_run` jobs are a known risk ([GitHub Security Lab](https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/)) |
+| A memory branch or committed notes | needs `contents: write` | yes, if checked out |
+| Hosted memory: Copilot Memory ([docs](https://docs.github.com/en/copilot/concepts/agents/copilot-memory)), agentrun's per-agent learning repo (`corrections.md`, learned `workflow.json`; [agentrun](https://github.com/Parcha-ai/agentrun)), external stores reached with secrets | Copilot Memory: only users with write access; agentrun: the owner's corrections and replay-checked drafts; external stores: any job holding the secret | yes |
+
+[anthropics/claude-code-action](https://github.com/anthropics/claude-code-action/blob/main/docs/security.md)
+and [openai/codex-action](https://github.com/openai/codex-action/blob/main/action.yml)
+keep nothing between runs by themselves; persistence comes from what the
+workflow adds around them.
+
+### The cache rules
+
+From GitHub's [dependency caching reference](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching):
+
+- A run restores caches of its own branch or of the default branch, so an
+  entry in the default branch's scope reaches every later run of every
+  branch.
+- `pull_request` runs, forks included, save to `refs/pull/N/merge`, which no
+  other branch reads.
+- Runs on events outsiders can cause that resolve to the default branch
+  (`pull_request_target`, `issue_comment`, `workflow_run`, ...) get
+  read-only access to the default branch's caches since 2026
+  ([changelog](https://github.blog/changelog/2026-06-26-read-only-actions-cache-for-untrusted-triggers/)),
+  unless the workflow or job sets `cache-mode: write` or `write-only`
+  ([changelog](https://github.blog/changelog/2026-09-10-control-github-actions-cache-access-with-cache-mode)).
+  The mode is enforced with scoped cache tokens, so code in the job cannot
+  write around it.
+- A restore matches the key exactly, then by prefix of the key, then by
+  prefix of each `restore-keys` entry, newest first. The cache version (the
+  `path` list and compression) must match too.
+- `github.ref` is not a scope under `pull_request_target`: it is always the
+  default branch ([changelog](https://github.blog/changelog/2025-11-07-actions-pull_request_target-and-environment-branch-protections-changes/)).
+
+Before these changes, any code in a default-branch job could write cache
+entries with the runner's cache token and evict others
+([research](https://adnanthekhan.com/2024/05/06/the-monsters-in-your-build-cache-github-actions-cache-poisoning/)).
+The read-only default is documented for github.com only.
+
+### What gop flags (GOP006)
+
+gop sets `agent_memory_*` attrs on an agent workflow, and `gop sarif` reports
+`GOP006`, when all of these hold:
+
+1. **Write side:** an agent job with `agent_exposure=outsiders` runs on
+   `pull_request_target`, `issue_comment`, `issues`, `workflow_run`,
+   `discussion` or `discussion_comment`, its effective `cache-mode` (the
+   job's, else the workflow's) is `write` or `write-only`, and it has an
+   `actions/cache` or `actions/cache/save` step. On GitHub Enterprise Server a
+   job with no `cache-mode` counts as possible (`not_visible`).
+2. **Read side:** a job in any workflow of the same repo (the writer itself
+   included: a later run started by a maintainer) restores with
+   `actions/cache` or `actions/cache/restore` (not `lookup-only`, not
+   `cache-mode: none` or `write-only`) and holds secrets, a `contents: write`
+   or `id-token: write` token, or, for an agent job, any write scope.
+3. **Match:** the same `path` list, and a key match by the rules above.
+   Static keys give `live` evidence; when an expression decides it (the same
+   `hashFiles(...)` on both sides, a static restore key longer than the saved
+   key's static text) the evidence is `inferred` and `agent_memory_match` is
+   `expression`. A saved key built from `github.run_id`, `run_number` or
+   `run_attempt` never matches exactly, only by prefix.
+
+`agent_memory_dirs` names the agent memory stores among the cached paths
+(`.claude`, `.codex`, `AGENTS.md`, `memory-bank`, `.gemini`, `.agentrun`,
+any `memory` segment, ...). A match without one is still reported: a
+poisoned build cache runs in the privileged job too. The report's agent card
+shows a "Memory across runs" line. Fix it by dropping `cache-mode: write`
+from the agent job, restoring only, giving privileged jobs their own key
+prefix, or rebuilding memory from reviewed files on each run.
+
+Not covered: artifacts, memory branches and external stores (the read side
+is a step gop cannot match to the write), non-ephemeral self-hosted runners,
+caches saved by `setup-*` actions' `cache:` input, and agent steps one level
+down.
+
 ## Limits
 
 - gop reads workflow files, not runs: it does not see agents started from a

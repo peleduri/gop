@@ -1,0 +1,23 @@
+# Synthetic fixture: a maintainer-only nightly agent run that restores the
+# notes the issue-comment agent (claude.yml) saved, with a token that can push.
+name: Claude nightly
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: .claude/memory
+          key: claude-memory-${{ github.run_id }}
+          restore-keys: claude-memory-
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "Tidy up stale issues using your notes in .claude/memory"

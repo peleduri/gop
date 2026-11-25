@@ -544,6 +544,38 @@ const (
 	AttrAgentRefKind    = "agent_ref_kind"    // sha | tag | branch: the least pinned ref of the agent actions (absent for CLIs)
 )
 
+// Agent memory across runs (workflow nodes, see docs/agents-in-ci.md "Agent
+// memory across runs"): an agent job that outsiders can start saves a cache
+// entry in the default branch's scope that a job holding secrets or a write
+// token restores on a later run. Set on the writing (agent) workflow.
+const (
+	AttrAgentMemoryStore    = "agent_memory_store"    // cache: where the agent's state persists
+	AttrAgentMemoryReaders  = "agent_memory_readers"  // sorted comma list of the workflow node IDs whose privileged jobs restore it (may include the writer); its attr evidence is the match's: live, inferred (an expression decides the key) or not_visible
+	AttrAgentMemoryTriggers = "agent_memory_triggers" // sorted comma list of the writer's triggers that write the default branch's cache scope
+	AttrAgentMemoryPaths    = "agent_memory_paths"    // sorted comma list of the cached paths
+	AttrAgentMemoryDirs     = "agent_memory_dirs"     // sorted comma list of the agent memory stores among the paths (.claude, AGENTS.md, memory-bank, memory, ...)
+	AttrAgentMemoryMatch    = "agent_memory_match"    // exact | prefix | expression: how the restore key matches the saved key
+	AttrAgentMemoryLine     = "agent_memory_line"     // 1-based line of the save step in the writer's file
+)
+
+// MemoryStoreCache is the agent_memory_store value for actions/cache.
+const MemoryStoreCache = "cache"
+
+// AgentMemoryDirs is the vocabulary of agent_memory_dirs: path segments of
+// known agent memory and instruction stores, plus memory for any segment
+// named memory or memories. Sources: Claude Code
+// (https://code.claude.com/docs/en/memory), Codex
+// (https://developers.openai.com/codex/memories), Cline
+// (https://docs.cline.bot/prompting/cline-memory-bank), Gemini CLI
+// (https://geminicli.com/docs/cli/gemini-md/), agentrun
+// (https://github.com/Parcha-ai/agentrun), Copilot
+// (https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions).
+var AgentMemoryDirs = []string{
+	".claude", "CLAUDE.md", "CLAUDE.local.md", ".codex", "AGENTS.md", "memory-bank", ".clinerules",
+	".gemini", "GEMINI.md", ".agentrun", "copilot-instructions.md", ".continue", ".openhands", ".roo",
+	".kilocode", ".cursor", "memory",
+}
+
 // PromptPRContent is the agent_prompt_injection value for the pull request's
 // files, diff or text read by an LLM step found by heuristic (the other
 // values are attacker contexts interpolated into the agent steps).

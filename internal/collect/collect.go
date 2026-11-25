@@ -192,6 +192,8 @@ type collector struct {
 	// policy the policy files found per repo (policyfiles.go).
 	codeowners map[string]Codeowners
 	policy     map[string][]string
+	// memFacts are the workflow facts the agent memory join reads (agentmemory.go).
+	memFacts   map[string]*WorkflowFacts
 	c          *Client
 	cfg        Config
 	now        time.Time
@@ -536,6 +538,7 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	k.addBotMergePaths()
+	k.addAgentMemory()
 	k.enter(phasePolicyFiles)
 	if err := k.collectPolicyFiles(ctx); err != nil {
 		return err
@@ -1578,6 +1581,7 @@ func (k *collector) processWorkflowFile(o *orgState, repo *graph.Node, path stri
 		k.addTriggerFacts(o, repo, wid, wn, facts)
 		addAgentFacts(wn, facts)
 	}
+	k.recordMemoryFacts(wid, facts)
 	bf := parseBotFacts(data, facts.Triggers, nil)
 	k.addBotFacts(wn, bf)
 	k.trackBotScripts(o, repo, wn, data, facts.Triggers, bf)
