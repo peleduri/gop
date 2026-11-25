@@ -35,7 +35,6 @@ Finding AI coding agents that run in CI with secrets and write tokens, and who c
 
 - GitHub App push grants.
 - Enterprise audit log collection, so more facts carry `audit` evidence.
-- Environment protection rules as conditions on edges.
 
 ### 4. Distribution
 

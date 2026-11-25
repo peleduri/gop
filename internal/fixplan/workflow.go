@@ -221,6 +221,7 @@ func buildHarden(ix *graph.Index, f graph.HardenTrigger, p *Plan) {
 	p.Caveats = append(p.Caveats,
 		"gop matches a narrow set of patterns: review the whole job, including scripts and local actions it runs, for other uses of the pull request's code or text",
 		"if the job must build or test the pull request's code, do it in a separate pull_request workflow with a read-only token and no secrets, and pass results through an artifact")
+	p.Caveats = append(p.Caveats, envCaveats(ix, f.Workflow)...)
 }
 
 // hardenChange is the suggested edit for one untrusted execution. It says

@@ -324,6 +324,8 @@ func appPermissionFor(path string) string {
 			return "contents"
 		case "actions":
 			return "administration"
+		case "environments":
+			return "actions"
 		case "branches":
 			if segs[len(segs)-1] == "protection" {
 				return "administration"

@@ -114,6 +114,11 @@ type Hop struct {
 	// Note is hardening context set by Index.Annotate (HopNote), e.g. "push
 	// needs 2 approvals to reach `main`". It never changes evidence.
 	Note string `json:"note,omitempty"`
+	// Gate is set on an EXECUTES_WITH hop whose edge has env_gate
+	// required_reviewers, and on a CAN_ASSUME hop from a workflow whose OIDC
+	// edge has it: a human must approve the run first. It never changes
+	// evidence; the score weights a gated terminal lower (envgate.go).
+	Gate string `json:"gate,omitempty"`
 }
 
 // Path is one shortest control path from a principal to a node. Evidence is the
@@ -130,6 +135,9 @@ type Path struct {
 	Unverified bool     `json:"unverified"`
 	Supplied   bool     `json:"supplied,omitempty"`
 	Stale      bool     `json:"stale,omitempty"`
+	// Gated is true when a hop of the path carries a Gate: the path needs a
+	// required reviewer of a deployment environment to approve the run.
+	Gated bool `json:"gated,omitempty"`
 	// TargetOrgHardening is context only, set by the MCP tools and the CLI
 	// (never by Reach) when the path's target repo's org has SSO not
 	// enforced or an IP allow list not on, either one possibly unknown. It
@@ -416,6 +424,12 @@ func (ix *Index) buildControlRec(fixes []Fix, maxAuditAge time.Duration, rec fun
 		if e.Kind == CanAssume && e.Evidence == NotVisible {
 			ce.hop.Reason = e.Attrs[AttrReason]
 		}
+		switch {
+		case EnvGated(e):
+			ce.hop.Gate = envGateNote(e)
+		case e.Kind == CanAssume:
+			ce.hop.Gate = ix.oidcGate[e.From]
+		}
 		if ix.AuditStale(e, maxAuditAge) {
 			e.Evidence = NotVisible
 			ce.hop.Evidence = NotVisible
@@ -672,7 +686,7 @@ func (ix *Index) reachSkip(cg *controlGraph, from string, skip func(string) bool
 // pathOf is the Path for hops from a principal to a node.
 func pathOf(from, to string, hops []Hop) Path {
 	ev := pathEvidence(hops)
-	return Path{From: from, To: to, Hops: hops, Evidence: ev, Unverified: !Verified(ev), Supplied: hopsSupplied(hops), Stale: hopsStale(hops)}
+	return Path{From: from, To: to, Hops: hops, Evidence: ev, Unverified: !Verified(ev), Supplied: hopsSupplied(hops), Stale: hopsStale(hops), Gated: hopsGated(hops)}
 }
 
 // WhoCanReach lists, for each principal that can control target (a repo, workflow,

@@ -177,6 +177,10 @@ type fakeGitHub struct {
 	// body (incremental_test.go).
 	pushedAt map[string]string
 	gqlAll   []string
+
+	// envs serves deployment environments (environments_test.go); nil
+	// answers every repo with no environments.
+	envs *fakeEnvs
 }
 
 // fakeStamp is the pushed_at and updated_at of every listed fixture repo.
@@ -321,6 +325,9 @@ func (f *fakeGitHub) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := r.URL.Path
+	if f.serveEnvironments(w, p) {
+		return
+	}
 	switch {
 	case p == "/graphql" && r.Method == http.MethodPost:
 		f.graphql(w, r)

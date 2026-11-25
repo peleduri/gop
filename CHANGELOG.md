@@ -36,6 +36,19 @@ flags may change in minor releases.
   disappear and the top paths that remain, as text, Markdown or JSON
   (`--top`, `--limit`). The scoring moved to `internal/whatif`, which the MCP
   `what_if` tool now calls too, so both report the same numbers (#200).
+- Deployment environment protection rules as conditions on edges (#202).
+  For every secrets or OIDC edge whose jobs name an environment, `gop
+  collect` reads the repo's environments (read-only REST) and records
+  `env_gate` (`required_reviewers`, `none` or `unknown`), the rules
+  (`env_protection`: reviewers, prevent self-review, wait timer, branch
+  policy, custom rules), the deployable refs (`env_branches`), whether the
+  default branch may deploy (`env_default_branch`) and the ungated jobs.
+  Hops through a required-reviewer environment carry a `gate` note and the
+  path is `gated`; gated terminals stay in the reach and the counts and are
+  weighted at half in the score (`env_gated`). An environment gop cannot
+  read, or one named by an expression, is `unknown` with a reason and a
+  coverage entry, never gated. `fix_plan` for a risky trigger suggests a
+  required reviewer on an environment that has none.
 - The demo plants an AI agent in dangerous mode end to end (story 11).
   The public `acme-app/api` runs `claude-code-action@main` on
   `issue_comment` with no author check and `--dangerously-skip-permissions`,

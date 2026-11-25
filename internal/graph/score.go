@@ -60,6 +60,13 @@ type Score struct {
 	// [bot_self_merge] marker: the repos are already in the counts and the
 	// score, and it is not a rank factor.
 	BotSelfMerge int `json:"bot_self_merge,omitempty"`
+	// EnvGated counts the confirmed-reached secrets, OIDC tokens and cloud
+	// targets that every confirmed-reached workflow reaches only through a
+	// deployment environment with required reviewers (env_gate). They stay
+	// in Confirmed and in the score, weighted at half: a human must approve
+	// the run first, which slows an attacker but does not stop one who is,
+	// or can fool, a reviewer.
+	EnvGated int `json:"env_gated,omitempty"`
 }
 
 // Blast radius weights. Terminal impact (cloud roles, OIDC to cloud, secrets,
@@ -82,6 +89,8 @@ const (
 //
 //	base       = 1*repos + 0.5*workflows + 2*orgs + 3*runners + 5*secrets + 8*oidc
 //	             + 13*cloud_targets
+//	             - 0.5 * (the weights of the gated secrets, oidc and cloud_targets:
+//	               those reached only through a required-reviewer environment)
 //	multiplier = 1.0
 //	             x1.5 if the principal's org has two_factor = not_required
 //	             x1.5 if the principal's org has sso != enforced (configured or none)
@@ -154,8 +163,10 @@ func (ix *Index) score(cg *controlGraph, principal string) Score {
 // scoreOf scores a reach result r of principal.
 func (ix *Index) scoreOf(principal string, r Result) Score {
 	s := Score{Principal: principal, Confirmed: countsOf(r.Confirmed), Possible: countsOf(r.Possible), Multiplier: ix.multiplier(principal)}
-	s.Score = rawScore(s.Confirmed) * s.Multiplier
-	s.PossibleScore = rawScore(s.Possible) * s.Multiplier
+	confG, possG := ix.envGatedOn(r)
+	s.Score = (rawScore(s.Confirmed) - (1-gatedFactor)*rawScore(confG)) * s.Multiplier
+	s.PossibleScore = (rawScore(s.Possible) - (1-gatedFactor)*rawScore(possG)) * s.Multiplier
+	s.EnvGated = confG.Secrets + confG.OIDC + confG.CloudTargets
 	for _, w := range r.Confirmed.Workflows {
 		if PoutineInjectable(ix.nodes[w]) {
 			s.PoutineInjectable++
