@@ -1,0 +1,272 @@
+{
+  "schema": "gop.summary/v1",
+  "enterprise": "acme",
+  "gop_version": "dev",
+  "run_at": "2026-01-01T00:00:00Z",
+  "names": true,
+  "coverage": {
+    "orgs_read": 7,
+    "partial": false,
+    "partial_reason": "",
+    "not_visible": 22,
+    "coverage_entries": 4
+  },
+  "headline": {
+    "non_human_actors": 8,
+    "merge_without_human": 2,
+    "merge_without_human_confirmed": 2,
+    "merge_without_human_possible": 0,
+    "outsider_triggerable_agents": 3,
+    "dangerous_mode_agents": 3
+  },
+  "pairs": {
+    "confirmed": 394,
+    "possible": 11
+  },
+  "severities": {
+    "critical": 9,
+    "high": 5,
+    "medium": 14,
+    "low": 0
+  },
+  "rules": [
+    {
+      "id": "GOP001",
+      "name": "mutable-action-ref-reachable",
+      "confirmed": 21,
+      "possible": 0,
+      "severities": {
+        "critical": 4,
+        "high": 3,
+        "medium": 14,
+        "low": 0
+      }
+    },
+    {
+      "id": "GOP002",
+      "name": "default-permission-grants-push",
+      "confirmed": 1,
+      "possible": 0,
+      "severities": {
+        "critical": 1,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    {
+      "id": "GOP003",
+      "name": "action-with-known-advisory-reachable",
+      "confirmed": 1,
+      "possible": 0,
+      "severities": {
+        "critical": 1,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    {
+      "id": "GOP004",
+      "name": "agent-workflow-exposed",
+      "confirmed": 3,
+      "possible": 0,
+      "severities": {
+        "critical": 1,
+        "high": 2,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    {
+      "id": "GOP005",
+      "name": "review-bypass-bot-self-merge",
+      "confirmed": 2,
+      "possible": 0,
+      "severities": {
+        "critical": 2,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      }
+    }
+  ],
+  "findings": 28,
+  "top": [
+    {
+      "id": "e952c6be0203afd7",
+      "rule": "GOP003",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 0,
+      "repository": "acme-app/docs",
+      "workflow": "acme-app/docs/.github/workflows/preview.yml"
+    },
+    {
+      "id": "7cfc3653487383ef",
+      "rule": "GOP004",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 0,
+      "workflow": "acme-app/api/.github/workflows/claude-fix.yml"
+    },
+    {
+      "id": "74c4b205113fef25",
+      "rule": "GOP004",
+      "severity": "high",
+      "possible": false,
+      "reach_removed_pct": 0,
+      "workflow": "acme-app/docs/.github/workflows/claude.yml"
+    },
+    {
+      "id": "455a3cfcd8f6d2a8",
+      "rule": "GOP004",
+      "severity": "high",
+      "possible": false,
+      "reach_removed_pct": 0,
+      "workflow": "acme-app/web/.github/workflows/ai-review.yml"
+    },
+    {
+      "id": "9ab7fee207a4c01e",
+      "rule": "GOP001",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/web",
+      "workflow": "acme-app/web/.github/workflows/ci.yml"
+    },
+    {
+      "id": "12e500e971ae14b6",
+      "rule": "GOP001",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-org-01/svc-007",
+      "workflow": "acme-org-01/svc-007/.github/workflows/ci.yml"
+    },
+    {
+      "id": "d1094a2a28ed53b1",
+      "rule": "GOP001",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-org-03/svc-007",
+      "workflow": "acme-org-03/svc-007/.github/workflows/ci.yml"
+    },
+    {
+      "id": "dde1259f9e4afdb1",
+      "rule": "GOP001",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-org-03/svc-008",
+      "workflow": "acme-org-03/svc-008/.github/workflows/ci.yml"
+    },
+    {
+      "id": "22f6ce80c130b964",
+      "rule": "GOP002",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 8.6,
+      "org": "acme-actions"
+    },
+    {
+      "id": "090029f1b96e3f8a",
+      "rule": "GOP005",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 0,
+      "repository": "acme-app/api"
+    },
+    {
+      "id": "b61f4d15b3eb8430",
+      "rule": "GOP005",
+      "severity": "critical",
+      "possible": false,
+      "reach_removed_pct": 0,
+      "repository": "acme-app/web"
+    },
+    {
+      "id": "cc2e195ffb1fd517",
+      "rule": "GOP001",
+      "severity": "high",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/billing",
+      "workflow": "acme-app/billing/.github/workflows/ci.yml"
+    },
+    {
+      "id": "8c178790a6a60a9f",
+      "rule": "GOP001",
+      "severity": "high",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/worker",
+      "workflow": "acme-app/worker/.github/workflows/ci.yml"
+    },
+    {
+      "id": "c4ce2764c9a08d7c",
+      "rule": "GOP001",
+      "severity": "high",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-org-01/svc-001",
+      "workflow": "acme-org-01/svc-001/.github/workflows/ci.yml"
+    },
+    {
+      "id": "c9f3a3e34d2dac2e",
+      "rule": "GOP001",
+      "severity": "medium",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/admin",
+      "workflow": "acme-app/admin/.github/workflows/ci.yml"
+    },
+    {
+      "id": "3522e4f6a1a49532",
+      "rule": "GOP001",
+      "severity": "medium",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/api",
+      "workflow": "acme-app/api/.github/workflows/ci.yml"
+    },
+    {
+      "id": "1a2196022c88312b",
+      "rule": "GOP001",
+      "severity": "medium",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/docs",
+      "workflow": "acme-app/docs/.github/workflows/ci.yml"
+    },
+    {
+      "id": "0d72f11d94c188c5",
+      "rule": "GOP001",
+      "severity": "medium",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/gateway",
+      "workflow": "acme-app/gateway/.github/workflows/ci.yml"
+    },
+    {
+      "id": "3aa4bf990025f929",
+      "rule": "GOP001",
+      "severity": "medium",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/mobile",
+      "workflow": "acme-app/mobile/.github/workflows/ci.yml"
+    },
+    {
+      "id": "78a19192bc62ff19",
+      "rule": "GOP001",
+      "severity": "medium",
+      "possible": false,
+      "reach_removed_pct": 18.3,
+      "repository": "acme-app/search",
+      "workflow": "acme-app/search/.github/workflows/ci.yml"
+    }
+  ],
+  "truncated": false
+}

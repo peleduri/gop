@@ -7,6 +7,19 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- `gop summary --graph graph.json | --demo --out summary.json [--names]
+  [--top N]` writes `gop.summary/v1` (schema
+  `schema/gop.summary.v1.schema.json`): coverage, the headline numbers
+  (non-human actors, merges with no human, outsider-triggerable agents,
+  agents in a dangerous mode), counts per SARIF rule and severity,
+  confirmed/possible pair totals and the top findings as stable hash IDs.
+  Names only with `--names`, sanitized; never tokens, emails, logins, secret
+  values or IP lists. Capped at 64 KB (`truncated` set when top is cut).
+- Action inputs `cloud` (default `"false"`) and `cloud-url`: when on, the
+  Action writes `summary.json` into the artifact and POSTs it to `cloud-url`
+  with a GitHub OIDC token (audience `gop-cloud`). Needs
+  `permissions: id-token: write`; fails before collecting without it. The
+  gop Cloud service is not live yet. See docs/cloud.md.
 - "Agent paths" in `gop report`: for each AI agent workflow, the chain from
   who can start it, through the untrusted text it reads, the workflow and its
   token, the agent (flagged when it runs in a dangerous mode such as
