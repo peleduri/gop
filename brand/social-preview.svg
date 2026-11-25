@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="gop: which AI agents and people can make code run where">
+<title>gop: which AI agents and people can make code run where</title>
+<rect width="1280" height="640" fill="#0e1116"/>
+<g transform="translate(88 84) scale(3.5)">
+<rect width="32" height="32" rx="7" fill="#161a21" stroke="#353c47" stroke-width=".3"/>
+<path d="M9 23H16V19.6M16 12.4V9H23" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke="#9aa5ff"/>
+<circle cx="9" cy="23" r="3.4" fill="#e8ecf1"/>
+<circle cx="16" cy="16" r="2.6" fill="none" stroke="#9aa5ff" stroke-width="2.2"/>
+<rect x="19.6" y="5.6" width="6.8" height="6.8" rx="1.6" fill="#9aa5ff"/>
+</g>
+<text x="232" y="176" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace" font-size="100" font-weight="700" fill="#e8ecf1">gop</text>
+<g font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="62" fill="#e8ecf1" letter-spacing="-1.2">
+<text x="88" y="304">Which AI agents and people</text>
+<text x="88" y="378">can make code run <tspan fill="#9aa5ff">where</tspan>.</text>
+</g>
+<g fill="none" stroke-width="3">
+<path d="M122 452H188" stroke="#9aa5ff"/>
+<path d="M240 452H314" stroke="#9aa5ff"/>
+<path d="M350 452H434" stroke="#9aa5ff"/>
+<path d="M472 452H560" stroke="#93b0dc" stroke-dasharray="9 6"/>
+<path d="M466 470L560 522" stroke="#9ba4b0" stroke-dasharray="3 6"/>
+</g>
+<circle cx="104" cy="452" r="16" fill="#e8ecf1"/>
+<rect x="190" y="436" width="48" height="32" rx="8" fill="#161a21" stroke="#9ba4b0" stroke-width="3"/>
+<path d="M332 432L352 452L332 472L312 452Z" fill="#161a21" stroke="#9ba4b0" stroke-width="3"/>
+<path d="M454 430L476 452L454 474L432 452Z" fill="#9aa5ff"/>
+<circle cx="454" cy="452" r="5" fill="#0e1116"/>
+<path d="M584 428L604 435V452Q604 466 584 476Q564 466 564 452V435Z" fill="#f48fbd"/>
+<rect x="564" y="512" width="36" height="36" rx="3" fill="#f48fbd"/>
+<rect x="564" y="512" width="36" height="9" rx="2" fill="#3a1528"/>
+<g font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" font-weight="600" text-anchor="middle">
+<text x="155" y="438" fill="#9aa5ff">&#10003;</text>
+<text x="277" y="438" fill="#9aa5ff">&#10003;</text>
+<text x="392" y="438" fill="#9aa5ff">&#10003;</text>
+<text x="516" y="438" fill="#93b0dc">?</text>
+<text x="500" y="518" fill="#9ba4b0">?</text>
+</g>
+<g font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#9ba4b0">
+<text x="636" y="447"><tspan fill="#93b0dc" font-weight="600">possible</tspan>: a hop the token could not see</text>
+<text x="636" y="537"><tspan font-weight="600">not visible</tspan>: never reported as off</text>
+</g>
+<text x="88" y="606" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="22" fill="#9ba4b0">Read-only evidence graph for GitHub Enterprise. Open source, Apache-2.0.</text>
+<text x="1192" y="606" text-anchor="end" font-family="Menlo, ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace" font-size="22" fill="#9aa5ff">peleduri.github.io/gop</text>
+</svg>

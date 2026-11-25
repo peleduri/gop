@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="396" viewBox="0 32 1120 396" role="img">
+<title>gop architecture: collect reads GitHub read-only into graph.json; the engine, CLI, report and MCP server answer from it</title>
+<style>
+.bg{fill:#ffffff}.box{fill:#f6f7f9;stroke:#cfd5dd;stroke-width:1.5}.key{fill:#f6f7f9;stroke:#3a46c9;stroke-width:2.5}
+.t{font:600 18px system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;fill:#15181d}
+.s{font:13px ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;fill:#545c68}
+.n{font:12px system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;fill:#545c68}
+.a{stroke:#3a46c9;stroke-width:2.5;fill:none}.ah{fill:#3a46c9}
+.p{stroke:#3d5f8f;stroke-width:2;stroke-dasharray:6 4;fill:none}.v{stroke:#5c6470;stroke-width:2;stroke-dasharray:2 4;fill:none}
+.id{fill:#15181d}.code{fill:#ffffff;stroke:#545c68;stroke-width:2}.wf{fill:#545c68}.tg{fill:#a3245f}
+@media (prefers-color-scheme:dark){.bg{fill:#161a21}.box{fill:#1d222a;stroke:#353c47}.key{fill:#1d222a;stroke:#9aa5ff}
+.t{fill:#e8ecf1}.s,.n{fill:#9ba4b0}.a{stroke:#9aa5ff}.ah{fill:#9aa5ff}.p{stroke:#93b0dc}.v{stroke:#9ba4b0}
+.id{fill:#e8ecf1}.code{fill:#161a21;stroke:#9ba4b0}.wf{fill:#9ba4b0}.tg{fill:#f48fbd}}
+</style>
+<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="bg" y="32" width="1120" height="396"/>
+<rect class="box" x="24" y="150" width="170" height="120" rx="10"/>
+<text class="t" x="109.0" y="184" text-anchor="middle">GitHub API</text>
+<text class="s" x="109.0" y="208" text-anchor="middle">REST + GraphQL</text>
+<text class="s" x="109.0" y="227" text-anchor="middle">read-only token</text>
+<path class="a" d="M194 210H236" marker-end="url(#ar)"/>
+<rect class="box" x="242" y="150" width="180" height="120" rx="10"/>
+<text class="t" x="332.0" y="184" text-anchor="middle">gop collect</text>
+<text class="s" x="332.0" y="208" text-anchor="middle">orgs, repos,</text>
+<text class="s" x="332.0" y="227" text-anchor="middle">workflows, nested</text>
+<text class="s" x="332.0" y="246" text-anchor="middle">Actions</text>
+<text class="n" x="332" y="296" text-anchor="middle">GET and queries only;</text>
+<text class="n" x="332" y="314" text-anchor="middle">gaps are not_visible,</text>
+<text class="n" x="332" y="332" text-anchor="middle">never "off"</text>
+<path class="a" d="M422 210H464" marker-end="url(#ar)"/>
+<rect class="key" x="470" y="140" width="240" height="140" rx="10"/>
+<text class="t" x="590.0" y="174" text-anchor="middle">graph.json</text>
+<text class="s" x="590.0" y="198" text-anchor="middle">gop.graph/v1, evidence</text>
+<text class="s" x="590.0" y="217" text-anchor="middle">on every node and edge</text>
+<circle class="id" cx="511" cy="250" r="8"/>
+<path class="a" d="M521 250H544"/>
+<rect class="code" x="546" y="242" width="24" height="16" rx="4"/>
+<path class="p" d="M572 250H595"/>
+<path class="wf" d="M608 238L620 250L608 262L596 250Z"/>
+<path class="v" d="M622 250H645"/>
+<path class="tg" d="M657 238L668 242V251Q668 258 657 263Q646 258 646 251V242Z"/>
+<text class="n" x="590" y="306" text-anchor="middle">stays on your disk,</text>
+<text class="n" x="590" y="324" text-anchor="middle">file mode 0600</text>
+<path class="a" d="M710 210H752" marker-end="url(#ar)"/>
+<rect class="box" x="758" y="150" width="180" height="120" rx="10"/>
+<text class="t" x="848.0" y="184" text-anchor="middle">engine</text>
+<text class="s" x="848.0" y="208" text-anchor="middle">confirmed and</text>
+<text class="s" x="848.0" y="227" text-anchor="middle">possible reach,</text>
+<text class="s" x="848.0" y="246" text-anchor="middle">what-if, fixes</text>
+<path class="a" d="M938 196C958 196 958 92 978 92" marker-end="url(#ar)"/>
+<path class="a" d="M938 210H978" marker-end="url(#ar)"/>
+<path class="a" d="M938 224C958 224 958 328 978 328" marker-end="url(#ar)"/>
+<rect class="box" x="984" y="52" width="120" height="80" rx="10"/>
+<text class="t" x="1044.0" y="86" text-anchor="middle">MCP</text>
+<text class="s" x="1044.0" y="110" text-anchor="middle">gop serve</text>
+<rect class="box" x="984" y="170" width="120" height="80" rx="10"/>
+<text class="t" x="1044.0" y="204" text-anchor="middle">CLI</text>
+<text class="s" x="1044.0" y="228" text-anchor="middle">paths, who</text>
+<rect class="box" x="984" y="288" width="120" height="80" rx="10"/>
+<text class="t" x="1044.0" y="322" text-anchor="middle">report</text>
+<text class="s" x="1044.0" y="346" text-anchor="middle">HTML, md</text>
+<path class="a" d="M400 406H434"/><text class="n" x="442" y="410">confirmed</text>
+<path class="p" d="M520 406H554"/><text class="n" x="562" y="410">possible</text>
+<path class="v" d="M632 406H666"/><text class="n" x="674" y="410">not visible</text>
+</svg>

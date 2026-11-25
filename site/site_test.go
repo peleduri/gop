@@ -22,7 +22,8 @@ const repoURL = "https://github.com/peleduri/gop"
 
 // builtFiles are the paths site/build.sh writes next to index.html.
 var builtFiles = map[string]bool{"favicon.svg": true, "demo/": true, "demo/report.md": true,
-	"llms.txt": true, "llms-full.txt": true}
+	"llms.txt": true, "llms-full.txt": true, "favicon-32.png": true, "apple-touch-icon.png": true,
+	"architecture.svg": true, "architecture-narrow.svg": true}
 
 // pendingDocs are repo files the page links to that land in a parallel
 // change. The link check skips them while they are missing; once they exist
