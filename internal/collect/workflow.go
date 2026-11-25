@@ -54,6 +54,11 @@ type WorkflowFacts struct {
 	IDTokenJobs     []IDTokenJob // jobs that can mint an OIDC token, sorted by job id
 	Secrets         []string     // names referenced as secrets.NAME (GITHUB_TOKEN excluded); "*" for dynamic access
 	InheritsSecrets bool
+	// SecretJobs are the jobs that can read the stored secrets, sorted
+	// (environments.go); JobEnvironments maps each job that names an
+	// environment to it, as written (an expression is kept verbatim).
+	SecretJobs      []string
+	JobEnvironments map[string]string
 	SelfHosted      bool
 	RunnerLabels    []string
 	IDTokenLines    map[string]int // scope -> 1-based line of the id-token: write (or write-all) key
@@ -628,11 +633,23 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 		f.Jobs = jobIDs
 	}
 	labels, unknownLabels := map[string]bool{}, map[string]bool{}
+	jobNodes := map[string]*yaml.Node{}
 	for _, id := range jobIDs {
 		_, jv := jobs.get(id)
 		job, err := w.mapping(jv, "job")
 		if err != nil {
 			return nil, err
+		}
+		jobNodes[id] = jv
+		env, err := w.environmentOf(field(job, "environment"))
+		if err != nil {
+			return nil, err
+		}
+		if env != "" {
+			if f.JobEnvironments == nil {
+				f.JobEnvironments = map[string]string{}
+			}
+			f.JobEnvironments[id] = env
 		}
 		steps, err := w.stepUses(field(job, "steps"))
 		if err != nil {
@@ -672,9 +689,7 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 			} else {
 				wfIDUsed = true
 			}
-			if ij.Environment, err = w.environmentOf(field(job, "environment")); err != nil {
-				return nil, err
-			}
+			ij.Environment = env
 			ij.EnvironmentDynamic = strings.Contains(ij.Environment, "${{")
 			f.IDTokenJobs = append(f.IDTokenJobs, ij)
 		}
@@ -718,6 +733,7 @@ func workflowFacts(doc *yaml.Node) (*WorkflowFacts, error) {
 	}
 	f.UnknownRunnerLabels = sortedSet(unknownLabels)
 	f.Secrets = secretNames(doc)
+	f.SecretJobs = secretJobs(f.Secrets, f.InheritsSecrets, jobIDs, jobNodes)
 	if wfUsed {
 		addWriteScopes(wfMap, scopes) // once, not per job: the file may have thousands of jobs
 	}

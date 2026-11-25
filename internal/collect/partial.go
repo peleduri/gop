@@ -21,6 +21,7 @@ const (
 	phaseActionsApprov = "actions_approve"
 	phasePolicyFiles   = "policy_files"
 	phaseRefProtection = "ref_protection"
+	phaseEnvironments  = "environments"
 )
 
 // runPhases is the order run goes through; a run stopped in one phase did
@@ -28,6 +29,7 @@ const (
 var runPhases = []string{
 	PhaseOrgs, PhaseSettings, PhaseMembers, PhaseRepos, PhaseWorkflows, PhaseNested,
 	phaseActionsAccess, phaseRefs, phaseTags, PhaseProtection, phaseIndirect, phaseBotScripts, phaseActionsApprov, phasePolicyFiles, phaseRefProtection,
+	phaseEnvironments,
 }
 
 // enter records that run started phase, for the coverage of a stopped run.

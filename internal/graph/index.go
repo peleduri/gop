@@ -66,6 +66,9 @@ type Index struct {
 	in    map[string][]Edge
 	base  *controlGraph // control graph with no fixes applied, default audit age
 	gates []usesGate    // actions access gate per g.Edges index; nil when no repo has actions_access
+	// oidcGate maps a workflow whose OIDC edge is environment-gated to its
+	// gate note (envgate.go); nil when no edge is gated.
+	oidcGate map[string]string
 
 	fastOnce sync.Once
 	fastIx   *fastIndex // interned base control graph and fix overlay, built on first use (fast.go)
@@ -76,6 +79,8 @@ type Index struct {
 	agentAny  bool // some workflow is AgentExposed (agent.go)
 	botOnce   sync.Once
 	botAny    bool // some edge is CAN_MERGE_VIA_BOT (botmerge.go)
+	envOnce   sync.Once
+	envAny    bool // some EXECUTES_WITH edge is environment-gated (envgate.go)
 }
 
 // NewIndex builds adjacency lookups. Edge lists are sorted (kind, to/from, source_api)
@@ -98,6 +103,7 @@ func NewIndex(g *Graph) *Index {
 		}
 	}
 	ix.gates = ix.usesGates()
+	ix.oidcGate = oidcGates(g.Edges, ix.Kind)
 	ix.base = ix.buildControl(nil, ix.MaxAuditAge(0))
 	return ix
 }

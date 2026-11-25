@@ -166,8 +166,12 @@ const (
 // CAN_PUSH hop that does not reach the branch directly, into a repo with a
 // review bypass get BotMergeNote instead: a PR author can get code onto the
 // branch without human review, whatever the approval count says. Notes are
-// context only; they change no evidence, count or score.
+// context only; they change no evidence, count or score. A hop with a Gate
+// (a required-reviewer deployment environment, envgate.go) returns the gate.
 func (ix *Index) HopNote(h Hop) string {
+	if h.Gate != "" {
+		return h.Gate
+	}
 	if h.Reverse || (h.Kind != CanPush && h.Kind != CanMergeViaBot) {
 		return ""
 	}

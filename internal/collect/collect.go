@@ -214,6 +214,7 @@ type collector struct {
 	orgsSrc       string                 // source API of the org list
 	unknownOwners map[string]string      // lower login -> login of action owners with in_enterprise=unknown
 	oidcEdges     []*oidcEdge            // OIDC edges that call reusable workflows (oidcclaims.go)
+	envEdges      []*envEdge             // OIDC and secrets edges behind a deployment environment (environments.go)
 	calledOIDC    map[string]*calledOIDC // action id -> reusable workflow that mints a token
 	// batch is the batched GraphQL file reader state (batch.go).
 	batch batchState
@@ -535,7 +536,11 @@ func (k *collector) run(ctx context.Context) error {
 		return err
 	}
 	k.enter(phaseRefProtection)
-	return k.collectRefProtection(ctx)
+	if err := k.collectRefProtection(ctx); err != nil {
+		return err
+	}
+	k.enter(phaseEnvironments)
+	return k.collectEnvironments(ctx)
 }
 
 // ---- graph helpers ----
@@ -1585,6 +1590,7 @@ func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {
 		locate(attrs, f.File, f.FileRef, f.IDTokenLine(), 0)
 		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, attrs)
 		k.trackOIDCEdge(f, attrs)
+		k.trackEnvEdge(full, attrs, f.IDTokenJobIDs(), f)
 	}
 	if f.HasSecrets() {
 		id := "secret:" + full
@@ -1597,6 +1603,7 @@ func (k *collector) addWorkflowFacts(wid, full string, f *WorkflowFacts) {
 			attrs["inherit"] = "true"
 		}
 		k.edge(wid, id, graph.ExecutesWith, graph.Live, srcWorkflow, attrs)
+		k.trackEnvEdge(full, attrs, f.SecretJobs, f)
 	}
 	if f.SelfHosted {
 		id := "runner:" + full
