@@ -148,6 +148,26 @@ func TestAgentCLIs(t *testing.T) {
 		{`opencode run "fix it"`, "opencode-cli", nil},
 		{`llm "summarize the diff"`, "llm-cli", nil},
 		{`./node_modules/.bin/claude --print hi`, "claude-cli", nil},
+		{`copilot -p "fix it" --allow-all-tools`, "copilot-cli", []string{"allow_all"}},
+		{`npx -y @github/copilot --prompt "triage" --allow-all`, "copilot-cli", []string{"allow_all"}},
+		{`copilot -p "lint" --allow-tool='shell(npm:*), write'`, "copilot-cli", []string{"allowed_tools"}},
+		{`copilot -p "go" --yolo`, "copilot-cli", []string{"yolo"}},
+		{`qwen -p "fix" --yolo`, "qwen-cli", []string{"yolo"}},
+		{`qwen -p "fix" --approval-mode yolo`, "qwen-cli", []string{"yolo"}},
+		{`qwen --approval-mode=yolo --prompt "fix"`, "qwen-cli", []string{"yolo"}},
+		{`qwen -p "plan" --approval-mode plan`, "qwen-cli", nil},
+		{`gemini -p "triage" --approval-mode=yolo`, "gemini-cli", []string{"yolo"}},
+		{`goose run -t "update the changelog"`, "goose-cli", nil},
+		{`goose run --recipe release.yaml`, "goose-cli", nil},
+		{`crush run --yolo "summarize"`, "crush-cli", []string{"yolo"}},
+		{`npx @charmland/crush run "explain"`, "crush-cli", nil},
+		{`cline "run tests and fix failures"`, "cline-cli", nil},
+		{`git diff | cline --json "review these changes"`, "cline-cli", nil},
+		{`cn -p "write a commit message"`, "continue-cli", nil},
+		{`echo "review" | npx @continuedev/cli -p`, "continue-cli", nil},
+		{`amp -x "what changed?"`, "amp-cli", nil},
+		{`amp --execute "fix the build"`, "amp-cli", nil},
+		{`openhands --headless -f task.txt`, "openhands-cli", nil},
 	}
 	for _, c := range cases {
 		cli, args, ok := matchAgentCLI(c.run)
@@ -170,10 +190,77 @@ func TestAgentCLIs(t *testing.T) {
 		`# claude -p "commented out"`,
 		`llm install llm-gpt4all`,
 		`opencode --help`,
+		// Near misses: another tool with the same name, a non-run
+		// subcommand, a mention in text, or the name inside another word.
+		`copilot svc deploy --name api --env prod`,
+		`copilot init --app acme`,
+		`goose -dir db/migrations postgres "$DATABASE_URL" up`,
+		`goose up`,
+		`goose session`,
+		`crush --version`,
+		`cline auth`,
+		`cline --version`,
+		`cn ls --json`,
+		`cn login`,
+		`amp --version`,
+		`amp login`,
+		`openhands --version`,
+		`qwen --version`,
+		`npm install -g cline @github/copilot @qwen-code/qwen-code`,
+		`echo "try qwen -p or crush run locally"`,
+		`./scripts/raider --message "not aider"`,
+		`aider-lint --message x`,
+		`ampx -x "x"`,
+		`goosebump run -t x`,
+		`docker run --rm acme/cn -p 8080:80`,
 	} {
 		if c, _, ok := matchAgentCLI(run); ok {
 			t.Errorf("%q matched %s", run, c.kind)
 		}
+	}
+}
+
+// TestAgentCLIFixtures parses one synthetic workflow per agent CLI or
+// action (testdata/agents/clis) and a near-miss workflow with none.
+func TestAgentCLIFixtures(t *testing.T) {
+	cases := []struct {
+		file, kind, source string
+		tools              []string
+	}{
+		{"copilot-cli.yml", "copilot-cli", "run", []string{"allow_all"}},
+		{"qwen-cli.yml", "qwen-cli", "run", []string{"yolo"}},
+		{"qwen-code-action.yml", "qwen-code-action", "uses", nil},
+		{"goose-cli.yml", "goose-cli", "run", nil},
+		{"crush-cli.yml", "crush-cli", "run", []string{"yolo"}},
+		{"cline-cli.yml", "cline-cli", "run", nil},
+		{"continue-cli.yml", "continue-cli", "run", nil},
+		{"amp-cli.yml", "amp-cli", "run", nil},
+		{"openhands-cli.yml", "openhands-cli", "run", nil},
+	}
+	read := func(file string) string {
+		b, err := os.ReadFile(filepath.Join("testdata", "agents", "clis", file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	for _, c := range cases {
+		t.Run(c.file, func(t *testing.T) {
+			f := parseAgents(t, read(c.file))
+			if len(f.Agents) != 1 {
+				t.Fatalf("agents = %+v", f.Agents)
+			}
+			a := f.Agents[0]
+			if !reflect.DeepEqual(a.Kinds, []string{c.kind}) || !reflect.DeepEqual(a.Sources, []string{c.source}) {
+				t.Errorf("kinds %v sources %v, want %s %s", a.Kinds, a.Sources, c.kind, c.source)
+			}
+			if !reflect.DeepEqual(a.Tools, c.tools) {
+				t.Errorf("tools = %v, want %v", a.Tools, c.tools)
+			}
+		})
+	}
+	if f := parseAgents(t, read("near-miss.yml")); len(f.Agents) != 0 {
+		t.Errorf("near-miss agents = %+v", f.Agents)
 	}
 }
 

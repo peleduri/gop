@@ -50,9 +50,9 @@ add a row there to detect a new action or CLI.
 
 | Signal | `agent_source` | `agent_confidence` | Kinds |
 |---|---|---|---|
-| A step `uses:` a known agent action (any ref, any letter case; matched by `owner/repo[/path]`) | `uses` | `action` | `claude-code-action`, `claude-code-base-action`, `claude-code-security-review`, `codex-action`, `gemini-cli-action`, `pr-agent`, `opencode-action` |
+| A step `uses:` a known agent action (any ref, any letter case; matched by `owner/repo[/path]`) | `uses` | `action` | `claude-code-action`, `claude-code-base-action`, `claude-code-security-review`, `codex-action`, `gemini-cli-action`, `pr-agent`, `opencode-action`, `qwen-code-action` |
 | The Copilot coding agent setup job (`copilot-setup-steps`) | `setup` | `action` | `copilot-coding-agent` |
-| A `run:` step invokes a known agent CLI non-interactively (a prompt flag or subcommand) | `run` | `cli` | `claude-cli` (`claude -p`), `codex-cli` (`codex exec`), `cursor-cli` (`cursor-agent -p`), `gemini-cli` (`gemini -p`), `aider` (`aider --message`), `opencode-cli` (`opencode run`), `llm-cli` (`llm "..."`), `ollama-cli` (`ollama run MODEL "..."`, `ollama run MODEL --ask "..." < file`, or `... \| ollama run MODEL`), `agentrun-cli` (`agentrun runs start AGENT`, `agentrun template eval DIR`, also through `npx @parcha/agentrun`) |
+| A `run:` step invokes a known agent CLI non-interactively (a prompt flag or subcommand) | `run` | `cli` | `claude-cli` (`claude -p`), `codex-cli` (`codex exec`), `cursor-cli` (`cursor-agent -p`), `gemini-cli` (`gemini -p`), `aider` (`aider --message`), `opencode-cli` (`opencode run`), `llm-cli` (`llm "..."`), `ollama-cli` (`ollama run MODEL "..."`, `ollama run MODEL --ask "..." < file`, or `... \| ollama run MODEL`), `agentrun-cli` (`agentrun runs start AGENT`, `agentrun template eval DIR`, also through `npx @parcha/agentrun`), `copilot-cli` (`copilot -p`, `copilot --prompt`), `qwen-cli` (`qwen -p`), `goose-cli` (`goose run`), `crush-cli` (`crush run`), `cline-cli` (`cline "task"`, `cline --json`), `continue-cli` (`cn -p`), `amp-cli` (`amp -x`, `amp --execute`), `openhands-cli` (`openhands --headless`) |
 | A job runs a known agent platform image as its `container`, a `services` image or a `docker://` step (any tag or digest) | `image` | `cli` | `agentrun-server` (`ghcr.io/parcha-ai/agentrun-server`) |
 | On a risky trigger, a job with no known agent has a step that holds a model API key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OLLAMA_API_KEY`, `VLLM_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN` and similar, as an env name or a secret name) and reads the pull request's content: a checkout of its head made by an earlier step (named in `run:`, `with:` or `env:`), `gh pr diff` or `gh pr view`, or attacker contexts | `heuristic` | `heuristic` | `llm-script` |
 | Only the workflow name, the file name or a job id or name contains `ai-`, `claude`, `codex`, `copilot` or `llm` | `name` | `name_only` | `unknown` |
@@ -71,6 +71,28 @@ or `npm install -g @openai/codex` is not an agent run, and neither is
 argument, `--ask` or redirected or piped stdin. For agentrun, only
 `runs start` and `template eval` start runs: `agentrun doctor`, `stop`,
 `workflows validate` and a bare `npx @parcha/agentrun` are not agent runs.
+
+### More agent CLIs
+
+Each CLI below was checked against its own documentation (the source is
+cited next to its row in `agenttable.go`). A command matches only when its
+command word is exactly the CLI name or npm package (after a path or
+`npx`), so `raider`, `aider-lint` or `goosebump` never match.
+
+| Kind | Non-interactive run | Approval-skipping flags in `agent_tools` | Not an agent run |
+|---|---|---|---|
+| `copilot-cli` (GitHub Copilot CLI, `@github/copilot`) | `copilot -p "..."`, `--prompt` | `--allow-all-tools` and `--allow-all` give `allow_all`; `--yolo` gives `yolo`; `--allow-tool=...` gives `allowed_tools` | `copilot svc deploy` and the other commands of AWS's unrelated `copilot` CLI |
+| `qwen-cli` (Qwen Code, `@qwen-code/qwen-code`) | `qwen -p "..."` | `--yolo`, `--approval-mode yolo` and `--approval-mode=yolo` give `yolo` (the same `--approval-mode` form is read for `gemini`) | `qwen --version` |
+| `goose-cli` (goose) | `goose run -t "..."`, `-i file`, `--recipe` | none: headless goose already runs with `GOOSE_MODE=auto` by default | the goose database migration tool (`goose -dir ... up`) |
+| `crush-cli` (Crush, `@charmland/crush`) | `crush run "..."` | `--yolo` gives `yolo` | `crush --version` |
+| `cline-cli` (Cline CLI, `cline`) | `cline "task"` (a quoted first argument), `cline --json` | none: `--auto-approve` defaults to true | `cline auth` |
+| `continue-cli` (Continue CLI `cn`, `@continuedev/cli`) | `cn -p "..."` | none documented | `cn ls`, `cn login`, `cn serve` |
+| `amp-cli` (Amp) | `amp -x "..."`, `amp --execute` | none read: the flag that skips Amp's prompts is not in its official docs, so gop does not rely on it | `amp --version`, `amp login` |
+| `openhands-cli` (OpenHands CLI) | `openhands --headless -t "..."`, `-f file` | none: headless mode always approves | `openhands --version` |
+
+The `qwen-code-action` (`QwenLM/qwen-code-action`) is matched like
+`gemini-cli-action`: it has no documented actor check, so its gate is
+`unknown`, and its `settings` input is scanned for tool flags.
 
 ### One level down
 
@@ -133,7 +155,7 @@ and `action.yml`:
 | `agent_permissions` | The agent jobs' token write scopes: `contents:write`, `pull-requests:write`, `id-token:write`, `write-all`, ..., or `default` when a job takes the repo default |
 | `agent_secrets` | How many secrets the agent jobs reference (`GITHUB_TOKEN` excluded) |
 | `agent_runner` | `hosted`, `self_hosted` or `unknown` |
-| `agent_tools` | `allowed_tools` when a tool list is given; `dangerously_skip_permissions`, `bypass_permissions`, `yolo`, `full_auto`, `dangerously_bypass_approvals_and_sandbox`, `safety_strategy_unsafe`, `sandbox_danger_full_access`, `yes_always` when the agent's own approval or sandbox is off |
+| `agent_tools` | `allowed_tools` when a tool list is given; `dangerously_skip_permissions`, `bypass_permissions`, `yolo`, `full_auto`, `dangerously_bypass_approvals_and_sandbox`, `safety_strategy_unsafe`, `sandbox_danger_full_access`, `yes_always`, `allow_all` when the agent's own approval or sandbox is off |
 | `agent_ref_kind` | The least pinned ref of the agent actions: `sha`, `tag` or `branch` |
 
 When `agent_exposure` is `outsiders`, the collector adds

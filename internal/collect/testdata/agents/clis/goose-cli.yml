@@ -1,0 +1,8 @@
+# Synthetic fixture: goose run from an instructions file.
+name: Nightly chores
+on: schedule
+jobs:
+  chores:
+    runs-on: ubuntu-latest
+    steps:
+      - run: goose run --no-session -i .github/goose/chores.md

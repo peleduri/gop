@@ -1,0 +1,8 @@
+# Synthetic fixture: Crush in yolo mode.
+name: Crush docs
+on: push
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - run: crush run --yolo "Update the README for this change" > README.md

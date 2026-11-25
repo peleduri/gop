@@ -49,6 +49,16 @@ flags may change in minor releases.
   read, or one named by an expression, is `unknown` with a reason and a
   coverage entry, never gated. `fix_plan` for a risky trigger suggests a
   required reviewer on an environment that has none.
+- More AI agent CLIs and one more agent action are recognized in workflows
+  (#201), each checked against its own docs and backed by fixtures and
+  near-miss tests: `copilot-cli` (`copilot -p`), `qwen-cli` (`qwen -p`),
+  `goose-cli` (`goose run`), `crush-cli` (`crush run`), `cline-cli`
+  (`cline "task"`, `cline --json`), `continue-cli` (`cn -p`), `amp-cli`
+  (`amp -x`), `openhands-cli` (`openhands --headless`) and the
+  `qwen-code-action`. `agent_tools` gains `allow_all` (Copilot CLI
+  `--allow-all-tools` and `--allow-all`), reads `--allow-tool` as
+  `allowed_tools`, and reads `--approval-mode yolo` (Qwen Code, Gemini CLI)
+  as `yolo`.
 - The demo plants an AI agent in dangerous mode end to end (story 11).
   The public `acme-app/api` runs `claude-code-action@main` on
   `issue_comment` with no author check and `--dangerously-skip-permissions`,

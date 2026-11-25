@@ -573,6 +573,7 @@ const (
 // scope what the agent may do. allowed_tools means a tool list was given;
 // every other value removes the agent's own approval or sandbox.
 var AgentToolFlags = []string{
+	"allow_all",
 	"allowed_tools",
 	"bypass_permissions",
 	"dangerously_bypass_approvals_and_sandbox",

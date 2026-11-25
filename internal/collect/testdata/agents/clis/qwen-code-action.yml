@@ -1,0 +1,11 @@
+# Synthetic fixture: the Qwen Code action on issue comments.
+name: Qwen assistant
+on: issue_comment
+jobs:
+  assist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: QwenLM/qwen-code-action@v1
+        with:
+          openai_api_key: ${{ secrets.ACME_QWEN_KEY }}
+          prompt: Answer the question in the comment.
