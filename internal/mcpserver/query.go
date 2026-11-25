@@ -15,6 +15,7 @@ import (
 	"github.com/peleduri/gop/internal/fixplan"
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/sanitize"
+	"github.com/peleduri/gop/internal/whatif"
 )
 
 // q delimits a GitHub-controlled value in a text summary (sanitize.Value).
@@ -519,34 +520,45 @@ func (e *Engine) toFix(i int, f FixSpec) (graph.Fix, error) {
 	return nil, fmt.Errorf("fixes[%d].type: want %s, got %q", i, fixTypes, f.Type)
 }
 
-func pct(before, after int) float64 {
-	if before == 0 {
-		return 0
+// ResolveFixes turns fix specs into graph fixes, checking every node they
+// name. Errors name the spec by index (fixes[i].field).
+func (e *Engine) ResolveFixes(specs []FixSpec) ([]graph.Fix, error) {
+	if len(specs) == 0 {
+		return nil, fmt.Errorf("fixes is empty: give at least one of %s", fixShapes)
 	}
-	return 100 * float64(before-after) / float64(before)
+	fixes := make([]graph.Fix, 0, len(specs))
+	for i, f := range specs {
+		fx, err := e.toFix(i, f)
+		if err != nil {
+			return nil, err
+		}
+		fixes = append(fixes, fx)
+	}
+	return fixes, nil
 }
 
 // WhatIf applies fixes hypothetically.
 func (e *Engine) WhatIf(in WhatIfInput) (res WhatIfOutput, _ error) {
 	defer e.mark(&res.Summary)
-	if len(in.Fixes) == 0 {
-		return WhatIfOutput{}, fmt.Errorf("fixes is empty: give at least one of %s", fixShapes)
+	fixes, err := e.ResolveFixes(in.Fixes)
+	if err != nil {
+		return WhatIfOutput{}, err
 	}
-	fixes := make([]graph.Fix, 0, len(in.Fixes))
-	for i, f := range in.Fixes {
-		fx, err := e.toFix(i, f)
-		if err != nil {
-			return WhatIfOutput{}, err
-		}
-		fixes = append(fixes, fx)
+	d, summary := whatif.Compute(e.ix, fixes)
+	return WhatIfOutput{Summary: summary, Delta: d}, nil
+}
+
+// WhatIfReport is WhatIf with the paths behind the numbers: the paths that
+// disappear and the top paths that remain (gop what-if). Its totals and
+// summary are WhatIf's for the same fixes.
+func (e *Engine) WhatIfReport(in WhatIfInput, opts whatif.Options) (res whatif.Report, _ error) {
+	defer e.mark(&res.Summary)
+	fixes, err := e.ResolveFixes(in.Fixes)
+	if err != nil {
+		return whatif.Report{}, err
 	}
-	d := e.ix.WhatIf(fixes)
-	b, a := d.Before, d.After
-	return WhatIfOutput{
-		Summary: fmt.Sprintf("confirmed (principal, repo) pairs: %d -> %d (%.0f%% removed); possible pairs: %d -> %d",
-			b.ConfirmedPairs, a.ConfirmedPairs, pct(b.ConfirmedPairs, a.ConfirmedPairs), b.PossiblePairs, a.PossiblePairs),
-		Delta: d,
-	}, nil
+	d, summary := whatif.Compute(e.ix, fixes)
+	return whatif.FromDelta(e.ix, fixes, d, summary, opts), nil
 }
 
 // SuggestFixesInput is the suggest_fixes tool input.

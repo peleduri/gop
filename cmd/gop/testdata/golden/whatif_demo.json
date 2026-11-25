@@ -1,0 +1,556 @@
+{
+  "summary": "[demo data] confirmed (principal, repo) pairs: 394 -> 309 (22% removed); possible pairs: 11 -> 11",
+  "fixes": [
+    {
+      "fix_id": "pin:action:acme-actions/deploy@main",
+      "fix": {
+        "type": "pin_ref",
+        "action": "action:acme-actions/deploy@main"
+      },
+      "description": "Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it"
+    },
+    {
+      "fix_id": "pin:action:acme-actions/deploy@v1",
+      "fix": {
+        "type": "pin_ref",
+        "action": "action:acme-actions/deploy@v1"
+      },
+      "description": "Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it"
+    }
+  ],
+  "before": {
+    "principals": 32,
+    "confirmed": {
+      "repos": 394,
+      "orgs": 64,
+      "workflows": 359,
+      "secrets": 90,
+      "oidc": 66,
+      "runners": 9,
+      "cloud_targets": 6
+    },
+    "possible": {
+      "repos": 11,
+      "orgs": 1,
+      "workflows": 1,
+      "secrets": 1,
+      "oidc": 0,
+      "runners": 0
+    },
+    "confirmed_pairs": 394,
+    "possible_pairs": 11,
+    "score": 3437.375,
+    "possible_score": 41.625
+  },
+  "after": {
+    "principals": 32,
+    "confirmed": {
+      "repos": 309,
+      "orgs": 54,
+      "workflows": 274,
+      "secrets": 74,
+      "oidc": 50,
+      "runners": 5,
+      "cloud_targets": 6
+    },
+    "possible": {
+      "repos": 11,
+      "orgs": 1,
+      "workflows": 1,
+      "secrets": 1,
+      "oidc": 0,
+      "runners": 0
+    },
+    "confirmed_pairs": 309,
+    "possible_pairs": 11,
+    "score": 2610.5,
+    "possible_score": 41.625
+  },
+  "removed_paths": [
+    {
+      "principal": "identity:bob",
+      "target": "oidc:acme-app/web",
+      "before": "confirmed",
+      "after": "gone",
+      "hops": [
+        "identity:bob",
+        "repo:acme-actions/deploy",
+        "action:acme-actions/deploy@main",
+        "workflow:acme-app/web/.github/workflows/ci.yml",
+        "oidc:acme-app/web"
+      ]
+    },
+    {
+      "principal": "identity:bob",
+      "target": "oidc:acme-org-01/svc-007",
+      "before": "confirmed",
+      "after": "gone",
+      "hops": [
+        "identity:bob",
+        "repo:acme-actions/deploy",
+        "action:acme-actions/deploy@main",
+        "workflow:acme-org-01/svc-007/.github/workflows/ci.yml",
+        "oidc:acme-org-01/svc-007"
+      ]
+    },
+    {
+      "principal": "identity:bob",
+      "target": "oidc:acme-org-03/svc-007",
+      "before": "confirmed",
+      "after": "gone",
+      "hops": [
+        "identity:bob",
+        "repo:acme-actions/deploy",
+        "action:acme-actions/deploy@main",
+        "workflow:acme-org-03/svc-007/.github/workflows/ci.yml",
+        "oidc:acme-org-03/svc-007"
+      ]
+    },
+    {
+      "principal": "identity:bob",
+      "target": "oidc:acme-org-03/svc-008",
+      "before": "confirmed",
+      "after": "gone",
+      "hops": [
+        "identity:bob",
+        "repo:acme-actions/deploy",
+        "action:acme-actions/deploy@main",
+        "workflow:acme-org-03/svc-008/.github/workflows/ci.yml",
+        "oidc:acme-org-03/svc-008"
+      ]
+    },
+    {
+      "principal": "identity:user-001",
+      "target": "oidc:acme-app/web",
+      "before": "confirmed",
+      "after": "gone",
+      "hops": [
+        "identity:user-001",
+        "repo:acme-actions/deploy",
+        "action:acme-actions/deploy@main",
+        "workflow:acme-app/web/.github/workflows/ci.yml",
+        "oidc:acme-app/web"
+      ]
+    }
+  ],
+  "removed_paths_total": 204,
+  "remaining_top": [
+    {
+      "principal": "external:anyone",
+      "before": {
+        "principal": "external:anyone",
+        "confirmed": {
+          "repos": 3,
+          "orgs": 1,
+          "workflows": 9,
+          "secrets": 3,
+          "oidc": 2,
+          "runners": 0,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 1,
+        "score": 53.5,
+        "possible_score": 0,
+        "agent_exposed": 1,
+        "bot_self_merge": 2
+      },
+      "after": {
+        "principal": "external:anyone",
+        "confirmed": {
+          "repos": 3,
+          "orgs": 1,
+          "workflows": 9,
+          "secrets": 3,
+          "oidc": 2,
+          "runners": 0,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 1,
+        "score": 53.5,
+        "possible_score": 0,
+        "agent_exposed": 1,
+        "bot_self_merge": 2
+      },
+      "path": {
+        "from": "external:anyone",
+        "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+        "hops": [
+          {
+            "kind": "CAN_TRIGGER",
+            "from": "external:anyone",
+            "to": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "evidence": "live",
+            "source_api": "demo:planted-agent-dangerous-mode"
+          },
+          {
+            "kind": "CAN_ASSUME",
+            "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+            "evidence": "supplied",
+            "source_api": "supplied:demo/trust/aws/acme-prod-deploy.json"
+          }
+        ],
+        "evidence": "supplied",
+        "unverified": false,
+        "supplied": true
+      }
+    },
+    {
+      "principal": "identity:carol",
+      "before": {
+        "principal": "identity:carol",
+        "confirmed": {
+          "repos": 55,
+          "orgs": 6,
+          "workflows": 48,
+          "secrets": 13,
+          "oidc": 8,
+          "runners": 1,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 531,
+        "possible_score": 0
+      },
+      "after": {
+        "principal": "identity:carol",
+        "confirmed": {
+          "repos": 55,
+          "orgs": 6,
+          "workflows": 48,
+          "secrets": 13,
+          "oidc": 8,
+          "runners": 1,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 531,
+        "possible_score": 0
+      },
+      "path": {
+        "from": "identity:carol",
+        "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+        "hops": [
+          {
+            "kind": "CAN_PUSH",
+            "from": "identity:carol",
+            "to": "repo:acme-app/api",
+            "evidence": "inferred",
+            "source_api": "demo:planted-org-owner"
+          },
+          {
+            "kind": "DEFINED_IN",
+            "from": "repo:acme-app/api",
+            "to": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "evidence": "live",
+            "source_api": "demo:planted-agent-dangerous-mode",
+            "reverse": true
+          },
+          {
+            "kind": "CAN_ASSUME",
+            "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+            "evidence": "supplied",
+            "source_api": "supplied:demo/trust/aws/acme-prod-deploy.json"
+          }
+        ],
+        "evidence": "supplied",
+        "unverified": false,
+        "supplied": true
+      }
+    },
+    {
+      "principal": "identity:dave",
+      "before": {
+        "principal": "identity:dave",
+        "confirmed": {
+          "repos": 55,
+          "orgs": 6,
+          "workflows": 48,
+          "secrets": 13,
+          "oidc": 8,
+          "runners": 1,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 531,
+        "possible_score": 0
+      },
+      "after": {
+        "principal": "identity:dave",
+        "confirmed": {
+          "repos": 55,
+          "orgs": 6,
+          "workflows": 48,
+          "secrets": 13,
+          "oidc": 8,
+          "runners": 1,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 531,
+        "possible_score": 0
+      },
+      "path": {
+        "from": "identity:dave",
+        "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+        "hops": [
+          {
+            "kind": "CAN_PUSH",
+            "from": "identity:dave",
+            "to": "repo:acme-app/api",
+            "evidence": "inferred",
+            "source_api": "demo:planted-org-owner"
+          },
+          {
+            "kind": "DEFINED_IN",
+            "from": "repo:acme-app/api",
+            "to": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "evidence": "live",
+            "source_api": "demo:planted-agent-dangerous-mode",
+            "reverse": true
+          },
+          {
+            "kind": "CAN_ASSUME",
+            "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+            "evidence": "supplied",
+            "source_api": "supplied:demo/trust/aws/acme-prod-deploy.json"
+          }
+        ],
+        "evidence": "supplied",
+        "unverified": false,
+        "supplied": true
+      }
+    },
+    {
+      "principal": "identity:erin",
+      "before": {
+        "principal": "identity:erin",
+        "confirmed": {
+          "repos": 54,
+          "orgs": 6,
+          "workflows": 47,
+          "secrets": 13,
+          "oidc": 7,
+          "runners": 1,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 509.625,
+        "possible_score": 0
+      },
+      "after": {
+        "principal": "identity:erin",
+        "confirmed": {
+          "repos": 54,
+          "orgs": 6,
+          "workflows": 47,
+          "secrets": 13,
+          "oidc": 7,
+          "runners": 1,
+          "cloud_targets": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 509.625,
+        "possible_score": 0
+      },
+      "path": {
+        "from": "identity:erin",
+        "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+        "hops": [
+          {
+            "kind": "CAN_PUSH",
+            "from": "identity:erin",
+            "to": "repo:acme-app/api",
+            "evidence": "inferred",
+            "source_api": "demo:planted-org-owner"
+          },
+          {
+            "kind": "DEFINED_IN",
+            "from": "repo:acme-app/api",
+            "to": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "evidence": "live",
+            "source_api": "demo:planted-agent-dangerous-mode",
+            "reverse": true
+          },
+          {
+            "kind": "CAN_ASSUME",
+            "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+            "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+            "evidence": "supplied",
+            "source_api": "supplied:demo/trust/aws/acme-prod-deploy.json"
+          }
+        ],
+        "evidence": "supplied",
+        "unverified": false,
+        "supplied": true
+      }
+    },
+    {
+      "principal": "identity:bob",
+      "before": {
+        "principal": "identity:bob",
+        "confirmed": {
+          "repos": 34,
+          "orgs": 6,
+          "workflows": 29,
+          "secrets": 7,
+          "oidc": 6,
+          "runners": 1
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 329.625,
+        "possible_score": 0
+      },
+      "after": {
+        "principal": "identity:bob",
+        "confirmed": {
+          "repos": 13,
+          "orgs": 4,
+          "workflows": 8,
+          "secrets": 3,
+          "oidc": 2,
+          "runners": 0
+        },
+        "possible": {
+          "repos": 0,
+          "orgs": 0,
+          "workflows": 0,
+          "secrets": 0,
+          "oidc": 0,
+          "runners": 0
+        },
+        "multiplier": 2.25,
+        "score": 126,
+        "possible_score": 0
+      },
+      "path": {
+        "from": "identity:bob",
+        "to": "oidc:acme-app/payments",
+        "hops": [
+          {
+            "kind": "MEMBER_OF",
+            "from": "identity:bob",
+            "to": "members:acme-actions",
+            "evidence": "live",
+            "source_api": "demo:membership"
+          },
+          {
+            "kind": "CAN_PUSH",
+            "from": "members:acme-actions",
+            "to": "repo:acme-actions/setup",
+            "evidence": "inferred",
+            "source_api": "demo:default-perm"
+          },
+          {
+            "kind": "RESOLVES_TO",
+            "from": "repo:acme-actions/setup",
+            "to": "action:acme-actions/setup@main",
+            "evidence": "live",
+            "source_api": "demo:action-host",
+            "reverse": true
+          },
+          {
+            "kind": "USES",
+            "from": "action:acme-actions/setup@main",
+            "to": "action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5",
+            "evidence": "live",
+            "source_api": "demo:planted-nested-action",
+            "reverse": true
+          },
+          {
+            "kind": "USES",
+            "from": "action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5",
+            "to": "workflow:acme-app/payments/.github/workflows/release.yml",
+            "evidence": "live",
+            "source_api": "demo:planted-nested-action",
+            "reverse": true
+          },
+          {
+            "kind": "EXECUTES_WITH",
+            "from": "workflow:acme-app/payments/.github/workflows/release.yml",
+            "to": "oidc:acme-app/payments",
+            "evidence": "live",
+            "source_api": "demo:planted-nested-action"
+          }
+        ],
+        "evidence": "inferred",
+        "unverified": false
+      }
+    }
+  ],
+  "caveats": []
+}

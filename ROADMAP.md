@@ -36,7 +36,6 @@ Finding AI coding agents that run in CI with secrets and write tokens, and who c
 - GitHub App push grants.
 - Enterprise audit log collection, so more facts carry `audit` evidence.
 - Environment protection rules as conditions on edges.
-- A `what-if` CLI subcommand (available over MCP today; `gop fix-plan` prints the steps of one fix).
 
 ### 4. Distribution
 

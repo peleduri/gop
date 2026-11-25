@@ -1,0 +1,127 @@
+confirmed (principal, repo) pairs: 24 -> 3 (88% removed); possible pairs: 1 -> 1
+Hypothetical: gop changed nothing. gop fix-plan prints the steps of one fix.
+
+Fixes applied (2):
+  - pin:action:acme-actions/deploy@main
+      Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it
+  - default_perm:org:acme-actions->read
+      Lower the default repository permission of acme-actions to read
+
+Totals                                   before      after
+  confirmed (principal, repo) pairs          24          3
+  possible (principal, repo) pairs            1          1
+  confirmed score                         174.5       19.2
+  possible score                           19.1       19.1
+
+Paths that disappear (52):
+  identity:bob -> oidc:acme-app/web  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml -> oidc:acme-app/web
+  members:acme-actions -> oidc:acme-app/web  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml -> oidc:acme-app/web
+  identity:bob -> secret:acme-app/billing  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/billing/.github/workflows/ci.yml -> secret:acme-app/billing
+  members:acme-actions -> secret:acme-app/billing  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/billing/.github/workflows/ci.yml -> secret:acme-app/billing
+  identity:bob -> runner:acme-app/worker  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/worker/.github/workflows/ci.yml -> runner:acme-app/worker
+  members:acme-actions -> runner:acme-app/worker  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/worker/.github/workflows/ci.yml -> runner:acme-app/worker
+  identity:bob -> repo:acme-actions/setup  [confirmed -> gone]
+      was: identity:bob -> members:acme-actions -> repo:acme-actions/setup
+  identity:bob -> repo:acme-app/admin  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/admin/.github/workflows/ci.yml -> repo:acme-app/admin
+  identity:bob -> repo:acme-app/api  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/api/.github/workflows/ci.yml -> repo:acme-app/api
+  identity:bob -> repo:acme-app/billing  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/billing/.github/workflows/ci.yml -> repo:acme-app/billing
+  identity:bob -> repo:acme-app/docs  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/docs/.github/workflows/ci.yml -> repo:acme-app/docs
+  identity:bob -> repo:acme-app/gateway  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/gateway/.github/workflows/ci.yml -> repo:acme-app/gateway
+  identity:bob -> repo:acme-app/mobile  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/mobile/.github/workflows/ci.yml -> repo:acme-app/mobile
+  identity:bob -> repo:acme-app/search  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/search/.github/workflows/ci.yml -> repo:acme-app/search
+  identity:bob -> repo:acme-app/web  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml -> repo:acme-app/web
+  identity:bob -> repo:acme-app/worker  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/worker/.github/workflows/ci.yml -> repo:acme-app/worker
+  members:acme-actions -> repo:acme-actions/deploy  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy
+  members:acme-actions -> repo:acme-actions/setup  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/setup
+  members:acme-actions -> repo:acme-app/admin  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/admin/.github/workflows/ci.yml -> repo:acme-app/admin
+  members:acme-actions -> repo:acme-app/api  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/api/.github/workflows/ci.yml -> repo:acme-app/api
+  members:acme-actions -> repo:acme-app/auth  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@v1 -> workflow:acme-app/auth/.github/workflows/ci.yml -> repo:acme-app/auth
+  members:acme-actions -> repo:acme-app/billing  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/billing/.github/workflows/ci.yml -> repo:acme-app/billing
+  members:acme-actions -> repo:acme-app/docs  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/docs/.github/workflows/ci.yml -> repo:acme-app/docs
+  members:acme-actions -> repo:acme-app/gateway  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/gateway/.github/workflows/ci.yml -> repo:acme-app/gateway
+  members:acme-actions -> repo:acme-app/mobile  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/mobile/.github/workflows/ci.yml -> repo:acme-app/mobile
+  members:acme-actions -> repo:acme-app/search  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/search/.github/workflows/ci.yml -> repo:acme-app/search
+  members:acme-actions -> repo:acme-app/web  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml -> repo:acme-app/web
+  members:acme-actions -> repo:acme-app/worker  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/worker/.github/workflows/ci.yml -> repo:acme-app/worker
+  identity:bob -> workflow:acme-app/admin/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/admin/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/api/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/api/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/billing/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/billing/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/docs/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/docs/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/gateway/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/gateway/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/mobile/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/mobile/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/search/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/search/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/web/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml
+  identity:bob -> workflow:acme-app/web/.github/workflows/nightly.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml -> repo:acme-app/web -> workflow:acme-app/web/.github/workflows/nightly.yml
+  identity:bob -> workflow:acme-app/web/.github/workflows/release.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/release.yml
+  identity:bob -> workflow:acme-app/worker/.github/workflows/ci.yml  [confirmed -> gone]
+      was: identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/worker/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-actions/deploy/.github/workflows/release.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> workflow:acme-actions/deploy/.github/workflows/release.yml
+  members:acme-actions -> workflow:acme-app/admin/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/admin/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/api/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/api/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/auth/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@v1 -> workflow:acme-app/auth/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/billing/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/billing/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/docs/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/docs/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/gateway/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/gateway/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/mobile/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/mobile/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/search/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/search/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/web/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml
+  members:acme-actions -> workflow:acme-app/web/.github/workflows/nightly.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/ci.yml -> repo:acme-app/web -> workflow:acme-app/web/.github/workflows/nightly.yml
+  members:acme-actions -> workflow:acme-app/web/.github/workflows/release.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/web/.github/workflows/release.yml
+  members:acme-actions -> workflow:acme-app/worker/.github/workflows/ci.yml  [confirmed -> gone]
+      was: members:acme-actions -> repo:acme-actions/deploy -> action:acme-actions/deploy@main -> workflow:acme-app/worker/.github/workflows/ci.yml
+
+Remaining top paths (3):
+  1. identity:bob  score 86.6 -> 15.8, confirmed repos 12 -> 2, possible repos 0 -> 0
+      identity:bob -> repo:acme-actions/deploy -> action:acme-actions/deploy@v1 -> workflow:acme-app/auth/.github/workflows/ci.yml -> repo:acme-app/auth
+  2. identity:alice  score 3.5 -> 3.5, confirmed repos 1 -> 1, possible repos 0 -> 0
+      identity:alice -> repo:acme-app/infra
+  3. members:acme-legacy  score 0.0 -> 0.0, confirmed repos 0 -> 0, possible repos 1 -> 1

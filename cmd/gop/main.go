@@ -71,6 +71,9 @@ Usage:
   gop fix-plan --graph graph.json | --demo  --pin <action> | --lower-default-perm <org> [--to read|none]
               | --restrict-token <workflow> | --harden-trigger <workflow> | --reduce-owners N
               [--format text|markdown|json]
+  gop what-if --graph graph.json | --demo  [--pin <action>]... [--lower-default-perm <org>]... [--to read|none]
+              [--restrict-token <workflow>]... [--harden-trigger <workflow>]... [--reduce-owners N]
+              [--top N] [--limit N] [--format text|markdown|json]
   gop sarif   --graph graph.json | --demo  --out gop.sarif | --split-by-repo DIR [--top N]
               [--min-severity low|medium|high|critical] [--include-possible]
   gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
@@ -143,6 +146,11 @@ diff exits 0 when no --fail-on condition matched, 1 when one did, 2 on usage or 
 --graph - reads the graph from stdin (report, paths, who): gop demo | gop report --graph - --out -
 fix-plan prints the change steps for one fix (workflow lines with diffs, settings
 with their REST call as text). gop never runs them or calls write APIs.
+what-if re-scores the graph with the fixes applied together (any mix of the
+fix-plan flags; the repeatable ones more than once) and prints the confirmed and
+possible (principal, repo) pairs before and after, the paths that disappear and
+the top paths that remain: the numbers the MCP what_if tool reports. It changes
+nothing.
 sarif writes one SARIF 2.1.0 result per fixable edge (GOP001 mutable action
 ref, GOP002 default permission). It lists attack paths: uploading it to code
 scanning shows them to everyone with alert access. gop never uploads it.
@@ -242,6 +250,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdMCPConfig(rest)
 	case "fix-plan":
 		err = a.cmdFixPlan(rest)
+	case "what-if":
+		err = a.cmdWhatIf(rest)
 	case "pin":
 		err = a.cmdPin(rest)
 	case "sarif":

@@ -28,6 +28,14 @@ flags may change in minor releases.
   partial merged graph and exits 3. `--merge-force` merges graphs from
   different token modes (not supported). `--merge-into` needs `--orgs` and a
   graph of the same enterprise, checked before any request.
+- `gop what-if --graph g.json | --demo` re-scores the graph with
+  hypothetical fixes on the CLI: the `fix-plan` selectors (`--pin`,
+  `--lower-default-perm [--to]`, `--restrict-token`, `--harden-trigger`,
+  `--reduce-owners`), combinable and repeatable, print the confirmed and
+  possible (principal, repo) pairs before and after, the paths that
+  disappear and the top paths that remain, as text, Markdown or JSON
+  (`--top`, `--limit`). The scoring moved to `internal/whatif`, which the MCP
+  `what_if` tool now calls too, so both report the same numbers (#200).
 - The demo plants an AI agent in dangerous mode end to end (story 11).
   The public `acme-app/api` runs `claude-code-action@main` on
   `issue_comment` with no author check and `--dangerously-skip-permissions`,
