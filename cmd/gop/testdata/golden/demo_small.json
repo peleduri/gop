@@ -68,6 +68,18 @@
       "evidence": "live"
     },
     {
+      "id": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+      "kind": "cloud_target",
+      "name": "aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+      "attrs": {
+        "account": "111111111111",
+        "provider": "aws",
+        "role": "acme-prod-deploy",
+        "source_api": "demo:planted-agent-dangerous-mode"
+      },
+      "evidence": "supplied"
+    },
+    {
       "id": "enterprise:acme",
       "kind": "enterprise",
       "name": "acme",
@@ -447,6 +459,15 @@
       "evidence": "live"
     },
     {
+      "id": "oidc:acme-app/api",
+      "kind": "oidc",
+      "name": "acme-app/api",
+      "attrs": {
+        "source_api": "demo:planted-agent-dangerous-mode"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "oidc:acme-app/payments",
       "kind": "oidc",
       "name": "acme-app/payments",
@@ -772,8 +793,39 @@
       "kind": "repo",
       "name": "acme-app/api",
       "attrs": {
+        "agent_holds_merge_key": "true",
+        "agent_merge_key_workflows": ".github/workflows/claude-fix.yml",
+        "bot_merge_apps": "91",
+        "branch_admin_bypass": "false",
+        "branch_allow_force_push": "false",
+        "branch_app_bypass": "true",
+        "branch_bypass_actors": "1",
+        "branch_bypass_apps": "91:acme-agent-bot",
+        "branch_code_owner_review": "false",
+        "branch_dismiss_stale": "false",
+        "branch_last_push_approval": "false",
+        "branch_protected": "true",
+        "branch_protection_sources": "ruleset:58",
+        "branch_push_restricted": "false",
+        "branch_required_reviews": "1",
+        "branch_signed_commits": "false",
+        "branch_status_checks": "0",
+        "branch_value_sources": "required_reviews=ruleset:58,app_bypass=ruleset:58",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
+        "default_branch": "main",
+        "policy_files": "AGENTS.md",
+        "policy_files_unowned": "AGENTS.md",
+        "review_bypass": "bot_self_merge",
+        "review_bypass_app_match": "matched",
+        "review_bypass_approve": ".github/workflows/claude-fix.yml",
+        "review_bypass_merge": ".github/workflows/auto-merge.yml",
+        "review_bypass_reason": "app_bypass",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "on",
+        "secret_scanning_validity_checks": "off",
         "source_api": "demo:planted-cross-org",
-        "visibility": "private"
+        "visibility": "public"
       },
       "evidence": "live"
     },
@@ -1335,6 +1387,37 @@
       "evidence": "live"
     },
     {
+      "id": "repo:acme-secure/infra",
+      "kind": "repo",
+      "name": "acme-secure/infra",
+      "attrs": {
+        "branch_admin_bypass": "false",
+        "branch_allow_force_push": "false",
+        "branch_app_bypass": "false",
+        "branch_bypass_actors": "0",
+        "branch_code_owner_review": "false",
+        "branch_dismiss_stale": "false",
+        "branch_last_push_approval": "false",
+        "branch_protected": "true",
+        "branch_protection_sources": "ruleset:59",
+        "branch_push_restricted": "false",
+        "branch_required_reviews": "1",
+        "branch_signed_commits": "false",
+        "branch_status_checks": "0",
+        "branch_value_sources": "required_reviews=ruleset:59",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
+        "default_branch": "main",
+        "policy_files": "none",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "on",
+        "secret_scanning_validity_checks": "off",
+        "source_api": "demo:planted-agent-dangerous-mode",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "repo:acme-secure/signer",
       "kind": "repo",
       "name": "acme-secure/signer",
@@ -1378,6 +1461,15 @@
       "name": "acme-actions/svc-009",
       "attrs": {
         "source_api": "demo:secrets"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "secret:acme-app/api",
+      "kind": "secret",
+      "name": "acme-app/api",
+      "attrs": {
+        "source_api": "demo:planted-agent-dangerous-mode"
       },
       "evidence": "live"
     },
@@ -1535,11 +1627,49 @@
       "evidence": "live"
     },
     {
+      "id": "workflow:acme-app/api/.github/workflows/auto-merge.yml",
+      "kind": "workflow",
+      "name": "acme-app/api/.github/workflows/auto-merge.yml",
+      "attrs": {
+        "bot_merge_apps": "91",
+        "bot_merge_gate": "none",
+        "bot_merge_jobs": "merge",
+        "bot_merge_starter": "pr_openers",
+        "bot_merge_token": "app",
+        "bot_merge_triggers": "pull_request_target",
+        "bot_merges": "true",
+        "risky_triggers": "pull_request_target",
+        "source_api": "demo:planted-agent-dangerous-mode"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "workflow:acme-app/api/.github/workflows/ci.yml",
       "kind": "workflow",
       "name": "acme-app/api/.github/workflows/ci.yml",
       "attrs": {
         "source_api": "demo:planted-cross-org"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+      "kind": "workflow",
+      "name": "acme-app/api/.github/workflows/claude-fix.yml",
+      "attrs": {
+        "agent": "claude-code-action",
+        "agent_confidence": "action",
+        "agent_exposure": "outsiders",
+        "agent_gate": "anyone",
+        "agent_jobs": "agent",
+        "agent_permissions": "contents:write,id-token:write,pull-requests:write",
+        "agent_ref_kind": "branch",
+        "agent_runner": "hosted",
+        "agent_secrets": "2",
+        "agent_source": "uses",
+        "agent_tools": "dangerously_skip_permissions",
+        "risky_triggers": "issue_comment",
+        "source_api": "demo:planted-agent-dangerous-mode"
       },
       "evidence": "live"
     },
@@ -1926,6 +2056,25 @@
       "evidence": "live"
     },
     {
+      "id": "workflow:acme-secure/infra/.github/workflows/codex.yml",
+      "kind": "workflow",
+      "name": "acme-secure/infra/.github/workflows/codex.yml",
+      "attrs": {
+        "agent": "codex-cli",
+        "agent_confidence": "cli",
+        "agent_exposure": "maintainers",
+        "agent_gate": "write_access",
+        "agent_jobs": "codex",
+        "agent_permissions": "contents:read",
+        "agent_runner": "hosted",
+        "agent_secrets": "0",
+        "agent_source": "run",
+        "agent_tools": "full_auto",
+        "source_api": "demo:planted-agent-dangerous-mode"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "workflow:acme-secure/signer/.github/workflows/release.yml",
       "kind": "workflow",
       "name": "acme-secure/signer/.github/workflows/release.yml",
@@ -1998,6 +2147,22 @@
     },
     {
       "from": "external:anyone",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_MERGE_VIA_BOT",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "approve_workflows": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+        "file": ".github/workflows/auto-merge.yml",
+        "line": "21",
+        "merge_workflow": "workflow:acme-app/api/.github/workflows/auto-merge.yml",
+        "review_bypass_reason": "app_bypass",
+        "trigger": "issue_comment"
+      }
+    },
+    {
+      "from": "external:anyone",
       "to": "repo:acme-app/web",
       "kind": "CAN_MERGE_VIA_BOT",
       "evidence": "live",
@@ -2009,6 +2174,22 @@
         "line": "24",
         "merge_workflow": "workflow:acme-app/web/.github/workflows/ai-merge.yml",
         "review_bypass_reason": "app_bypass",
+        "trigger": "issue_comment"
+      }
+    },
+    {
+      "from": "external:anyone",
+      "to": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+      "kind": "CAN_TRIGGER",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "detail": "claude-code-action",
+        "exec": "agent",
+        "file": ".github/workflows/claude-fix.yml",
+        "job": "agent",
+        "line": "18",
         "trigger": "issue_comment"
       }
     },
@@ -6593,6 +6774,14 @@
       }
     },
     {
+      "from": "workflow:acme-app/api/.github/workflows/auto-merge.yml",
+      "to": "repo:acme-app/api",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
       "from": "workflow:acme-app/api/.github/workflows/ci.yml",
       "to": "repo:acme-app/api",
       "kind": "DEFINED_IN",
@@ -6609,6 +6798,59 @@
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+      "to": "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy",
+      "kind": "CAN_ASSUME",
+      "evidence": "supplied",
+      "source_api": "supplied:demo/trust/aws/acme-prod-deploy.json",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "file": "demo/trust/aws/acme-prod-deploy.json",
+        "matched_sub": "repo:acme-app/*",
+        "oidc": "oidc:acme-app/api",
+        "provider": "aws"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "jobs": "agent",
+        "via": "token_write"
+      }
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+      "to": "repo:acme-app/api",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+      "to": "oidc:acme-app/api",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/api/.github/workflows/claude-fix.yml",
+      "to": "secret:acme-app/api",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "secrets": "ANTHROPIC_API_KEY,NPM_TOKEN"
       }
     },
     {
@@ -7369,6 +7611,14 @@
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-secure/infra/.github/workflows/codex.yml",
+      "to": "repo:acme-secure/infra",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:planted-agent-dangerous-mode",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
