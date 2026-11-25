@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 540" role="img" aria-label="gop graph language: node shapes per kind and line styles per evidence level and reach state">
+<style>
+.bg{fill:#ffffff}.t{fill:#15181d;font:13px ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}.h{fill:#545c68;font:600 12px system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.06em}
+.fg{fill:#15181d;stroke:#15181d}.mu{fill:#545c68;stroke:#545c68}.ac{fill:#3a46c9;stroke:#3a46c9}.tg{fill:#a3245f;stroke:#a3245f}.dg{fill:#b42318;stroke:#b42318}.cut{stroke:#1a6e3c}.cutf{fill:#1a6e3c}.ps{stroke:#8a5300}.psf{fill:#8a5300}
+.live{stroke:#3a46c9}.inf{stroke:#3a46c9}.aud{stroke:#6f3bbf}.sup{stroke:#0b6a74}.nv{stroke:#5c6470}.livef{fill:#3a46c9}.audf{fill:#6f3bbf}.supf{fill:#0b6a74}.nvf{fill:#5c6470}
+.o{fill:none;stroke-width:2}.hole{fill:#ffffff}
+@media (prefers-color-scheme:dark){.bg,.hole{fill:#161a21}.t{fill:#e8ecf1}.h{fill:#9ba4b0}.fg{fill:#e8ecf1;stroke:#e8ecf1}.mu{fill:#9ba4b0;stroke:#9ba4b0}.ac,.live,.inf{fill:#9aa5ff;stroke:#9aa5ff}.tg{fill:#f48fbd;stroke:#f48fbd}.dg{fill:#ff8a80;stroke:#ff8a80}.cut{stroke:#5fd394}.cutf{fill:#5fd394}.ps{stroke:#f0b84f}.psf{fill:#f0b84f}.aud{stroke:#c7a4ff}.sup{stroke:#55d0d8}.nv{stroke:#9ba4b0}.livef{fill:#9aa5ff}.audf{fill:#c7a4ff}.supf{fill:#55d0d8}.nvf{fill:#9ba4b0}.o{fill:none}}
+</style>
+<rect class="bg" width="760" height="540" rx="14"/>
+<text class="h" x="24" y="34">NODES: SHAPE PER KIND</text>
+<g transform="translate(24 52)">
+<path class="fg" d="M12 0L23 6V18L12 24L1 18V6Z"/><text class="t" x="34" y="17">enterprise</text>
+<g transform="translate(0 40)"><path class="fg" d="M1 3H10L12 6H23V22H1Z"/><text class="t" x="34" y="17">org</text></g>
+<g transform="translate(0 80)"><circle class="fg o" cx="12" cy="12" r="11"/><circle class="fg" cx="12" cy="12" r="6.5"/><text class="t" x="34" y="17">org_members</text></g>
+<g transform="translate(0 120)"><circle class="fg" cx="12" cy="12" r="10"/><text class="t" x="34" y="17">identity</text></g>
+<g transform="translate(0 160)"><circle class="dg" cx="12" cy="12" r="6.5"/><circle class="dg o" cx="12" cy="12" r="11" stroke-width="2.5"/><text class="t" x="34" y="17">external (attacker-controlled)</text></g>
+<g transform="translate(0 200)"><rect class="mu" x="1" y="4" width="22" height="16" rx="4"/><text class="t" x="34" y="17">repo</text></g>
+<g transform="translate(0 240)"><path class="mu" d="M12 0L24 12L12 24L0 12Z"/><text class="t" x="34" y="17">workflow</text></g>
+</g>
+<g transform="translate(300 52)">
+<g><path class="ac" d="M12 0L24 12L12 24L0 12Z"/><circle class="hole" cx="12" cy="12" r="4"/><text class="t" x="34" y="17">agent (workflow running an AI agent)</text></g>
+<g transform="translate(0 40)"><path class="mu o" d="M12 2L22 12L12 22L2 12Z"/><text class="t" x="34" y="17">action_ref</text></g>
+<g transform="translate(0 80)"><rect class="tg" x="2" y="2" width="20" height="20" rx="2"/><text class="t" x="34" y="17">secret</text></g>
+<g transform="translate(0 120)"><path class="tg" d="M2 2H22V12C22 18 17 22 12 24C7 22 2 18 2 12Z"/><text class="t" x="34" y="17">oidc</text></g>
+<g transform="translate(0 160)"><rect class="tg" x="0" y="5" width="24" height="14" rx="7"/><text class="t" x="34" y="17">cloud_target</text></g>
+<g transform="translate(0 200)"><rect class="tg" x="2" y="2" width="20" height="20" rx="2"/><rect class="hole" x="5" y="14" width="14" height="3"/><text class="t" x="34" y="17">runner</text></g>
+<g transform="translate(0 240)"><path class="ac" d="M12 0L24 12L12 24L0 12Z"/><circle class="hole" cx="12" cy="12" r="4"/><circle class="dg o" cx="12" cy="12" r="15" stroke-width="2.5"/><path class="dg" d="M34 22L42 8L50 22Z"/><text class="t" x="58" y="17">dangerous mode: danger ring + ▲ + label</text></g>
+</g>
+<text class="h" x="24" y="366">EDGES: LINE PER EVIDENCE LEVEL</text>
+<g transform="translate(24 386)" stroke-width="2.5" fill="none">
+<path class="live" d="M0 6H90"/><text class="t" x="102" y="11" stroke="none">✓ live</text>
+<path class="inf" d="M0 34H90" stroke-dasharray="10 3"/><text class="t" x="102" y="39" stroke="none">≈ inferred</text>
+<path class="aud" d="M0 62H90" stroke-dasharray="6 4"/><text class="t" x="102" y="67" stroke="none">↺ audit</text>
+<path class="sup" d="M0 90H90" stroke-dasharray="12 3 2 3"/><text class="t" x="102" y="95" stroke="none">≡ supplied</text>
+<path class="nv" d="M0 118H90" stroke-dasharray="2 4"/><text class="t" x="102" y="123" stroke="none">? not visible</text>
+</g>
+<text class="h" x="380" y="366">PATHS: REACH STATE</text>
+<g transform="translate(380 386)" fill="none">
+<path class="live" d="M0 6H90" stroke-width="2.5"/><text class="t" x="102" y="11">✓ confirmed reach</text>
+<path class="ps" d="M0 34H90" stroke-width="2" stroke-dasharray="6 4"/><text class="t" x="102" y="39">? possible reach</text>
+<path class="dg" d="M0 62H90" stroke-width="3"/><text class="t" x="102" y="67">▲ danger</text>
+<path class="cut" d="M0 90H38M52 90H90" stroke-width="2"/><path class="cut" d="M40 82L50 98M50 82L40 98" stroke-width="2.5"/><text class="t" x="102" y="95">✕ cut by a fix</text>
+</g>
+</svg>

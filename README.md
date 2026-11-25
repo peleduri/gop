@@ -459,7 +459,7 @@ The direction, without dates, is in [ROADMAP.md](ROADMAP.md): collection that sc
 
 ## Contributing
 
-Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first (it includes the contributor ladder): commits need a DCO sign-off, and all fixtures, examples and issues use synthetic names only (`acme`, `acme-actions`, `acme-app`). Never paste a real graph.json anywhere. Report security issues through [SECURITY.md](SECURITY.md). Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+Issues and PRs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first (it includes the contributor ladder): commits need a DCO sign-off, and all fixtures, examples and issues use synthetic names only (`acme`, `acme-actions`, `acme-app`). Never paste a real graph.json anywhere. Report security issues through [SECURITY.md](SECURITY.md). Changes are tracked in [CHANGELOG.md](CHANGELOG.md). Name, voice, colors, logo and graph styles follow [BRAND.md](BRAND.md).
 
 ## Status
 

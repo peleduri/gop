@@ -64,6 +64,7 @@ This is a public repository. Fixtures, tests, examples, docs, issues and commit 
 - No write calls to GitHub.
 - Every node and edge gets an evidence level (`live`, `inferred` with an `attrs.rule` for facts derived by a documented rule, `audit`, `not_visible`) and edges get a `source_api`. When the token cannot read something, record `not_visible` and a `coverage` entry; never default to "off".
 - Breaking changes to the serialized graph bump `SchemaVersion` and update `docs/schema.md`.
+- User-facing text, colors, icons and graph drawings follow [BRAND.md](BRAND.md): lowercase "gop", evidence levels named, no em dashes, no hype. Colors come from `brand/tokens.json`; after editing it run `go run ./brand/gen`.
 
 ## Sign-off (DCO)
 
