@@ -5,6 +5,7 @@
 #   favicon-32.png, apple-touch-icon.png  from brand/logo/png/ (32 and 180 px)
 #   social-preview.png       from brand/ (og:image, 1280x640)
 #   brand.css                copied from site/ (gop design tokens, generated from brand/tokens.json)
+#   fonts/                   the brand woff2 faces and their OFL license, from brand/fonts/
 #   llms.txt, llms-full.txt  copied from site/ (plain-text overview for language models)
 #   demo/index.html          gop report --demo, built from the current source
 #   demo/report.md           the same report as Markdown
@@ -23,12 +24,13 @@ trap 'rm -rf "$tmp"' EXIT
 (cd "$root" && go build -trimpath -ldflags "-X main.version=${version}" -o "$tmp/gop" ./cmd/gop)
 
 rm -rf "$out"
-mkdir -p "$out/demo"
+mkdir -p "$out/demo" "$out/fonts"
 cp "$root/site/index.html" "$root/site/favicon.svg" "$root/site/brand.css" "$root/site/llms.txt" "$root/site/llms-full.txt" \
 	"$root/site/architecture.svg" "$root/site/architecture-narrow.svg" "$out/"
 cp "$root/brand/logo/png/gop-mark-32.png" "$out/favicon-32.png"
 cp "$root/brand/logo/png/gop-mark-180.png" "$out/apple-touch-icon.png"
 cp "$root/brand/social-preview.png" "$out/social-preview.png"
+cp "$root"/brand/fonts/*.woff2 "$root/brand/fonts/OFL.txt" "$out/fonts/"
 "$tmp/gop" report --demo --out "$out/demo/index.html"
 "$tmp/gop" report --demo --out "$out/demo/report.md" --format md
 
@@ -36,9 +38,15 @@ cp "$root/brand/social-preview.png" "$out/social-preview.png"
 # demo is synthetic and Pages needs world-readable files.
 chmod -R u+rwX,go+rX "$out"
 
-for f in index.html favicon.svg favicon-32.png apple-touch-icon.png social-preview.png architecture.svg architecture-narrow.svg brand.css llms.txt llms-full.txt demo/index.html demo/report.md; do
+for f in index.html favicon.svg favicon-32.png apple-touch-icon.png social-preview.png architecture.svg architecture-narrow.svg brand.css llms.txt llms-full.txt demo/index.html demo/report.md fonts/OFL.txt; do
 	if [ ! -s "$out/$f" ]; then
 		echo "build: $out/$f is missing or empty" >&2
+		exit 1
+	fi
+done
+for f in $(grep -o 'fonts/[A-Za-z0-9-]*\.woff2' "$out/brand.css"); do
+	if [ ! -s "$out/$f" ]; then
+		echo "build: $out/$f (named in brand.css) is missing" >&2
 		exit 1
 	fi
 done

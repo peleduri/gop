@@ -2,14 +2,17 @@
 // color, type, spacing, radius, evidence styles and graph node shapes that
 // every surface (HTML report, site, social preview, icons) follows.
 //
-// tokens.json is the source. CSS renders it as CSS custom properties
-// (--gop-*); brand/gen writes that CSS to brand/tokens.css and site/brand.css,
-// and the HTML report reads it from this package. BRAND.md at the repository
-// root explains how to use each token.
+// tokens.json is the source. TokensCSS renders it as CSS custom properties
+// (--gop-*). The brand typeface is vendored under fonts/ (woff2, SIL OFL):
+// CSS adds the report's faces as base64 data: URLs for the self-contained HTML
+// report, and SiteCSS adds every face as a same-origin fonts/ URL for the site.
+// brand/gen writes TokensCSS to brand/tokens.css and SiteCSS to site/brand.css.
+// BRAND.md at the repository root explains how to use each token.
 package brand
 
 import (
-	_ "embed"
+	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -20,6 +23,11 @@ import (
 
 //go:embed tokens.json
 var tokensJSON []byte
+
+// fonts holds the vendored woff2 files that tokens.json "faces" name.
+//
+//go:embed fonts/*.woff2
+var fonts embed.FS
 
 // TokensJSON returns the raw tokens.json bytes.
 func TokensJSON() []byte { return append([]byte(nil), tokensJSON...) }
@@ -32,6 +40,8 @@ type Tokens struct {
 	Color       map[string]map[string]string `json:"color"` // theme (light, dark) -> token -> #rrggbb
 	Contrast    []Pair                       `json:"contrast"`
 	Font        map[string]string            `json:"font"`
+	Faces       []Face                       `json:"faces"`              // vendored font files (brand/fonts)
+	FaceRange   string                       `json:"face_unicode_range"` // unicode-range every face covers
 	Text        map[string]string            `json:"text"`
 	Space       map[string]string            `json:"space"`
 	Radius      map[string]string            `json:"radius"`
@@ -59,6 +69,26 @@ type Stroke struct {
 	Label string `json:"label,omitempty"`
 }
 
+// Face is one vendored font file under brand/fonts: its family, file name,
+// CSS font-weight descriptor (a range such as "600 800" lets heavier weights
+// use the file without synthesized bold) and whether the self-contained HTML
+// report embeds it.
+type Face struct {
+	Family string `json:"family"`
+	File   string `json:"file"`
+	Weight string `json:"weight"`
+	Report bool   `json:"report,omitempty"`
+}
+
+// FontFile returns the bytes of a vendored font file.
+func FontFile(name string) ([]byte, error) {
+	b, err := fonts.ReadFile("fonts/" + name)
+	if err != nil {
+		return nil, fmt.Errorf("brand: font %q: %w", name, err)
+	}
+	return b, nil
+}
+
 // Node is how a graph node kind is drawn.
 type Node struct {
 	Shape string `json:"shape"`
@@ -83,11 +113,49 @@ func MustLoad() Tokens {
 	return t
 }
 
-// CSS returns the tokens as CSS custom properties: light values on :root,
-// dark values under prefers-color-scheme: dark (screen only, so print stays
-// light). The output has no comments: html/template strips CSS comments,
-// which would change the bytes a CSP hash covers.
+// CSS returns the CSS the self-contained HTML report inlines: an @font-face
+// rule per face marked "report", with the woff2 file as a base64 data: URL
+// (the page's CSP must allow font-src data:), then TokensCSS. It loads
+// nothing from the network. The output has no comments: html/template strips
+// CSS comments, which would change the bytes a CSP hash covers.
 func CSS() string {
+	t := MustLoad()
+	return fontFaces(t, true, func(f Face) string {
+		b, err := FontFile(f.File)
+		if err != nil {
+			panic(err)
+		}
+		return "data:font/woff2;base64," + base64.StdEncoding.EncodeToString(b)
+	}) + TokensCSS()
+}
+
+// SiteCSS returns the CSS of site/brand.css: an @font-face rule per face,
+// loading fonts/<file> from the site's own origin (the page's CSP must allow
+// font-src 'self'; site/build.sh copies brand/fonts to fonts/), then
+// TokensCSS.
+func SiteCSS() string {
+	return fontFaces(MustLoad(), false, func(f Face) string { return "fonts/" + f.File }) + TokensCSS()
+}
+
+// fontFaces writes one @font-face rule per face (only the report faces when
+// reportOnly), with font-display: swap so text shows in the fallback stack
+// until the face is ready.
+func fontFaces(t Tokens, reportOnly bool, src func(Face) string) string {
+	var b strings.Builder
+	for _, f := range t.Faces {
+		if reportOnly && !f.Report {
+			continue
+		}
+		fmt.Fprintf(&b, "@font-face{font-family:%q;font-style:normal;font-weight:%s;font-display:swap;src:url(%q) format(\"woff2\");unicode-range:%s}\n",
+			f.Family, f.Weight, src(f), t.FaceRange)
+	}
+	return b.String()
+}
+
+// TokensCSS returns the tokens as CSS custom properties: light values on
+// :root, dark values under prefers-color-scheme: dark (screen only, so print
+// stays light). It has no comments and no url().
+func TokensCSS() string {
 	t := MustLoad()
 	var b strings.Builder
 	b.WriteString(":root{")

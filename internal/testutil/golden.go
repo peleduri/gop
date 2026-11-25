@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -19,8 +20,9 @@ const TestVersion = "vTEST"
 
 // Golden compares got with testdata/golden/<name> (relative to the package
 // under test) and fails with a unified diff when they differ. With -update it
-// rewrites the file instead. got is normalized first: CRLF becomes LF and
-// every non-empty string in versions is replaced with TestVersion.
+// rewrites the file instead. got is normalized first: CRLF becomes LF,
+// every non-empty string in versions is replaced with TestVersion and every
+// embedded woff2 font with FontPlaceholder.
 func Golden(t *testing.T, name string, got []byte, versions ...string) {
 	t.Helper()
 	got = Normalize(got, versions...)
@@ -45,9 +47,18 @@ func Golden(t *testing.T, name string, got []byte, versions ...string) {
 	}
 }
 
-// Normalize converts line endings to LF and replaces each version with TestVersion.
+// FontPlaceholder stands in for the base64 of each embedded brand font in
+// golden files: the fonts are tested in package brand, and a golden would
+// otherwise carry tens of kilobytes of base64 per face.
+const FontPlaceholder = "data:font/woff2;base64,@@font@@"
+
+var embeddedFont = regexp.MustCompile(`data:font/woff2;base64,[A-Za-z0-9+/=]+`)
+
+// Normalize converts line endings to LF, replaces each version with
+// TestVersion and each embedded woff2 font with FontPlaceholder.
 func Normalize(b []byte, versions ...string) []byte {
 	b = bytes.ReplaceAll(b, []byte("\r\n"), []byte("\n"))
+	b = embeddedFont.ReplaceAll(b, []byte(FontPlaceholder))
 	for _, v := range versions {
 		if v != "" && v != TestVersion {
 			b = bytes.ReplaceAll(b, []byte(v), []byte(TestVersion))

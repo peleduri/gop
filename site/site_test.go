@@ -115,7 +115,7 @@ func TestCSP(t *testing.T) {
 	}
 	sum := sha256.Sum256([]byte(src[i+len("<style>") : j]))
 	want := "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
-	for _, d := range []string{"default-src 'none'", "style-src " + want, "base-uri 'none'", "form-action 'none'"} {
+	for _, d := range []string{"default-src 'none'", "style-src " + want, "font-src 'self'", "base-uri 'none'", "form-action 'none'"} {
 		if !strings.Contains(csp, d) {
 			t.Errorf("CSP %q lacks %q (update the style-src hash after editing the <style> block)", csp, d)
 		}
@@ -126,10 +126,29 @@ func TestCSP(t *testing.T) {
 		}
 	}
 	css := src[i:j]
-	if strings.Contains(css, "url(") || strings.Contains(css, "@import") || strings.Contains(css, "@font-face") {
-		t.Error("the <style> block loads an external resource or web font")
+	if strings.Contains(css, "@import") {
+		t.Error("the <style> block imports a stylesheet")
+	}
+	// The only url()s are the brand faces, served from the site's own fonts/
+	// directory (site/build.sh copies brand/fonts there).
+	urls := cssURL.FindAllStringSubmatch(css, -1)
+	if len(urls) == 0 {
+		t.Error("the <style> block has no @font-face for the brand faces")
+	}
+	for _, m := range urls {
+		name, ok := strings.CutPrefix(m[1], "fonts/")
+		if !ok || strings.Contains(name, "/") || !strings.HasSuffix(name, ".woff2") {
+			t.Errorf("the <style> block loads %q; only fonts/<face>.woff2 is allowed", m[1])
+			continue
+		}
+		if _, err := os.Stat(filepath.Join("..", "brand", "fonts", name)); err != nil {
+			t.Errorf("the <style> block loads %q, which is not in brand/fonts", m[1])
+		}
 	}
 }
+
+// cssURL matches a url() in CSS, quoted or not.
+var cssURL = regexp.MustCompile(`url\(\s*["']?([^"')]*)["']?\s*\)`)
 
 func isExternal(v string) bool {
 	return strings.Contains(v, "://") || strings.HasPrefix(v, "//")

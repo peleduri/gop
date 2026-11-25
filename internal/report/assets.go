@@ -13,8 +13,8 @@ import (
 // comments: html/template drops CSS and JS comments from template text,
 // which would change the served bytes and break the hash (a test checks).
 
-// styleCSS is the brand tokens (brand.CSS: --gop-* custom properties, light
-// on :root, dark under prefers-color-scheme) followed by the report's own
+// styleCSS is the brand CSS (brand.CSS: the embedded brand faces, then the
+// --gop-* custom properties, light on :root, dark under prefers-color-scheme) followed by the report's own
 // rules. The report's short variable names are aliases of the tokens, so
 // the theme switch and every color come from brand/tokens.json.
 var styleCSS = brand.CSS() + reportCSS
@@ -913,7 +913,8 @@ func cspHash(s string) string {
 	return "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
 }
 
-// csp allows exactly the inline style and script above and nothing else: no
-// network fetch, no other script, no form submission, no <base> rewrite.
+// csp allows exactly the inline style and script above, plus the brand
+// fonts the style embeds as data: URLs, and nothing else: no network fetch,
+// no other script, no form submission, no <base> rewrite.
 var csp = "default-src 'none'; script-src " + cspHash(scriptJS) + "; style-src " + cspHash(styleCSS) +
-	"; base-uri 'none'; form-action 'none'"
+	"; font-src data:; base-uri 'none'; form-action 'none'"

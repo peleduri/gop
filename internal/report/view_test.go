@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/html"
 
+	"github.com/peleduri/gop/brand"
 	"github.com/peleduri/gop/internal/demo"
 	"github.com/peleduri/gop/internal/graph"
 )
@@ -281,7 +282,8 @@ func TestHopChainEvidence(t *testing.T) {
 // reach, and so embedded paths, rather than markup. It was measured again
 // (528532 before) when the report took the brand: the inline mark, a
 // graph-language shape in every agent path hop, the cut mark on each agent
-// path edge and the line key. The budget is 1.2x.
+// path edge and the line key. The budget is 1.2x. The embedded brand fonts
+// are left out: they are a fixed size with their own budget (brand.TestFaces).
 const demoBaselineBytes = 543095
 
 func TestDemoSizeBudget(t *testing.T) {
@@ -297,7 +299,8 @@ func TestDemoSizeBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := buf.Len() - len(gj); n > demoBaselineBytes*6/5 {
-		t.Errorf("demo report without graph data is %d bytes, budget %d (1.2x the baseline)", n, demoBaselineBytes*6/5)
+	fonts := len(brand.CSS()) - len(brand.TokensCSS())
+	if n := buf.Len() - len(gj) - fonts; n > demoBaselineBytes*6/5 {
+		t.Errorf("demo report without graph data and fonts is %d bytes, budget %d (1.2x the baseline)", n, demoBaselineBytes*6/5)
 	}
 }
