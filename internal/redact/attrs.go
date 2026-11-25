@@ -64,7 +64,7 @@ func init() {
 		graph.AttrBranchSources, graph.AttrBranchValueSources,
 		graph.AttrCodeowners, graph.AttrCodeownersValid, graph.AttrCodeownersWorkflows,
 		graph.AttrPolicyFiles, graph.AttrPolicyFilesUnowned,
-		graph.AttrAppInstallations, graph.AttrAppID, graph.AttrAppSlug, graph.AttrAppOrgs, graph.AttrAppWrite, graph.AttrAppRepos, graph.AttrAppAI,
+		graph.AttrAppInstallations, graph.AttrAppID, graph.AttrAppSlug, graph.AttrAppOrgs, graph.AttrAppWrite, graph.AttrAppRepos, graph.AttrAppAI, graph.AttrAppWorkflows,
 		graph.AttrSecretScanning, graph.AttrSecretPushProtection, graph.AttrSecretValidity,
 		// documented in the JSON Schema
 		"token_write", "token_scopes", "risky_triggers", "trigger", "exec", "author_association",
@@ -312,7 +312,7 @@ var policies = map[string]policy{
 	graph.AttrRole:            roleAttr,
 	graph.AttrWarnings:        words,
 	graph.AttrVia: enum(graph.ViaDefaultPerm, graph.ViaOrgOwner, graph.ViaDirect, graph.ViaOutsideCollaborator,
-		graph.ViaTeam, graph.ViaRefBypass, graph.ViaTokenWrite, graph.ViaUnknown),
+		graph.ViaTeam, graph.ViaRefBypass, graph.ViaTokenWrite, graph.ViaUnknown, graph.ViaAppInstall),
 	graph.AttrRule:                  words,
 	graph.AttrRefProtected:          boolish,
 	graph.AttrRefProtection:         words,
@@ -457,6 +457,7 @@ func init() {
 	policies[graph.AttrAppWrite] = words
 	policies[graph.AttrAppRepos] = enum("all", "selected")
 	policies[graph.AttrAppAI] = enum("name")
+	policies[graph.AttrAppWorkflows] = enum("write")
 	policies[graph.AttrActionsCanApprove] = boolish
 	policies[graph.AttrReviewBypassAppMatch] = enum(graph.AppMatched, graph.AppUnmatched, graph.AppUnknown)
 	policies[graph.AttrReviewBypassRecount] = enum(graph.StaleSuspected)

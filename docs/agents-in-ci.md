@@ -41,6 +41,20 @@ repositories can change code and CI everywhere it is installed. The org gets
 `app_installations`; an org the token does not own gets `unknown`
 (`not_visible`) with a coverage entry.
 
+An installation with `contents: write` becomes `CAN_PUSH` edges from the App
+(`via=app_install`), so the App appears in reach, top risks and
+`who_can_reach` like any other principal:
+
+- installed on all repositories: an edge to every repo of the org, evidence
+  `inferred` (rule `app_install`), so it counts as confirmed reach;
+- installed on selected repositories: GitHub lists them only to the App's own
+  tokens, never to an org owner's token, so every repo of the org gets a
+  `not_visible` edge (possible reach) and the org a `can_push:app_install`
+  coverage entry. Check the list in the org settings (GitHub Apps, Configure).
+
+`app_workflows=write` on the edge marks an installation that can also change
+workflow files.
+
 ## What gop detects
 
 `gop collect` marks a workflow node with `agent=<kind>` (a comma list when it

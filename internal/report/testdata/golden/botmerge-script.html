@@ -318,9 +318,9 @@ footer{background:none}}
 <div class="hero-top"><p class="verdict"><span class="dot" aria-hidden="true"></span>Critical exposure</p><p class="meta">Widest confirmed reach: <strong>identity:alice</strong></p></div>
 <p class="nonhuman"><span class="tag">AI agents and bots</span> 4 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible). <a href="#ai-agents">AI agents</a> <a href="#ai-self-merge">AI self-merge</a></p>
 <p class="big">identity:alice can push code that runs in 13 repos across 3 orgs (confirmed), including 2 cloud OIDC trusts, 3 secret scopes, 1 self-hosted runner pool.</p>
-<p class="start"><span class="tag">Start here</span> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 32% of confirmed reach. <a href="#fixes">All fixes</a></p>
+<p class="start"><span class="tag">Start here</span> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 28% of confirmed reach. <a href="#fixes">All fixes</a></p>
 <p class="pinline"><span class="tag warn">Heads up</span> Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to. <a href="#pinned">See which</a></p>
-<ul class="kpis" aria-label="Key figures; reach figures are for identity:alice, the widest confirmed reach"><li class="kpi t-med"><a href="#top-paths"><span class="k-label">Confirmed reach</span><span class="k-val">13 <span class="k-unit">repos</span></span><span class="k-sub">across 3 orgs</span></a></li><li class="kpi t-crit"><a href="#top-paths"><span class="k-label">Cloud OIDC trusts</span><span class="k-val">2 <span class="k-unit">trusts</span></span><span class="k-sub">cloud credentials CI can mint</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Secret scopes</span><span class="k-val">3 <span class="k-unit">scopes</span></span><span class="k-sub">repo, environment or org secrets</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Self-hosted runners</span><span class="k-val">1 <span class="k-unit">pool</span></span><span class="k-sub">runner pools jobs land on</span><span class="k-poss"><span aria-hidden="true">?</span> &#43;1 pool possible</span></a></li><li class="kpi t-crit"><a href="#top-risks"><span class="k-label">Top risks</span><span class="k-val">11 <span class="k-unit">principals</span></span><span class="k-sub">6 critical · 2 high</span></a></li><li class="kpi t-unk"><a href="#coverage"><span class="k-label">Coverage</span><span class="k-val">1/5 <span class="k-unit">orgs fully visible</span></span><span class="k-sub">18 facts not visible: unknown, not absent</span></a></li></ul>
+<ul class="kpis" aria-label="Key figures; reach figures are for identity:alice, the widest confirmed reach"><li class="kpi t-med"><a href="#top-paths"><span class="k-label">Confirmed reach</span><span class="k-val">13 <span class="k-unit">repos</span></span><span class="k-sub">across 3 orgs</span></a></li><li class="kpi t-crit"><a href="#top-paths"><span class="k-label">Cloud OIDC trusts</span><span class="k-val">2 <span class="k-unit">trusts</span></span><span class="k-sub">cloud credentials CI can mint</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Secret scopes</span><span class="k-val">3 <span class="k-unit">scopes</span></span><span class="k-sub">repo, environment or org secrets</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Self-hosted runners</span><span class="k-val">1 <span class="k-unit">pool</span></span><span class="k-sub">runner pools jobs land on</span><span class="k-poss"><span aria-hidden="true">?</span> &#43;1 pool possible</span></a></li><li class="kpi t-crit"><a href="#top-risks"><span class="k-label">Top risks</span><span class="k-val">11 <span class="k-unit">principals</span></span><span class="k-sub">7 critical · 2 high</span></a></li><li class="kpi t-unk"><a href="#coverage"><span class="k-label">Coverage</span><span class="k-val">1/5 <span class="k-unit">orgs fully visible</span></span><span class="k-sub">18 facts not visible: unknown, not absent</span></a></li></ul>
 <p class="legend">Confirmed means every hop was read live, <span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span> from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is <span class="badge nv"><span aria-hidden="true">?</span> not visible</span> to the token: unknown, not absent. The two are separate figures and never added up.</p>
 </section>
 
@@ -333,9 +333,9 @@ footer{background:none}}
 <p class="fix-why">A branch or tag ref can be moved: whoever can push to acme-actions/deploy changes the code every workflow that uses it runs.</p>
 
 <p class="fix-id"><code>pin:action:acme-actions/deploy@main</code></p></div>
-<div class="fix-impact"><p class="fix-pct"><strong>32%</strong> of confirmed reach</p>
-<div class="track" aria-hidden="true"><span class="seg prev w0"></span><span class="seg cur w32"></span></div>
-<p class="fix-cum">19 confirmed pairs · <strong>32%</strong> cumulative</p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>28%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w0"></span><span class="seg cur w28"></span></div>
+<p class="fix-cum">19 confirmed pairs · <strong>28%</strong> cumulative</p></div>
 </li>
 <li class="card fix">
 <span class="fix-n" aria-hidden="true">2</span>
@@ -343,9 +343,9 @@ footer{background:none}}
 <p class="fix-why">Every member of acme-actions inherits write access to its repos by default, so any member account can push code that CI runs.</p>
 
 <p class="fix-id"><code>default_perm:org:acme-actions-&gt;read</code></p></div>
-<div class="fix-impact"><p class="fix-pct"><strong>15%</strong> of confirmed reach</p>
-<div class="track" aria-hidden="true"><span class="seg prev w32"></span><span class="seg cur w16"></span></div>
-<p class="fix-cum">9 confirmed pairs · <strong>47%</strong> cumulative</p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>13%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w28"></span><span class="seg cur w12"></span></div>
+<p class="fix-cum">9 confirmed pairs · <strong>41%</strong> cumulative</p></div>
 </li>
 <li class="card fix">
 <span class="fix-n" aria-hidden="true">3</span>
@@ -353,9 +353,9 @@ footer{background:none}}
 <p class="fix-why">A branch or tag ref can be moved: whoever can push to acme-actions/deploy changes the code every workflow that uses it runs.</p>
 
 <p class="fix-id"><code>pin:action:acme-actions/deploy@v1</code></p></div>
-<div class="fix-impact"><p class="fix-pct"><strong>7%</strong> of confirmed reach</p>
-<div class="track" aria-hidden="true"><span class="seg prev w48"></span><span class="seg cur w8"></span></div>
-<p class="fix-cum">4 confirmed pairs · <strong>54%</strong> cumulative</p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>6%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w40"></span><span class="seg cur w4"></span></div>
+<p class="fix-cum">4 confirmed pairs · <strong>46%</strong> cumulative</p></div>
 </li>
 <li class="card fix">
 <span class="fix-n" aria-hidden="true">4</span>
@@ -364,8 +364,8 @@ footer{background:none}}
 
 <p class="fix-id"><code>default_perm:org:acme-legacy-&gt;read</code></p></div>
 <div class="fix-impact"><p class="fix-pct"><strong>3%</strong> of confirmed reach</p>
-<div class="track" aria-hidden="true"><span class="seg prev w56"></span><span class="seg cur w4"></span></div>
-<p class="fix-cum">2 confirmed pairs · <strong>58%</strong> cumulative</p></div>
+<div class="track" aria-hidden="true"><span class="seg prev w48"></span><span class="seg cur w4"></span></div>
+<p class="fix-cum">2 confirmed pairs · <strong>49%</strong> cumulative</p></div>
 </li>
 <li class="card fix">
 <span class="fix-n" aria-hidden="true">5</span>
@@ -373,9 +373,9 @@ footer{background:none}}
 <p class="fix-why">A branch or tag ref can be moved: whoever can push to acme-actions/setup changes the code every workflow that uses it runs.</p>
 
 <p class="fix-id"><code>pin:action:acme-actions/setup@main</code></p></div>
-<div class="fix-impact"><p class="fix-pct"><strong>2%</strong> of confirmed reach</p>
-<div class="track" aria-hidden="true"><span class="seg prev w56"></span><span class="seg cur w4"></span></div>
-<p class="fix-cum">1 confirmed pair · <strong>59%</strong> cumulative</p></div>
+<div class="fix-impact"><p class="fix-pct"><strong>1%</strong> of confirmed reach</p>
+<div class="track" aria-hidden="true"><span class="seg prev w48"></span><span class="seg cur w4"></span></div>
+<p class="fix-cum">1 confirmed pair · <strong>51%</strong> cumulative</p></div>
 </li>
 </ol>
 <p class="note">Greedy pick by confirmed (principal, repo) pairs removed; the bar shows the earlier fixes in a lighter shade. Fixes that only touch not visible edges are never suggested.</p>
@@ -390,12 +390,12 @@ footer{background:none}}
 <tr><td class="n rank">2</td><td class="who"><code>members:acme-actions</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">9</td><td class="n" data-l="Orgs">3</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">94.5</td></tr>
 <tr><td class="n rank">3</td><td class="who"><span class="grp">2 principals (team:acme-actions/platform)</span> <code>team:acme-actions/platform, team:acme-actions/platform-oncall</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">7</td><td class="n" data-l="Orgs">2</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">82.1</td></tr>
 <tr><td class="n rank">4</td><td class="who"><code>identity:bob</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">9</td><td class="n" data-l="Orgs">3</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible"><span aria-hidden="true">?</span> 1 repo</td><td class="n" data-l="Score">61.5</td></tr>
-<tr><td class="n rank">5</td><td class="who"><code>identity:erin</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">7</td><td class="n" data-l="Orgs">2</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">36.5</td></tr>
-<tr><td class="n rank">6</td><td class="who"><code>team:acme-app/release</code></td><td class="sevc"><span class="sev s-high" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">high impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-secret w16"></span></span><span class="itext"><span class="it"><span class="sw c-secret" aria-hidden="true"></span>1 secret</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">13.5</td></tr>
-<tr><td class="n rank">7</td><td class="who"><code>external:anyone</code><a class="adv inj" href="#ai-self-merge"><span aria-hidden="true">!</span> lands code on 1 repo without human review [bot_self_merge]</a></td><td class="sevc"><span class="sev s-high" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">high impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-secret w16"></span></span><span class="itext"><span class="it"><span class="sw c-secret" aria-hidden="true"></span>1 secret</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">9.5</td></tr>
-<tr><td class="n rank">8</td><td class="who"><code>members:acme-legacy</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">2</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible"><span aria-hidden="true">?</span> 1 repo</td><td class="n" data-l="Score">6.8</td></tr>
-<tr><td class="n rank">9</td><td class="who"><code>team:acme-legacy/legacy-devs</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">5.2</td></tr>
-<tr><td class="n rank">10</td><td class="who"><code>identity:carol</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">2</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">4.5</td></tr>
+<tr><td class="n rank">5</td><td class="who"><code>identity:acme-ai-reviewer[bot]</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">10</td><td class="n" data-l="Orgs">1</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w32"></span><span class="c-secret w52"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>2 OIDC trusts</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>3 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible"><span aria-hidden="true">?</span> 0 repos + 1 impact</td><td class="n" data-l="Score">53.0</td></tr>
+<tr><td class="n rank">6</td><td class="who"><code>identity:erin</code></td><td class="sevc"><span class="sev s-critical" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">critical impact</span></td><td class="n strong" data-l="Confirmed repos">7</td><td class="n" data-l="Orgs">2</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-oidc w16"></span><span class="c-secret w32"></span><span class="c-runner w16"></span></span><span class="itext"><span class="it"><span class="sw c-oidc" aria-hidden="true"></span>1 OIDC trust</span><span class="it"><span class="sw c-secret" aria-hidden="true"></span>2 secrets</span><span class="it"><span class="sw c-runner" aria-hidden="true"></span>1 runner pool</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">36.5</td></tr>
+<tr><td class="n rank">7</td><td class="who"><code>team:acme-app/release</code></td><td class="sevc"><span class="sev s-high" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">high impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-secret w16"></span></span><span class="itext"><span class="it"><span class="sw c-secret" aria-hidden="true"></span>1 secret</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">13.5</td></tr>
+<tr><td class="n rank">8</td><td class="who"><code>external:anyone</code><a class="adv inj" href="#ai-self-merge"><span aria-hidden="true">!</span> lands code on 1 repo without human review [bot_self_merge]</a></td><td class="sevc"><span class="sev s-high" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">high impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><div class="impact"><span class="ibar" aria-hidden="true"><span class="c-secret w16"></span></span><span class="itext"><span class="it"><span class="sw c-secret" aria-hidden="true"></span>1 secret</span></span></div></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">9.5</td></tr>
+<tr><td class="n rank">9</td><td class="who"><code>members:acme-legacy</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">2</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible"><span aria-hidden="true">?</span> 1 repo</td><td class="n" data-l="Score">6.8</td></tr>
+<tr><td class="n rank">10</td><td class="who"><code>team:acme-legacy/legacy-devs</code></td><td class="sevc"><span class="sev s-medium" title="Severity of the confirmed impact (cloud, secrets, runners, repos), as in gop sarif; an advisory states its own severity">medium impact</span></td><td class="n strong" data-l="Confirmed repos">1</td><td class="n" data-l="Orgs">1</td><td class="reach"><span class="muted">repo CI only</span></td><td class="poss" data-l="Possible">none</td><td class="n" data-l="Score">5.2</td></tr>
 </tbody></table></div>
 <p class="note">Impact is the severity of confirmed reach, as in <code>gop sarif</code>, and is separate from an advisory's own severity: critical for cloud OIDC trust or a cloud role, high for secrets or self-hosted runners, medium for CI in repos. Score counts confirmed reach only; possible reach depends on at least one fact gop could not see.</p>
 
@@ -489,7 +489,7 @@ footer{background:none}}
 </section>
 <section aria-labelledby="org-ownership">
 <h2 id="org-ownership">Org ownership</h2>
-<p class="lede">12% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 59 confirmed (principal, repo) pairs.</p>
+<p class="lede">10% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 69 confirmed (principal, repo) pairs.</p>
 <div class="card"><ul class="ownh" aria-label="Accounts by number of orgs owned"><li class="t-"><span class="ol">1 org</span><span class="track" aria-hidden="true"><span class="seg cur w100"></span></span><span class="on">1 <span class="vh">account</span></span></li>
 <li class="t-"><span class="ol">2–4 orgs</span><span class="track" aria-hidden="true"><span class="seg cur w100"></span></span><span class="on">1 <span class="vh">account</span></span></li>
 <li class="t-high"><span class="ol">5–9 orgs</span><span class="track" aria-hidden="true"><span class="seg cur w0"></span></span><span class="on">0 <span class="vh">accounts</span></span></li>
@@ -706,6 +706,44 @@ footer{background:none}}
 </ol>
 </details>
 </div>
+<div class="pgroup"><h3><code>identity:acme-ai-reviewer[bot]</code> <span class="hopn">4 paths</span></h3>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/billing</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>acme-ai-reviewer[bot]</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /orgs/{org}/installations</span></span><span class="chip"><small>repo</small><code>acme-app/billing</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/billing/.github/workflows/deploy.yml">acme-app/billing › deploy.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/billing</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/search</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>acme-ai-reviewer[bot]</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /orgs/{org}/installations</span></span><span class="chip"><small>repo</small><code>acme-app/search</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/search/.github/workflows/index.yaml">acme-app/search › index.yaml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>oidc</small><code>acme-app/search</code></span></li>
+</ol>
+</details>
+<details class="pathc">
+<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>secret:acme-app/docs</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>acme-ai-reviewer[bot]</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /orgs/{org}/installations</span></span><span class="chip"><small>repo</small><code>acme-app/docs</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/docs/.github/workflows/build.yml">acme-app/docs › build.yml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>secret</small><code>acme-app/docs</code></span></li>
+</ol>
+</details>
+<details class="pathc is-poss">
+<summary><span class="badge nv"><span aria-hidden="true">?</span> possible: a hop is not visible</span> <span class="to">to <code>runner:acme-app/search</code></span> <span class="hopn">3 hops</span></summary>
+<p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off</p>
+<ol class="chain"><li><span class="chip"><small>identity</small><code>acme-ai-reviewer[bot]</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /orgs/{org}/installations</span></span><span class="chip"><small>repo</small><code>acme-app/search</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">DEFINED_IN</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/.github/workflows (reversed)</span></span><span class="chip"><small>workflow</small><code title="workflow:acme-app/search/.github/workflows/index.yaml">acme-app/search › index.yaml</code></span></li>
+<li><span class="hop" tabindex="0"><span class="hk">EXECUTES_WITH</span><span class="badge nv"><span aria-hidden="true">?</span> not visible</span><span class="tip">source rest:GET /repos/{owner}/{repo}/contents/{path}</span></span><span class="chip"><small>runner</small><code>acme-app/search</code></span></li>
+</ol>
+</details>
+</div>
 <div class="pgroup"><h3><code>identity:erin</code> <span class="hopn">3 paths</span></h3>
 <details class="pathc">
 <summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>oidc:acme-app/billing</code></span> <span class="hopn">4 hops</span></summary>
@@ -788,14 +826,6 @@ footer{background:none}}
 <p class="ctx"><span aria-hidden="true">ⓘ</span> Context, not part of the score: target org acme-legacy: SSO enforced, IP allow list unknown</p>
 <ol class="chain"><li><span class="chip"><small>team</small><code>acme-legacy/legacy-devs</code></span></li>
 <li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge live"><span aria-hidden="true">✓</span> live</span><span class="tip">source rest:GET /orgs/{org}/teams/{team_slug}/repos</span></span><span class="chip"><small>repo</small><code>acme-legacy/old-site</code></span></li>
-</ol>
-</details>
-</div>
-<div class="pgroup"><h3><code>identity:carol</code> <span class="hopn">1 path</span></h3>
-<details class="pathc">
-<summary><span class="badge live"><span aria-hidden="true">✓</span> confirmed</span> <span class="to">to <code>repo:acme-secure/vault-proxy</code></span> <span class="hopn">1 hop</span></summary>
-<ol class="chain"><li><span class="chip"><small>identity</small><code>carol</code></span></li>
-<li><span class="hop" tabindex="0"><span class="hk">CAN_PUSH</span><span class="badge inferred"><span aria-hidden="true">≈</span> inferred</span><span class="tip">source rest:GET /enterprises/{enterprise}/consumed-licenses</span></span><span class="chip"><small>repo</small><code>acme-secure/vault-proxy</code></span></li>
 </ol>
 </details>
 </div>

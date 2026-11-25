@@ -6,7 +6,7 @@ Enterprise **acme**, collected 2026-11-20T12:00:00Z
 
 > identity:bob can push code that runs in 9 repos across 3 orgs (confirmed), including 1 cloud OIDC trust, 2 secret scopes, 1 self-hosted runner pool. 1 repo more possible through facts gop could not see.
 >
-> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 31% of confirmed reach.
+> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 26% of confirmed reach.
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
@@ -25,7 +25,7 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 | identity:alice | 13 | 3 | 2 | 3 | 1 | 0 repos + 1 impact | 140.6 |
 | members:acme-actions | 9 | 3 | 1 | 2 | 1 | 0 repos | 93.4 |
 | 2 principals (team:acme-actions/platform): team:acme-actions/platform, team:acme-actions/platform-oncall | 7 | 2 | 1 | 1 | 1 | 0 repos | 68.6 |
-| identity:erin | 7 | 2 | 1 | 1 | 1 | 0 repos | 30.5 |
+| identity:acme-ai-reviewer\[bot\] | 10 | 1 | 2 | 2 | 1 | 0 repos + 1 impact | 48.5 |
 
 - identity:bob can start 1 exposed AI agent workflow without push access (see AI agents in CI).
 - members:acme-legacy can start 1 exposed AI agent workflow without push access (see AI agents in CI).
@@ -91,7 +91,7 @@ The HTML report steps through each path and shows where a fix cuts it.
 
 ## Org ownership
 
-11% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 62 confirmed (principal, repo) pairs.
+10% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 72 confirmed (principal, repo) pairs.
 
 | Orgs owned | Accounts |
 |---|---:|
@@ -106,11 +106,11 @@ The HTML report steps through each path and shows where a fix cuts it.
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 19 | 31% |
-| 2 | Lower the default repository permission of acme-actions to read | 8 | 44% |
-| 3 | Harden acme-actions/setup/.github/workflows/codex-review.yml (untrusted code runs, and untrusted text reaches an AI step, on pull\_request\_target) | 4 | 50% |
-| 4 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 56% |
-| 5 | Lower the default repository permission of acme-legacy to read | 2 | 60% |
+| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 19 | 26% |
+| 2 | Lower the default repository permission of acme-actions to read | 8 | 38% |
+| 3 | Harden acme-actions/setup/.github/workflows/codex-review.yml (untrusted code runs, and untrusted text reaches an AI step, on pull\_request\_target) | 4 | 43% |
+| 4 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 49% |
+| 5 | Lower the default repository permission of acme-legacy to read | 2 | 51% |
 
 ## Pinned, still reachable
 
@@ -261,29 +261,28 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   3. action:acme-actions/deploy@main → workflow:acme-app/infra/.github/workflows/apply.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
   4. workflow:acme-app/infra/.github/workflows/apply.yml → runner:acme-app/infra, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
-### identity:erin
+### identity:acme-ai-reviewer\[bot\]
 
 - **confirmed** to oidc:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
-     note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/mobile
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/billing, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/billing → workflow:acme-app/billing/.github/workflows/deploy.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **confirmed** to oidc:acme-app/search
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
-     note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to runner:acme-app/infra
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → oidc:acme-app/search, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **confirmed** to secret:acme-app/docs
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
-     note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/infra/.github/workflows/apply.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/infra/.github/workflows/apply.yml → runner:acme-app/infra, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/docs, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **possible: a hop is not visible** to runner:acme-app/search
+  _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → runner:acme-app/search, EXECUTES\_WITH, **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ## Org settings
 

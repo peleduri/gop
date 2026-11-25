@@ -18,6 +18,24 @@ import (
 // read).
 const appInstallFix = "an org owner's token (classic: the scope GitHub documents for GET /orgs/{org}/installations; fine-grained or GitHub App: Organization permission Administration: read)"
 
+// srcAppInstallations is the source of App push edges.
+const srcAppInstallations = "rest:GET /orgs/{org}/installations"
+
+// appSelectedFix is the fix for an App installed on selected repositories:
+// GitHub lists them only to the App itself (GET /installation/repositories
+// takes the App's installation token, GET /user/installations/{id}/repositories
+// a GitHub App user access token), never to an org owner's token.
+const appSelectedFix = "none with an org token: GitHub lists an installation's selected repositories only to the App's own tokens; " +
+	"an org owner can read the list in the org settings (GitHub Apps, Configure) and narrow it or drop contents: write"
+
+// appGrant is one installation in an org that can push (contents: write).
+type appGrant struct {
+	identity  string // identity:<slug>[bot]
+	slug      string
+	selection string // all | selected
+	workflows bool   // workflows: write
+}
+
 // apiInstallation is the part of an org installation gop keeps.
 type apiInstallation struct {
 	AppID               int64             `json:"app_id"`
@@ -82,8 +100,54 @@ func (k *collector) collectInstallations(ctx context.Context, o *orgState) error
 		if graph.AppNamesAI(in.AppSlug) {
 			setAttr(n, graph.AttrAppAI, "name", graph.Live)
 		}
+		if writes(in.Permissions["contents"]) {
+			o.appPush = append(o.appPush, appGrant{identity: n.ID, slug: in.AppSlug,
+				selection: in.RepositorySelection, workflows: writes(in.Permissions["workflows"])})
+		}
 	}
 	return nil
+}
+
+// writes reports whether a permission level allows writing.
+func writes(lvl string) bool { return lvl == "write" || lvl == "admin" }
+
+// appPushEdges turns the org's App installations with contents: write into
+// CAN_PUSH edges from the App identity to the org's collected repositories.
+// An installation on all repositories gives inferred edges (rule
+// app_install: the installation's scope applied to the org's repository
+// list). An installation on selected repositories gives not_visible edges
+// (possible reach only) and a coverage entry: an org token cannot read which
+// repositories were selected, so gop does not guess. Run after the other
+// push grants: k.edge keeps the first edge per (from, kind, to).
+func (k *collector) appPushEdges(o *orgState) {
+	var selected []string
+	for _, a := range o.appPush {
+		ev, attrs := graph.Inferred, map[string]string{
+			graph.AttrVia: graph.ViaAppInstall, graph.AttrRule: graph.RuleAppInstall, attrPermission: "write", graph.AttrAppRepos: "all",
+		}
+		if a.selection != "all" {
+			ev, attrs = graph.NotVisible, map[string]string{
+				graph.AttrVia: graph.ViaAppInstall, attrPermission: "write", graph.AttrAppRepos: "selected",
+				graph.AttrReason: "installed on selected repositories; the list is not visible to an org token",
+			}
+			selected = append(selected, a.slug)
+		}
+		if a.workflows {
+			attrs[graph.AttrAppWorkflows] = "write"
+		}
+		for _, r := range o.repos {
+			e := make(map[string]string, len(attrs))
+			for key, v := range attrs {
+				e[key] = v
+			}
+			k.edge(a.identity, r.ID, graph.CanPush, ev, srcAppInstallations, e)
+		}
+	}
+	if len(selected) > 0 {
+		sort.Strings(selected)
+		k.cover(o.node.ID, graph.FactAppPush, "GitHub Apps with contents: write on selected repositories, which an org token cannot list: "+
+			strings.Join(selected, ", ")+" (each counts as possible push to every repository of the org)", appSelectedFix)
+	}
 }
 
 // addToList adds v to a sorted comma list.

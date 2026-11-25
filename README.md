@@ -304,6 +304,7 @@ Scoring: each cloud role a principal reaches adds 13 to its blast radius score. 
 - Org membership counts and the repositories of each org.
 - `CAN_PUSH` from an org's members to every repo in that org when the default repository permission is Write or Admin.
 - `identity:` nodes for licensed users with `MEMBER_OF` their orgs, and `CAN_PUSH` from org owners (every repo in the org), direct collaborators and outside collaborators with push (including custom repository roles). When a repo's collaborators can't be listed, license-listed repo grants become `not_visible` (possible) edges.
+- `CAN_PUSH` from installed GitHub Apps with `contents: write` (`identity:<slug>[bot]`, from `GET /orgs/{org}/installations`, org owner token): every repo of the org when installed on all repositories (inferred), possible only when installed on selected repositories, whose list an org token cannot read. `workflows: write` is noted on the edge.
 - `team:` nodes with nested teams (`MEMBER_OF` the parent team), direct team members (`MEMBER_OF` the team), and `CAN_PUSH` from each team repository grant with push. Members of a child team reach the parent's repos through the nesting. A non-owner token can't see secret teams; that gap is recorded in coverage.
 - Workflow files: the Actions and reusable workflows they use, `id-token: write`, secrets and self-hosted runners. Composite Actions and reusable workflows are expanded recursively at the referenced ref.
 - The Actions access setting of each private or internal repo that hosts a referenced Action. A workflow in another org can only use the Action when the setting allows it; when the setting can't be read (it needs repo admin), cross-org paths through the Action are possible, not confirmed.
@@ -317,6 +318,7 @@ What gop does with it, beyond reach: top risks grouped by cause (for example sta
 Refreshing some orgs: `gop collect --enterprise acme --orgs acme-actions --merge-into graph.json --out graph2.json` re-collects only those orgs into an existing graph (library: `collect.Config.MergeInto` with `Orgs`, or `collect.Merge`), so cross-org paths survive without a full run. Their facts and coverage are replaced and every other org's are kept; the result is validated before it is written, and a stopped run writes a partial merged graph. The merged graph mixes observation times: `org_collected_at` records when each org was last read, and `explain` shows each edge's `observed_at`. Both graphs must come from the same enterprise, host and token mode. Run `gop enrich` again after a merge: cloud trust edges of re-collected workflows are kept, but their coverage is not.
 
 Not collected yet (planned): GitHub App grants, org-level custom roles, enterprise teams, and audit log facts.
+Not collected yet (planned): org-level custom roles, enterprise teams, audit log facts and environment protection rules.
 
 GitHub Enterprise Server: `gop collect --github-url https://github.acme.example` (or `GOP_GITHUB_URL`) reads `/api/v3` and `/api/graphql` on that host and leaves the APIs its version lacks `not_visible`. See [docs/ghes.md](docs/ghes.md).
 
@@ -440,6 +442,7 @@ Contributors: [docs/architecture.md](docs/architecture.md) has the package map, 
 ## Roadmap
 
 The direction, without dates, is in [ROADMAP.md](ROADMAP.md): collection that scales to large enterprises, better AI agent detection, more of the control graph (App push grants, audit log evidence) and distribution. Shipped items move to [What gop collects today](#what-gop-collects-today) and [CHANGELOG.md](CHANGELOG.md).
+The direction, without dates, is in [ROADMAP.md](ROADMAP.md): collection that scales to large enterprises, better AI agent detection, more of the control graph (audit log evidence, environment protection rules) and distribution. Shipped items move to [What gop collects today](#what-gop-collects-today) and [CHANGELOG.md](CHANGELOG.md).
 
 ## Community
 

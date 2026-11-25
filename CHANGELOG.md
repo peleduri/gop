@@ -59,6 +59,15 @@ flags may change in minor releases.
   `--allow-all-tools` and `--allow-all`), reads `--allow-tool` as
   `allowed_tools`, and reads `--approval-mode yolo` (Qwen Code, Gemini CLI)
   as `yolo`.
+- GitHub App push grants: an installed App with `contents: write` gets
+  `CAN_PUSH` edges (`via=app_install`) from its identity to the repos it
+  covers. Installed on all repositories: every repo of the org, `inferred`
+  (rule `app_install`). Installed on selected repositories: GitHub lists them
+  only to the App's own tokens, so every repo of the org gets a `not_visible`
+  edge (possible reach) and the org a `can_push:app_install` coverage entry.
+  `app_workflows=write` marks installations that can also change workflow
+  files. Apps now count in reach, scores, totals and `who_can_reach`, once
+  per (App, repo) pair across orgs (#199).
 - The demo plants an AI agent in dangerous mode end to end (story 11).
   The public `acme-app/api` runs `claude-code-action@main` on
   `issue_comment` with no author check and `--dangerously-skip-permissions`,

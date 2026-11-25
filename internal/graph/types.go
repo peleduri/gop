@@ -265,7 +265,7 @@ const (
 	AttrPointer    = "pointer"     // CAN_ASSUME: JSON pointer of the trust inside the file
 	AttrProvider   = "provider"    // CAN_ASSUME, cloud_target: aws | gcp | azure
 	AttrOIDC       = "oidc"        // CAN_ASSUME: the oidc node whose token is matched
-	AttrReason     = "reason"      // CAN_ASSUME with evidence not_visible: why gop cannot decide the match
+	AttrReason     = "reason"      // CAN_ASSUME with evidence not_visible: why gop cannot decide the match; CAN_PUSH via=app_install not_visible: why the repository list is unknown
 	AttrTrust      = "trust"       // CAN_ASSUME: the trust's own target when it names more than the node (an Azure federated credential)
 	AttrAccount    = "account"     // cloud_target: AWS account, GCP project, Azure subscription when known
 	AttrRole       = "role"        // cloud_target: role name, service account or identity
@@ -345,6 +345,13 @@ const (
 	ViaRefBypass           = "ref_bypass"           // may land code alone on a protected branch (Attrs[AttrRef]): a ruleset bypass actor, a classic bypass allowance or push restriction, or a repo admin when admins are not enforced
 	ViaTokenWrite          = "token_write"          // workflow -> its own repo: the workflow's GITHUB_TOKEN has contents: write (Attrs["jobs"] lists the jobs)
 	ViaUnknown             = "unknown"              // not_visible edge: members of a host org may push to a repo gop did not collect (outside --orgs, archived or not listed for the token)
+	// ViaAppInstall: identity:<slug>[bot] -> repo. A GitHub App installed on
+	// the repo's org with contents: write. Inferred (rule app_install) when
+	// the installation covers all repositories; not_visible (possible only,
+	// Attrs[AttrReason]) when it covers selected repositories, whose list an
+	// org token cannot read. Attrs[AttrAppRepos] is all | selected and
+	// Attrs[AttrAppWorkflows] is write when the App may also change workflow files.
+	ViaAppInstall = "app_install"
 )
 
 // AttrRule on an inferred edge names the rule that derived it. Rule IDs are
@@ -353,6 +360,7 @@ const (
 	AttrRule        = "rule"
 	RuleDefaultPerm = ViaDefaultPerm // members:X -CAN_PUSH-> every repo of X, from the org's default permission write or admin
 	RuleOrgOwner    = ViaOrgOwner    // identity -CAN_PUSH-> every repo of an org it owns
+	RuleAppInstall  = ViaAppInstall  // App identity -CAN_PUSH-> every repo of an org where it is installed on all repositories with contents: write
 )
 
 // Branch protection of mutable action refs (on action_ref nodes with
@@ -495,6 +503,7 @@ const (
 	AttrAppWrite         = "app_write"         // identity: sorted comma list of the permissions granted with write in any of those orgs, or none
 	AttrAppRepos         = "app_repos"         // identity: all (installed on every repository of at least one org) | selected
 	AttrAppAI            = "app_ai"            // identity: name when the slug names an AI coding or review tool (AppAIWords)
+	AttrAppWorkflows     = "app_workflows"     // CAN_PUSH via=app_install: write when the installation also grants workflows: write (it can change workflow files); absent otherwise
 
 	// Secret scanning, from the repo's security_and_analysis.
 	AttrSecretScanning       = "secret_scanning"                 // on | off | unknown
@@ -508,7 +517,11 @@ const (
 	FactCodeowners       = "codeowners"
 	FactPolicyFiles      = "policy_files"
 	FactAppInstallations = "app_installations"
-	FactSecretScanning   = "secret_scanning"
+	// FactAppPush is the coverage fact of an App installed on selected
+	// repositories with contents: write: which repositories it can push to
+	// is not visible to an org token.
+	FactAppPush        = "can_push:app_install"
+	FactSecretScanning = "secret_scanning"
 )
 
 // AI coding agents in GitHub Actions (workflow nodes, see
