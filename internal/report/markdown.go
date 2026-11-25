@@ -150,6 +150,7 @@ func writeMarkdown(w io.Writer, d data) error {
 		p("\n\n")
 	}
 	writeMDAgents(p, d)
+	writeMDAgentPaths(p, d)
 	writeMDBotMerge(p, d)
 	if o := d.Ownership; o != nil {
 		p("## Org ownership\n\n%s\n\n| Orgs owned | Accounts |\n|---|---:|\n", md(o.Line))
@@ -324,6 +325,23 @@ func writeMDAgents(p func(string, ...any), d data) {
 		p("\n")
 	}
 	p("Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.\n\n")
+}
+
+// writeMDAgentPaths writes the Agent paths list: one line per path, from who
+// can start the agent to the last hop it reaches.
+func writeMDAgentPaths(p func(string, ...any), d data) {
+	if len(d.AgentPaths) == 0 {
+		return
+	}
+	p("## Agent paths\n\n%s\n\n", md(d.AgentPathsLine))
+	for i, ap := range d.AgentPaths {
+		agent := ap.Agent
+		if ap.Mode != "" {
+			agent += " (dangerous mode: " + ap.Mode + ")"
+		}
+		p("%d. %s → %s in %s → %s. Evidence: %s.\n", i+1, md(ap.Present[0].Title), md(agent), md(ap.Workflow), md(ap.Reach), md(ap.EvCount))
+	}
+	p("\nThe HTML report steps through each path and shows where a fix cuts it.\n\n")
 }
 
 // writeMDHardening writes the repo hardening section: context only.

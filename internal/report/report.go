@@ -92,6 +92,9 @@ type data struct {
 	// empty when no workflow runs an agent.
 	Agents    []agentRow
 	AgentLine string
+	// AgentPaths is the "Agent paths" view, AgentPathsLine its lede.
+	AgentPaths     []agentPath
+	AgentPathsLine string
 	// BotMerge is the "AI approve + self-merge" section, BotMergeLine its
 	// lede; empty when no repo has a review bypass.
 	BotMerge     []botMergeRow
@@ -425,6 +428,9 @@ func build(g *graph.Graph, opts Options) data {
 		d.LockLine = lockLine(st)
 	}
 	d.Agents, d.AgentLine = agentRows(ix)
+	if d.AgentPaths = buildAgentPaths(ix); len(d.AgentPaths) > 0 {
+		d.AgentPathsLine = agentPathsLine(d.AgentPaths)
+	}
 	if d.BotMerge = botMergeRows(ix); len(d.BotMerge) > 0 {
 		d.BotMergeLine = botMergeLine(d.BotMerge)
 	}

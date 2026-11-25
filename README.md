@@ -36,6 +36,7 @@ gop report  --graph graph.json --out report.html
 
 - **A verdict** in one sentence: who can make code run where, and the single change that removes the most confirmed reach.
 - **AI agents in CI:** workflows that run a coding agent, who can start each one (including people without push access), what untrusted text reaches its prompt, and what its token, secrets and tools let it do.
+- **Agent paths:** the same agents drawn as a path you can step through, from who can start the agent to the last thing it reaches, with each agent in a dangerous mode (approvals or sandbox turned off) marked, and toggles that show where a fix cuts the path.
 - **Cross-org reach:** members of one org who can push to an Action that runs in other orgs' workflows, including Actions nested inside composite Actions and SHA pins that still run a mutable ref.
 - **Suggested fixes** ranked by the share of confirmed reach each removes, with the exact change (`gop fix-plan` prints the steps).
 - **Confirmed vs possible:** every hop is `live`, `inferred`, `audit`, `supplied` or `not_visible`. A hop the token could not see makes a path *possible*, never "no path".

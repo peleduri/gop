@@ -49,6 +49,14 @@ Score counts confirmed reach only.
 
 Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.
 
+## Agent paths
+
+1 agent path; 0 in dangerous mode, 1 that people without push access can start.
+
+1. Anyone on GitHub → claude-cli in acme-app/web/.github/workflows/ai-review.yml → Merge to the default branch of acme-app/web. Evidence: live 6, inferred 1.
+
+The HTML report steps through each path and shows where a fix cuts it.
+
 ## AI approve + self-merge
 
 A bot approves a pull request its author can steer, and a workflow the author can start merges it with a bot token the default branch's rules let through: anyone who can open a pull request lands code with no human review. gop treats it like push access.

@@ -7,6 +7,17 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- "Agent paths" in `gop report`: for each AI agent workflow, the chain from
+  who can start it, through the untrusted text it reads, the workflow and its
+  token, the agent (flagged when it runs in a dangerous mode such as
+  `--dangerously-skip-permissions`, `--yolo`, `--full-auto` or
+  `danger-full-access`), the commands it runs, its secrets, what it can push
+  or merge, to OIDC and a cloud role. Every hop shows its evidence level.
+  The HTML report steps through each path (play, pause, step, keyboard
+  arrows) and has "What if we fix it?" toggles that show where a fix cuts the
+  path; hops the agent does not have are drawn dimmed. Built from the
+  existing graph, no new collection; works offline under the report's CSP,
+  respects reduced motion. The Markdown report lists one line per path.
 - The demo plants an AI agent in dangerous mode end to end (story 11).
   The public `acme-app/api` runs `claude-code-action@main` on
   `issue_comment` with no author check and `--dangerously-skip-permissions`,

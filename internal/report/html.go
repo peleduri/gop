@@ -43,7 +43,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 </div></div>
 {{if .Demo}}<p class="demo">Synthetic demo graph</p>{{end}}{{if .Partial}}<p class="partial" role="note"><span aria-hidden="true">⚠</span> {{.Partial}}</p>{{end}}
 </div></header>
-<nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li>{{if .Banner}}<li><a href="#changes">What changed</a></li>{{end}}<li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li>{{if .Agents}}<li><a href="#ai-agents">AI agents</a></li>{{end}}{{if .BotMerge}}<li><a href="#ai-self-merge">AI self-merge</a></li>{{end}}{{if .Ownership}}<li><a href="#org-ownership">Org ownership</a></li>{{end}}<li><a href="#coverage">Not visible</a></li>{{if .Pinned}}<li><a href="#pinned">Pinned, still reachable</a></li>{{end}}<li><a href="#top-paths">Top paths</a></li>{{if .Orgs}}<li><a href="#org-settings">Org settings</a></li>{{end}}{{if .RepoHardening}}<li><a href="#repo-hardening">Repo hardening</a></li>{{end}}<li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
+<nav aria-label="Report sections"><div class="wrap"><ul><li><a href="#verdict">Verdict</a></li>{{if .Banner}}<li><a href="#changes">What changed</a></li>{{end}}<li><a href="#fixes">Top fixes</a></li><li><a href="#top-risks">Top risks</a></li>{{if .Agents}}<li><a href="#ai-agents">AI agents</a></li>{{end}}{{if .AgentPaths}}<li><a href="#agent-paths">Agent paths</a></li>{{end}}{{if .BotMerge}}<li><a href="#ai-self-merge">AI self-merge</a></li>{{end}}{{if .Ownership}}<li><a href="#org-ownership">Org ownership</a></li>{{end}}<li><a href="#coverage">Not visible</a></li>{{if .Pinned}}<li><a href="#pinned">Pinned, still reachable</a></li>{{end}}<li><a href="#top-paths">Top paths</a></li>{{if .Orgs}}<li><a href="#org-settings">Org settings</a></li>{{end}}{{if .RepoHardening}}<li><a href="#repo-hardening">Repo hardening</a></li>{{end}}<li><a href="#gop-explore-h">Explore</a></li></ul></div></nav>
 <main id="main" class="wrap">
 <div id="gop-static">
 <section id="verdict" class="hero v-{{.Verdict}}" aria-labelledby="verdict-h">
@@ -116,7 +116,28 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{if .Fixes}}<ol class="ag-fix">{{range .Fixes}}<li>{{.}}</li>{{end}}</ol>{{end}}
 </div>
 {{end}}<p class="note">Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.</p>
-</section>{{end}}{{if .BotMerge}}
+</section>{{end}}{{if .AgentPaths}}
+<section aria-labelledby="agent-paths">
+<h2 id="agent-paths">Agent paths</h2>
+<p class="lede">{{.AgentPathsLine}} Follow the code from who can start each agent to what it reaches. Step through the hops, and tick a fix to see where it cuts the path.</p>
+{{range .AgentPaths}}<div class="card ap t-{{.Tone}}" id="{{.ID}}" data-ap>
+<p class="ag-h"><code>{{.Workflow}}</code> <span class="ag-k">{{.Agent}}</span>{{if .Mode}} <span class="adv">dangerous mode: {{.Mode}}</span>{{end}}</p>
+<p class="ap-banner{{if eq .Tone "crit"}} crit{{end}}" data-ap-banner role="status">{{.Banner}}</p>
+<div class="ap-canvas"><svg class="ap-svg" viewBox="0 0 1210 500" role="group" aria-label="Agent path diagram for {{.Workflow}}" aria-describedby="{{.ID}}-hops">
+{{range .Zones}}<g class="ap-zone{{if .Danger}} danger{{end}}"><rect x="{{.X}}" y="{{.Y}}" width="{{.W}}" height="{{.H}}" rx="14"/><text class="t" x="{{.X}}" y="{{.Y}}" dx="14" dy="24">{{.Title}}</text><text class="s" x="{{.X}}" y="{{.Y}}" dx="14" dy="42">{{.Sub}}</text></g>
+{{end}}{{range .Edges}}<path class="ap-edge" d="{{.D}}" data-to="{{.To}}"/>
+{{end}}{{range .Hops}}<g class="ap-node{{if not .Present}} off{{end}}{{if .Danger}} danger{{end}}{{if .Red}} red{{end}}" transform="translate({{.X}},{{.Y}})"{{if .Present}} data-n="{{.N}}" tabindex="0" role="button" aria-label="Hop {{.N}}: {{.Kind}}: {{.Title}}"{{end}}>{{if .Danger}}<rect class="ring" x="-5" y="-5" width="170" height="60" rx="12"/>{{end}}<rect class="box" width="160" height="50" rx="9"/><text class="t" x="12" y="21">{{.Short}}</text><text class="s" x="12" y="38">{{.ShortSub}}</text></g>
+{{end}}{{with index .Present 0}}<circle class="ap-dot" r="7" cx="{{.CX}}" cy="{{.CY}}" data-ap-dot/>{{end}}
+</svg></div>
+<div class="ap-card" data-ap-card aria-live="polite">{{with index .Present 0}}<p class="ap-k{{if or .Danger .Red}} crit{{end}}" data-k>Hop 1 · {{.Kind}}</p><p class="ap-h" data-h>{{.Title}}</p><p class="ap-d" data-d>{{.Detail}}</p><p class="ap-m{{if or .Danger .Red}} crit{{end}}" data-m>{{.Risk}}</p><span class="badge {{.Ev}}" data-ev><span aria-hidden="true">{{icon .Ev}}</span> {{.EvLabel}}</span>{{end}}</div>
+<div class="ap-ctl" data-ap-ctl hidden><button type="button" data-act="restart" aria-label="Restart">↺</button><button type="button" data-act="prev" aria-label="Previous hop">‹</button><button type="button" class="ap-play" data-act="play" aria-pressed="false">Play</button><button type="button" data-act="next" aria-label="Next hop">›</button><span class="ap-count" data-count>1 / {{len .Present}}</span></div>
+<ol class="ap-steps" id="{{.ID}}-hops" aria-label="Hops">{{range .Present}}<li class="{{if .Red}}red{{end}}{{if .Danger}} danger{{end}}" data-n="{{.N}}" data-kind="{{.Kind}}" data-title="{{.Title}}" data-detail="{{.Detail}}" data-risk="{{.Risk}}" data-ev="{{.Ev}}" data-evl="{{.EvLabel}}" data-cx="{{.CX}}" data-cy="{{.CY}}"><button type="button"><span class="ap-n">{{.N}}</span><span class="ap-l">{{.Kind}}</span><span class="ap-v">{{.Title}}</span></button><span class="vh"> {{.Detail}} {{.Risk}}. Evidence: {{.EvLabel}}.</span></li>
+{{end}}</ol>
+{{if .Fixes}}<fieldset class="ap-fix"><legend>What if we fix it?</legend>{{range .Fixes}}<label><input type="checkbox" data-cuts="{{.CutsAttr}}" data-chain="{{.Chain}}" disabled> <span><strong>{{.Label}}</strong> <span class="muted">{{.Detail}}</span>{{if .Command}} <code>{{.Command}}</code>{{end}}</span></label>
+{{end}}</fieldset>{{end}}
+<p class="note">Evidence on this path: {{.EvCount}}. Dimmed boxes are hops this agent does not have.</p>
+</div>
+{{end}}</section>{{end}}{{if .BotMerge}}
 <section aria-labelledby="ai-self-merge">
 <h2 id="ai-self-merge">AI approve + self-merge</h2>
 <p class="lede">{{.BotMergeLine}}</p>
