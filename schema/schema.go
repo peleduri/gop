@@ -15,3 +15,9 @@ var GraphV1 []byte
 //
 //go:embed gop.graph.v2.schema.json
 var GraphV2 []byte
+
+// SummaryV1 is the JSON Schema (draft 2020-12) for gop.summary/v1, the
+// summary gop summary writes (see docs/cloud.md).
+//
+//go:embed gop.summary.v1.schema.json
+var SummaryV1 []byte

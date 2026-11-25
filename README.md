@@ -419,13 +419,17 @@ jobs:
 - The diff stays private: `diff.md` and `diff.json` (and `diff-stderr.txt`, when `gop diff` printed anything) go only into the artifact. The log and the step summary never name nodes; the summary gets one line, "confirmed reach increased; see artifact". No PR comments, issues or annotations.
 - With no previous artifact (first run, or it expired) the gate logs "no baseline, skipping" and passes. If `gop diff` cannot compare the graphs (a different enterprise, a major schema change), the job fails after the upload, with the error in `diff-stderr.txt`.
 - The gate needs `actions: read`. With the input off (the default) the Action makes no extra calls and needs no extra permissions.
+
+### gop Cloud (optional, not live yet)
+
+`cloud: "true"` with a `cloud-url` makes the Action POST a small summary (`gop summary`: counts, coverage and the top findings as hash IDs, at most 64 KB) authenticated with a GitHub OIDC token; the workflow needs `permissions: id-token: write`. graph.json, the report, names, logins and tokens are never sent. Off by default. [docs/cloud.md](docs/cloud.md) lists every field.
 - **Retention trade-off.** The baseline is the previous run's artifact, so it must outlive the schedule interval: with the default `retention-days: 1` and a weekly schedule, every run finds no baseline and the gate never fires. Set `retention-days` to at least the interval (2 for a nightly run, to absorb delays). Longer retention keeps the attack map readable for longer by anyone with read access to the repository, so keep the interval short rather than the retention long.
 - A failed run is not successful, so the next run still compares against the last good baseline and stays red until the reach goes back down. To accept the new state, run the workflow once with the gate off (for example through a `workflow_dispatch` input).
 
 ## Security and privacy
 
 - **Read-only.** gop makes no write calls to GitHub. The API client refuses every non-GET REST request and every GraphQL mutation before sending it; the only allowlisted exception is GitHub App mode minting a read-only installation token, which changes no repository or org state.
-- **No telemetry.** gop sends nothing anywhere except read requests to the GitHub API.
+- **No telemetry.** gop sends nothing anywhere except read requests to the GitHub API. The one opt-in exception is the Action's `cloud` input, which sends only the summary listed in [docs/cloud.md](docs/cloud.md).
 - **Data stays local.** graph.json and the report are written to your disk with file mode 0600. Treat them as sensitive and never commit them.
 - **MCP answers go to your agent.** When you connect `gop serve` to an agent, its answers flow to that agent and to whichever model provider it uses. gop itself sends nothing anywhere.
 

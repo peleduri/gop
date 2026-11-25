@@ -76,6 +76,7 @@ Usage:
               [--top N] [--limit N] [--format text|markdown|json]
   gop sarif   --graph graph.json | --demo  --out gop.sarif | --split-by-repo DIR [--top N]
               [--min-severity low|medium|high|critical] [--include-possible]
+  gop summary --graph graph.json | --demo  --out summary.json [--names] [--top N]
   gop pin     --action <owner/repo@ref> [--graph graph.json [--repo owner/repo] [--offline]]
               [--github-url URL] [--format diff|text|json]
   gop export  --format cypher graph.json | --graph graph.json | --demo  [--out gop.cypher] [--github-url URL]
@@ -154,6 +155,11 @@ nothing.
 sarif writes one SARIF 2.1.0 result per fixable edge (GOP001 mutable action
 ref, GOP002 default permission). It lists attack paths: uploading it to code
 scanning shows them to everyone with alert access. gop never uploads it.
+summary writes gop.summary/v1: a small JSON (at most 64 KB) of coverage,
+headline numbers, counts per SARIF rule and severity, pair totals and the top
+findings as stable hash IDs (--names adds repo, workflow and org names). It
+never holds tokens, emails, secret values, member logins or IP lists. It is
+what the Action's optional cloud upload sends (docs/cloud.md).
 pin resolves an action ref to a commit SHA with read-only GET requests (token
 from GITHUB_TOKEN or GH_TOKEN) and, with --graph, prints a git apply diff for
 every consuming workflow. It writes to stdout only.
@@ -256,6 +262,8 @@ func (a *app) run(args []string) int {
 		err = a.cmdPin(rest)
 	case "sarif":
 		err = a.cmdSARIF(rest)
+	case "summary":
+		err = a.cmdSummary(rest)
 	case "export":
 		err = a.cmdExport(rest)
 	case "advisories":

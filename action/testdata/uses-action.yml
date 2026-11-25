@@ -45,3 +45,16 @@ jobs:
           app-id: ${{ vars.GOP_APP_ID }}
           app-private-key: ${{ secrets.GOP_APP_PRIVATE_KEY }}
           retention-days: 1
+  cloud:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: ./action
+        with:
+          enterprise: acme
+          app-id: ${{ vars.GOP_APP_ID }}
+          app-private-key: ${{ secrets.GOP_APP_PRIVATE_KEY }}
+          cloud: "true"
+          cloud-url: https://cloud.example.com/v1/ingest

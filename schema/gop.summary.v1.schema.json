@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/peleduri/gop/schema/gop.summary.v1.schema.json",
+  "title": "gop summary (gop.summary/v1)",
+  "description": "summary.json written by gop summary: counts and coverage of one graph, the only data the optional gop Cloud upload sends (docs/cloud.md). The Go source of truth is internal/summary. Every object is closed (additionalProperties false): a field not listed here is never sent. A new field means a new schema version.",
+  "type": "object",
+  "required": ["schema", "enterprise", "gop_version", "run_at", "names", "coverage", "headline", "pairs", "severities", "rules", "findings", "top", "truncated"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"description": "Schema version of this document.", "const": "gop.summary/v1"},
+    "enterprise": {"description": "Enterprise slug the graph was collected from, sanitized.", "type": "string"},
+    "gop_version": {"description": "gop version that wrote the summary.", "type": "string"},
+    "run_at": {"description": "When the graph was collected (its collected_at, RFC 3339).", "type": "string", "format": "date-time"},
+    "names": {"description": "True when top findings carry repo, workflow and org names (gop summary --names).", "type": "boolean"},
+    "coverage": {
+      "type": "object",
+      "required": ["orgs_read", "partial", "partial_reason", "not_visible", "coverage_entries"],
+      "additionalProperties": false,
+      "properties": {
+        "orgs_read": {"description": "Org nodes in the graph.", "type": "integer"},
+        "partial": {"description": "The collection stopped early.", "type": "boolean"},
+        "partial_reason": {"description": "Why a partial collection stopped; empty when complete.", "enum": ["", "interrupted", "max_requests", "reserve", "rate_limit"]},
+        "not_visible": {"description": "Nodes and edges with evidence not_visible.", "type": "integer"},
+        "coverage_entries": {"description": "Coverage entries in the graph.", "type": "integer"}
+      }
+    },
+    "headline": {
+      "type": "object",
+      "required": ["non_human_actors", "merge_without_human", "merge_without_human_confirmed", "merge_without_human_possible", "outsider_triggerable_agents", "dangerous_mode_agents"],
+      "additionalProperties": false,
+      "properties": {
+        "non_human_actors": {"type": "integer"},
+        "merge_without_human": {"type": "integer"},
+        "merge_without_human_confirmed": {"type": "integer"},
+        "merge_without_human_possible": {"type": "integer"},
+        "outsider_triggerable_agents": {"type": "integer"},
+        "dangerous_mode_agents": {"type": "integer"}
+      }
+    },
+    "pairs": {
+      "description": "Confirmed and possible (principal, repo) pair totals.",
+      "type": "object",
+      "required": ["confirmed", "possible"],
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {"type": "integer"},
+        "possible": {"type": "integer"}
+      }
+    },
+    "severities": {"description": "Confirmed findings by severity.", "$ref": "#/$defs/Severities"},
+    "rules": {
+      "description": "One entry per SARIF rule gop reports, in rule order, zero counts included.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "confirmed", "possible", "severities"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"$ref": "#/$defs/RuleID"},
+          "name": {"type": "string", "pattern": "^[a-z-]+$"},
+          "confirmed": {"type": "integer"},
+          "possible": {"type": "integer"},
+          "severities": {"$ref": "#/$defs/Severities"}
+        }
+      }
+    },
+    "findings": {"description": "All findings, confirmed and possible.", "type": "integer"},
+    "top": {
+      "description": "The most severe findings, most severe first.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "rule", "severity", "possible", "reach_removed_pct"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"description": "First 16 hex characters of SHA-256(rule ID, NUL, node IDs).", "type": "string", "pattern": "^[0-9a-f]{16}$"},
+          "rule": {"$ref": "#/$defs/RuleID"},
+          "severity": {"enum": ["critical", "high", "medium", "low"]},
+          "possible": {"type": "boolean"},
+          "reach_removed_pct": {"type": "number"},
+          "repository": {"description": "Only with names: owner/repo, sanitized.", "type": "string"},
+          "workflow": {"description": "Only with names: owner/repo/path of the workflow file, sanitized.", "type": "string"},
+          "org": {"description": "Only with names: the org that owns the fix, sanitized.", "type": "string"}
+        }
+      }
+    },
+    "truncated": {"description": "True when top was cut to keep the document under 64 KB.", "type": "boolean"}
+  },
+  "$defs": {
+    "RuleID": {"type": "string", "pattern": "^GOP[0-9]{3}$"},
+    "Severities": {
+      "type": "object",
+      "required": ["critical", "high", "medium", "low"],
+      "additionalProperties": false,
+      "properties": {
+        "critical": {"type": "integer"},
+        "high": {"type": "integer"},
+        "medium": {"type": "integer"},
+        "low": {"type": "integer"}
+      }
+    }
+  }
+}

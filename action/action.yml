@@ -81,10 +81,36 @@ inputs:
       against. Used only with fail-on-reach-increase.
     required: false
     default: gop-posture
+  cloud:
+    description: >-
+      "true" to send a small summary of this run (gop summary,
+      gop.summary/v1: counts, coverage and the top findings as hash IDs, no
+      names, tokens, logins or graph) to cloud-url, authenticated with a GitHub
+      OIDC token (audience gop-cloud). Needs "id-token: write" in the
+      workflow's permissions; without it the job fails before collecting.
+      graph.json and the report never leave the artifact. The gop Cloud
+      service is not live yet. See docs/cloud.md. Off by default.
+    required: false
+    default: "false"
+  cloud-url:
+    description: >-
+      HTTPS endpoint the summary is POSTed to when cloud is "true". No
+      default: nothing is sent anywhere unless you set it.
+    required: false
 
 runs:
   using: composite
   steps:
+    - name: Check gop Cloud settings
+      if: inputs.cloud == 'true'
+      shell: bash
+      env:
+        GOP_CLOUD_URL: ${{ inputs.cloud-url }}
+        GOP_CLOUD: ${{ github.action_path }}/cloud-upload.sh
+      # Fails before collection when cloud-url is not https or the workflow
+      # lacks "permissions: id-token: write".
+      run: bash "${GOP_CLOUD}" check "${GOP_CLOUD_URL}"
+
     - name: Download and verify gop
       shell: bash
       env:
@@ -220,6 +246,13 @@ runs:
         fi
         gop report --graph "${GOP_OUT}/graph.json" --out "${GOP_OUT}/report.html"
 
+    - name: Summarize for gop Cloud
+      if: inputs.cloud == 'true'
+      shell: bash
+      env:
+        GOP_OUT: ${{ inputs.output-dir }}
+      run: gop summary --graph "${GOP_OUT}/graph.json" --out "${GOP_OUT}/summary.json"
+
     - name: Upload graph and report
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
@@ -230,8 +263,21 @@ runs:
           ${{ inputs.output-dir }}/diff.md
           ${{ inputs.output-dir }}/diff.json
           ${{ inputs.output-dir }}/diff-stderr.txt
+          ${{ inputs.output-dir }}/summary.json
         retention-days: ${{ inputs.retention-days }}
         if-no-files-found: error
+
+    - name: Upload summary to gop Cloud
+      if: inputs.cloud == 'true'
+      shell: bash
+      env:
+        GOP_OUT: ${{ inputs.output-dir }}
+        GOP_CLOUD_URL: ${{ inputs.cloud-url }}
+        GOP_CLOUD: ${{ github.action_path }}/cloud-upload.sh
+      # Sends summary.json only, with a GitHub OIDC token (audience
+      # gop-cloud) that is masked and never printed. Runs after the artifact
+      # upload so a failed upload never loses the scan.
+      run: bash "${GOP_CLOUD}" upload "${GOP_OUT}/summary.json" "${GOP_CLOUD_URL}"
 
     - name: Fail on reach increase
       if: steps.gate.outputs.result == 'increase' || steps.gate.outputs.result == 'error'
