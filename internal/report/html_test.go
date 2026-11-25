@@ -76,7 +76,7 @@ func TestReportCSP(t *testing.T) {
 		t.Error("served style or script differs from the hashed constant")
 	}
 	want := "default-src 'none'; script-src " + hashOf(script) + "; style-src " + hashOf(style) +
-		"; base-uri 'none'; form-action 'none'"
+		"; font-src data:; base-uri 'none'; form-action 'none'"
 	if pol != want {
 		t.Errorf("CSP\n got %s\nwant %s", pol, want)
 	}

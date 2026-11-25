@@ -151,11 +151,10 @@ func TestNotColorAlone(t *testing.T) {
 	}
 }
 
-// TestCopiesMatch: the generated CSS files equal CSS(). Run go run ./brand/gen
-// after editing tokens.json.
+// TestCopiesMatch: the generated CSS files equal TokensCSS and SiteCSS. Run
+// go run ./brand/gen after editing tokens.json.
 func TestCopiesMatch(t *testing.T) {
-	want := CSS()
-	for _, p := range []string{"tokens.css", "../site/brand.css"} {
+	for p, want := range map[string]string{"tokens.css": TokensCSS(), "../site/brand.css": SiteCSS()} {
 		got, err := os.ReadFile(p)
 		if err != nil {
 			t.Fatal(err)
@@ -166,17 +165,80 @@ func TestCopiesMatch(t *testing.T) {
 	}
 }
 
+// fontURL matches every url() in the generated CSS.
+var fontURL = regexp.MustCompile(`url\(([^)]*)\)`)
+
 // TestCSSSafeForReport: the CSS has no comments (html/template strips them,
-// breaking the report's CSP hash) and loads nothing (the report works offline).
+// breaking the report's CSP hash) and loads nothing (the report works
+// offline): its only url()s are the embedded fonts as data: URLs.
 func TestCSSSafeForReport(t *testing.T) {
 	css := CSS()
-	for _, bad := range []string{"/*", "@import", "url(", "@font-face"} {
+	for _, bad := range []string{"/*", "@import", "</"} {
 		if strings.Contains(css, bad) {
 			t.Errorf("CSS contains %q", bad)
 		}
 	}
+	urls := fontURL.FindAllStringSubmatch(css, -1)
+	for _, m := range urls {
+		if !strings.HasPrefix(m[1], `"data:font/woff2;base64,`) {
+			t.Errorf("CSS loads %.60s; the report may only embed fonts as data: URLs", m[1])
+		}
+	}
+	var want int
+	for _, f := range MustLoad().Faces {
+		if f.Report {
+			want++
+		}
+	}
+	if len(urls) != want || strings.Count(css, "@font-face{") != want {
+		t.Errorf("CSS has %d font URLs, want one per report face (%d)", len(urls), want)
+	}
 	if !strings.Contains(css, "--gop-accent:") || !strings.Contains(css, "--gop-dash-ev-not-visible:2 4;") {
 		t.Errorf("CSS lacks expected tokens:\n%s", css)
+	}
+	if tc := TokensCSS(); strings.Contains(tc, "url(") || strings.Contains(tc, "@font-face") || !strings.HasSuffix(css, tc) {
+		t.Error("TokensCSS must be the custom properties only, and CSS must end with it")
+	}
+}
+
+// reportFontBudget caps the bytes the embedded faces add to every HTML
+// report (base64 included).
+const reportFontBudget = 150 << 10
+
+// TestFaces: every face names a vendored woff2 file, the files ship with the
+// OFL, the embedded faces stay within budget, and the font stacks start with
+// the vendored families and keep the system stack as the fallback.
+func TestFaces(t *testing.T) {
+	tk := MustLoad()
+	if len(tk.Faces) == 0 || tk.FaceRange == "" {
+		t.Fatal("tokens.json has no faces or no face_unicode_range")
+	}
+	families := map[string]bool{}
+	for _, f := range tk.Faces {
+		b, err := FontFile(f.File)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(b) < 4 || string(b[:4]) != "wOF2" {
+			t.Errorf("%s is not a woff2 file", f.File)
+		}
+		families[f.Family] = true
+	}
+	if lic, err := os.ReadFile("fonts/OFL.txt"); err != nil || !strings.Contains(string(lic), "SIL OPEN FONT LICENSE Version 1.1") {
+		t.Errorf("brand/fonts/OFL.txt must hold the SIL Open Font License next to the fonts (err %v)", err)
+	}
+	for k, fallback := range map[string]string{"sans": "system-ui,", "mono": "ui-monospace,"} {
+		stack := tk.Font[k]
+		fam := strings.Trim(strings.SplitN(stack, ",", 2)[0], `"`)
+		if !families[fam] {
+			t.Errorf("font.%s starts with %q, which is not a vendored face", k, fam)
+		}
+		if !strings.Contains(stack, fallback) {
+			t.Errorf("font.%s lost its system fallback %q", k, fallback)
+		}
+	}
+	if n := len(CSS()) - len(TokensCSS()); n > reportFontBudget {
+		t.Errorf("embedded faces add %d bytes to the report, budget %d", n, reportFontBudget)
 	}
 }
 

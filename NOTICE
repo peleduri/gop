@@ -13,3 +13,8 @@ permission to use them (section 6); a modified or repackaged version must not
 present itself as gop or as an official gop release. Official releases are the
 ones published at https://github.com/peleduri/gop/releases, signed with cosign
 and carrying build provenance.
+
+Third-party fonts: brand/fonts/ holds IBM Plex Sans and IBM Plex Mono,
+Copyright 2017 IBM Corp. with Reserved Font Name "Plex", unmodified, licensed
+under the SIL Open Font License 1.1 (brand/fonts/OFL.txt), not under the
+Apache License. The gop binary embeds some of them in the HTML report.
