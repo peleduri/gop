@@ -105,6 +105,33 @@
       "evidence": "live"
     },
     {
+      "id": "identity:carol",
+      "kind": "identity",
+      "name": "carol",
+      "attrs": {
+        "source_api": "demo:planted-org-owner"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:dave",
+      "kind": "identity",
+      "name": "dave",
+      "attrs": {
+        "source_api": "demo:planted-org-owner"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:erin",
+      "kind": "identity",
+      "name": "erin",
+      "attrs": {
+        "source_api": "demo:planted-org-owner"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "identity:user-001",
       "kind": "identity",
       "name": "user-001",
@@ -285,6 +312,78 @@
       "evidence": "live"
     },
     {
+      "id": "identity:user-021",
+      "kind": "identity",
+      "name": "user-021",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:user-022",
+      "kind": "identity",
+      "name": "user-022",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:user-023",
+      "kind": "identity",
+      "name": "user-023",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:user-024",
+      "kind": "identity",
+      "name": "user-024",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:user-025",
+      "kind": "identity",
+      "name": "user-025",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:user-026",
+      "kind": "identity",
+      "name": "user-026",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:user-027",
+      "kind": "identity",
+      "name": "user-027",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "identity:user-028",
+      "kind": "identity",
+      "name": "user-028",
+      "attrs": {
+        "source_api": "demo:membership"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "members:acme-actions",
       "kind": "org_members",
       "name": "members of acme-actions",
@@ -321,6 +420,24 @@
       "evidence": "live"
     },
     {
+      "id": "members:acme-org-02",
+      "kind": "org_members",
+      "name": "members of acme-org-02",
+      "attrs": {
+        "source_api": "demo:org-settings"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "members:acme-org-03",
+      "kind": "org_members",
+      "name": "members of acme-org-03",
+      "attrs": {
+        "source_api": "demo:org-settings"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "members:acme-secure",
       "kind": "org_members",
       "name": "members of acme-secure",
@@ -348,20 +465,38 @@
       "evidence": "live"
     },
     {
+      "id": "oidc:acme-org-01/svc-007",
+      "kind": "oidc",
+      "name": "acme-org-01/svc-007",
+      "attrs": {
+        "source_api": "demo:id-token-write"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "oidc:acme-org-03/svc-007",
+      "kind": "oidc",
+      "name": "acme-org-03/svc-007",
+      "attrs": {
+        "source_api": "demo:id-token-write"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "oidc:acme-org-03/svc-008",
+      "kind": "oidc",
+      "name": "acme-org-03/svc-008",
+      "attrs": {
+        "source_api": "demo:id-token-write"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "oidc:acme-secure/signer",
       "kind": "oidc",
       "name": "acme-secure/signer",
       "attrs": {
         "source_api": "demo:planted-nested-action"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "oidc:acme-secure/svc-009",
-      "kind": "oidc",
-      "name": "acme-secure/svc-009",
-      "attrs": {
-        "source_api": "demo:id-token-write"
       },
       "evidence": "live"
     },
@@ -433,6 +568,34 @@
       "evidence": "live"
     },
     {
+      "id": "org:acme-org-02",
+      "kind": "org",
+      "name": "acme-org-02",
+      "attrs": {
+        "default_perm": "none",
+        "ip_allow_list": "off",
+        "members": "141",
+        "source_api": "demo:org-settings",
+        "sso": "enforced",
+        "two_factor": "not_required"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "org:acme-org-03",
+      "kind": "org",
+      "name": "acme-org-03",
+      "attrs": {
+        "default_perm": "none",
+        "ip_allow_list": "off",
+        "members": "128",
+        "source_api": "demo:org-settings",
+        "sso": "enforced",
+        "two_factor": "required"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "org:acme-secure",
       "kind": "org",
       "name": "acme-secure",
@@ -451,6 +614,26 @@
       "kind": "repo",
       "name": "acme-actions/deploy",
       "attrs": {
+        "branch_admin_bypass": "false",
+        "branch_allow_force_push": "false",
+        "branch_app_bypass": "false",
+        "branch_bypass_actors": "0",
+        "branch_code_owner_review": "false",
+        "branch_dismiss_stale": "false",
+        "branch_last_push_approval": "false",
+        "branch_protected": "true",
+        "branch_protection_sources": "ruleset:7",
+        "branch_push_restricted": "false",
+        "branch_required_reviews": "1",
+        "branch_signed_commits": "false",
+        "branch_status_checks": "0",
+        "branch_value_sources": "required_reviews=ruleset:7",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
+        "default_branch": "main",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "on",
+        "secret_scanning_validity_checks": "off",
         "source_api": "demo:planted-cross-org",
         "visibility": "private"
       },
@@ -461,6 +644,26 @@
       "kind": "repo",
       "name": "acme-actions/release",
       "attrs": {
+        "branch_admin_bypass": "false",
+        "branch_allow_force_push": "false",
+        "branch_app_bypass": "false",
+        "branch_bypass_actors": "0",
+        "branch_code_owner_review": "false",
+        "branch_dismiss_stale": "false",
+        "branch_last_push_approval": "false",
+        "branch_protected": "true",
+        "branch_protection_sources": "classic",
+        "branch_push_restricted": "false",
+        "branch_required_reviews": "2",
+        "branch_signed_commits": "false",
+        "branch_status_checks": "0",
+        "branch_value_sources": "required_reviews=classic",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
+        "default_branch": "main",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "on",
+        "secret_scanning_validity_checks": "off",
         "source_api": "demo:planted-nested-action",
         "visibility": "private"
       },
@@ -471,6 +674,14 @@
       "kind": "repo",
       "name": "acme-actions/setup",
       "attrs": {
+        "branch_protected": "false",
+        "branch_protection_sources": "none",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
+        "default_branch": "main",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "source_api": "demo:planted-nested-action",
         "visibility": "private"
       },
@@ -540,26 +751,6 @@
       "id": "repo:acme-actions/svc-010",
       "kind": "repo",
       "name": "acme-actions/svc-010",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-actions/svc-011",
-      "kind": "repo",
-      "name": "acme-actions/svc-011",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-actions/svc-012",
-      "kind": "repo",
-      "name": "acme-actions/svc-012",
       "attrs": {
         "source_api": "demo:repo",
         "visibility": "private"
@@ -681,10 +872,47 @@
       "kind": "repo",
       "name": "acme-app/web",
       "attrs": {
+        "agent_holds_merge_key": "true",
+        "agent_merge_key_workflows": ".github/workflows/ai-review.yml",
+        "bot_merge_apps": "77",
+        "bot_merge_source": "script:tools/merge.py",
+        "bot_merge_stale_approvals": "suspected",
+        "bot_merge_stale_confidence": "heuristic",
+        "branch_admin_bypass": "false",
+        "branch_allow_force_push": "false",
+        "branch_app_bypass": "true",
+        "branch_bypass_actors": "1",
+        "branch_bypass_apps": "77:acme-merge-bot",
+        "branch_code_owner_review": "false",
+        "branch_dismiss_stale": "false",
+        "branch_last_push_approval": "false",
+        "branch_protected": "true",
+        "branch_protection_sources": "ruleset:46",
+        "branch_push_restricted": "false",
+        "branch_required_reviews": "1",
+        "branch_signed_commits": "false",
+        "branch_status_checks": "0",
+        "branch_value_sources": "required_reviews=ruleset:46,app_bypass=ruleset:46",
+        "codeowners": "none",
+        "codeowners_workflows": "false",
+        "default_branch": "main",
+        "review_bypass": "bot_self_merge",
+        "review_bypass_app_match": "matched",
+        "review_bypass_approve": ".github/workflows/ai-review.yml",
+        "review_bypass_merge": ".github/workflows/ai-merge.yml",
+        "review_bypass_reason": "app_bypass",
+        "review_bypass_stale_approval": "suspected",
+        "secret_scanning": "on",
+        "secret_scanning_push_protection": "off",
+        "secret_scanning_validity_checks": "off",
         "source_api": "demo:planted-cross-org",
-        "visibility": "private"
+        "visibility": "public"
       },
-      "evidence": "live"
+      "evidence": "live",
+      "attr_evidence": {
+        "bot_merge_stale_approvals": "not_visible",
+        "review_bypass_stale_approval": "not_visible"
+      }
     },
     {
       "id": "repo:acme-app/worker",
@@ -807,26 +1035,6 @@
       "evidence": "not_visible"
     },
     {
-      "id": "repo:acme-legacy/svc-011",
-      "kind": "repo",
-      "name": "acme-legacy/svc-011",
-      "attrs": {
-        "source_api": "demo:planted-not-visible",
-        "visibility": "private"
-      },
-      "evidence": "not_visible"
-    },
-    {
-      "id": "repo:acme-legacy/svc-012",
-      "kind": "repo",
-      "name": "acme-legacy/svc-012",
-      "attrs": {
-        "source_api": "demo:planted-not-visible",
-        "visibility": "private"
-      },
-      "evidence": "not_visible"
-    },
-    {
       "id": "repo:acme-org-01/svc-001",
       "kind": "repo",
       "name": "acme-org-01/svc-001",
@@ -927,9 +1135,9 @@
       "evidence": "live"
     },
     {
-      "id": "repo:acme-org-01/svc-011",
+      "id": "repo:acme-org-02/svc-001",
       "kind": "repo",
-      "name": "acme-org-01/svc-011",
+      "name": "acme-org-02/svc-001",
       "attrs": {
         "source_api": "demo:repo",
         "visibility": "private"
@@ -937,9 +1145,189 @@
       "evidence": "live"
     },
     {
-      "id": "repo:acme-org-01/svc-012",
+      "id": "repo:acme-org-02/svc-002",
       "kind": "repo",
-      "name": "acme-org-01/svc-012",
+      "name": "acme-org-02/svc-002",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-003",
+      "kind": "repo",
+      "name": "acme-org-02/svc-003",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-004",
+      "kind": "repo",
+      "name": "acme-org-02/svc-004",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-005",
+      "kind": "repo",
+      "name": "acme-org-02/svc-005",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-006",
+      "kind": "repo",
+      "name": "acme-org-02/svc-006",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-007",
+      "kind": "repo",
+      "name": "acme-org-02/svc-007",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-008",
+      "kind": "repo",
+      "name": "acme-org-02/svc-008",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-009",
+      "kind": "repo",
+      "name": "acme-org-02/svc-009",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-02/svc-010",
+      "kind": "repo",
+      "name": "acme-org-02/svc-010",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-001",
+      "kind": "repo",
+      "name": "acme-org-03/svc-001",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-002",
+      "kind": "repo",
+      "name": "acme-org-03/svc-002",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-003",
+      "kind": "repo",
+      "name": "acme-org-03/svc-003",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-004",
+      "kind": "repo",
+      "name": "acme-org-03/svc-004",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-005",
+      "kind": "repo",
+      "name": "acme-org-03/svc-005",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-006",
+      "kind": "repo",
+      "name": "acme-org-03/svc-006",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-007",
+      "kind": "repo",
+      "name": "acme-org-03/svc-007",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-008",
+      "kind": "repo",
+      "name": "acme-org-03/svc-008",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-009",
+      "kind": "repo",
+      "name": "acme-org-03/svc-009",
+      "attrs": {
+        "source_api": "demo:repo",
+        "visibility": "private"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "repo:acme-org-03/svc-010",
+      "kind": "repo",
+      "name": "acme-org-03/svc-010",
       "attrs": {
         "source_api": "demo:repo",
         "visibility": "private"
@@ -952,106 +1340,6 @@
       "name": "acme-secure/signer",
       "attrs": {
         "source_api": "demo:planted-nested-action",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-003",
-      "kind": "repo",
-      "name": "acme-secure/svc-003",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-004",
-      "kind": "repo",
-      "name": "acme-secure/svc-004",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-005",
-      "kind": "repo",
-      "name": "acme-secure/svc-005",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-006",
-      "kind": "repo",
-      "name": "acme-secure/svc-006",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-007",
-      "kind": "repo",
-      "name": "acme-secure/svc-007",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-008",
-      "kind": "repo",
-      "name": "acme-secure/svc-008",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-009",
-      "kind": "repo",
-      "name": "acme-secure/svc-009",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-010",
-      "kind": "repo",
-      "name": "acme-secure/svc-010",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-011",
-      "kind": "repo",
-      "name": "acme-secure/svc-011",
-      "attrs": {
-        "source_api": "demo:repo",
-        "visibility": "private"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "repo:acme-secure/svc-012",
-      "kind": "repo",
-      "name": "acme-secure/svc-012",
-      "attrs": {
-        "source_api": "demo:repo",
         "visibility": "private"
       },
       "evidence": "live"
@@ -1076,18 +1364,18 @@
       "evidence": "live"
     },
     {
-      "id": "secret:acme-actions/svc-008",
+      "id": "secret:acme-actions/svc-006",
       "kind": "secret",
-      "name": "acme-actions/svc-008",
+      "name": "acme-actions/svc-006",
       "attrs": {
         "source_api": "demo:secrets"
       },
       "evidence": "live"
     },
     {
-      "id": "secret:acme-actions/svc-011",
+      "id": "secret:acme-actions/svc-009",
       "kind": "secret",
-      "name": "acme-actions/svc-011",
+      "name": "acme-actions/svc-009",
       "attrs": {
         "source_api": "demo:secrets"
       },
@@ -1121,6 +1409,15 @@
       "evidence": "live"
     },
     {
+      "id": "secret:acme-app/web",
+      "kind": "secret",
+      "name": "acme-app/web",
+      "attrs": {
+        "source_api": "demo:planted-bot-self-merge"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "secret:acme-legacy/old-api",
       "kind": "secret",
       "name": "acme-legacy/old-api",
@@ -1139,6 +1436,15 @@
       "evidence": "live"
     },
     {
+      "id": "secret:acme-org-01/svc-007",
+      "kind": "secret",
+      "name": "acme-org-01/svc-007",
+      "attrs": {
+        "source_api": "demo:secrets"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "secret:acme-org-01/svc-009",
       "kind": "secret",
       "name": "acme-org-01/svc-009",
@@ -1148,27 +1454,27 @@
       "evidence": "live"
     },
     {
-      "id": "secret:acme-secure/svc-003",
+      "id": "secret:acme-org-02/svc-001",
       "kind": "secret",
-      "name": "acme-secure/svc-003",
+      "name": "acme-org-02/svc-001",
       "attrs": {
         "source_api": "demo:secrets"
       },
       "evidence": "live"
     },
     {
-      "id": "secret:acme-secure/svc-009",
+      "id": "secret:acme-org-02/svc-009",
       "kind": "secret",
-      "name": "acme-secure/svc-009",
+      "name": "acme-org-02/svc-009",
       "attrs": {
         "source_api": "demo:secrets"
       },
       "evidence": "live"
     },
     {
-      "id": "secret:acme-secure/svc-011",
+      "id": "secret:acme-org-03/svc-007",
       "kind": "secret",
-      "name": "acme-secure/svc-011",
+      "name": "acme-org-03/svc-007",
       "attrs": {
         "source_api": "demo:secrets"
       },
@@ -1184,15 +1490,6 @@
       "evidence": "live"
     },
     {
-      "id": "workflow:acme-actions/svc-005/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-actions/svc-005/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
       "id": "workflow:acme-actions/svc-006/.github/workflows/ci.yml",
       "kind": "workflow",
       "name": "acme-actions/svc-006/.github/workflows/ci.yml",
@@ -1202,9 +1499,9 @@
       "evidence": "live"
     },
     {
-      "id": "workflow:acme-actions/svc-008/.github/workflows/ci.yml",
+      "id": "workflow:acme-actions/svc-007/.github/workflows/ci.yml",
       "kind": "workflow",
-      "name": "acme-actions/svc-008/.github/workflows/ci.yml",
+      "name": "acme-actions/svc-007/.github/workflows/ci.yml",
       "attrs": {
         "source_api": "demo:workflow"
       },
@@ -1220,18 +1517,9 @@
       "evidence": "live"
     },
     {
-      "id": "workflow:acme-actions/svc-011/.github/workflows/ci.yml",
+      "id": "workflow:acme-actions/svc-010/.github/workflows/ci.yml",
       "kind": "workflow",
-      "name": "acme-actions/svc-011/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-actions/svc-012/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-actions/svc-012/.github/workflows/ci.yml",
+      "name": "acme-actions/svc-010/.github/workflows/ci.yml",
       "attrs": {
         "source_api": "demo:workflow"
       },
@@ -1367,6 +1655,52 @@
       "evidence": "live"
     },
     {
+      "id": "workflow:acme-app/web/.github/workflows/ai-merge.yml",
+      "kind": "workflow",
+      "name": "acme-app/web/.github/workflows/ai-merge.yml",
+      "attrs": {
+        "bot_merge_apps": "77",
+        "bot_merge_gate": "pr_author",
+        "bot_merge_jobs": "merge",
+        "bot_merge_source": "script:tools/merge.py",
+        "bot_merge_stale_approvals": "suspected",
+        "bot_merge_stale_confidence": "heuristic",
+        "bot_merge_starter": "pr_openers",
+        "bot_merge_token": "app",
+        "bot_merge_triggers": "issue_comment",
+        "bot_merges": "true",
+        "risky_triggers": "issue_comment",
+        "source_api": "demo:planted-bot-self-merge"
+      },
+      "evidence": "live",
+      "attr_evidence": {
+        "bot_merge_stale_approvals": "not_visible"
+      }
+    },
+    {
+      "id": "workflow:acme-app/web/.github/workflows/ai-review.yml",
+      "kind": "workflow",
+      "name": "acme-app/web/.github/workflows/ai-review.yml",
+      "attrs": {
+        "agent": "claude-cli",
+        "agent_confidence": "cli",
+        "agent_exposure": "outsiders",
+        "agent_gate": "none",
+        "agent_jobs": "review",
+        "agent_runner": "hosted",
+        "agent_secrets": "2",
+        "agent_source": "run",
+        "agent_tools": "allowed_tools",
+        "bot_approve_jobs": "review",
+        "bot_approve_starter": "pr_openers",
+        "bot_approve_token": "app",
+        "bot_approves": "true",
+        "risky_triggers": "pull_request_target",
+        "source_api": "demo:planted-bot-self-merge"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "workflow:acme-app/web/.github/workflows/ci.yml",
       "kind": "workflow",
       "name": "acme-app/web/.github/workflows/ci.yml",
@@ -1448,6 +1782,24 @@
       "evidence": "live"
     },
     {
+      "id": "workflow:acme-org-01/svc-007/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-01/svc-007/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-01/svc-008/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-01/svc-008/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
       "id": "workflow:acme-org-01/svc-009/.github/workflows/ci.yml",
       "kind": "workflow",
       "name": "acme-org-01/svc-009/.github/workflows/ci.yml",
@@ -1466,9 +1818,108 @@
       "evidence": "live"
     },
     {
-      "id": "workflow:acme-org-01/svc-012/.github/workflows/ci.yml",
+      "id": "workflow:acme-org-02/svc-001/.github/workflows/ci.yml",
       "kind": "workflow",
-      "name": "acme-org-01/svc-012/.github/workflows/ci.yml",
+      "name": "acme-org-02/svc-001/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-02/svc-002/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-02/svc-002/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-02/svc-003/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-02/svc-003/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-02/svc-004/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-02/svc-004/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-02/svc-005/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-02/svc-005/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-02/svc-006/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-02/svc-006/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-02/svc-009/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-02/svc-009/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-02/svc-010/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-02/svc-010/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-03/svc-002/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-03/svc-002/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-03/svc-007/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-03/svc-007/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-03/svc-008/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-03/svc-008/.github/workflows/ci.yml",
+      "attrs": {
+        "source_api": "demo:workflow"
+      },
+      "evidence": "live"
+    },
+    {
+      "id": "workflow:acme-org-03/svc-009/.github/workflows/ci.yml",
+      "kind": "workflow",
+      "name": "acme-org-03/svc-009/.github/workflows/ci.yml",
       "attrs": {
         "source_api": "demo:workflow"
       },
@@ -1480,96 +1931,6 @@
       "name": "acme-secure/signer/.github/workflows/release.yml",
       "attrs": {
         "source_api": "demo:planted-nested-action"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-003/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-003/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-004/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-004/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-005/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-005/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-006/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-006/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-007/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-007/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-008/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-008/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-009/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-009/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-010/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-010/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-011/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-011/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
-      },
-      "evidence": "live"
-    },
-    {
-      "id": "workflow:acme-secure/svc-012/.github/workflows/ci.yml",
-      "kind": "workflow",
-      "name": "acme-secure/svc-012/.github/workflows/ci.yml",
-      "attrs": {
-        "source_api": "demo:workflow"
       },
       "evidence": "live"
     },
@@ -1637,6 +1998,22 @@
     },
     {
       "from": "external:anyone",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_MERGE_VIA_BOT",
+      "evidence": "live",
+      "source_api": "demo:planted-bot-self-merge",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "approve_workflows": "workflow:acme-app/web/.github/workflows/ai-review.yml",
+        "file": ".github/workflows/ai-merge.yml",
+        "line": "24",
+        "merge_workflow": "workflow:acme-app/web/.github/workflows/ai-merge.yml",
+        "review_bypass_reason": "app_bypass",
+        "trigger": "issue_comment"
+      }
+    },
+    {
+      "from": "external:anyone",
       "to": "workflow:acme-app/docs/.github/workflows/claude.yml",
       "kind": "CAN_TRIGGER",
       "evidence": "live",
@@ -1649,6 +2026,22 @@
         "job": "claude",
         "line": "16",
         "trigger": "issue_comment"
+      }
+    },
+    {
+      "from": "external:anyone",
+      "to": "workflow:acme-app/web/.github/workflows/ai-review.yml",
+      "kind": "CAN_TRIGGER",
+      "evidence": "live",
+      "source_api": "demo:planted-bot-self-merge",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "detail": "claude-cli",
+        "exec": "agent",
+        "file": ".github/workflows/ai-review.yml",
+        "job": "review",
+        "line": "27",
+        "trigger": "pull_request_target"
       }
     },
     {
@@ -1692,20 +2085,2401 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "identity:user-001",
-      "to": "repo:acme-app/search",
+      "from": "identity:carol",
+      "to": "repo:acme-actions/deploy",
       "kind": "CAN_PUSH",
-      "evidence": "live",
-      "source_api": "demo:collaborator",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
-        "permission": "write",
-        "via": "direct"
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/release",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-actions/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/admin",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/auth",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/billing",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/gateway",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/infra",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/mobile",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/payments",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/sandbox",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/search",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-app/worker",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-01/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-02/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-org-03/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-secure/signer",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "repo:acme-secure/vault",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:carol",
+      "to": "org:acme-actions",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:carol",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:carol",
+      "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:carol",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:carol",
+      "to": "org:acme-org-03",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:carol",
+      "to": "org:acme-secure",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/release",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-actions/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/admin",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/auth",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/billing",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/gateway",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/infra",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/mobile",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/payments",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/sandbox",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/search",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-app/worker",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-01/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-02/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-org-03/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-secure/signer",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "repo:acme-secure/vault",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:dave",
+      "to": "org:acme-actions",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:dave",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:dave",
+      "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:dave",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:dave",
+      "to": "org:acme-org-03",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:dave",
+      "to": "org:acme-secure",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/release",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-actions/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/admin",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/auth",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/billing",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/gateway",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/infra",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/mobile",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/payments",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/sandbox",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/search",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-app/worker",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-01/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-02/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "repo:acme-org-03/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:erin",
+      "to": "org:acme-actions",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:erin",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:erin",
+      "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:erin",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:erin",
+      "to": "org:acme-org-03",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/deploy",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
       }
     },
     {
       "from": "identity:user-001",
-      "to": "org:acme-app",
+      "to": "repo:acme-actions/release",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "repo:acme-actions/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-001",
+      "to": "org:acme-actions",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-001",
+      "to": "org:acme-org-03",
       "kind": "MEMBER_OF",
       "evidence": "live",
       "source_api": "demo:membership",
@@ -1713,18 +4487,329 @@
     },
     {
       "from": "identity:user-002",
-      "to": "repo:acme-app/admin",
+      "to": "repo:acme-actions/deploy",
       "kind": "CAN_PUSH",
-      "evidence": "live",
-      "source_api": "demo:collaborator",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
-        "permission": "write",
-        "via": "direct"
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
       }
     },
     {
       "from": "identity:user-002",
+      "to": "repo:acme-actions/release",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/setup",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "repo:acme-actions/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-002",
+      "to": "org:acme-actions",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-002",
+      "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/admin",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/auth",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/billing",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/gateway",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/infra",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/mobile",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/payments",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/sandbox",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/search",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "repo:acme-app/worker",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-003",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-003",
       "to": "org:acme-secure",
       "kind": "MEMBER_OF",
       "evidence": "live",
@@ -1732,8 +4817,177 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "identity:user-003",
+      "from": "identity:user-004",
       "to": "repo:acme-app/admin",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/auth",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/billing",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/gateway",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/infra",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/mobile",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/payments",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/sandbox",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/search",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-app/worker",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-004",
+      "to": "repo:acme-secure/vault",
       "kind": "CAN_PUSH",
       "evidence": "live",
       "source_api": "demo:collaborator",
@@ -1742,26 +4996,68 @@
         "permission": "write",
         "via": "direct"
       }
-    },
-    {
-      "from": "identity:user-003",
-      "to": "org:acme-app",
-      "kind": "MEMBER_OF",
-      "evidence": "live",
-      "source_api": "demo:membership",
-      "observed_at": "2026-01-01T00:00:00Z"
     },
     {
       "from": "identity:user-004",
       "to": "org:acme-app",
       "kind": "MEMBER_OF",
       "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-004",
+      "to": "org:acme-secure",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
       "source_api": "demo:membership",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
       "from": "identity:user-005",
-      "to": "repo:acme-app/sandbox",
+      "to": "repo:acme-secure/signer",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-005",
+      "to": "repo:acme-secure/vault",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-005",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-005",
+      "to": "org:acme-secure",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-006",
+      "to": "repo:acme-org-02/svc-007",
       "kind": "CAN_PUSH",
       "evidence": "live",
       "source_api": "demo:collaborator",
@@ -1772,7 +5068,33 @@
       }
     },
     {
-      "from": "identity:user-005",
+      "from": "identity:user-006",
+      "to": "repo:acme-secure/signer",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-006",
+      "to": "repo:acme-secure/vault",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-006",
       "to": "org:acme-org-01",
       "kind": "MEMBER_OF",
       "evidence": "live",
@@ -1781,22 +5103,148 @@
     },
     {
       "from": "identity:user-006",
+      "to": "org:acme-secure",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
       "to": "repo:acme-org-01/svc-003",
       "kind": "CAN_PUSH",
-      "evidence": "live",
-      "source_api": "demo:collaborator",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
-        "permission": "write",
-        "via": "direct"
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
       }
     },
     {
-      "from": "identity:user-006",
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
+      "to": "repo:acme-org-01/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-007",
       "to": "org:acme-org-01",
       "kind": "MEMBER_OF",
       "evidence": "live",
-      "source_api": "demo:membership",
+      "source_api": "demo:planted-org-owner",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
@@ -1809,11 +5257,291 @@
     },
     {
       "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
+      "to": "repo:acme-org-01/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-008",
       "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-008",
+      "to": "org:acme-org-02",
       "kind": "MEMBER_OF",
       "evidence": "live",
       "source_api": "demo:membership",
       "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-01/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:collaborator",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "write",
+        "via": "direct"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-009",
+      "to": "repo:acme-org-02/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
     },
     {
       "from": "identity:user-009",
@@ -1824,16 +5552,55 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
+      "from": "identity:user-009",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
       "from": "identity:user-010",
-      "to": "org:acme-secure",
-      "kind": "MEMBER_OF",
-      "evidence": "live",
-      "source_api": "demo:membership",
-      "observed_at": "2026-01-01T00:00:00Z"
+      "to": "repo:acme-org-02/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
     },
     {
-      "from": "identity:user-011",
-      "to": "repo:acme-secure/svc-004",
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-004",
       "kind": "CAN_PUSH",
       "evidence": "live",
       "source_api": "demo:collaborator",
@@ -1844,27 +5611,98 @@
       }
     },
     {
-      "from": "identity:user-011",
-      "to": "org:acme-secure",
-      "kind": "MEMBER_OF",
-      "evidence": "live",
-      "source_api": "demo:membership",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "identity:user-012",
-      "to": "repo:acme-secure/svc-005",
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-004",
       "kind": "CAN_PUSH",
-      "evidence": "live",
-      "source_api": "demo:collaborator",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
-        "permission": "write",
-        "via": "direct"
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
       }
     },
     {
-      "from": "identity:user-012",
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
+      "to": "repo:acme-org-02/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-010",
       "to": "org:acme-org-01",
       "kind": "MEMBER_OF",
       "evidence": "live",
@@ -1872,8 +5710,146 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "identity:user-013",
-      "to": "repo:acme-app/mobile",
+      "from": "identity:user-010",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-org-03/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-011",
+      "to": "repo:acme-secure/vault",
       "kind": "CAN_PUSH",
       "evidence": "live",
       "source_api": "demo:collaborator",
@@ -1884,15 +5860,169 @@
       }
     },
     {
-      "from": "identity:user-013",
-      "to": "org:acme-org-01",
+      "from": "identity:user-011",
+      "to": "org:acme-org-03",
       "kind": "MEMBER_OF",
       "evidence": "live",
       "source_api": "demo:membership",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "identity:user-014",
+      "from": "identity:user-011",
+      "to": "org:acme-org-03",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-001",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-002",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-004",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-005",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-006",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-007",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-009",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "repo:acme-org-03/svc-010",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "admin",
+        "rule": "org_owner",
+        "via": "org_owner"
+      }
+    },
+    {
+      "from": "identity:user-012",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-012",
+      "to": "org:acme-org-03",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:planted-org-owner",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-013",
       "to": "org:acme-app",
       "kind": "MEMBER_OF",
       "evidence": "live",
@@ -1900,16 +6030,12 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "identity:user-015",
-      "to": "repo:acme-org-01/svc-004",
-      "kind": "CAN_PUSH",
+      "from": "identity:user-014",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
       "evidence": "live",
-      "source_api": "demo:collaborator",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "permission": "write",
-        "via": "direct"
-      }
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
     },
     {
       "from": "identity:user-015",
@@ -1921,6 +6047,18 @@
     },
     {
       "from": "identity:user-016",
+      "to": "repo:acme-secure/signer",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:collaborator",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "write",
+        "via": "direct"
+      }
+    },
+    {
+      "from": "identity:user-016",
       "to": "org:acme-org-01",
       "kind": "MEMBER_OF",
       "evidence": "live",
@@ -1929,7 +6067,19 @@
     },
     {
       "from": "identity:user-017",
-      "to": "org:acme-org-01",
+      "to": "repo:acme-org-02/svc-008",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:collaborator",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "write",
+        "via": "direct"
+      }
+    },
+    {
+      "from": "identity:user-017",
+      "to": "org:acme-org-02",
       "kind": "MEMBER_OF",
       "evidence": "live",
       "source_api": "demo:membership",
@@ -1937,7 +6087,7 @@
     },
     {
       "from": "identity:user-018",
-      "to": "repo:acme-org-01/svc-005",
+      "to": "repo:acme-org-02/svc-005",
       "kind": "CAN_PUSH",
       "evidence": "live",
       "source_api": "demo:collaborator",
@@ -1949,7 +6099,7 @@
     },
     {
       "from": "identity:user-018",
-      "to": "org:acme-org-01",
+      "to": "org:acme-org-03",
       "kind": "MEMBER_OF",
       "evidence": "live",
       "source_api": "demo:membership",
@@ -1957,7 +6107,7 @@
     },
     {
       "from": "identity:user-019",
-      "to": "org:acme-org-01",
+      "to": "org:acme-org-03",
       "kind": "MEMBER_OF",
       "evidence": "live",
       "source_api": "demo:membership",
@@ -1965,7 +6115,15 @@
     },
     {
       "from": "identity:user-020",
-      "to": "repo:acme-org-01/svc-009",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-021",
+      "to": "repo:acme-app/auth",
       "kind": "CAN_PUSH",
       "evidence": "live",
       "source_api": "demo:collaborator",
@@ -1976,7 +6134,99 @@
       }
     },
     {
-      "from": "identity:user-020",
+      "from": "identity:user-021",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-022",
+      "to": "repo:acme-app/sandbox",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:collaborator",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "write",
+        "via": "direct"
+      }
+    },
+    {
+      "from": "identity:user-022",
+      "to": "org:acme-app",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-023",
+      "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-024",
+      "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-025",
+      "to": "repo:acme-org-03/svc-003",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:collaborator",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "write",
+        "via": "direct"
+      }
+    },
+    {
+      "from": "identity:user-025",
+      "to": "org:acme-org-02",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-026",
+      "to": "org:acme-secure",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-027",
+      "to": "org:acme-org-01",
+      "kind": "MEMBER_OF",
+      "evidence": "live",
+      "source_api": "demo:membership",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "identity:user-028",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "live",
+      "source_api": "demo:collaborator",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "permission": "write",
+        "via": "direct"
+      }
+    },
+    {
+      "from": "identity:user-028",
       "to": "org:acme-secure",
       "kind": "MEMBER_OF",
       "evidence": "live",
@@ -2103,32 +6353,6 @@
     {
       "from": "members:acme-actions",
       "to": "repo:acme-actions/svc-010",
-      "kind": "CAN_PUSH",
-      "evidence": "inferred",
-      "source_api": "demo:default-perm",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "permission": "write",
-        "rule": "default_perm",
-        "via": "default_perm"
-      }
-    },
-    {
-      "from": "members:acme-actions",
-      "to": "repo:acme-actions/svc-011",
-      "kind": "CAN_PUSH",
-      "evidence": "inferred",
-      "source_api": "demo:default-perm",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "permission": "write",
-        "rule": "default_perm",
-        "via": "default_perm"
-      }
-    },
-    {
-      "from": "members:acme-actions",
-      "to": "repo:acme-actions/svc-012",
       "kind": "CAN_PUSH",
       "evidence": "inferred",
       "source_api": "demo:default-perm",
@@ -2272,30 +6496,6 @@
       }
     },
     {
-      "from": "members:acme-legacy",
-      "to": "repo:acme-legacy/svc-011",
-      "kind": "CAN_PUSH",
-      "evidence": "not_visible",
-      "source_api": "demo:planted-not-visible",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "permission": "write",
-        "via": "default_perm"
-      }
-    },
-    {
-      "from": "members:acme-legacy",
-      "to": "repo:acme-legacy/svc-012",
-      "kind": "CAN_PUSH",
-      "evidence": "not_visible",
-      "source_api": "demo:planted-not-visible",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "permission": "write",
-        "via": "default_perm"
-      }
-    },
-    {
       "from": "workflow:acme-actions/deploy/.github/workflows/release.yml",
       "to": "repo:acme-actions/deploy",
       "kind": "DEFINED_IN",
@@ -2315,14 +6515,6 @@
       }
     },
     {
-      "from": "workflow:acme-actions/svc-005/.github/workflows/ci.yml",
-      "to": "repo:acme-actions/svc-005",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
       "from": "workflow:acme-actions/svc-006/.github/workflows/ci.yml",
       "to": "repo:acme-actions/svc-006",
       "kind": "DEFINED_IN",
@@ -2332,29 +6524,18 @@
     },
     {
       "from": "workflow:acme-actions/svc-006/.github/workflows/ci.yml",
-      "to": "action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "sha"
-      }
-    },
-    {
-      "from": "workflow:acme-actions/svc-008/.github/workflows/ci.yml",
-      "to": "repo:acme-actions/svc-008",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-actions/svc-008/.github/workflows/ci.yml",
-      "to": "secret:acme-actions/svc-008",
+      "to": "secret:acme-actions/svc-006",
       "kind": "EXECUTES_WITH",
       "evidence": "live",
       "source_api": "demo:secrets",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-actions/svc-007/.github/workflows/ci.yml",
+      "to": "repo:acme-actions/svc-007",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
@@ -2366,31 +6547,23 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-actions/svc-011/.github/workflows/ci.yml",
-      "to": "repo:acme-actions/svc-011",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-actions/svc-011/.github/workflows/ci.yml",
-      "to": "secret:acme-actions/svc-011",
+      "from": "workflow:acme-actions/svc-009/.github/workflows/ci.yml",
+      "to": "secret:acme-actions/svc-009",
       "kind": "EXECUTES_WITH",
       "evidence": "live",
       "source_api": "demo:secrets",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-actions/svc-012/.github/workflows/ci.yml",
-      "to": "repo:acme-actions/svc-012",
+      "from": "workflow:acme-actions/svc-010/.github/workflows/ci.yml",
+      "to": "repo:acme-actions/svc-010",
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "demo:workflow",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-actions/svc-012/.github/workflows/ci.yml",
+      "from": "workflow:acme-actions/svc-010/.github/workflows/ci.yml",
       "to": "action:acme-actions/deploy@v1",
       "kind": "USES",
       "evidence": "live",
@@ -2678,6 +6851,44 @@
       }
     },
     {
+      "from": "workflow:acme-app/web/.github/workflows/ai-merge.yml",
+      "to": "repo:acme-app/web",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:planted-bot-self-merge",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ai-merge.yml",
+      "to": "secret:acme-app/web",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:planted-bot-self-merge",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "secrets": "APP_PRIVATE_KEY"
+      }
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ai-review.yml",
+      "to": "repo:acme-app/web",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:planted-bot-self-merge",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-app/web/.github/workflows/ai-review.yml",
+      "to": "secret:acme-app/web",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:planted-bot-self-merge",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "secrets": "ANTHROPIC_API_KEY,APP_PRIVATE_KEY"
+      }
+    },
+    {
       "from": "workflow:acme-app/web/.github/workflows/ci.yml",
       "to": "repo:acme-app/web",
       "kind": "DEFINED_IN",
@@ -2765,13 +6976,13 @@
     },
     {
       "from": "workflow:acme-org-01/svc-001/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@3f2c9a8e1b7d4c6f0a5e9d8c7b6a5f4e3d2c1b0a",
+      "to": "action:acme-actions/deploy@main",
       "kind": "USES",
       "evidence": "live",
       "source_api": "demo:uses",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
-        "ref_kind": "sha"
+        "ref_kind": "branch"
       }
     },
     {
@@ -2783,17 +6994,6 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-org-01/svc-002/.github/workflows/ci.yml",
-      "to": "action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "sha"
-      }
-    },
-    {
       "from": "workflow:acme-org-01/svc-003/.github/workflows/ci.yml",
       "to": "repo:acme-org-01/svc-003",
       "kind": "DEFINED_IN",
@@ -2803,13 +7003,13 @@
     },
     {
       "from": "workflow:acme-org-01/svc-003/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@main",
+      "to": "action:acme-actions/deploy@3f2c9a8e1b7d4c6f0a5e9d8c7b6a5f4e3d2c1b0a",
       "kind": "USES",
       "evidence": "live",
       "source_api": "demo:uses",
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
-        "ref_kind": "branch"
+        "ref_kind": "sha"
       }
     },
     {
@@ -2821,12 +7021,34 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
+      "from": "workflow:acme-org-01/svc-004/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
       "from": "workflow:acme-org-01/svc-005/.github/workflows/ci.yml",
       "to": "repo:acme-org-01/svc-005",
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "demo:workflow",
       "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-01/svc-005/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
     },
     {
       "from": "workflow:acme-org-01/svc-006/.github/workflows/ci.yml",
@@ -2837,7 +7059,31 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-org-01/svc-006/.github/workflows/ci.yml",
+      "from": "workflow:acme-org-01/svc-007/.github/workflows/ci.yml",
+      "to": "repo:acme-org-01/svc-007",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-01/svc-007/.github/workflows/ci.yml",
+      "to": "oidc:acme-org-01/svc-007",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:id-token-write",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-01/svc-007/.github/workflows/ci.yml",
+      "to": "secret:acme-org-01/svc-007",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:secrets",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-01/svc-007/.github/workflows/ci.yml",
       "to": "action:acme-actions/deploy@main",
       "kind": "USES",
       "evidence": "live",
@@ -2845,6 +7091,25 @@
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-org-01/svc-008/.github/workflows/ci.yml",
+      "to": "repo:acme-org-01/svc-008",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-01/svc-008/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@v1",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "tag"
       }
     },
     {
@@ -2864,7 +7129,42 @@
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-org-01/svc-009/.github/workflows/ci.yml",
+      "from": "workflow:acme-org-01/svc-010/.github/workflows/ci.yml",
+      "to": "repo:acme-org-01/svc-010",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-01/svc-010/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@v1",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "tag"
+      }
+    },
+    {
+      "from": "workflow:acme-org-02/svc-001/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-001",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-02/svc-001/.github/workflows/ci.yml",
+      "to": "secret:acme-org-02/svc-001",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:secrets",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-02/svc-001/.github/workflows/ci.yml",
       "to": "action:acme-actions/deploy@3f2c9a8e1b7d4c6f0a5e9d8c7b6a5f4e3d2c1b0a",
       "kind": "USES",
       "evidence": "live",
@@ -2875,23 +7175,34 @@
       }
     },
     {
-      "from": "workflow:acme-org-01/svc-010/.github/workflows/ci.yml",
-      "to": "repo:acme-org-01/svc-010",
+      "from": "workflow:acme-org-02/svc-002/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-002",
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "demo:workflow",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-org-01/svc-012/.github/workflows/ci.yml",
-      "to": "repo:acme-org-01/svc-012",
+      "from": "workflow:acme-org-02/svc-002/.github/workflows/ci.yml",
+      "to": "action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "sha"
+      }
+    },
+    {
+      "from": "workflow:acme-org-02/svc-003/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-003",
       "kind": "DEFINED_IN",
       "evidence": "live",
       "source_api": "demo:workflow",
       "observed_at": "2026-01-01T00:00:00Z"
     },
     {
-      "from": "workflow:acme-org-01/svc-012/.github/workflows/ci.yml",
+      "from": "workflow:acme-org-02/svc-003/.github/workflows/ci.yml",
       "to": "action:acme-actions/deploy@main",
       "kind": "USES",
       "evidence": "live",
@@ -2900,6 +7211,165 @@
       "attrs": {
         "ref_kind": "branch"
       }
+    },
+    {
+      "from": "workflow:acme-org-02/svc-004/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-004",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-02/svc-005/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-005",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-02/svc-006/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-006",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-02/svc-006/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-org-02/svc-009/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-009",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-02/svc-009/.github/workflows/ci.yml",
+      "to": "secret:acme-org-02/svc-009",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:secrets",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-02/svc-009/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@3f2c9a8e1b7d4c6f0a5e9d8c7b6a5f4e3d2c1b0a",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "sha"
+      }
+    },
+    {
+      "from": "workflow:acme-org-02/svc-010/.github/workflows/ci.yml",
+      "to": "repo:acme-org-02/svc-010",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-03/svc-002/.github/workflows/ci.yml",
+      "to": "repo:acme-org-03/svc-002",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-03/svc-002/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-org-03/svc-007/.github/workflows/ci.yml",
+      "to": "repo:acme-org-03/svc-007",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-03/svc-007/.github/workflows/ci.yml",
+      "to": "oidc:acme-org-03/svc-007",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:id-token-write",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-03/svc-007/.github/workflows/ci.yml",
+      "to": "secret:acme-org-03/svc-007",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:secrets",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-03/svc-007/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-org-03/svc-008/.github/workflows/ci.yml",
+      "to": "repo:acme-org-03/svc-008",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-03/svc-008/.github/workflows/ci.yml",
+      "to": "oidc:acme-org-03/svc-008",
+      "kind": "EXECUTES_WITH",
+      "evidence": "live",
+      "source_api": "demo:id-token-write",
+      "observed_at": "2026-01-01T00:00:00Z"
+    },
+    {
+      "from": "workflow:acme-org-03/svc-008/.github/workflows/ci.yml",
+      "to": "action:acme-actions/deploy@main",
+      "kind": "USES",
+      "evidence": "live",
+      "source_api": "demo:uses",
+      "observed_at": "2026-01-01T00:00:00Z",
+      "attrs": {
+        "ref_kind": "branch"
+      }
+    },
+    {
+      "from": "workflow:acme-org-03/svc-009/.github/workflows/ci.yml",
+      "to": "repo:acme-org-03/svc-009",
+      "kind": "DEFINED_IN",
+      "evidence": "live",
+      "source_api": "demo:workflow",
+      "observed_at": "2026-01-01T00:00:00Z"
     },
     {
       "from": "workflow:acme-secure/signer/.github/workflows/release.yml",
@@ -2926,195 +7396,6 @@
       "observed_at": "2026-01-01T00:00:00Z",
       "attrs": {
         "ref_kind": "sha"
-      }
-    },
-    {
-      "from": "workflow:acme-secure/svc-003/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-003",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-003/.github/workflows/ci.yml",
-      "to": "secret:acme-secure/svc-003",
-      "kind": "EXECUTES_WITH",
-      "evidence": "live",
-      "source_api": "demo:secrets",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-003/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@main",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "branch"
-      }
-    },
-    {
-      "from": "workflow:acme-secure/svc-004/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-004",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-005/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-005",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-005/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@3f2c9a8e1b7d4c6f0a5e9d8c7b6a5f4e3d2c1b0a",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "sha"
-      }
-    },
-    {
-      "from": "workflow:acme-secure/svc-006/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-006",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-006/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@main",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "branch"
-      }
-    },
-    {
-      "from": "workflow:acme-secure/svc-007/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-007",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-007/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@main",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "branch"
-      }
-    },
-    {
-      "from": "workflow:acme-secure/svc-008/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-008",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-009/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-009",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-009/.github/workflows/ci.yml",
-      "to": "oidc:acme-secure/svc-009",
-      "kind": "EXECUTES_WITH",
-      "evidence": "live",
-      "source_api": "demo:id-token-write",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-009/.github/workflows/ci.yml",
-      "to": "secret:acme-secure/svc-009",
-      "kind": "EXECUTES_WITH",
-      "evidence": "live",
-      "source_api": "demo:secrets",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-009/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@main",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "branch"
-      }
-    },
-    {
-      "from": "workflow:acme-secure/svc-010/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-010",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-010/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@v1",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "tag"
-      }
-    },
-    {
-      "from": "workflow:acme-secure/svc-011/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-011",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-011/.github/workflows/ci.yml",
-      "to": "secret:acme-secure/svc-011",
-      "kind": "EXECUTES_WITH",
-      "evidence": "live",
-      "source_api": "demo:secrets",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-012/.github/workflows/ci.yml",
-      "to": "repo:acme-secure/svc-012",
-      "kind": "DEFINED_IN",
-      "evidence": "live",
-      "source_api": "demo:workflow",
-      "observed_at": "2026-01-01T00:00:00Z"
-    },
-    {
-      "from": "workflow:acme-secure/svc-012/.github/workflows/ci.yml",
-      "to": "action:acme-actions/deploy@v1",
-      "kind": "USES",
-      "evidence": "live",
-      "source_api": "demo:uses",
-      "observed_at": "2026-01-01T00:00:00Z",
-      "attrs": {
-        "ref_kind": "tag"
       }
     },
     {
@@ -3157,6 +7438,18 @@
       "fact": "ip_allow_list",
       "reason": "token is not an org owner",
       "needs_fix": "org owner on acme-legacy"
+    },
+    {
+      "scope": "workflow:acme-app/web/.github/workflows/ai-merge.yml",
+      "fact": "bot_merge_stale_approvals",
+      "reason": "suspected, heuristic: tools/merge.py seems to count approvals not tied to the head commit; gop matched text and never ran it",
+      "needs_fix": "confirm by hand: read tools/merge.py and check it counts only APPROVED reviews whose commit_id is the pull request's head SHA"
+    },
+    {
+      "scope": "repo:acme-app/web",
+      "fact": "bot_merge_stale_approvals",
+      "reason": "suspected, heuristic: the merge in tools/merge.py may count older approvals and ai-review.yml does not re-run on push",
+      "needs_fix": "confirm by hand: read tools/merge.py and the pull_request types of ai-review.yml"
     }
   ]
 }

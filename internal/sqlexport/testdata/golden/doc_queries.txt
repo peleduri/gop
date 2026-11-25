@@ -1,34 +1,35 @@
 -- query 1
 principal|repos
-identity:bob|21
-external:anyone|1
-identity:alice|1
-identity:user-001|1
-identity:user-002|1
+identity:carol|55
+identity:dave|55
+identity:erin|54
+identity:user-001|34
+identity:user-002|34
 
 -- query 2
 target_kind|confirmed_targets|possible_targets|principals
-oidc|2|0|1
-runner|1|0|1
-secret|5|1|4
+oidc|7|0|16
+runner|1|0|8
+secret|12|1|17
 
 -- query 3
 org|workflows|refs
 org:acme-app|11|3
-org:acme-secure|6|2
-org:acme-org-01|3|1
+org:acme-org-01|6|2
+org:acme-org-03|3|1
 org:acme-actions|2|2
+org:acme-org-02|2|1
 
 -- query 4
 rule|subject|pairs_removed
-fix_pin|pin:action:acme-actions/deploy@main|16.0
-fix_pin|pin:action:acme-actions/deploy@v1|4.0
+fix_reduce_owners|reduce_owners:>=5|164.0
+fix_pin|pin:action:acme-actions/deploy@main|54.0
+fix_pin|pin:action:acme-actions/deploy@v1|10.0
+fix_pin|pin:action:acme-actions/setup@main|7.0
 fix_harden_trigger|harden_trigger:workflow:acme-app/docs/.github/workflows/claude.yml|1.0
-fix_pin|pin:action:acme-actions/setup@main|0.0
-fix_restrict_token|restrict_token:workflow:acme-app/docs/.github/workflows/claude.yml|0.0
 
 -- query 5
 collected_at|confirmed_pairs|possible_pairs
-2026-01-01T00:00:00Z|68|13
-2026-01-08T00:00:00Z|34|13
+2026-01-01T00:00:00Z|393|11
+2026-01-08T00:00:00Z|359|11
 

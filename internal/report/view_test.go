@@ -274,9 +274,12 @@ func TestHopChainEvidence(t *testing.T) {
 	}
 }
 
-// demoBaselineBytes is the size of gop report --demo before the redesign,
-// without the Graph tab's embedded graph data.
-const demoBaselineBytes = 129483
+// demoBaselineBytes is the size of gop report --demo without the Graph tab's
+// embedded graph data. It was 129483 before the redesign (budget 1.5x); it
+// was measured again when the demo graph gained the multi-org owners, the AI
+// approve + self-merge chain and the branch protection notes, which add
+// reach, and so embedded paths, rather than markup. The budget is 1.2x.
+const demoBaselineBytes = 452657
 
 func TestDemoSizeBudget(t *testing.T) {
 	var buf bytes.Buffer
@@ -291,7 +294,7 @@ func TestDemoSizeBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := buf.Len() - len(gj); n > demoBaselineBytes*3/2 {
-		t.Errorf("demo report without graph data is %d bytes, budget %d (1.5x the pre-redesign size)", n, demoBaselineBytes*3/2)
+	if n := buf.Len() - len(gj); n > demoBaselineBytes*6/5 {
+		t.Errorf("demo report without graph data is %d bytes, budget %d (1.2x the baseline)", n, demoBaselineBytes*6/5)
 	}
 }

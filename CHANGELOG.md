@@ -198,6 +198,25 @@ flags may change in minor releases.
   (new JSON fields `rest_requests`, `graphql_queries`, `graphql_points`;
   `requests` is their total) and checks the points against the GraphQL
   budget.
+
+### Changed
+- The demo graph shows the newer features (#167). `gop demo` and
+  `gop report --demo` now plant three more stories: carol, dave and erin own
+  five or more orgs each while every org keeps two local owners, so their
+  risk row is grouped by cause and the first suggested fix is
+  `reduce_owners`; the public `acme-app/web` has an AI approve + self-merge
+  chain (`ai-review.yml` approves with an App token, `ai-merge.yml` merges in
+  `tools/merge.py` with App `77`, a bypass actor of the rules on `main`), so anyone
+  who can open a pull request lands code on `main` with web's OIDC trust; and
+  `acme-actions/deploy` (one approval) and `acme-actions/setup` (not
+  protected) carry branch protection notes on the top paths. The small size
+  is now 7 orgs and about 65 repos (was 5 and about 60), and `acme-secure`
+  keeps only its two planted repos at every size. Demo goldens, the site
+  figures and every report screenshot in `docs/assets` are regenerated from
+  it, plus a new `report-agents.png` of the AI agents and AI approve +
+  self-merge sections. Demo numbers changed: the widest confirmed reach is now the three
+  owners (54 to 55 repos), and the top fix removes 42% of confirmed reach.
+
 ### Fixed
 - Consistency fixes (#166). `gop fix-plan --format text` escapes names the
   way the markdown checklist does (control, bidi and zero-width characters

@@ -2,11 +2,11 @@
 
 Enterprise **acme**, collected 2026-01-01T00:00:00Z
 
-**AI agents and bots:** 1 non-human actor; none can merge to a default branch without a human.
+**AI agents and bots:** 4 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible).
 
 > acme-oss/checkout-ish@v2, a version with a known advisory (GHSA-acme-demo-0001; severity critical; fixed in 2.4.1), runs in 1 repo across 1 org (confirmed), including 1 secret scope.
 >
-> Lower the default repository permission of acme-actions to read to remove 50% of confirmed reach.
+> Remove standing org ownership from 3 accounts that own 5 or more orgs (keep at least 2 owners per org) to remove 42% of confirmed reach.
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
@@ -17,23 +17,24 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | action:acme-oss/checkout-ish@v2 (known advisory: GHSA-acme-demo-0001; severity critical; fixed in 2.4.1) | 1 | 1 | 0 | 1 | 0 | 0 repos | 8.5 |
-| external:anyone | 1 | 1 | 0 | 1 | 0 | 0 repos | 9.5 |
-| identity:bob | 34 | 4 | 4 | 6 | 1 | 0 repos | 273.4 |
-| members:acme-actions | 34 | 4 | 4 | 6 | 1 | 0 repos | 273.4 |
-| identity:user-020 | 1 | 1 | 0 | 1 | 0 | 0 repos | 8.5 |
-| identity:user-005 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
-| identity:user-006 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
-| identity:user-012 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
-| identity:user-013 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
-| identity:user-018 | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
+| external:anyone | 2 | 1 | 1 | 2 | 0 | 0 repos | 25.0 |
+| 3 owners of 5 to 6 orgs: identity:carol, identity:dave, identity:erin | 54 to 55 | 6 | 7 | 12 | 1 | 0 repos | 470.2 |
+| 3 principals (identical reach): identity:bob, identity:user-001, identity:user-002 | 34 | 6 | 6 | 7 | 1 | 0 repos | 329.6 |
+| members:acme-actions | 34 | 6 | 6 | 7 | 1 | 0 repos | 329.6 |
+| 2 owners of 1 org: identity:user-004, identity:user-003 | 13 to 14 | 1 to 2 | 3 | 4 | 1 | 0 repos | 74.0 |
+| 2 principals (org owners of acme-org-01): identity:user-007, identity:user-008 | 10 | 1 | 1 | 3 | 0 | 0 repos | 60.0 |
+| identity:user-012 | 10 | 1 | 2 | 1 | 0 | 0 repos | 52.5 |
+| identity:user-011 | 11 | 2 | 3 | 1 | 0 | 0 repos | 46.5 |
+| identity:user-009 | 11 | 2 | 0 | 2 | 0 | 0 repos | 44.2 |
 
 - external:anyone can start 1 exposed AI agent workflow without push access (see AI agents in CI).
+- external:anyone can get code onto the default branch of 1 repo without human review [bot_self_merge] (see AI approve + self-merge).
 
-Score counts confirmed reach only.
+Score counts confirmed reach only. A row grouped by cause shows the range of its members' confirmed repos and orgs; its other columns are its first member's. The JSON (`top_risks`) lists each member's own figures.
 
 ## AI agents in CI
 
-1 workflow runs an AI coding agent; 1 can be started by people without push access, 1 of them while the agent holds write, secrets or OIDC. An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.
+2 workflows run an AI coding agent; 2 can be started by people without push access, 2 of them while the agent holds write, secrets or OIDC. An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.
 
 ### acme-app/docs/.github/workflows/claude.yml (claude-code-action)
 
@@ -48,23 +49,67 @@ Score counts confirmed reach only.
   4. Drop dangerously\_skip\_permissions: keep the agent's own approval prompts and sandbox.
   5. Scope the allowed tools to what the job needs, for example --allowedTools "Bash(gh pr comment:\*)".
 
+### acme-app/web/.github/workflows/ai-review.yml (claude-cli)
+
+- Who can start it: outsiders: people without push access: anyone on the internet on pull\_request\_target
+- What it holds: secrets
+- What it reaches: 1 secret scope, 1 repo
+- Prompt injection: reads the triggering pull request text
+  1. Restrict who can start it: the agent has no actor check of its own, so move it off pull\_request\_target, check the actor's repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers).
+
 Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.
+
+## AI approve + self-merge
+
+A bot approves a pull request its author can steer, and a workflow the author can start merges it with a bot token the default branch's rules let through: anyone who can open a pull request lands code with no human review. gop treats it like push access.
+
+### acme-app/web
+
+- a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+- Who: external:anyone
+- Why no human review: app\_bypass
+- Merging App: 77, a bypass actor of the default branch rules
+- Merge rules in a script: \`tools/merge.py\` (read from the default branch, not run)
+- Stale approvals (suspected, heuristic): the merge seems to count approvals not tied to the head commit; confirm by hand
+- The AI step holds the merge key: .github/workflows/ai-review.yml
+  1. Require a human approval that bots cannot give: require CODEOWNERS review on \`main\` with human owners (or a team), so a bot approval never satisfies the rule.
+  2. Remove the GitHub App \`77\` from the bypass actors of the rules on \`main\`: the merging workflow uses its token, so the merge skips every rule.
+  3. Do not let PR authors trigger the merge: drop the author check from \`ai-merge.yml\`, or require a maintainer (author\_association OWNER, or a write-permission check) and an environment with required reviewers.
+  4. Do not give the reviewer write or approve rights: let the AI reviewer comment (pull-requests: write without approving, or a read-only token) and keep approve and merge with people.
+  5. Count only approvals of the head commit in \`tools/merge.py\` (suspected, heuristic: confirm by hand): skip reviews whose commit\_id is not the head SHA and never count DISMISSED reviews.
+  6. Re-run the AI review on every push: add synchronize to the pull\_request types of \`ai-review.yml\`, so an approval always covers the code that is merged.
+  7. Keep the merge key out of the AI step: the agent in \`ai-review.yml\` holds the secret the merge uses, so a prompt injection can merge by itself. Give the merge its own App and key, outside the agent's env.
+
+## Org ownership
+
+82% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 321 of 393 confirmed (principal, repo) pairs.
+
+| Orgs owned | Accounts |
+|---|---:|
+| 1 org | 12 |
+| 2–4 orgs | 0 |
+| 5–9 orgs | 3 |
+| 10+ orgs | 0 |
+
+15 accounts own at least one org. An org owner is admin on every repo of the org, so an account that owns many orgs can push code that runs across all of them. gop counts owners from org owner grants on repos: an org with no repos shows no owners. The gop://graph/summary resource lists the accounts in each bucket.
 
 ## Suggested fixes
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Lower the default repository permission of acme-actions to read | 34 | 50% |
-| 2 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 16 | 74% |
-| 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 79% |
-| 4 | Harden acme-app/docs/.github/workflows/claude.yml (untrusted text reaches an AI step on issue\_comment) | 1 | 81% |
+| 1 | Remove standing org ownership from 3 accounts that own 5 or more orgs (keep at least 2 owners per org) | 164 | 42% |
+| 2 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 72 | 60% |
+| 3 | Lower the default repository permission of acme-actions to read | 16 | 64% |
+| 4 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 10 | 67% |
+| 5 | Pin acme-actions/setup@main to a commit SHA in every workflow that uses it | 6 | 68% |
 
 ## Pinned, still reachable
 
 A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:
 
-- **acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5** (used by 4 workflows) runs **acme-actions/setup@main**. members:acme-actions can change it (confirmed):
-  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
+- **acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5** (used by 3 workflows) runs **acme-actions/setup@main**. identity:carol can change it (confirmed):
+  1. identity:carol → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:planted-org-owner
+     note: push reaches the default branch directly
   2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
 
@@ -79,17 +124,47 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 
 ### external:anyone
 
+- **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
+  1. external:anyone → repo:acme-app/web, CAN\_MERGE\_VIA\_BOT, **live**, demo:planted-bot-self-merge
+     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+  2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:planted-cross-org
+  3. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
 - **confirmed** to secret:acme-app/docs
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. external:anyone → workflow:acme-app/docs/.github/workflows/claude.yml, CAN\_TRIGGER, **live**, demo:planted-ai-agent
   2. workflow:acme-app/docs/.github/workflows/claude.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, demo:planted-ai-agent
+- **confirmed** to secret:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
+  1. external:anyone → workflow:acme-app/web/.github/workflows/ai-review.yml, CAN\_TRIGGER, **live**, demo:planted-bot-self-merge
+  2. workflow:acme-app/web/.github/workflows/ai-review.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-bot-self-merge
 
-### identity:bob
+### identity:carol, one of 3 owners of 5 to 6 orgs
+
+- **confirmed** to oidc:acme-app/payments
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
+  1. identity:carol → repo:acme-app/payments, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-app/payments → workflow:acme-app/payments/.github/workflows/release.yml, DEFINED\_IN (reversed), **live**, demo:planted-nested-action
+  3. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
+- **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
+  1. identity:carol → repo:acme-app/web, CAN\_PUSH, **inferred**, demo:planted-org-owner
+     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+  2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:planted-cross-org
+  3. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
+- **confirmed** to oidc:acme-org-01/svc-007
+  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
+  1. identity:carol → repo:acme-org-01/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-01/svc-007 → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
+
+### identity:bob, one of 3 principals (identical reach)
 
 - **confirmed** to oidc:acme-app/payments
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. identity:bob → members:acme-actions, MEMBER\_OF, **live**, demo:membership
   2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
+     note: push reaches the default branch directly
   3. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   4. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
   5. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
@@ -97,22 +172,24 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 - **confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, demo:collaborator
+     note: push needs 1 approval to reach \`main\`
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, demo:planted-cross-org
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
-- **confirmed** to oidc:acme-secure/signer
-  1. identity:bob → members:acme-actions, MEMBER\_OF, **live**, demo:membership
-  2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
-  3. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  4. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
-  5. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-secure/signer/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
-  6. workflow:acme-secure/signer/.github/workflows/release.yml → oidc:acme-secure/signer, EXECUTES\_WITH, **live**, demo:planted-nested-action
+- **confirmed** to oidc:acme-org-01/svc-007
+  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, demo:collaborator
+     note: push needs 1 approval to reach \`main\`
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
+  3. action:acme-actions/deploy@main → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, USES (reversed), **live**, demo:uses
+  4. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
 
 ### members:acme-actions
 
 - **confirmed** to oidc:acme-app/payments
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
+     note: push reaches the default branch directly
   2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
   4. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
@@ -120,52 +197,101 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 - **confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
   1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, demo:default-perm
+     note: push needs 1 approval to reach \`main\`
   2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
   3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, demo:planted-cross-org
   4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
-- **confirmed** to oidc:acme-secure/signer
-  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
-  2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
-  4. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-secure/signer/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
-  5. workflow:acme-secure/signer/.github/workflows/release.yml → oidc:acme-secure/signer, EXECUTES\_WITH, **live**, demo:planted-nested-action
-
-### identity:user-020
-
-- **confirmed** to secret:acme-org-01/svc-009
+- **confirmed** to oidc:acme-org-01/svc-007
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. identity:user-020 → repo:acme-org-01/svc-009, CAN\_PUSH, **live**, demo:collaborator
-  2. repo:acme-org-01/svc-009 → workflow:acme-org-01/svc-009/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-01/svc-009/.github/workflows/ci.yml → secret:acme-org-01/svc-009, EXECUTES\_WITH, **live**, demo:secrets
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, demo:default-perm
+     note: push needs 1 approval to reach \`main\`
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
+  3. action:acme-actions/deploy@main → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, USES (reversed), **live**, demo:uses
+  4. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
 
-### identity:user-005
+### identity:user-004, one of 2 owners of 1 org
 
-- **confirmed** to repo:acme-app/sandbox
+- **confirmed** to oidc:acme-app/payments
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:user-005 → repo:acme-app/sandbox, CAN\_PUSH, **live**, demo:collaborator
+  1. identity:user-004 → repo:acme-app/payments, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-app/payments → workflow:acme-app/payments/.github/workflows/release.yml, DEFINED\_IN (reversed), **live**, demo:planted-nested-action
+  3. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
+- **confirmed** to oidc:acme-app/web
+  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
+  1. identity:user-004 → repo:acme-app/web, CAN\_PUSH, **inferred**, demo:planted-org-owner
+     note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
+  2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:planted-cross-org
+  3. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
+- **confirmed** to oidc:acme-secure/vault
+  1. identity:user-004 → repo:acme-secure/vault, CAN\_PUSH, **live**, demo:collaborator
+  2. repo:acme-secure/vault → workflow:acme-secure/vault/.github/workflows/release.yml, DEFINED\_IN (reversed), **live**, demo:planted-sha-pin
+  3. workflow:acme-secure/vault/.github/workflows/release.yml → oidc:acme-secure/vault, EXECUTES\_WITH, **live**, demo:planted-sha-pin
 
-### identity:user-006
+### identity:user-007, one of 2 principals (org owners of acme-org-01)
 
-- **confirmed** to repo:acme-org-01/svc-003
+- **confirmed** to oidc:acme-org-01/svc-007
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. identity:user-006 → repo:acme-org-01/svc-003, CAN\_PUSH, **live**, demo:collaborator
+  1. identity:user-007 → repo:acme-org-01/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-01/svc-007 → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
+- **confirmed** to secret:acme-org-01/svc-001
+  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
+  1. identity:user-007 → repo:acme-org-01/svc-001, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-01/svc-001 → workflow:acme-org-01/svc-001/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-01/svc-001/.github/workflows/ci.yml → secret:acme-org-01/svc-001, EXECUTES\_WITH, **live**, demo:secrets
+- **confirmed** to secret:acme-org-01/svc-007
+  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
+  1. identity:user-007 → repo:acme-org-01/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-01/svc-007 → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → secret:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:secrets
 
 ### identity:user-012
 
-- **confirmed** to repo:acme-secure/svc-005
-  1. identity:user-012 → repo:acme-secure/svc-005, CAN\_PUSH, **live**, demo:collaborator
+- **confirmed** to oidc:acme-org-03/svc-007
+  _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
+  1. identity:user-012 → repo:acme-org-03/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → oidc:acme-org-03/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
+- **confirmed** to oidc:acme-org-03/svc-008
+  _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
+  1. identity:user-012 → repo:acme-org-03/svc-008, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-008 → workflow:acme-org-03/svc-008/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-03/svc-008/.github/workflows/ci.yml → oidc:acme-org-03/svc-008, EXECUTES\_WITH, **live**, demo:id-token-write
+- **confirmed** to secret:acme-org-03/svc-007
+  _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
+  1. identity:user-012 → repo:acme-org-03/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → secret:acme-org-03/svc-007, EXECUTES\_WITH, **live**, demo:secrets
 
-### identity:user-013
+### identity:user-011
 
-- **confirmed** to repo:acme-app/mobile
-  _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:user-013 → repo:acme-app/mobile, CAN\_PUSH, **live**, demo:collaborator
+- **confirmed** to oidc:acme-org-03/svc-007
+  _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
+  1. identity:user-011 → repo:acme-org-03/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → oidc:acme-org-03/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
+- **confirmed** to oidc:acme-org-03/svc-008
+  _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
+  1. identity:user-011 → repo:acme-org-03/svc-008, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-008 → workflow:acme-org-03/svc-008/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-03/svc-008/.github/workflows/ci.yml → oidc:acme-org-03/svc-008, EXECUTES\_WITH, **live**, demo:id-token-write
+- **confirmed** to oidc:acme-secure/vault
+  1. identity:user-011 → repo:acme-secure/vault, CAN\_PUSH, **live**, demo:collaborator
+  2. repo:acme-secure/vault → workflow:acme-secure/vault/.github/workflows/release.yml, DEFINED\_IN (reversed), **live**, demo:planted-sha-pin
+  3. workflow:acme-secure/vault/.github/workflows/release.yml → oidc:acme-secure/vault, EXECUTES\_WITH, **live**, demo:planted-sha-pin
 
-### identity:user-018
+### identity:user-009
 
-- **confirmed** to repo:acme-org-01/svc-005
-  _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. identity:user-018 → repo:acme-org-01/svc-005, CAN\_PUSH, **live**, demo:collaborator
+- **confirmed** to secret:acme-org-02/svc-001
+  _Context, not part of the score: target org acme-org-02: SSO enforced, IP allow list off_
+  1. identity:user-009 → repo:acme-org-02/svc-001, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-02/svc-001 → workflow:acme-org-02/svc-001/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-02/svc-001/.github/workflows/ci.yml → secret:acme-org-02/svc-001, EXECUTES\_WITH, **live**, demo:secrets
+- **confirmed** to secret:acme-org-02/svc-009
+  _Context, not part of the score: target org acme-org-02: SSO enforced, IP allow list off_
+  1. identity:user-009 → repo:acme-org-02/svc-009, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  2. repo:acme-org-02/svc-009 → workflow:acme-org-02/svc-009/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
+  3. workflow:acme-org-02/svc-009/.github/workflows/ci.yml → secret:acme-org-02/svc-009, EXECUTES\_WITH, **live**, demo:secrets
 
 ## Org settings
 
@@ -175,6 +301,8 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 | acme-app | enforced | required | off | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 120 |
 | acme-legacy | none | not\_required | [_unknown_](#why-unknown) | write | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) |
 | acme-org-01 | enforced | not\_required | off | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 40 |
+| acme-org-02 | enforced | not\_required | off | none | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 141 |
+| acme-org-03 | enforced | required | off | none | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 128 |
 | acme-secure | enforced | required | on | read | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | [_unknown_](#why-unknown) | 8 |
 
 ### Why unknown
@@ -188,8 +316,34 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos, Members: not collected in this graph
 - **acme-org-01**
   - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-org-02**
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+- **acme-org-03**
+  - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
 - **acme-secure**
   - Members can create repos, Members can change visibility, Members can delete repos, Members can fork private repos: not collected in this graph
+
+## Repo hardening
+
+Context only: these facts never change evidence, counts or scores. Each cell is repos where it holds / repos with the fact; unknown (not visible to the token) is counted separately, never as off.
+
+| Org | Repos | Protected default branch | Required reviews | CODEOWNERS covers workflows | Secret scanning | Push protection |
+|---|---:|---|---|---|---|---|
+| acme-actions | 3 | 2/3 | 2/3 | 0/3 | 3/3 | 2/3 |
+| acme-app | 1 | 1/1 | 1/1 | 0/1 | 1/1 | 0/1 |
+
+Repos on the top paths:
+
+- **acme-actions/deploy**: default branch \`main\`: protected (ruleset:7), 1 approval, force push blocked; no CODEOWNERS; secret scanning on, push protection on
+- **acme-actions/release**: default branch \`main\`: protected (classic), 2 approvals, force push blocked; no CODEOWNERS; secret scanning on, push protection on
+- **acme-actions/setup**: default branch \`main\`: not protected; no CODEOWNERS; secret scanning on, push protection off
+- **acme-app/web**: default branch \`main\`: protected (ruleset:46), 1 approval, force push blocked; no CODEOWNERS; secret scanning on, push protection off
+
+Hardening suggestions (advisory: not counted as removing confirmed reach):
+
+- Require at least one approving review on the default branch of acme-actions/setup (default branch \`main\` is not protected)
+- Enable secret scanning push protection on acme-actions/setup (secret scanning push protection is off)
+- Enable secret scanning push protection on acme-app/web (secret scanning push protection is off)
 
 ## Coverage
 
@@ -197,6 +351,8 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 |---|---|---|---|
 | org:acme-legacy | repositories | token is not an org owner | org owner on acme-legacy (SAML enforced: join through the IdP first) |
 | org:acme-legacy | ip\_allow\_list | token is not an org owner | org owner on acme-legacy |
+| workflow:acme-app/web/.github/workflows/ai-merge.yml | bot\_merge\_stale\_approvals | suspected, heuristic: tools/merge.py seems to count approvals not tied to the head commit; gop matched text and never ran it | confirm by hand: read tools/merge.py and check it counts only APPROVED reviews whose commit\_id is the pull request's head SHA |
+| repo:acme-app/web | bot\_merge\_stale\_approvals | suspected, heuristic: the merge in tools/merge.py may count older approvals and ai-review.yml does not re-run on push | confirm by hand: read tools/merge.py and the pull\_request types of ai-review.yml |
 
 ---
 
