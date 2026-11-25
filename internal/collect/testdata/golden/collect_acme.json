@@ -1132,6 +1132,156 @@
       "observed_at": "0001-01-01T00:00:00Z"
     },
     {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/admin",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/api",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/billing",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/docs",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/infra",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/mobile",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/notify",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/search",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/web",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
+      "from": "identity:acme-ai-reviewer[bot]",
+      "to": "repo:acme-app/worker",
+      "kind": "CAN_PUSH",
+      "evidence": "inferred",
+      "source_api": "rest:GET /orgs/{org}/installations",
+      "observed_at": "0001-01-01T00:00:00Z",
+      "attrs": {
+        "app_repos": "all",
+        "app_workflows": "write",
+        "permission": "write",
+        "rule": "app_install",
+        "via": "app_install"
+      }
+    },
+    {
       "from": "identity:alice",
       "to": "repo:acme-actions/deploy",
       "kind": "CAN_PUSH",

@@ -6,7 +6,7 @@ Enterprise **acme**, collected 2026-11-24T12:00:00Z
 
 > identity:alice can push code that runs in 13 repos across 3 orgs (confirmed), including 2 cloud OIDC trusts, 3 secret scopes, 1 self-hosted runner pool.
 >
-> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 32% of confirmed reach.
+> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 28% of confirmed reach.
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
@@ -20,12 +20,12 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 | members:acme-actions | 9 | 3 | 1 | 2 | 1 | 0 repos | 94.5 |
 | 2 principals (team:acme-actions/platform): team:acme-actions/platform, team:acme-actions/platform-oncall | 7 | 2 | 1 | 2 | 1 | 0 repos | 82.1 |
 | identity:bob | 9 | 3 | 1 | 2 | 1 | 1 repo | 61.5 |
+| identity:acme-ai-reviewer\[bot\] | 10 | 1 | 2 | 3 | 1 | 0 repos + 1 impact | 53.0 |
 | identity:erin | 7 | 2 | 1 | 2 | 1 | 0 repos | 36.5 |
 | team:acme-app/release | 1 | 1 | 0 | 1 | 0 | 0 repos | 13.5 |
 | external:anyone | 1 | 1 | 0 | 1 | 0 | 0 repos | 9.5 |
 | members:acme-legacy | 2 | 1 | 0 | 0 | 0 | 1 repo | 6.8 |
 | team:acme-legacy/legacy-vTESTs | 1 | 1 | 0 | 0 | 0 | 0 repos | 5.2 |
-| identity:carol | 2 | 1 | 0 | 0 | 0 | 0 repos | 4.5 |
 
 - external:anyone can get code onto the default branch of 1 repo without human review [bot_self_merge] (see AI approve + self-merge).
 
@@ -64,7 +64,7 @@ A bot approves a pull request its author can steer, and a workflow the author ca
 
 ## Org ownership
 
-12% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 59 confirmed (principal, repo) pairs.
+10% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 69 confirmed (principal, repo) pairs.
 
 | Orgs owned | Accounts |
 |---|---:|
@@ -79,11 +79,11 @@ A bot approves a pull request its author can steer, and a workflow the author ca
 
 | # | Fix | Confirmed pairs removed | Cumulative removed |
 |---:|---|---:|---:|
-| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 19 | 32% |
-| 2 | Lower the default repository permission of acme-actions to read | 9 | 47% |
-| 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 54% |
-| 4 | Lower the default repository permission of acme-legacy to read | 2 | 58% |
-| 5 | Stop PR authors from getting code onto the default branch of acme-app/web through a bot approve and merge | 1 | 59% |
+| 1 | Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it | 19 | 28% |
+| 2 | Lower the default repository permission of acme-actions to read | 9 | 41% |
+| 3 | Pin acme-actions/deploy@v1 to a commit SHA in every workflow that uses it | 4 | 46% |
+| 4 | Lower the default repository permission of acme-legacy to read | 2 | 49% |
+| 5 | Stop PR authors from getting code onto the default branch of acme-app/web through a bot approve and merge | 1 | 51% |
 
 ## Pinned, still reachable
 
@@ -203,6 +203,29 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
   4. action:acme-legacy/hidden-tool@v2 → workflow:acme-secure/vault-proxy/.github/workflows/ci.yml, USES (reversed), **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
   5. workflow:acme-secure/vault-proxy/.github/workflows/ci.yml → repo:acme-secure/vault-proxy, DEFINED\_IN, **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
 
+### identity:acme-ai-reviewer\[bot\]
+
+- **confirmed** to oidc:acme-app/billing
+  _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/billing, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/billing → workflow:acme-app/billing/.github/workflows/deploy.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **confirmed** to oidc:acme-app/search
+  _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → oidc:acme-app/search, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **confirmed** to secret:acme-app/docs
+  _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/docs, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **possible: a hop is not visible** to runner:acme-app/search
+  _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → runner:acme-app/search, EXECUTES\_WITH, **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
+
 ### identity:erin
 
 - **confirmed** to oidc:acme-app/billing
@@ -263,11 +286,6 @@ A SHA pin blocks a path only when everything the pinned action runs is pinned to
 - **confirmed** to repo:acme-legacy/old-site
   _Context, not part of the score: target org acme-legacy: SSO enforced, IP allow list unknown_
   1. team:acme-legacy/legacy-vTESTs → repo:acme-legacy/old-site, CAN\_PUSH, **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
-
-### identity:carol
-
-- **confirmed** to repo:acme-secure/vault-proxy
-  1. identity:carol → repo:acme-secure/vault-proxy, CAN\_PUSH, **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
 
 ## Org settings
 

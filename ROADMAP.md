@@ -33,7 +33,6 @@ Finding AI coding agents that run in CI with secrets and write tokens, and who c
 
 ### 3. More of the control graph
 
-- GitHub App push grants.
 - Enterprise audit log collection, so more facts carry `audit` evidence.
 
 ### 4. Distribution

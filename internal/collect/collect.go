@@ -170,6 +170,8 @@ type orgState struct {
 	notVisible map[string]*notVisibleTally
 	// workflowDefault caches the org's default workflow permissions (token.go).
 	workflowDefault *orgWorkflowDefault
+	// appPush are the org's App installations with contents: write (apps.go).
+	appPush []appGrant
 }
 
 // repoGrant is a repository-scoped role from the consumed-licenses list, e.g.
@@ -486,6 +488,9 @@ func (k *collector) run(ctx context.Context) error {
 		// Owner edges come after collaborator edges: k.edge keeps the first edge
 		// per (from, kind, to), so a direct grant to an owner keeps via=direct.
 		k.ownerPush(o)
+		// App edges come last for the same reason: an App that is also a
+		// direct collaborator keeps that live grant.
+		k.appPushEdges(o)
 		k.flushNotVisible(o)
 		k.progress(PhaseRepos, i+1, len(k.orgs))
 	}
