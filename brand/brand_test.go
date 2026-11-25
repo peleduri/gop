@@ -1,9 +1,11 @@
 package brand
 
 import (
+	"math"
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -210,4 +212,72 @@ func TestContrastKnownValues(t *testing.T) {
 	if _, err := Contrast("#fff", "#000000"); err == nil {
 		t.Error("short hex accepted")
 	}
+}
+
+// TestNoYellow: the brand has no yellow, amber, gold or mustard. Any color
+// token with an HSL hue of 40 to 70 degrees and saturation above 30% fails.
+func TestNoYellow(t *testing.T) {
+	tk := MustLoad()
+	for theme, c := range tk.Color {
+		for tok, hex := range c {
+			h, sat := hsl(t, hex)
+			if h >= 40 && h <= 70 && sat > 0.30 {
+				t.Errorf("%s: %s %s is yellow (hue %.0f, saturation %.0f%%); the brand forbids yellow", theme, tok, hex, h, sat*100)
+			}
+		}
+	}
+	for _, f := range []string{"graph-language.svg", "logo/gop-mark.svg", "logo/gop-mark-color.svg", "logo/gop-mark-mono.svg", "logo/gop-logo.svg"} {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, hex := range regexp.MustCompile(`#[0-9a-fA-F]{6}\b`).FindAllString(string(b), -1) {
+			h, sat := hsl(t, strings.ToLower(hex))
+			if h >= 40 && h <= 70 && sat > 0.30 {
+				t.Errorf("%s uses yellow %s", f, hex)
+			}
+		}
+	}
+}
+
+func TestHSL(t *testing.T) {
+	for hex, want := range map[string]float64{"#ffff00": 60, "#ff0000": 0, "#0000ff": 240, "#f2a33a": 34} {
+		if h, _ := hsl(t, hex); math.Abs(h-want) > 1 {
+			t.Errorf("hue(%s) = %.1f, want %.0f", hex, h, want)
+		}
+	}
+}
+
+// hsl returns the HSL hue in degrees and the saturation (0 to 1).
+func hsl(t *testing.T, hex string) (float64, float64) {
+	t.Helper()
+	var rgb [3]float64
+	for i := range rgb {
+		v, err := strconv.ParseUint(hex[1+2*i:3+2*i], 16, 8)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rgb[i] = float64(v) / 255
+	}
+	r, g, b := rgb[0], rgb[1], rgb[2]
+	mx, mn := math.Max(r, math.Max(g, b)), math.Min(r, math.Min(g, b))
+	if mx == mn {
+		return 0, 0
+	}
+	d, l := mx-mn, (mx+mn)/2
+	sat := d / (1 - math.Abs(2*l-1))
+	var h float64
+	switch mx {
+	case r:
+		h = math.Mod((g-b)/d, 6)
+	case g:
+		h = (b-r)/d + 2
+	default:
+		h = (r-g)/d + 4
+	}
+	h *= 60
+	if h < 0 {
+		h += 360
+	}
+	return h, sat
 }

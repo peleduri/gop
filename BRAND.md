@@ -72,8 +72,8 @@ Two themes, light and dark, selected by `prefers-color-scheme` (screen only: pri
 | `on-danger` | `#ffffff` | `#0e1116` | Text on danger-solid |
 | `ok` | `#1a6e3c` | `#5fd394` | Cut or fixed: removed reach, passing checks |
 | `ok-bg` | `#e2f3e8` | `#10291b` | OK tint |
-| `possible` | `#8a5300` | `#f0b84f` | Possible reach: a hop not seen, inferred risk |
-| `possible-bg` | `#fcf1dc` | `#33240a` | Possible tint |
+| `possible` | `#3d5f8f` | `#93b0dc` | Possible reach: a hop not seen, inferred risk |
+| `possible-bg` | `#e7edf6` | `#1a2638` | Possible tint |
 | `neutral` | `#5c6470` | `#9ba4b0` | not_visible, unknown, empty states |
 | `neutral-bg` | `#eceff3` | `#242a33` | Neutral tint |
 | `ev-live` | `#3a46c9` | `#9aa5ff` | Evidence badge: live |
@@ -88,6 +88,8 @@ Two themes, light and dark, selected by `prefers-color-scheme` (screen only: pri
 | `ev-not-visible-bg` | `#eceff3` | `#242a33` | Tint behind the badge text above |
 | `target` | `#a3245f` | `#f48fbd` | Targets, the "where": secret, oidc, cloud_target, runner nodes |
 | `target-bg` | `#fbe9f1` | `#3a1528` | Target tint |
+
+**No yellow.** The brand uses no yellow, amber, gold or mustard anywhere: palette, logo, site, report, icons, diagrams. `go test ./brand/` fails if any color token has an HSL hue between 40 and 70 degrees with saturation above 30%. Possible reach, which other tools often draw in amber, is blue-gray with a dashed line and a ? glyph.
 
 ### Semantic roles
 
@@ -200,9 +202,9 @@ People are round, code is angular (diamonds and rectangles), targets are tinted 
 Recorded when this file was written, for the stage that applies it. Remove an item once its surface follows this file.
 
 - **Headline.** README says "gop: GitHub Enterprise Org Posture"; the site title, plugin `displayName`, `server.json` title, MCPB `display_name` and the Markdown report heading say "gop: who can make code run where"; the HTML report title says "gop report"; the README lede and site description use "Which AI agents and people can make code run where". At least six other variants of "who can make code run where ..." appear across docs, manifests and the MCP server instructions.
-- **Palette.** The site and the HTML report both copy GitHub's own Primer colors (`#0969da`, `#1a7f37`, `#cf222e`, `#0d1117`), which makes gop read as a GitHub product. The README site badge also uses `0969da`. The social preview uses amber (`#f2a33a`) for the hot path, which this system reserves for possible reach.
-- **Evidence colors.** In the report, live evidence and "good/fixed" share one green, so "observed" and "fixed" look the same; audit shares the medium-severity amber; supplied borrows the accent; the badge glyph for audit is the generic ✓. Edge dashes differ from the site's hero path (the site's `inferred` badge uses the live green with a dashed border).
-- **Logo.** Four different marks: the site favicon and the report and site header `.mark` are a bold mono "g" on a dark tile; the Claude and Cursor plugin icon (1024px) is a "g" under a blue graph arc on a gradient tile; the social preview uses a "gop" wordmark with an amber graph; the Action uses the generic `shield` icon in `gray-dark`.
+- **Palette.** The site and the HTML report both copy GitHub's own Primer colors (`#0969da`, `#1a7f37`, `#cf222e`, `#0d1117`), which makes gop read as a GitHub product. The README site badge also uses `0969da`. The social preview uses amber (`#f2a33a`) for the hot path; the brand has no yellow or amber, so it must go.
+- **Evidence colors.** In the report, live evidence and "good/fixed" share one green, so "observed" and "fixed" look the same; audit shares the medium-severity amber (`--med`, `--audit` are yellow hues the brand forbids); supplied borrows the accent; the badge glyph for audit is the generic ✓. Edge dashes differ from the site's hero path (the site's `inferred` badge uses the live green with a dashed border).
+- **Logo.** Four different marks: the site favicon and the report and site header `.mark` are a bold mono "g" on a dark tile; the Claude and Cursor plugin icon (1024px) is a "g" under a blue graph arc on a gradient tile; the social preview uses a "gop" wordmark with an amber graph (forbidden hue); the Action uses the generic `shield` icon in `gray-dark`.
 - **Social preview.** `docs/assets/social-preview.png` exists but the site has no `og:image`, `og:title` or `twitter:card` tags.
 - **Name casing.** "gop" is lowercase on every surface checked. The expansion "GitHub Enterprise Org Posture" appears in the README H1 and `llms.txt`.
 - **Punctuation.** One user-visible em dash: the empty coverage value in `internal/report/view.go` renders an em dash (U+2014).
