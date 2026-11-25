@@ -1,0 +1,71 @@
+[demo data] confirmed (principal, repo) pairs: 394 -> 158 (60% removed); possible pairs: 11 -> 11
+Hypothetical: gop changed nothing. gop fix-plan prints the steps of one fix.
+
+Fixes applied (2):
+  - pin:action:acme-actions/deploy@main
+      Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it
+  - reduce_owners:>=5
+      Remove standing org ownership from 3 accounts that own 5 or more orgs (keep at least 2 owners per org)
+
+Totals                                   before      after
+  confirmed (principal, repo) pairs         394        158
+  possible (principal, repo) pairs           11         11
+  confirmed score                        3437.4     1105.2
+  possible score                           41.6       41.6
+
+Paths that disappear (459, showing 20):
+  identity:carol -> cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy  [confirmed -> gone]
+      was: identity:carol -> repo:acme-app/api -> workflow:acme-app/api/.github/workflows/claude-fix.yml -> cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
+  identity:dave -> cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy  [confirmed -> gone]
+      was: identity:dave -> repo:acme-app/api -> workflow:acme-app/api/.github/workflows/claude-fix.yml -> cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
+  identity:erin -> cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy  [confirmed -> gone]
+      was: identity:erin -> repo:acme-app/api -> workflow:acme-app/api/.github/workflows/claude-fix.yml -> cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
+  identity:carol -> oidc:acme-app/api  [confirmed -> gone]
+      was: identity:carol -> repo:acme-app/api -> workflow:acme-app/api/.github/workflows/claude-fix.yml -> oidc:acme-app/api
+  identity:carol -> oidc:acme-app/web  [confirmed -> gone]
+      was: identity:carol -> repo:acme-app/web -> workflow:acme-app/web/.github/workflows/ci.yml -> oidc:acme-app/web
+  identity:carol -> oidc:acme-org-01/svc-007  [confirmed -> gone]
+      was: identity:carol -> repo:acme-org-01/svc-007 -> workflow:acme-org-01/svc-007/.github/workflows/ci.yml -> oidc:acme-org-01/svc-007
+  identity:carol -> oidc:acme-org-03/svc-007  [confirmed -> gone]
+      was: identity:carol -> repo:acme-org-03/svc-007 -> workflow:acme-org-03/svc-007/.github/workflows/ci.yml -> oidc:acme-org-03/svc-007
+  identity:carol -> oidc:acme-org-03/svc-008  [confirmed -> gone]
+      was: identity:carol -> repo:acme-org-03/svc-008 -> workflow:acme-org-03/svc-008/.github/workflows/ci.yml -> oidc:acme-org-03/svc-008
+  identity:carol -> oidc:acme-secure/vault  [confirmed -> gone]
+      was: identity:carol -> repo:acme-secure/vault -> workflow:acme-secure/vault/.github/workflows/release.yml -> oidc:acme-secure/vault
+  identity:dave -> oidc:acme-app/api  [confirmed -> gone]
+      was: identity:dave -> repo:acme-app/api -> workflow:acme-app/api/.github/workflows/claude-fix.yml -> oidc:acme-app/api
+  identity:dave -> oidc:acme-app/web  [confirmed -> gone]
+      was: identity:dave -> repo:acme-app/web -> workflow:acme-app/web/.github/workflows/ci.yml -> oidc:acme-app/web
+  identity:dave -> oidc:acme-org-01/svc-007  [confirmed -> gone]
+      was: identity:dave -> repo:acme-org-01/svc-007 -> workflow:acme-org-01/svc-007/.github/workflows/ci.yml -> oidc:acme-org-01/svc-007
+  identity:dave -> oidc:acme-org-03/svc-007  [confirmed -> gone]
+      was: identity:dave -> repo:acme-org-03/svc-007 -> workflow:acme-org-03/svc-007/.github/workflows/ci.yml -> oidc:acme-org-03/svc-007
+  identity:dave -> oidc:acme-org-03/svc-008  [confirmed -> gone]
+      was: identity:dave -> repo:acme-org-03/svc-008 -> workflow:acme-org-03/svc-008/.github/workflows/ci.yml -> oidc:acme-org-03/svc-008
+  identity:dave -> oidc:acme-secure/vault  [confirmed -> gone]
+      was: identity:dave -> repo:acme-secure/vault -> workflow:acme-secure/vault/.github/workflows/release.yml -> oidc:acme-secure/vault
+  identity:erin -> oidc:acme-app/api  [confirmed -> gone]
+      was: identity:erin -> repo:acme-app/api -> workflow:acme-app/api/.github/workflows/claude-fix.yml -> oidc:acme-app/api
+  identity:erin -> oidc:acme-app/web  [confirmed -> gone]
+      was: identity:erin -> repo:acme-app/web -> workflow:acme-app/web/.github/workflows/ci.yml -> oidc:acme-app/web
+  identity:erin -> oidc:acme-org-01/svc-007  [confirmed -> gone]
+      was: identity:erin -> repo:acme-org-01/svc-007 -> workflow:acme-org-01/svc-007/.github/workflows/ci.yml -> oidc:acme-org-01/svc-007
+  identity:erin -> oidc:acme-org-03/svc-007  [confirmed -> gone]
+      was: identity:erin -> repo:acme-org-03/svc-007 -> workflow:acme-org-03/svc-007/.github/workflows/ci.yml -> oidc:acme-org-03/svc-007
+  identity:erin -> oidc:acme-org-03/svc-008  [confirmed -> gone]
+      was: identity:erin -> repo:acme-org-03/svc-008 -> workflow:acme-org-03/svc-008/.github/workflows/ci.yml -> oidc:acme-org-03/svc-008
+
+Remaining top paths (5):
+  1. external:anyone  score 53.5 -> 53.5, confirmed repos 3 -> 3, possible repos 0 -> 0
+      external:anyone -> workflow:acme-app/api/.github/workflows/claude-fix.yml -> cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
+  2. identity:bob  score 329.6 -> 140.6, confirmed repos 34 -> 16, possible repos 0 -> 0
+      identity:bob -> members:acme-actions -> repo:acme-actions/setup -> action:acme-actions/setup@main -> action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 -> workflow:acme-app/payments/.github/workflows/release.yml -> oidc:acme-app/payments
+  3. identity:carol  score 531.0 -> 140.6, confirmed repos 55 -> 16, possible repos 0 -> 0
+      identity:carol -> members:acme-actions -> repo:acme-actions/setup -> action:acme-actions/setup@main -> action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 -> workflow:acme-app/payments/.github/workflows/release.yml -> oidc:acme-app/payments
+  4. identity:dave  score 531.0 -> 140.6, confirmed repos 55 -> 16, possible repos 0 -> 0
+      identity:dave -> members:acme-actions -> repo:acme-actions/setup -> action:acme-actions/setup@main -> action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 -> workflow:acme-app/payments/.github/workflows/release.yml -> oidc:acme-app/payments
+  5. identity:erin  score 509.6 -> 140.6, confirmed repos 54 -> 16, possible repos 0 -> 0
+      identity:erin -> members:acme-actions -> repo:acme-actions/setup -> action:acme-actions/setup@main -> action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 -> workflow:acme-app/payments/.github/workflows/release.yml -> oidc:acme-app/payments
+
+Caveats (1):
+  - reduce_owners:>=5: prefer just-in-time ownership (owner access granted on demand and removed after) over standing ownership; the kept owners and anyone with owner access granted later still hold this reach
