@@ -92,6 +92,7 @@ func writeMarkdown(w io.Writer, d data) error {
 	if d.PinLine != "" {
 		p(">\n> %s\n", md(d.PinLine))
 	}
+	writeMDFunnel(p, d)
 	if d.HasCloud {
 		p("\nConfirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺), or (a cloud hop) from a supplied file (≡): a cloud trust policy you supplied, not read from the cloud. Possible (?) means at least one hop is not visible to the token: unknown, not absent.\n\n")
 	} else {
@@ -388,5 +389,44 @@ func writeMDHardening(p func(string, ...any), d data) {
 			p("- %s (%s)\n", md(f.Description), md(f.Reason))
 		}
 		p("\n")
+	}
+}
+
+// writeMDFunnel is the funnel and stat widgets as a small table and a line.
+func writeMDFunnel(p func(string, ...any), d data) {
+	f := d.Funnel
+	if len(f.Stages) == 0 {
+		p("\n**AI agents in CI:** %s\n", f.Empty)
+	} else {
+		p("\n**AI agents in CI:** %s\n\n| # | Stage | Workflows | Left the funnel |\n|---:|---|---:|---|\n", f.Line)
+		for _, s := range f.Stages {
+			label := s.Label
+			switch s.Tone {
+			case "danger":
+				label = "▲ " + label
+			case "ok":
+				label = "✓ " + label
+			}
+			drop := s.Drop
+			if s.DropPossible {
+				drop = "? " + drop
+			}
+			p("| %d | %s | %d | %s |\n", s.N, label, s.Count, drop)
+		}
+	}
+	parts := make([]string, 0, len(d.Stats))
+	for _, w := range d.Stats {
+		vs := make([]string, 0, len(w.Parts))
+		for _, v := range w.Parts {
+			t := v.Value
+			if v.Unit != "" {
+				t += " " + v.Unit
+			}
+			vs = append(vs, t)
+		}
+		parts = append(parts, strings.ToLower(w.Label[:1])+w.Label[1:]+": "+strings.Join(vs, ", "))
+	}
+	if len(parts) > 0 {
+		p("\n**Also:** %s.\n", strings.Join(parts, "; "))
 	}
 }

@@ -7,6 +7,16 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- `gop report` opens with an AI agents funnel under the headline: workflows
+  that look like an AI agent, agents found by a known action or CLI, those
+  people without push access can start, those whose agent holds write,
+  secrets or OIDC, confirmed end-to-end agent paths, and those in dangerous
+  mode. Every stage is counted from the graph and is a subset of the one
+  before; each links to (and with JavaScript filters) AI agents in CI.
+  Beside it: bots that merge with no human (confirmed and possible apart),
+  action refs with a known advisory (affected, unknown, total) and orgs gop
+  could see (fully, partly). The Markdown report gets the same stages as a
+  table.
 - `gop summary --graph graph.json | --demo --out summary.json [--names]
   [--top N]` writes `gop.summary/v1` (schema
   `schema/gop.summary.v1.schema.json`): coverage, the headline numbers

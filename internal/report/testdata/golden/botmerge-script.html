@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-S6y87aQVaDhyOTIu26um8rP/z9PIgrYMzDghsavVDCc='; style-src 'sha256-0qdL+aKrNjT9xLCWteGzMuv26oGwglHcUCXfMpQPXvY='; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-NGhqzyO9M0SA+HO71HNC8FpJSMg/j8njnXno3jhebJ4='; style-src 'sha256-qb5q1qzWR8szdAUHVNg5BHBRULXfrJMe+owh8NL927s='; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>gop report: acme</title>
@@ -137,6 +137,37 @@ h3{font-size:.95rem;margin:var(--s3) 0 var(--s1)}
 .k-unit{font-size:.85rem;font-weight:500;color:var(--muted);letter-spacing:0}
 .k-sub{font-size:.8rem;color:var(--muted)}
 .k-poss{margin-top:8px;padding-top:6px;border-top:1px dashed var(--line);font-size:.8rem;color:var(--muted);font-style:italic}
+.fun{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--s3);margin:0 0 var(--s2);padding:var(--s2) 0;border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)}
+.fun-t{font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.fun-line{margin:0 0 var(--s1);font-weight:600}
+.fun-st{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.fs a{display:grid;grid-template-columns:3.4em minmax(0,1fr);gap:0 12px;align-items:start;padding:5px 8px;border-radius:6px;color:var(--fg);text-decoration:none}
+.fs a:hover{background:var(--sunken)}
+.fs-n{font-size:1.3rem;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;line-height:1.2}
+.fs-b{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fs-l{font-size:.9rem;line-height:1.3}
+.fs-tr{display:block;height:10px;border-radius:999px;background:var(--track);overflow:hidden}
+.fs-f{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.fs.t-danger .fs-f{background:var(--crit)}
+.fs.t-danger .fs-n,.fs.t-danger .fs-l>span{color:var(--crit)}
+.fs.t-ok .fs-n,.fs.t-ok .fs-l{color:var(--ok)}
+.fs-d{font-size:.78rem;color:var(--muted)}
+.fs-d.poss{color:var(--poss);border-left:2px dashed var(--poss);padding-left:6px}
+.fun-empty{margin:0;padding:var(--s2);border:1px dashed var(--line3);border-radius:var(--r);color:var(--muted)}
+.fun-stats{list-style:none;margin:0;padding:0;display:grid;gap:8px;align-content:start}
+.stw>a,.stw>div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--fg);text-decoration:none}
+.stw>a:hover{border-color:var(--accent)}
+.stw.t-crit>*{border-left-color:var(--crit)}
+.stw.t-ok>*{border-left-color:var(--ok)}
+.stw.t-poss>*{border-left:3px dashed var(--poss)}
+.stw.t-unk>*{border-left:3px dashed var(--nv)}
+.stw-v{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:.82rem;color:var(--muted)}
+.sp strong{font-size:1.2rem;color:var(--fg);font-variant-numeric:tabular-nums}
+.sp.poss,.sp.poss strong{color:var(--poss)}
+.sp.poss{border-bottom:1px dashed var(--poss)}
+.sp.unk strong{color:var(--nv)}
+.fun-filter{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 var(--s2);padding:8px 12px;border-left:4px solid var(--accent);background:var(--accent-bg);border-radius:var(--r);font-size:.85rem}
+.fun-filter button{font:inherit;font-weight:600;color:var(--accent);background:var(--card);border:1px solid var(--line3);border-radius:6px;padding:3px 10px;cursor:pointer}
 .legend{font-size:.82rem;color:var(--muted);margin:0;padding-top:var(--s2);border-top:1px solid var(--line2)}
 .badge{display:inline-flex;align-items:center;gap:3px;padding:0 7px;border-radius:999px;font-size:.72rem;font-weight:600;line-height:1.6;white-space:nowrap;vertical-align:baseline}
 .live{color:var(--live);background:var(--live-bg)}.inferred{color:var(--inf);background:var(--inf-bg);border:1px dashed var(--inf)}.audit{color:var(--audit);background:var(--audit-bg)}
@@ -276,7 +307,7 @@ tbody tr:hover>*{background:var(--bg)}
 footer{border-top:1px solid var(--line);background:var(--card);color:var(--muted);font-size:.82rem}
 footer .wrap{padding-top:var(--s2);padding-bottom:var(--s4)}
 .w0{width:0%}.w4{width:4%}.w8{width:8%}.w12{width:12%}.w16{width:16%}.w20{width:20%}.w24{width:24%}.w28{width:28%}.w32{width:32%}.w36{width:36%}.w40{width:40%}.w44{width:44%}.w48{width:48%}.w52{width:52%}.w56{width:56%}.w60{width:60%}.w64{width:64%}.w68{width:68%}.w72{width:72%}.w76{width:76%}.w80{width:80%}.w84{width:84%}.w88{width:88%}.w92{width:92%}.w96{width:96%}.w100{width:100%}
-@media screen and (max-width:720px){body{font-size:14.5px}.hero{padding:var(--s2);border-radius:var(--r)}.big{font-size:1.12rem}
+@media screen and (max-width:720px){body{font-size:14.5px}.fun{grid-template-columns:minmax(0,1fr);gap:var(--s2)}.fun-stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.fs a{grid-template-columns:2.6em minmax(0,1fr);gap:0 8px;padding:5px 4px}.hero{padding:var(--s2);border-radius:var(--r)}.big{font-size:1.12rem}
 .kpis{grid-template-columns:1fr 1fr;gap:8px}.kpi a{padding:12px}.k-val{font-size:1.5rem}
 .fix{grid-template-columns:auto 1fr;padding:var(--s2)}.fix-impact{grid-column:1/-1}
 .chain{flex-direction:column;align-items:stretch}.chain>li{flex-direction:column;align-items:stretch}
@@ -332,6 +363,18 @@ footer{background:none}}
 <div class="hero-top"><p class="verdict"><span class="dot" aria-hidden="true"></span>Critical exposure</p><p class="meta">Widest confirmed reach: <strong>identity:alice</strong></p></div>
 <p class="nonhuman"><span class="tag">AI agents and bots</span> 4 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible). <a href="#ai-agents">AI agents</a> <a href="#ai-self-merge">AI self-merge</a></p>
 <p class="big">identity:alice can push code that runs in 13 repos across 3 orgs (confirmed), including 2 cloud OIDC trusts, 3 secret scopes, 1 self-hosted runner pool.</p>
+<div class="fun" role="group" aria-labelledby="fun-h">
+<div class="fun-main"><h3 id="fun-h" class="fun-t">AI agents in CI, from exposure to what to fix</h3>
+<p class="fun-line">From 2 workflows that look like an AI agent to 0 confirmed agent paths in dangerous mode to fix first.</p>
+<ol class="fun-st"><li class="fs t-path" data-fs="1" data-count="2"><a href="#ai-agents" data-fs="1"><span class="fs-n">2</span><span class="fs-b"><span class="fs-l">look like an AI agent (name-only matches included)</span><span class="fs-tr" aria-hidden="true"><span class="fs-f w100"></span></span></span></a></li>
+<li class="fs t-path" data-fs="2" data-count="1"><a href="#ai-agents" data-fs="2"><span class="fs-n">1</span><span class="fs-b"><span class="fs-l">run a known agent action or CLI</span><span class="fs-tr" aria-hidden="true"><span class="fs-f w52"></span></span><span class="fs-d">−1: name-only matches: listed, never ranked</span></span></a></li>
+<li class="fs t-danger" data-fs="3" data-count="1"><a href="#ai-agents" data-fs="3"><span class="fs-n">1</span><span class="fs-b"><span class="fs-l"><span aria-hidden="true">▲</span> can be started by people without push access</span><span class="fs-tr" aria-hidden="true"><span class="fs-f w52"></span></span></span></a></li>
+<li class="fs t-danger" data-fs="4" data-count="1"><a href="#ai-agents" data-fs="4"><span class="fs-n">1</span><span class="fs-b"><span class="fs-l"><span aria-hidden="true">▲</span> of those, the agent holds write, secrets or OIDC</span><span class="fs-tr" aria-hidden="true"><span class="fs-f w52"></span></span></span></a></li>
+<li class="fs t-danger" data-fs="5" data-count="1"><a href="#ai-agents" data-fs="5"><span class="fs-n">1</span><span class="fs-b"><span class="fs-l"><span aria-hidden="true">▲</span> confirmed end-to-end agent paths</span><span class="fs-tr" aria-hidden="true"><span class="fs-f w52"></span></span></span></a></li>
+<li class="fs t-ok" data-fs="6" data-count="0"><a href="#ai-agents" data-fs="6"><span class="fs-n">0</span><span class="fs-b"><span class="fs-l"><span aria-hidden="true">✓</span> run in dangerous mode (approvals or sandbox off)</span><span class="fs-tr" aria-hidden="true"><span class="fs-f w0"></span></span><span class="fs-d">−1: keep the agent&#39;s approvals and sandbox on</span></span></a></li>
+</ol></div>
+<ul class="fun-stats" aria-label="Other headline figures"><li class="stw t-crit"><a href="#ai-self-merge"><span class="k-label">Bots merge with no human</span><span class="stw-v"><span class="sp conf"><strong>1</strong> confirmed</span><span class="sp poss"><span aria-hidden="true">?</span> <strong>0</strong> possible</span></span><span class="k-sub">repos where a bot approves and merges a pull request its author can steer</span></a></li><li class="stw t-"><a href="#top-risks"><span class="k-label">Action refs with a known advisory</span><span class="stw-v"><span class="sp conf"><strong>0</strong> affected</span><span class="sp unk"><span aria-hidden="true">?</span> <strong>0</strong> unknown</span><span class="sp "><strong>10</strong> total</span></span><span class="k-sub">unknown: gop could not place the ref, not safe</span></a></li><li class="stw t-unk"><a href="#coverage"><span class="k-label">Orgs gop could see</span><span class="stw-v"><span class="sp conf"><strong>1</strong> fully</span><span class="sp unk"><span aria-hidden="true">?</span> <strong>4</strong> partly</span></span><span class="k-sub">partly visible: some facts unknown, not absent</span></a></li></ul>
+</div>
 <p class="start"><span class="tag">Start here</span> Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 28% of confirmed reach. <a href="#fixes">All fixes</a></p>
 <p class="pinline"><span class="tag warn">Heads up</span> Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to. <a href="#pinned">See which</a></p>
 <ul class="kpis" aria-label="Key figures; reach figures are for identity:alice, the widest confirmed reach"><li class="kpi t-med"><a href="#top-paths"><span class="k-label">Confirmed reach</span><span class="k-val">13 <span class="k-unit">repos</span></span><span class="k-sub">across 3 orgs</span></a></li><li class="kpi t-crit"><a href="#top-paths"><span class="k-label">Cloud OIDC trusts</span><span class="k-val">2 <span class="k-unit">trusts</span></span><span class="k-sub">cloud credentials CI can mint</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Secret scopes</span><span class="k-val">3 <span class="k-unit">scopes</span></span><span class="k-sub">repo, environment or org secrets</span></a></li><li class="kpi t-high"><a href="#top-paths"><span class="k-label">Self-hosted runners</span><span class="k-val">1 <span class="k-unit">pool</span></span><span class="k-sub">runner pools jobs land on</span><span class="k-poss"><span aria-hidden="true">?</span> &#43;1 pool possible</span></a></li><li class="kpi t-crit"><a href="#top-risks"><span class="k-label">Top risks</span><span class="k-val">11 <span class="k-unit">principals</span></span><span class="k-sub">7 critical · 2 high</span></a></li><li class="kpi t-unk"><a href="#coverage"><span class="k-label">Coverage</span><span class="k-val">1/5 <span class="k-unit">orgs fully visible</span></span><span class="k-sub">18 facts not visible: unknown, not absent</span></a></li></ul>
@@ -417,7 +460,8 @@ footer{background:none}}
 <section aria-labelledby="ai-agents">
 <h2 id="ai-agents">AI agents in CI</h2>
 <p class="lede">2 workflows run an AI coding agent; 1 can be started by people without push access, 1 of them while the agent holds write, secrets or OIDC. An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.</p>
-<div class="card agent t-crit">
+<p id="fun-filter" class="fun-filter" role="status" hidden><span></span> <button type="button">Show every agent workflow</button></p>
+<div class="card agent t-crit" data-fs="5">
 <p class="ag-h"><code>acme-app/web/.github/workflows/ai-review.yml</code> <span class="ag-k">claude-cli</span> <span class="adv">exposed: ranks first</span></p>
 <dl class="ag">
 <dt>Who can start it</dt><dd>outsiders: people without push access: anyone on the internet on <code>issue_comment, pull_request_target</code></dd>
@@ -428,7 +472,7 @@ footer{background:none}}
 </dl>
 <ol class="ag-fix"><li>Restrict who can start it: the agent has no actor check of its own, so move it off issue_comment or pull_request_target, check the actor&#39;s repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers).</li></ol>
 </div>
-<div class="card agent t-unk">
+<div class="card agent t-unk" data-fs="1">
 <p class="ag-h"><code>acme-app/web/.github/workflows/ai-merge.yml</code> <span class="ag-k">name only</span></p>
 <dl class="ag">
 <dt>Who can start it</dt><dd>name only: not counted as an agent</dd>
@@ -1350,6 +1394,20 @@ else if((ev.key==="Enter"||ev.key===" ")&&tg.classList&&tg.classList.contains("a
 draw();
 if(ci===0&&!still){start();}
 });
+})();
+(function(){
+"use strict";
+if(typeof document.querySelectorAll!=="function"){return;}
+var links=document.querySelectorAll("a[data-fs]"),bar=document.getElementById("fun-filter");if(!links.length||!bar){return;}
+var cards=document.querySelectorAll(".agent[data-fs]"),msg=bar.querySelector("span"),all=bar.querySelector("button");
+function show(k,label){
+var n=0;Array.prototype.forEach.call(cards,function(c){var on=+c.getAttribute("data-fs")>=k;c.hidden=!on;if(on){n++;}});
+if(k<=1){bar.hidden=true;return;}
+msg.textContent="Funnel stage "+k+": "+label+". Showing "+n+" of the agent workflows listed below.";
+bar.hidden=false;
+}
+Array.prototype.forEach.call(links,function(a){a.addEventListener("click",function(){var l=a.querySelector(".fs-l");show(+a.getAttribute("data-fs"),l?l.textContent.replace(/^[\u25b2\u2713]\s*/,""):"");});});
+all.addEventListener("click",function(){show(1,"");});
 })();
 </script>
 </body>

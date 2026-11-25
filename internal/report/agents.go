@@ -35,6 +35,10 @@ type agentRow struct {
 	Fixes          []string
 	// Exposed: AgentExposed, the rank factor's workflow side.
 	Exposed bool
+	// Outsider: people without push access can start it (exposure
+	// outsiders). Stage is the deepest funnel stage it reaches (funnel.go).
+	Outsider bool
+	Stage    int
 
 	id string // workflow node ID
 }
@@ -50,10 +54,11 @@ var readsByTrigger = map[string]string{
 // the first limit rows (negative: all); more is how many it left out. The
 // summary line counts every agent workflow. Reach is walked only for the
 // rows kept.
-func agentRows(ix *graph.Index, limit int) (rows []agentRow, line string, more int) {
+// stages[k] counts the workflows that reach funnel stage k or deeper.
+func agentRows(ix *graph.Index, limit int) (rows []agentRow, line string, more int, stages [funnelStages + 1]int) {
 	ids := ix.AgentWorkflows()
 	if len(ids) == 0 {
-		return nil, "", 0
+		return nil, "", 0, stages
 	}
 	exposedN, outsiders := 0, 0
 	for _, id := range ids {
@@ -84,6 +89,7 @@ func agentRows(ix *graph.Index, limit int) (rows []agentRow, line string, more i
 		switch n.Attrs[graph.AttrAgentExposure] {
 		case graph.ExposureOutsiders:
 			outsiders++
+			r.Outsider = true
 			r.Exposure, r.Tone = "outsiders: people without push access", "crit"
 			switch {
 			case len(conf) > 0:
@@ -139,6 +145,12 @@ func agentRows(ix *graph.Index, limit int) (rows []agentRow, line string, more i
 		}
 		rows = append(rows, r)
 	}
+	for i := range rows {
+		rows[i].Stage = agentStage(rows[i])
+		for k := stageLooks; k <= rows[i].Stage; k++ {
+			stages[k]++
+		}
+	}
 	rank := func(r agentRow) int {
 		switch {
 		case r.NameOnly:
@@ -166,7 +178,7 @@ func agentRows(ix *graph.Index, limit int) (rows []agentRow, line string, more i
 	}
 	line = fmt.Sprintf("%s %s an AI coding agent; %d can be started by people without push access, %d of them while the agent holds write, secrets or OIDC.",
 		plural(len(ids), "workflow", "workflows"), verb, outsiders, exposedN)
-	return rows, line, more
+	return rows, line, more, stages
 }
 
 // whoList names up to three principals, then a count.

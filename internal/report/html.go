@@ -63,6 +63,13 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <div class="hero-top"><p class="verdict"><span class="dot" aria-hidden="true"></span>{{.VerdictLabel}}</p>{{if .PickWho}}<p class="meta">Widest confirmed reach: <strong>{{.PickWho}}</strong></p>{{end}}</div>
 <p class="nonhuman"><span class="tag">AI agents and bots</span> {{.NonHumanLine}} {{if .Agents}}<a href="#ai-agents">AI agents</a>{{end}}{{if .BotMerge}} <a href="#ai-self-merge">AI self-merge</a>{{end}}</p>
 <p class="big">{{.Headline}}</p>
+<div class="fun" role="group" aria-labelledby="fun-h">
+<div class="fun-main"><h3 id="fun-h" class="fun-t">AI agents in CI, from exposure to what to fix</h3>
+{{with .Funnel}}{{if .Stages}}<p class="fun-line">{{.Line}}</p>
+<ol class="fun-st">{{range .Stages}}<li class="fs t-{{.Tone}}" data-fs="{{.N}}" data-count="{{.Count}}"><a href="#ai-agents" data-fs="{{.N}}"><span class="fs-n">{{.Count}}</span><span class="fs-b"><span class="fs-l">{{if eq .Tone "danger"}}<span aria-hidden="true">▲</span> {{else if eq .Tone "ok"}}<span aria-hidden="true">✓</span> {{end}}{{.Label}}</span><span class="fs-tr" aria-hidden="true"><span class="fs-f {{.Width}}"></span></span>{{if .Drop}}<span class="fs-d{{if .DropPossible}} poss{{end}}">{{if .DropPossible}}<span aria-hidden="true">?</span> {{end}}{{.Drop}}</span>{{end}}</span></a></li>
+{{end}}</ol>{{else}}<p class="fun-empty">{{.Empty}}</p>{{end}}{{end}}</div>
+<ul class="fun-stats" aria-label="Other headline figures">{{range .Stats}}<li class="stw t-{{.Tone}}">{{if .Href}}<a href="{{.Href}}">{{else}}<div>{{end}}<span class="k-label">{{.Label}}</span><span class="stw-v">{{range .Parts}}<span class="sp {{.Kind}}">{{if or (eq .Kind "poss") (eq .Kind "unk")}}<span aria-hidden="true">?</span> {{end}}<strong>{{.Value}}</strong>{{if .Unit}} {{.Unit}}{{end}}</span>{{end}}</span><span class="k-sub">{{.Sub}}</span>{{if .Href}}</a>{{else}}</div>{{end}}</li>{{end}}</ul>
+</div>
 {{if .FixLine}}<p class="start"><span class="tag">Start here</span> {{.FixLine}} <a href="#fixes">All fixes</a></p>{{end}}
 {{- if .PinLine}}
 <p class="pinline"><span class="tag warn">Heads up</span> {{.PinLine}} <a href="#pinned">See which</a></p>{{end}}
@@ -116,7 +123,8 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 <section aria-labelledby="ai-agents">
 <h2 id="ai-agents">AI agents in CI</h2>
 <p class="lede">{{.AgentLine}} An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.</p>
-{{range .Agents}}<div class="card agent t-{{.Tone}}">
+<p id="fun-filter" class="fun-filter" role="status" hidden><span></span> <button type="button">Show every agent workflow</button></p>
+{{range .Agents}}<div class="card agent t-{{.Tone}}" data-fs="{{.Stage}}">
 <p class="ag-h"><code>{{.Workflow}}</code> <span class="ag-k">{{if .NameOnly}}name only{{else}}{{.Kind}}{{end}}</span>{{if .Exposed}} <span class="adv">exposed: ranks first</span>{{end}}</p>
 <dl class="ag">
 <dt>Who can start it</dt><dd>{{.Exposure}}{{if .Who}}: {{if .Possible}}<span class="badge nv"><span aria-hidden="true">?</span> possible</span> {{end}}{{.Who}}{{end}}{{if .Triggers}} on <code>{{.Triggers}}</code>{{end}}</dd>
