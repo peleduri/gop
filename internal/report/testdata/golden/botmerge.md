@@ -10,6 +10,19 @@ gop report: enterprise **acme**, collected 2026-11-24T12:00:00Z
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
+**AI agents in CI:** From 2 workflows that look like an AI agent to 0 confirmed agent paths in dangerous mode to fix first.
+
+| # | Stage | Workflows | Left the funnel |
+|---:|---|---:|---|
+| 1 | look like an AI agent (name-only matches included) | 2 |  |
+| 2 | run a known agent action or CLI | 0 | −2: name-only matches: listed, never ranked |
+| 3 | ✓ can be started by people without push access | 0 |  |
+| 4 | ✓ of those, the agent holds write, secrets or OIDC | 0 |  |
+| 5 | ✓ confirmed end-to-end agent paths | 0 |  |
+| 6 | ✓ run in dangerous mode (approvals or sandbox off) | 0 |  |
+
+**Also:** bots merge with no human: 1 confirmed, 0 possible; action refs with a known advisory: 0 affected, 0 unknown, 9 total; orgs gop could see: 1 fully, 4 partly.
+
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks

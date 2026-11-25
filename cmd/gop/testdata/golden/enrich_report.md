@@ -8,6 +8,10 @@ gop report: enterprise **acme**, collected 2026-11-20T10:00:00Z
 >
 > Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 75% of confirmed reach.
 
+**AI agents in CI:** No workflow in this graph looks like an AI agent (gop looks for known agent actions and CLIs, and for agent-like names), so there is no agent funnel to draw.
+
+**Also:** bots merge with no human: 0 confirmed, 0 possible; action refs with a known advisory: 0 affected, 0 unknown, 4 total; orgs gop could see: 2 fully, 2 partly.
+
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺), or (a cloud hop) from a supplied file (≡): a cloud trust policy you supplied, not read from the cloud. Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks

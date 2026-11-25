@@ -8,6 +8,10 @@ gop report: enterprise **acme**, collected 2026-11-20T10:00:00Z
 >
 > Remove standing org ownership from 13 accounts that own 5 or more orgs (keep at least 2 owners per org) to remove 62% of confirmed reach.
 
+**AI agents in CI:** No workflow in this graph looks like an AI agent (gop looks for known agent actions and CLIs, and for agent-like names), so there is no agent funnel to draw.
+
+**Also:** bots merge with no human: 0 confirmed, 0 possible; action refs with a known advisory: 0 affected, 0 unknown, 0 total; orgs gop could see: 23 fully, 0 partly.
+
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks

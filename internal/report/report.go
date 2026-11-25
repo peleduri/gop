@@ -129,6 +129,10 @@ type data struct {
 	Agents     []agentRow
 	AgentLine  string
 	AgentsMore int
+	// Funnel is the AI agents funnel under the headline, Stats the small
+	// figures beside it (funnel.go).
+	Funnel funnel
+	Stats  []statWidget
 	// AgentPaths is the "Agent paths" view, AgentPathsLine its lede.
 	AgentPaths     []agentPath
 	AgentPathsLine string
@@ -485,7 +489,9 @@ func build(g *graph.Graph, opts Options) data {
 	if st := ix.PinStats(); st.HasLock() {
 		d.LockLine = lockLine(st)
 	}
-	d.Agents, d.AgentLine, d.AgentsMore = agentRows(ix, opts.Rows)
+	var stages [funnelStages + 1]int
+	d.Agents, d.AgentLine, d.AgentsMore, stages = agentRows(ix, opts.Rows)
+	d.Funnel = buildFunnel(stages)
 	if d.AgentPaths = buildAgentPaths(ix); len(d.AgentPaths) > 0 {
 		d.AgentPathsLine = agentPathsLine(d.AgentPaths)
 	}
@@ -496,6 +502,7 @@ func build(g *graph.Graph, opts Options) data {
 		d.Ownership = ownershipView(o)
 	}
 	d.Orgs, d.OrgWhy = orgSettings(g)
+	d.Stats = statWidgets(g, ix, d.BotMerge)
 	addHardening(&d, ix, opts.Top, opts.Rows)
 	d.AgentsMoreLine = moreLine(d.AgentsMore, "agent workflow", "agent workflows")
 	d.PinnedMoreLine = moreLine(d.PinnedMore, "pinned action", "pinned actions")

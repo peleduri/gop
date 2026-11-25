@@ -15,7 +15,7 @@ It finds the AI coding agent in CI that anyone on the internet can start with a 
 [![Release](https://img.shields.io/github/v/release/peleduri/gop?include_prereleases&sort=semver)](https://github.com/peleduri/gop/releases)
 [![Site](https://img.shields.io/badge/site-demo%20report-3a46c9)](https://peleduri.github.io/gop/)
 
-[![The gop HTML report for the synthetic demo enterprise: a critical-exposure verdict with confirmed reach figures, then ranked fixes with the share of confirmed reach each removes](docs/assets/report-light.png)](https://peleduri.github.io/gop/)
+[![The gop HTML report for the synthetic demo enterprise: a critical-exposure verdict, a funnel from the workflows that look like an AI agent down to the confirmed agent paths in dangerous mode, confirmed reach figures, then ranked fixes with the share of confirmed reach each removes](docs/assets/report-light.png)](https://peleduri.github.io/gop/)
 
 **[Site and live demo report](https://peleduri.github.io/gop/)** · [Quickstart](docs/quickstart.md) · [Docs](docs/) · [AI agents in CI guide](docs/agents-in-ci.md) · [Agent skill](skills/gop/README.md) · [How gop compares](docs/compare.md) · [Support](SUPPORT.md)
 
