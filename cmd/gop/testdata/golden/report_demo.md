@@ -2,7 +2,7 @@
 
 Enterprise **acme**, collected 2026-01-01T00:00:00Z
 
-**AI agents and bots:** 1 non-human actor; none can merge to a default branch without a human.
+**AI agents and bots:** 4 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible).
 
 > acme-oss/checkout-ish@v2, a version with a known advisory (GHSA-acme-demo-0001; severity critical; fixed in 2.4.1), runs in 1 repo across 1 org (confirmed), including 1 secret scope.
 >
