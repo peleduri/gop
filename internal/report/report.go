@@ -30,7 +30,7 @@ type Options struct {
 	// Changes is diff.Compare(previous, current) (gop report --previous):
 	// the report opens with a "what changed" banner. Nil means no banner.
 	Changes *diff.Report
-	// Rows caps the long sections (AI agents in CI, pinned actions, repos
+	// Rows caps the long sections (Issues, AI agents in CI, pinned actions, repos
 	// on the top paths): 0 is DefaultRows, negative lists every row. A
 	// capped section keeps its best rows, says how many it left out, and
 	// its counts stay exact.
@@ -140,6 +140,15 @@ type data struct {
 	// lede; empty when no repo has a review bypass.
 	BotMerge     []botMergeRow
 	BotMergeLine string
+	// Issues is the Issues view (issues.go): one row per actionable
+	// combination, IssueSum its counts over every row, IssuesLine its lede.
+	// IssuesMore counts the rows left out by Options.Rows.
+	Issues         []issueRow
+	IssueSum       issueSummary
+	IssuesLine     string
+	IssuesMore     int
+	IssuesMoreLine string
+	IssueFactors   []issueFactor // the factors some row has, for the filter
 	// LockLine counts workflow uses: lines pinned in the workflow file, by
 	// an actions.lock, stale in one, and unpinned; set only when the graph
 	// has an actions.lock fact.
@@ -498,6 +507,14 @@ func build(g *graph.Graph, opts Options) data {
 	if d.BotMerge = botMergeRows(ix); len(d.BotMerge) > 0 {
 		d.BotMergeLine = botMergeLine(d.BotMerge)
 	}
+	d.Issues, d.IssueSum = buildIssues(ix, d.BotMerge, d.AgentPaths)
+	d.IssuesLine = issuesLine(d.IssueSum)
+	if keep := rowsCap(len(d.Issues), opts.Rows); keep < len(d.Issues) {
+		d.IssuesMore = len(d.Issues) - keep
+		d.Issues = d.Issues[:keep]
+	}
+	d.IssuesMoreLine = moreLine(d.IssuesMore, "issue", "issues")
+	d.IssueFactors = presentFactors(d.Issues)
 	if o, ok := ix.Ownership(); ok {
 		d.Ownership = ownershipView(o)
 	}

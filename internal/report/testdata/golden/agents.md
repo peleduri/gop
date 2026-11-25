@@ -25,6 +25,16 @@ gop report: enterprise **acme**, collected 2026-11-20T12:00:00Z
 
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
+## Issues
+
+3 issues where facts gop read combine into a path to act on: 2 critical, 1 high, 0 medium. 3 confirmed, 0 possible; the two are never added up.
+
+| # | Severity | Issue | Risk factors | Evidence | Where | Fix |
+|---:|---|---|---|---|---|---|
+| 1 | critical | Outsiders can start an AI agent holding a write token and secrets, in dangerous mode | Outsiders can start, Dangerous mode, Prompt injection, Write token, Secrets | ✓ confirmed | acme-actions/setup/.github/workflows/codex-review.yml (workflow in acme-actions) | Restrict who can start it: the agent has no actor check of its own, so move it off pull\_request\_target, check the actor's repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers). |
+| 2 | critical | Outsiders can start an AI agent holding a write token and secrets, in dangerous mode | Outsiders can start, Dangerous mode, Write token, Secrets | ✓ confirmed | acme-app/docs/.github/workflows/claude.yml (workflow in acme-app) | Restrict who can start it: remove allowed\_non\_write\_users / allow-users (or allowed\_bots) so the action's write-access check applies, or move it off issue\_comment, or require approval for outside contributors (an environment with required reviewers). |
+| 3 | high | SHA-pinned action still runs a mutable ref and reaches OIDC, secrets and self-hosted runners | Mutable ref, Secrets, OIDC, Self-hosted runner | ✓ confirmed | acme-actions/deploy@0123456789abcdef0123456789abcdef01234567 (action in acme-actions) | Pin acme-actions/setup@main to a commit SHA inside acme-actions/deploy@0123456789abcdef0123456789abcdef01234567, or replace the action. |
+
 ## Top risks
 
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |

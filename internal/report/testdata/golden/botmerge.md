@@ -25,6 +25,15 @@ gop report: enterprise **acme**, collected 2026-11-24T12:00:00Z
 
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
+## Issues
+
+2 issues where facts gop read combine into a path to act on: 0 critical, 2 high, 0 medium. 2 confirmed, 0 possible; the two are never added up.
+
+| # | Severity | Issue | Risk factors | Evidence | Where | Fix |
+|---:|---|---|---|---|---|---|
+| 1 | high | Bot approval lands code on the default branch with no human review | No human review, Self-editable policy | ✓ confirmed | acme-app/web (repo in acme-app) | Require a human approval that bots cannot give: require CODEOWNERS review on main with human owners (or a team), so a bot approval never satisfies the rule. |
+| 2 | high | SHA-pinned action still runs a mutable ref and reaches OIDC, secrets and self-hosted runners | Mutable ref, Secrets, OIDC, Self-hosted runner | ✓ confirmed | acme-actions/deploy@0123456789abcdef0123456789abcdef01234567 (action in acme-actions) | Pin acme-actions/setup@main to a commit SHA inside acme-actions/deploy@0123456789abcdef0123456789abcdef01234567, or replace the action. |
+
 ## Top risks
 
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |
