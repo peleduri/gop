@@ -66,7 +66,7 @@ var mdLink = regexp.MustCompile(`\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
 func TestRelativeLinks(t *testing.T) {
 	files := []string{
 		"../README.md", "../SUPPORT.md", "../CONTRIBUTING.md", "../SECURITY.md",
-		"../GOVERNANCE.md", "../MAINTAINERS.md", "../CODE_OF_CONDUCT.md", "../ADOPTERS.md", "../ROADMAP.md",
+		"../GOVERNANCE.md", "../MAINTAINERS.md", "../CODE_OF_CONDUCT.md", "../ADOPTERS.md", "../ROADMAP.md", "../BRAND.md",
 	}
 	docs, err := filepath.Glob("*.md")
 	if err != nil {
