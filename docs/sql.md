@@ -1,6 +1,6 @@
 # SQL export (SQLite and DuckDB)
 
-gop's MCP tools and report answer path questions: who can make code run where, and how. Questions that count and group ("repos per org that members reach through an unpinned action, over the last ten runs") are easier in SQL, in a BI tool, or in a text-to-SQL tool that reads SQLite or DuckDB. `gop export --format sql` writes one or more graphs, their computed reach and their ranked findings as a SQL script that both databases load.
+gop's MCP tools and report answer path questions: which AI agents and people can make code run where, and how. Questions that count and group ("repos per org that members reach through an unpinned action, over the last ten runs") are easier in SQL, in a BI tool, or in a text-to-SQL tool that reads SQLite or DuckDB. `gop export --format sql` writes one or more graphs, their computed reach and their ranked findings as a SQL script that both databases load.
 
 > **The export lists attack paths.** It holds the same facts as `graph.json` plus the computed paths. `--out` writes the script with mode 0600; keep the database file private too (`chmod 600 gop.db`), and do not commit or share either one. Use [`gop redact`](../README.md#cli) on the graph first if you need to share an export.
 

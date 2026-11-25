@@ -53,7 +53,7 @@ Accepted export shapes: a plain JSON array of row objects (`[{"kind": "trust", .
 
 ## Export gop to Neo4j
 
-gop computes what Cartography does not: who can make code run where, with confirmed versus possible reach. `gop export --format cypher` writes gop's graph and computed reach as a Cypher script you load into the same Neo4j, linked to Cartography's nodes. With `gop enrich --cartography` above, trusts flow from Cartography into gop; the export sends gop's paths back.
+gop computes what Cartography does not: which AI agents and people can make code run where, with confirmed versus possible reach. `gop export --format cypher` writes gop's graph and computed reach as a Cypher script you load into the same Neo4j, linked to Cartography's nodes. With `gop enrich --cartography` above, trusts flow from Cartography into gop; the export sends gop's paths back.
 
 ```sh
 gop export --format cypher graph.json > gop.cypher

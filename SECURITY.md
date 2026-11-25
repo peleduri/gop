@@ -1,5 +1,7 @@
 # Security policy
 
+gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where. Its input (a token) and its output (graph.json) are both sensitive, so we treat a bug that could leak either as a vulnerability. [docs/threat-model.md](docs/threat-model.md) has the details.
+
 ## Reporting a vulnerability
 
 Report vulnerabilities privately through GitHub private vulnerability reporting: open the repository's **Security** tab and choose **Report a vulnerability** ([direct link](https://github.com/peleduri/gop/security/advisories/new)). Do not open a public issue, and do not include real graph.json files, tokens or org names; a synthetic reproduction is enough.

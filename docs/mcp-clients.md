@@ -19,7 +19,7 @@ One-step installs: a [Claude Code plugin](#claude-code), a [Claude Desktop exten
 ## Before you connect
 
 - **Use an absolute graph path.** Clients start the server from a working directory you do not control, so a relative path breaks or, worse, opens a different file.
-- **The graph is sensitive.** graph.json is a map of who can make code run where in your enterprise. Keep it out of shared, synced or backed-up folders (cloud drives, a shared repository checkout, a dotfiles repo), and never commit it. gop writes it with file mode 0600; keep it that way.
+- **The graph is sensitive.** graph.json is a map of which AI agents and people can make code run where in your enterprise. Keep it out of shared, synced or backed-up folders (cloud drives, a shared repository checkout, a dotfiles repo), and never commit it. gop writes it with file mode 0600; keep it that way.
 - **Answers go to your model provider.** gop sends nothing anywhere, but the client passes each tool answer to the model it uses. Only connect gop to a client and provider your organization allows for this data.
 - **`gop` must be on the client's `PATH`.** GUI clients often do not see your shell's `PATH`. If the server fails to start, replace `"gop"` with the absolute path from `command -v gop`.
 

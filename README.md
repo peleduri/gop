@@ -1,13 +1,19 @@
-# gop: GitHub Enterprise Org Posture
+<p><img src="brand/logo/gop-logo.svg" alt="gop" height="48"></p>
 
-**Which AI agents and people can make code run where in your GitHub Enterprise.** gop finds the AI coding agent in CI that anyone on the internet can start with a comment while it holds a write token and secrets, and the Action that members of one org can push to and that runs in another org's workflows with that org's OIDC trust. It shows every hop with its evidence and ranks the fewest changes that remove the most reach.
+# gop
+
+**Which AI agents and people can make code run where.**
+
+gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, with evidence per hop and fixes ranked.
+
+It finds the AI coding agent in CI that anyone on the internet can start with a comment while it holds a write token and secrets, and the Action that members of one org can push to and that runs in another org's workflows with that org's OIDC trust. Every hop names its evidence level, and the fixes are ranked by how much confirmed reach each removes. The name comes from GitHub Enterprise Org Posture.
 
 [![ci](https://github.com/peleduri/gop/actions/workflows/ci.yml/badge.svg)](https://github.com/peleduri/gop/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/peleduri/gop/badge)](https://scorecard.dev/viewer/?uri=github.com/peleduri/gop)
 [![Go Report Card](https://goreportcard.com/badge/github.com/peleduri/gop)](https://goreportcard.com/report/github.com/peleduri/gop)
 [![License](https://img.shields.io/github/license/peleduri/gop)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/peleduri/gop?include_prereleases&sort=semver)](https://github.com/peleduri/gop/releases)
-[![Site](https://img.shields.io/badge/site-demo%20report-0969da)](https://peleduri.github.io/gop/)
+[![Site](https://img.shields.io/badge/site-demo%20report-3a46c9)](https://peleduri.github.io/gop/)
 
 [![The gop HTML report for the synthetic demo enterprise: a critical-exposure verdict with confirmed reach figures, then ranked fixes with the share of confirmed reach each removes](docs/assets/report-light.png)](https://peleduri.github.io/gop/)
 
@@ -34,7 +40,7 @@ gop report  --graph graph.json --out report.html
 
 ### What you'll see
 
-- **A verdict** in one sentence: who can make code run where, and the single change that removes the most confirmed reach.
+- **A verdict** in one sentence: which AI agents and people can make code run where, and the single change that removes the most confirmed reach.
 - **AI agents in CI:** workflows that run a coding agent, who can start each one (including people without push access), what untrusted text reaches its prompt, and what its token, secrets and tools let it do.
 - **Agent paths:** the same agents drawn as a path you can step through, from who can start the agent to the last thing it reaches, with each agent in a dangerous mode (approvals or sandbox turned off) marked, and toggles that show where a fix cuts the path.
 - **Cross-org reach:** members of one org who can push to an Action that runs in other orgs' workflows, including Actions nested inside composite Actions and SHA pins that still run a mutable ref.

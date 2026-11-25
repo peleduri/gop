@@ -35,6 +35,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/peleduri/gop/brand/logo"
 	"github.com/peleduri/gop/internal/graph"
 	"github.com/peleduri/gop/internal/mcpserver"
 )
@@ -45,8 +46,11 @@ const (
 	registryName = "io.github.peleduri/gop"
 	image        = "ghcr.io/peleduri/gop"
 	// description is shared by server.json (max 100 characters) and the
-	// MCPB manifest.
-	description = "Read-only evidence graph of who can make code run where in a GitHub Enterprise."
+	// MCPB manifest: the short form in BRAND.md, trimmed to fit the cap.
+	description = "Read-only evidence graph of which AI agents and people can make code run where."
+	// displayName is the title of the plugin, the MCPB extension and the
+	// MCP Registry entry: the name and the tagline from BRAND.md.
+	displayName = "gop: which AI agents and people can make code run where"
 )
 
 func main() {
@@ -131,6 +135,8 @@ type Manifest struct {
 	Homepage        string                `json:"homepage"`
 	Documentation   string                `json:"documentation"`
 	Support         string                `json:"support"`
+	Icon            string                `json:"icon"`
+	Icons           []Icon                `json:"icons"`
 	License         string                `json:"license"`
 	Keywords        []string              `json:"keywords"`
 	Server          Server                `json:"server"`
@@ -143,6 +149,21 @@ type Manifest struct {
 type Person struct {
 	Name string `json:"name"`
 	URL  string `json:"url,omitempty"`
+}
+
+// Icon is one icon file in the bundle with its pixel size ("512x512").
+type Icon struct {
+	Src  string `json:"src"`
+	Size string `json:"size"`
+}
+
+// bundleIcons maps each icon path in the bundle to its PNG, from brand/logo.
+var bundleIcons = []struct {
+	Icon
+	data []byte
+}{
+	{Icon{"icons/gop-512.png", "512x512"}, logo.Mark512},
+	{Icon{"icons/gop-1024.png", "1024x1024"}, logo.Mark1024},
 }
 
 // Repo is the manifest repository.
@@ -196,13 +217,15 @@ func buildManifest(version, goos string, tools []Tool) (Manifest, error) {
 	return Manifest{
 		ManifestVersion: "0.3",
 		Name:            "gop",
-		DisplayName:     "gop: who can make code run where",
+		DisplayName:     displayName,
 		Version:         version,
 		Description:     description,
-		LongDescription: "gop reads a GitHub Enterprise with a read-only token and writes one evidence graph (graph.json): " +
-			"which people, teams, apps and AI agents in CI can make code run in which repos, workflows, secrets, " +
-			"OIDC trusts and runners, across orgs and nested Actions. This extension serves that graph to Claude over MCP. " +
-			"Every tool is read-only, every answer keeps confirmed reach apart from possible reach, and gop sends nothing anywhere. " +
+		LongDescription: "gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, " +
+			"with evidence per hop and fixes ranked. It writes one evidence graph (graph.json) of the people, teams, apps and " +
+			"AI agents in CI that can make code run in repos, workflows, secrets, OIDC trusts and runners, across orgs and nested Actions. " +
+			"This extension serves that graph to Claude over MCP. Every tool is read-only, every fact names its evidence level " +
+			"(live, inferred, audit, supplied or not_visible), every answer keeps confirmed reach apart from possible reach, " +
+			"and gop sends nothing anywhere. " +
 			"Run `gop collect` first, then choose the graph.json it wrote when you install the extension. " +
 			"graph.json maps who can run code where in your enterprise: keep it out of synced folders, and only connect it " +
 			"to a model provider your organization allows for this data.",
@@ -211,6 +234,8 @@ func buildManifest(version, goos string, tools []Tool) (Manifest, error) {
 		Homepage:      siteURL,
 		Documentation: repoURL + "/blob/main/docs/mcp-clients.md",
 		Support:       repoURL + "/issues",
+		Icon:          bundleIcons[0].Src,
+		Icons:         []Icon{bundleIcons[0].Icon, bundleIcons[1].Icon},
 		License:       "Apache-2.0",
 		Keywords:      []string{"github", "github-enterprise", "github-actions", "security", "supply-chain", "attack-paths", "read-only"},
 		Server: Server{
@@ -293,14 +318,16 @@ func writeBundle(bin, goos, goarch, version, out string) (string, error) {
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 	mod := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-	for _, f := range []struct {
+	type entry struct {
 		name string
 		mode os.FileMode
 		data []byte
-	}{
-		{"manifest.json", 0o644, append(mj, '\n')},
-		{m.Server.EntryPoint, 0o755, exe},
-	} {
+	}
+	entries := []entry{{"manifest.json", 0o644, append(mj, '\n')}, {m.Server.EntryPoint, 0o755, exe}}
+	for _, ic := range bundleIcons {
+		entries = append(entries, entry{ic.Src, 0o644, ic.data})
+	}
+	for _, f := range entries {
 		h := &zip.FileHeader{Name: f.name, Method: zip.Deflate, Modified: mod}
 		h.SetMode(f.mode)
 		w, err := zw.CreateHeader(h)

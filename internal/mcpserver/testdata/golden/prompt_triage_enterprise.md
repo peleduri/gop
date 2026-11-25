@@ -1,4 +1,4 @@
-Triage the GitHub Enterprise "acme" with the gop tools: who can make code run where, and what to fix first.
+Triage the GitHub Enterprise "acme" with the gop tools: which AI agents and people can make code run where, and what to fix first.
 
 Rules for every answer:
 - Keep confirmed and possible separate. Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not_visible: the path may exist but is unproven. Never add possible numbers to confirmed numbers, and lead with confirmed.

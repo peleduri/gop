@@ -240,7 +240,7 @@ func Rules() []Rule {
 		{
 			ID:               RuleMutableRef,
 			Name:             "mutable-action-ref-reachable",
-			ShortDescription: Message{Text: "A workflow uses a mutable action ref whose host repo principals outside the consuming org can change"},
+			ShortDescription: Message{Text: "Principals outside the consuming org can change a mutable action ref this workflow runs. Pin it to a full commit SHA."},
 			FullDescription: Message{Text: "The workflow uses an action by branch or tag. Principals outside the consuming org can push to the repo that hosts the action, " +
 				"so they can change the code the workflow runs and reach its secrets, OIDC tokens and runners."},
 			Help: Help{
@@ -264,7 +264,7 @@ func Rules() []Rule {
 		{
 			ID:               RuleDefaultPerm,
 			Name:             "default-permission-grants-push",
-			ShortDescription: Message{Text: "The org's default repository permission gives every member push access"},
+			ShortDescription: Message{Text: "Every org member can push to repos through the default repository permission. Lower it to read or none."},
 			FullDescription: Message{Text: "The org's base permission is write or admin, so every member can push to repos where nothing else grants them push, " +
 				"and through those repos reach the workflows, actions and terminals they control."},
 			Help: Help{
@@ -286,7 +286,7 @@ func Rules() []Rule {
 		{
 			ID:               RuleAdvisory,
 			Name:             "action-with-known-advisory-reachable",
-			ShortDescription: Message{Text: "A workflow runs an action version with a known compromise or vulnerability advisory"},
+			ShortDescription: Message{Text: "A workflow runs an action version with a known compromise or vulnerability advisory. Move it to the first fixed version."},
 			FullDescription: Message{Text: "The uses: line names an action version that an OSV GitHub Actions advisory lists as affected, " +
 				"for example a hijacked tag that shipped code stealing secrets. The workflow runs that code with its secrets, OIDC tokens and runners."},
 			Help: Help{
@@ -308,7 +308,7 @@ func Rules() []Rule {
 		{
 			ID:               RuleAgent,
 			Name:             "agent-workflow-exposed",
-			ShortDescription: Message{Text: "People without push access can start an AI coding agent that runs with the repo's token and secrets"},
+			ShortDescription: Message{Text: "People without push access can start an AI coding agent that holds the repo's token and secrets. Close the trigger to them and shrink what the agent holds."},
 			FullDescription: Message{Text: "The workflow runs an AI coding agent (a known agent action or CLI) on a trigger that people without push access can cause, " +
 				"and the agent's own actor check does not stop them. The agent reads their text (a comment, an issue, a pull request) and acts with the job's " +
 				"GITHUB_TOKEN, secrets, OIDC token and tools, so a prompt injection uses all of them."},
@@ -334,7 +334,7 @@ func Rules() []Rule {
 		{
 			ID:               RuleBotSelfMerge,
 			Name:             "review-bypass-bot-self-merge",
-			ShortDescription: Message{Text: "A pull request's author can get code onto the default branch through a bot approval and a bot merge, with no human review"},
+			ShortDescription: Message{Text: "A pull request's author can get code onto the default branch through a bot approval and a bot merge, with no human review. Require a human review."},
 			FullDescription: Message{Text: "A workflow approves pull requests with a bot token, often an AI reviewer the author's text can steer, and a workflow the author can start " +
 				"merges with a bot token that the default branch's rules let through (a bypass App, an admin token, bot approvals that meet the required reviews, " +
 				"or no rule at all). Anyone who can open a pull request lands code on the default branch with no human review: gop treats it like push access."},

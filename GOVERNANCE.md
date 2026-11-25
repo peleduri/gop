@@ -1,6 +1,6 @@
 # gop governance
 
-gop is a read-only evidence graph of who can make code run where in a GitHub Enterprise. This document explains how the project is run: who decides, how, and how that changes. It follows the maintainer-council model of the [CNCF project template](https://github.com/cncf/project-template/blob/main/GOVERNANCE-maintainer.md), scaled to a project that has one maintainer today.
+gop is a read-only evidence graph of which AI agents and people can make code run where in a GitHub Enterprise. This document explains how the project is run: who decides, how, and how that changes. It follows the maintainer-council model of the [CNCF project template](https://github.com/cncf/project-template/blob/main/GOVERNANCE-maintainer.md), scaled to a project that has one maintainer today.
 
 - [Values](#values)
 - [Roles](#roles)

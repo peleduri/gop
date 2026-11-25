@@ -1,4 +1,4 @@
-Triage the GitHub Enterprise "acme" with the gop tools: who can make code run where, and what to fix first.
+Triage the GitHub Enterprise "acme" with the gop tools: which AI agents and people can make code run where, and what to fix first.
 Focus on OIDC trusts (workflows with id-token: write): rank the findings and fixes that reach them first.
 
 Rules for every answer:

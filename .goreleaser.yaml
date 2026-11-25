@@ -114,7 +114,7 @@ dockers_v2:
     sbom: "false"
     labels:
       "org.opencontainers.image.title": "{{ .ProjectName }}"
-      "org.opencontainers.image.description": "Read-only evidence graph of who can make code run where in a GitHub Enterprise."
+      "org.opencontainers.image.description": "Read-only evidence graph of which AI agents and people can make code run where in a GitHub Enterprise."
       "org.opencontainers.image.source": "https://github.com/peleduri/gop"
       "org.opencontainers.image.url": "https://github.com/peleduri/gop"
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
@@ -128,7 +128,7 @@ dockers_v2:
       # Shown on the GHCR package page, which reads the index. Empty (so
       # dropped) in snapshot builds, which load single-platform images where
       # an index annotation is not allowed.
-      "index:org.opencontainers.image.description": '{{ if not .IsSnapshot }}Read-only evidence graph of who can make code run where in a GitHub Enterprise.{{ end }}'
+      "index:org.opencontainers.image.description": '{{ if not .IsSnapshot }}Read-only evidence graph of which AI agents and people can make code run where in a GitHub Enterprise.{{ end }}'
 
 # Release notes for tag releases. `use: github` reads the commits between the
 # two tags through the GitHub API (with the release job's GITHUB_TOKEN) and
@@ -187,7 +187,7 @@ homebrew_casks:
       email: gop-release@users.noreply.github.com
     commit_msg_template: "gop {{ .Tag }}"
     homepage: https://github.com/peleduri/gop
-    description: Read-only evidence graph of who can make code run where in a GitHub Enterprise.
+    description: Read-only evidence graph of which AI agents and people can make code run where in a GitHub Enterprise.
     license: Apache-2.0
     skip_upload: '{{ if envOrDefault "HOMEBREW_TAP_TOKEN" "" }}false{{ else }}true{{ end }}'
     hooks:

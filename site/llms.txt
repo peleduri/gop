@@ -1,6 +1,8 @@
 # gop
 
-> gop (GitHub Enterprise Org Posture) is an open-source, read-only tool that answers "who can make code run where" in a GitHub Enterprise. It reads every org with a read-only token, writes one evidence graph (graph.json), and answers from it in an HTML report, on the command line, or to an AI assistant over MCP. Every answer keeps confirmed reach (every hop observed) apart from possible reach (a hop the token could not see).
+> Which AI agents and people can make code run where. gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, with evidence per hop and fixes ranked.
+
+gop (the name comes from GitHub Enterprise Org Posture) is open source. It reads every org with a read-only token, writes one evidence graph (graph.json), and answers from it in an HTML report, on the command line, or to an AI assistant over MCP. Every fact names its evidence level: live, inferred, audit, supplied or not_visible. Every answer keeps confirmed reach (every hop observed) apart from possible reach (a hop not visible to this token).
 
 gop finds, across all orgs and nested GitHub Actions: AI coding agents in CI that outsiders can start while they hold a write token or secrets; Actions that members of one org can push to and that run in another org's workflows with its secrets, OIDC cloud trust or self-hosted runners; and the fewest changes (pin an action, lower a default permission, restrict a token, harden a trigger, reduce standing org owners) that remove the most confirmed reach. It never writes to GitHub and sends nothing anywhere else. Apache-2.0, one static Go binary.
 

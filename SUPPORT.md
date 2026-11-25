@@ -25,7 +25,7 @@ synthetic reproduction get answered first.
 ## Share a problem, not your enterprise
 
 Issues and discussions are public. A graph.json, a report or a SARIF file is a
-map of who can make code run where in your enterprise.
+map of which AI agents and people can make code run where in your enterprise.
 
 - Never paste or attach a raw graph.json, report, SARIF file or the
   `--cache-dir` contents, and never a token.

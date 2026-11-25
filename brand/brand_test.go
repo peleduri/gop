@@ -1,8 +1,12 @@
 package brand
 
 import (
+	"image"
+	"image/color"
+	_ "image/png"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -240,6 +244,44 @@ func TestNoYellow(t *testing.T) {
 	}
 }
 
+// TestNoYellowPNG samples every pixel of the logo PNGs and of the plugin
+// icons copied from them: none may be yellow by the rule above. Pixels that
+// are almost transparent are skipped (their color is anti-aliasing noise).
+func TestNoYellowPNG(t *testing.T) {
+	files, err := filepath.Glob("logo/png/*.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	files = append(files, "../.claude-plugin/icon.png", "../.cursor-plugin/logo.png")
+	for _, f := range files {
+		r, err := os.Open(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		img, _, err := image.Decode(r)
+		_ = r.Close()
+		if err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		b, yellow := img.Bounds(), 0
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				c := color.NRGBAModel.Convert(img.At(x, y)).(color.NRGBA)
+				if c.A < 64 {
+					continue
+				}
+				h, sat := hslRGB(float64(c.R)/255, float64(c.G)/255, float64(c.B)/255)
+				if h >= 40 && h <= 70 && sat > 0.30 {
+					yellow++
+				}
+			}
+		}
+		if yellow > 0 {
+			t.Errorf("%s has %d yellow pixels; the brand forbids yellow", f, yellow)
+		}
+	}
+}
+
 func TestHSL(t *testing.T) {
 	for hex, want := range map[string]float64{"#ffff00": 60, "#ff0000": 0, "#0000ff": 240, "#f2a33a": 34} {
 		if h, _ := hsl(t, hex); math.Abs(h-want) > 1 {
@@ -259,7 +301,12 @@ func hsl(t *testing.T, hex string) (float64, float64) {
 		}
 		rgb[i] = float64(v) / 255
 	}
-	r, g, b := rgb[0], rgb[1], rgb[2]
+	return hslRGB(rgb[0], rgb[1], rgb[2])
+}
+
+// hslRGB returns the HSL hue in degrees and the saturation (0 to 1) of an
+// RGB color with channels from 0 to 1.
+func hslRGB(r, g, b float64) (float64, float64) {
 	mx, mn := math.Max(r, math.Max(g, b)), math.Min(r, math.Min(g, b))
 	if mx == mn {
 		return 0, 0

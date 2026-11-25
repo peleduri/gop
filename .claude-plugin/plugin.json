@@ -1,8 +1,8 @@
 {
   "name": "gop",
   "version": "0.6.1",
-  "displayName": "gop: who can make code run where",
-  "description": "Ask who can make code run where in your GitHub Enterprise: the gop MCP server over your graph.json, plus the gop triage skill. Read-only.",
+  "displayName": "gop: which AI agents and people can make code run where",
+  "description": "gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, with evidence per hop and fixes ranked. The gop MCP server over your graph.json, plus the gop triage skill.",
   "author": {
     "name": "gop contributors",
     "url": "https://github.com/peleduri/gop"

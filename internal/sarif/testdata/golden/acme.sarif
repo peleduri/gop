@@ -13,7 +13,7 @@
               "id": "GOP001",
               "name": "mutable-action-ref-reachable",
               "shortDescription": {
-                "text": "A workflow uses a mutable action ref whose host repo principals outside the consuming org can change"
+                "text": "Principals outside the consuming org can change a mutable action ref this workflow runs. Pin it to a full commit SHA."
               },
               "fullDescription": {
                 "text": "The workflow uses an action by branch or tag. Principals outside the consuming org can push to the repo that hosts the action, so they can change the code the workflow runs and reach its secrets, OIDC tokens and runners."
@@ -39,7 +39,7 @@
               "id": "GOP002",
               "name": "default-permission-grants-push",
               "shortDescription": {
-                "text": "The org's default repository permission gives every member push access"
+                "text": "Every org member can push to repos through the default repository permission. Lower it to read or none."
               },
               "fullDescription": {
                 "text": "The org's base permission is write or admin, so every member can push to repos where nothing else grants them push, and through those repos reach the workflows, actions and terminals they control."
@@ -65,7 +65,7 @@
               "id": "GOP003",
               "name": "action-with-known-advisory-reachable",
               "shortDescription": {
-                "text": "A workflow runs an action version with a known compromise or vulnerability advisory"
+                "text": "A workflow runs an action version with a known compromise or vulnerability advisory. Move it to the first fixed version."
               },
               "fullDescription": {
                 "text": "The uses: line names an action version that an OSV GitHub Actions advisory lists as affected, for example a hijacked tag that shipped code stealing secrets. The workflow runs that code with its secrets, OIDC tokens and runners."
@@ -91,7 +91,7 @@
               "id": "GOP004",
               "name": "agent-workflow-exposed",
               "shortDescription": {
-                "text": "People without push access can start an AI coding agent that runs with the repo's token and secrets"
+                "text": "People without push access can start an AI coding agent that holds the repo's token and secrets. Close the trigger to them and shrink what the agent holds."
               },
               "fullDescription": {
                 "text": "The workflow runs an AI coding agent (a known agent action or CLI) on a trigger that people without push access can cause, and the agent's own actor check does not stop them. The agent reads their text (a comment, an issue, a pull request) and acts with the job's GITHUB_TOKEN, secrets, OIDC token and tools, so a prompt injection uses all of them."
@@ -118,7 +118,7 @@
               "id": "GOP005",
               "name": "review-bypass-bot-self-merge",
               "shortDescription": {
-                "text": "A pull request's author can get code onto the default branch through a bot approval and a bot merge, with no human review"
+                "text": "A pull request's author can get code onto the default branch through a bot approval and a bot merge, with no human review. Require a human review."
               },
               "fullDescription": {
                 "text": "A workflow approves pull requests with a bot token, often an AI reviewer the author's text can steer, and a workflow the author can start merges with a bot token that the default branch's rules let through (a bypass App, an admin token, bot approvals that meet the required reviews, or no rule at all). Anyone who can open a pull request lands code on the default branch with no human review: gop treats it like push access."

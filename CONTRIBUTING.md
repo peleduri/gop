@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. gop is small and opinionated: read-only, no telemetry, and every fact carries an evidence level.
+Thanks for helping. gop shows which AI agents and people can make code run where in a GitHub Enterprise. It is small and opinionated: read-only, no telemetry, and every fact names its evidence level (live, inferred, audit, supplied or not_visible).
 
 How the project is run is in [GOVERNANCE.md](GOVERNANCE.md); the maintainers are listed in [MAINTAINERS.md](MAINTAINERS.md), and the direction is in [ROADMAP.md](ROADMAP.md). Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 

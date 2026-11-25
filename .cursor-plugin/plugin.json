@@ -1,6 +1,6 @@
 {
   "name": "gop",
-  "description": "The gop triage skill: how an agent answers who can make code run where in a GitHub Enterprise with the gop MCP server, keeping confirmed and possible reach apart. Add the server with the install link in the README.",
+  "description": "gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, with evidence per hop and fixes ranked. This is the gop triage skill: it keeps confirmed and possible reach apart. Add the MCP server with the install link in the README.",
   "author": {
     "name": "gop contributors"
   },
