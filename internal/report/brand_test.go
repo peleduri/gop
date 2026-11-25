@@ -1,7 +1,9 @@
 package report
 
 import (
-	"math"
+	"image/png"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -52,7 +54,7 @@ var (
 
 // TestReportNoYellow: like brand's TestNoYellow, for the report. No color in
 // the style block, the inline script or the rendered pages (inline SVG
-// included) has an HSL hue of 40 to 70 degrees with saturation above 30%,
+// included) is yellow by brand.IsYellow (HSL hue 30 to 70, saturation above 30%),
 // and no CSS uses a yellow, gold, amber or orange keyword.
 func TestReportNoYellow(t *testing.T) {
 	sources := map[string]string{"style": styleCSS, "script": scriptJS}
@@ -95,42 +97,8 @@ func TestReportNoYellow(t *testing.T) {
 	}
 }
 
-func TestYellowCheck(t *testing.T) {
-	for _, c := range []struct {
-		r, g, b float64
-		want    bool
-	}{{255, 255, 0, true}, {212, 167, 44, true}, {210, 153, 34, true}, {242, 163, 58, false}, {58, 70, 201, false}, {128, 128, 100, false}} {
-		if got := yellow(c.r, c.g, c.b); got != c.want {
-			t.Errorf("yellow(%v,%v,%v) = %v, want %v", c.r, c.g, c.b, got, c.want)
-		}
-	}
-}
-
-// yellow reports an HSL hue of 40 to 70 degrees with saturation above 30%,
-// the same rule as brand.TestNoYellow.
-func yellow(r, g, b float64) bool {
-	r, g, b = r/255, g/255, b/255
-	mx, mn := math.Max(r, math.Max(g, b)), math.Min(r, math.Min(g, b))
-	l, d := (mx+mn)/2, mx-mn
-	if d == 0 {
-		return false
-	}
-	s := d / (1 - math.Abs(2*l-1))
-	var h float64
-	switch mx {
-	case r:
-		h = math.Mod((g-b)/d, 6)
-	case g:
-		h = (b-r)/d + 2
-	default:
-		h = (r-g)/d + 4
-	}
-	h *= 60
-	if h < 0 {
-		h += 360
-	}
-	return h >= 40 && h <= 70 && s > 0.30
-}
+// yellow is brand.IsYellow for float channels parsed from CSS.
+func yellow(r, g, b float64) bool { return brand.IsYellow(uint8(r), uint8(g), uint8(b)) }
 
 // TestNoHorizontalScroll390: at a 390px viewport the page must not be wider
 // than the screen. The section nav is the widest row (every link on one
@@ -163,5 +131,44 @@ func TestNoHorizontalScroll390(t *testing.T) {
 	}
 	if !strings.Contains(render(t, loadAcme(t), "html"), `<meta name="viewport" content="width=device-width, initial-scale=1">`) {
 		t.Error("no responsive viewport meta")
+	}
+}
+
+// TestNoYellowPNG samples every pixel of the report screenshots that the
+// README and docs/report.md show: none may be yellow by brand.IsYellow.
+// Regenerate them from gop report --demo after a style change.
+func TestNoYellowPNG(t *testing.T) {
+	files, err := filepath.Glob("../../docs/assets/report-*.png")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no report screenshots: %v", err)
+	}
+	for _, f := range files {
+		fh, err := os.Open(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		img, err := png.Decode(fh)
+		_ = fh.Close()
+		if err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		bd, n := img.Bounds(), 0
+		for y := bd.Min.Y; y < bd.Max.Y; y++ {
+			for x := bd.Min.X; x < bd.Max.X; x++ {
+				r, g, b, a := img.At(x, y).RGBA()
+				if a < 0x8000 {
+					continue
+				}
+				if brand.IsYellow(uint8(r>>8), uint8(g>>8), uint8(b>>8)) {
+					if n == 0 {
+						t.Errorf("%s: yellow pixel #%02x%02x%02x at %d,%d", f, r>>8, g>>8, b>>8, x, y)
+					}
+					n++
+				}
+			}
+		}
+		if n > 0 {
+			t.Errorf("%s: %d yellow pixels", f, n)
+		}
 	}
 }
