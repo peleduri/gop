@@ -501,6 +501,7 @@ func (k *collector) followIndirect(ctx context.Context) error {
 		}
 		k.addTriggerFacts(t.o, t.repo, t.wid, t.wn, facts)
 		addAgentFacts(t.wn, facts)
+		k.recordMemoryFacts(t.wid, facts)
 	}
 	return nil
 }

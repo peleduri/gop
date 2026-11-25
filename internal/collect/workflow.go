@@ -97,6 +97,13 @@ type WorkflowFacts struct {
 	Name     string
 	JobNames map[string]string
 
+	// Caches are the actions/cache steps of its jobs; CacheMode and
+	// JobCacheModes the workflow's and each job's cache-mode, as written
+	// (agentmemory.go).
+	Caches        []CacheStep
+	CacheMode     string
+	JobCacheModes map[string]string
+
 	// Follow lists the files one level down the collector reads to find
 	// agents and untrusted execution hidden in them (indirect.go).
 	Follow FollowRefs
@@ -603,6 +610,7 @@ func parseWorkflow(data []byte, ind *Indirect) (*WorkflowFacts, error) {
 	}
 	f.Triggers, f.UntrustedExec, f.ReadOnlyCheckouts = triggerFacts(&doc, ind)
 	f.readAgents(&doc, ind)
+	f.readCaches(&doc)
 	f.Follow = followRefs(&doc, f.Triggers)
 	return f, nil
 }

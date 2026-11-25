@@ -318,6 +318,13 @@ func writeMDAgents(p func(string, ...any), d data) {
 			if r.Tools != "" {
 				p("- Approvals off: %s\n", md(r.Tools))
 			}
+			if r.Memory != "" {
+				poss := ""
+				if r.MemoryPossible {
+					poss = "possible: "
+				}
+				p("- Memory across runs [GOP006]: %s%s\n", poss, md(r.Memory))
+			}
 			for i, f := range r.Fixes {
 				p("  %d. %s\n", i+1, md(f))
 			}

@@ -111,7 +111,7 @@ var pageTmpl = template.Must(template.New("report").Funcs(template.FuncMap{"icon
 {{if not .NameOnly}}<dt>What it holds</dt><dd>{{.Holds}}</dd>
 <dt>What it reaches</dt><dd>{{.Reach}}</dd>
 {{if or .Prompt .Reads}}<dt>Prompt injection</dt><dd>{{if .Prompt}}<code>{{.Prompt}}</code> in the prompt{{if .Reads}}; {{end}}{{end}}{{if .Reads}}reads {{.Reads}}{{end}}</dd>{{end}}
-{{if .Tools}}<dt>Approvals off</dt><dd><code>{{.Tools}}</code></dd>{{end}}{{end}}
+{{if .Tools}}<dt>Approvals off</dt><dd><code>{{.Tools}}</code></dd>{{end}}{{if .Memory}}<dt>Memory across runs</dt><dd>{{if .MemoryPossible}}possible: {{end}}{{.Memory}}</dd>{{end}}{{end}}
 </dl>
 {{if .Fixes}}<ol class="ag-fix">{{range .Fixes}}<li>{{.}}</li>{{end}}</ol>{{end}}
 </div>

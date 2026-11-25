@@ -233,3 +233,62 @@ func orList(xs []string, empty string) string {
 	}
 	return strings.Join(xs[:len(xs)-1], ", ") + " or " + xs[len(xs)-1]
 }
+
+// AgentMemoryPoisoned reports whether a workflow runs an agent that
+// outsiders can start and that saves state a privileged job restores on a
+// later run (agent_memory_readers, see docs/agents-in-ci.md "Agent memory
+// across runs").
+func AgentMemoryPoisoned(n Node) bool {
+	return AgentConfirmed(n) && n.Attrs[AttrAgentMemoryReaders] != ""
+}
+
+// AgentMemoryConfirmed reports whether the agent memory match is verified
+// (live or inferred), not only possible.
+func AgentMemoryConfirmed(n Node) bool {
+	ev := n.Evidence
+	if e, ok := n.AttrEvidence[AttrAgentMemoryReaders]; ok {
+		ev = e
+	}
+	return Verified(ev)
+}
+
+// AgentMemoryReaders lists the workflows that restore the agent's saved
+// state, sorted.
+func AgentMemoryReaders(n Node) []string { return splitAttr(n.Attrs[AttrAgentMemoryReaders]) }
+
+// AgentMemoryNote describes the cross-run path in one sentence.
+func AgentMemoryNote(n Node) string {
+	a := n.Attrs
+	what := "the cache " + orList(splitAttr(a[AttrAgentMemoryPaths]), "entry")
+	if d := splitAttr(a[AttrAgentMemoryDirs]); len(d) > 0 {
+		what += " (agent memory: " + strings.Join(d, ", ") + ")"
+	}
+	var readers []string
+	for _, r := range AgentMemoryReaders(n) {
+		if r == n.ID {
+			readers = append(readers, "later runs of the same workflow")
+			continue
+		}
+		readers = append(readers, strings.TrimPrefix(r, "workflow:"))
+	}
+	verb := " restore it"
+	if len(readers) <= 1 {
+		verb = " restores it"
+	}
+	return "the agent job saves " + what + " on " + strings.ReplaceAll(a[AttrAgentMemoryTriggers], ",", ", ") +
+		", and " + orList(readers, "a privileged job") + verb + " with secrets or a write token (" + a[AttrAgentMemoryMatch] + " key match)"
+}
+
+// AgentMemoryFixes are the changes that stop an outsider's run from
+// planting state for later runs, most effective first.
+func AgentMemoryFixes(n Node) []string {
+	if !AgentMemoryPoisoned(n) {
+		return nil
+	}
+	return []string{
+		"Do not let the agent job save caches: drop cache-mode: write (or write-only) so " + strings.ReplaceAll(n.Attrs[AttrAgentMemoryTriggers], ",", ", ") +
+			" keeps GitHub's read-only default, or replace actions/cache with actions/cache/restore in that job.",
+		"Never restore the agent's cache in a job that holds secrets or a write token: give the privileged job its own key prefix and drop restore-keys that match the agent's key.",
+		"Keep agent memory out of caches: rebuild it on each run from reviewed files on the default branch (CLAUDE.md, AGENTS.md), so changes to it go through code review.",
+	}
+}

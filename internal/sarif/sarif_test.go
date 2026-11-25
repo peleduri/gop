@@ -120,7 +120,7 @@ func TestDriver(t *testing.T) {
 	if d.Name != "gop" || d.Version != "v9.9.9" || d.InformationURI != InformationURI {
 		t.Errorf("driver: %+v", d)
 	}
-	if len(d.Rules) != 5 || d.Rules[0].ID != RuleMutableRef || d.Rules[0].Name != "mutable-action-ref-reachable" ||
+	if len(d.Rules) != 6 || d.Rules[0].ID != RuleMutableRef || d.Rules[0].Name != "mutable-action-ref-reachable" ||
 		d.Rules[1].ID != RuleDefaultPerm || d.Rules[1].Name != "default-permission-grants-push" {
 		t.Fatalf("rules: %+v", d.Rules)
 	}

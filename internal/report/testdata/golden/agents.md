@@ -2,7 +2,7 @@
 
 Enterprise **acme**, collected 2026-11-20T12:00:00Z
 
-**AI agents and bots:** 4 non-human actors; none can merge to a default branch without a human.
+**AI agents and bots:** 5 non-human actors; none can merge to a default branch without a human.
 
 > identity:bob can push code that runs in 9 repos across 3 orgs (confirmed), including 1 cloud OIDC trust, 2 secret scopes, 1 self-hosted runner pool. 1 repo more possible through facts gop could not see.
 >
@@ -20,12 +20,12 @@ Confirmed means every hop was read live, inferred from other observed facts by a
 | members:acme-legacy | 3 | 2 | 0 | 1 | 0 | 1 repo | 19.5 |
 | identity:carol | 3 | 2 | 0 | 1 | 0 | 0 repos | 13.0 |
 | members:acme-app | 1 | 1 | 0 | 1 | 0 | 0 repos | 12.8 |
-| external:anyone | 1 | 1 | 0 | 1 | 0 | 0 repos | 10.5 |
+| external:anyone | 1 | 1 | 0 | 1 | 0 | 0 repos | 11.0 |
 | members:acme-secure | 1 | 1 | 0 | 1 | 0 | 0 repos | 8.5 |
-| identity:alice | 13 | 3 | 2 | 3 | 1 | 0 repos + 1 impact | 140.6 |
+| identity:alice | 13 | 3 | 2 | 3 | 1 | 0 repos + 1 impact | 141.8 |
 | members:acme-actions | 9 | 3 | 1 | 2 | 1 | 0 repos | 93.4 |
 | 2 principals (team:acme-actions/platform): team:acme-actions/platform, team:acme-actions/platform-oncall | 7 | 2 | 1 | 1 | 1 | 0 repos | 68.6 |
-| identity:acme-ai-reviewer\[bot\] | 10 | 1 | 2 | 2 | 1 | 0 repos + 1 impact | 48.5 |
+| identity:acme-ai-reviewer\[bot\] | 10 | 1 | 2 | 2 | 1 | 0 repos + 1 impact | 49.0 |
 
 - identity:bob can start 1 exposed AI agent workflow without push access (see AI agents in CI).
 - members:acme-legacy can start 1 exposed AI agent workflow without push access (see AI agents in CI).
@@ -38,7 +38,7 @@ Score counts confirmed reach only.
 
 ## AI agents in CI
 
-4 workflows run an AI coding agent; 2 can be started by people without push access, 2 of them while the agent holds write, secrets or OIDC. An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.
+5 workflows run an AI coding agent; 2 can be started by people without push access, 2 of them while the agent holds write, secrets or OIDC. An agent reads the text of whoever starts it and acts with its job's token, secrets and tools, so a prompt injection uses all of them.
 
 ### acme-actions/setup/.github/workflows/codex-review.yml (codex-cli)
 
@@ -60,11 +60,15 @@ Score counts confirmed reach only.
 - What it reaches: 1 secret scope, 1 repo
 - Prompt injection: reads the triggering comment text
 - Approvals off: dangerously\_skip\_permissions
+- Memory across runs [GOP006]: the agent job saves the cache .claude/memory (agent memory: .claude) on issue\_comment, and acme-app/docs/.github/workflows/claude-nightly.yml restores it with secrets or a write token (prefix key match)
   1. Restrict who can start it: remove allowed\_non\_write\_users / allow-users (or allowed\_bots) so the action's write-access check applies, or move it off issue\_comment, or require approval for outside contributors (an environment with required reviewers).
   2. Give the agent job a read-only token (permissions: contents: read; it now has contents:write, issues:write, pull-requests:write) and make changes in a separate job that takes the agent's output.
   3. Pin the agent action to a full commit SHA: a tag can be moved to code that runs with this job's token and secrets.
   4. Drop dangerously\_skip\_permissions: keep the agent's own approval prompts and sandbox.
   5. Scope the allowed tools to what the job needs, for example --allowedTools "Bash(gh pr comment:\*)".
+  6. Do not let the agent job save caches: drop cache-mode: write (or write-only) so issue\_comment keeps GitHub's read-only default, or replace actions/cache with actions/cache/restore in that job.
+  7. Never restore the agent's cache in a job that holds secrets or a write token: give the privileged job its own key prefix and drop restore-keys that match the agent's key.
+  8. Keep agent memory out of caches: rebuild it on each run from reviewed files on the default branch (CLAUDE.md, AGENTS.md), so changes to it go through code review.
 
 ### acme-app/docs/.github/workflows/gemini-review.yml (gemini-cli-action)
 
@@ -72,6 +76,14 @@ Score counts confirmed reach only.
 - What it holds: secrets (not given to a fork's pull\_request run)
 - What it reaches: 1 secret scope, 1 repo
   1. Pin the agent action to a full commit SHA: a tag can be moved to code that runs with this job's token and secrets.
+
+### acme-app/docs/.github/workflows/claude-nightly.yml (claude-code-action)
+
+- Who can start it: maintainers: write access only
+- What it holds: contents:write, secrets
+- What it reaches: 1 secret scope, 1 repo
+  1. Give the agent job a read-only token (permissions: contents: read; it now has contents:write) and make changes in a separate job that takes the agent's output.
+  2. Pin the agent action to a full commit SHA: a tag can be moved to code that runs with this job's token and secrets.
 
 ### acme-app/docs/.github/workflows/ai-labeler.yml (name only)
 
@@ -81,11 +93,12 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 
 ## Agent paths
 
-3 agent paths; 2 in dangerous mode, 2 that people without push access can start.
+4 agent paths; 2 in dangerous mode, 2 that people without push access can start.
 
 1. Anyone on GitHub → claude-code-action (dangerous mode: dangerously\_skip\_permissions) in acme-app/docs/.github/workflows/claude.yml → Push to acme-app/docs. Evidence: live 6, inferred 1.
 2. People without push access → codex-cli (dangerous mode: full\_auto) in acme-actions/setup/.github/workflows/codex-review.yml → 1 secret in the agent job. Evidence: live 5, inferred 1.
-3. Anyone, from a fork → gemini-cli-action in acme-app/docs/.github/workflows/gemini-review.yml → gemini-cli-action. Evidence: live 3.
+3. Maintainers with write access → claude-code-action in acme-app/docs/.github/workflows/claude-nightly.yml → Push to acme-app/docs. Evidence: live 5.
+4. Anyone, from a fork → gemini-cli-action in acme-app/docs/.github/workflows/gemini-review.yml → gemini-cli-action. Evidence: live 3.
 
 The HTML report steps through each path and shows where a fix cuts it.
 

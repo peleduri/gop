@@ -38,6 +38,7 @@ gop sarif --graph graph.json --split-by-repo DIR [same filters]
 | `GOP003` | `action-with-known-advisory-reachable` | `uses:` line (USES edge) of an action ref with a known compromise or vulnerability advisory (`advisories` attr, see [advisories.md](advisories.md)) | the consuming repo's workflow file and line, as for GOP001 |
 | `GOP004` | `agent-workflow-exposed` | AI coding agent workflow that people without push access can start (`agent_exposure=outsiders` with a known agent action or CLI, see [agents-in-ci.md](agents-in-ci.md)) | the workflow file and the agent step's line from its `CAN_TRIGGER` edge |
 | `GOP005` | `review-bypass-bot-self-merge` | merge workflow line of a repo where a pull request's author can get code onto the default branch through a bot approval and a bot merge with no human review (`review_bypass=bot_self_merge` with `CAN_MERGE_VIA_BOT` edges, see [agents-in-ci.md](agents-in-ci.md#ai-approve--self-merge)) | the merging workflow file and the merging step's line from its `CAN_MERGE_VIA_BOT` edge |
+| `GOP006` | `agent-memory-poisoning-across-runs` | AI agent workflow that people without push access can start whose agent job saves an `actions/cache` entry that a job with secrets or a write token restores on a later run (`agent_memory_readers`, see [agents-in-ci.md](agents-in-ci.md#agent-memory-across-runs)) | the agent workflow file and the save step's line (`agent_memory_line`) |
 
 GOP003 results sort before every other result, whatever their severity, and
 `--top` keeps them first. Their fix is the `pin_ref` plan for the action, which
@@ -63,6 +64,16 @@ default branch reaches (at least medium: the repo's CI). Their fix is the
 first, including the suspected (heuristic) stale-approval fix for a merge
 script.
 
+GOP006 results have the sources of the agent workflow's `CAN_TRIGGER` edges
+as principals (who can plant the state). A result is possible when every such
+edge is `not_visible` or the cache write itself is (`agent_memory_readers`
+evidence `not_visible`: a GitHub Enterprise Server host with no
+`cache-mode`, or an agent whose actor check is unknown). Severity is what the
+restoring workflows reach, at least high: they hold secrets or a write token.
+`memory_readers` names them, `memory_dirs` the agent memory stores among the
+cached paths, and `memory_fixes` the changes; `fix` is the `harden_trigger`
+plan for the agent workflow.
+
 Results come from the same candidate fixes as `suggest_fixes` and `gop fix-plan`.
 A fix whose edges are all `not_visible` is never a result. Each rule's
 `help.markdown` describes the fix; `gop fix-plan --pin <action>` or
@@ -83,7 +94,7 @@ the consuming workflow reaches, raised to the advisory's own severity
 (`advisory_severity`, high when the advisory gives none) when that is higher;
 for GOP004, what the agent workflow reaches, at least high when the agent job
 holds a write scope or a secret; for GOP005, what controlling the repo
-reaches.
+reaches; for GOP006, what the restoring workflows reach, at least high.
 
 | Severity | Terminal impact | SARIF level |
 |----------|-----------------|-------------|

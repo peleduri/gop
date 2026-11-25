@@ -48,7 +48,7 @@ func stripAgents(g *Graph, edges bool) *Graph {
 
 func TestAgentNodes(t *testing.T) {
 	ix := NewIndex(loadAgents(t))
-	if got := ix.AgentWorkflows(); len(got) != 4 {
+	if got := ix.AgentWorkflows(); len(got) != 5 {
 		t.Fatalf("agent workflows = %v", got)
 	}
 	for id, want := range map[string]bool{agentClaude: true, agentCodex: true, agentGemini: false, agentLabeler: false} {
@@ -56,6 +56,14 @@ func TestAgentNodes(t *testing.T) {
 		if AgentExposed(n) != want {
 			t.Errorf("AgentExposed(%s) = %v, want %v (attrs %v)", id, !want, want, n.Attrs)
 		}
+		// Only claude.yml saves memory a privileged job restores.
+		if AgentMemoryPoisoned(n) != (id == agentClaude) {
+			t.Errorf("AgentMemoryPoisoned(%s) = %v", id, id != agentClaude)
+		}
+	}
+	cl, _ := ix.Node(agentClaude)
+	if note := AgentMemoryNote(cl); !strings.Contains(note, "claude-nightly.yml restores it") || len(AgentMemoryFixes(cl)) != 3 || !AgentMemoryConfirmed(cl) {
+		t.Errorf("memory note %q fixes %v", note, AgentMemoryFixes(cl))
 	}
 	lab, _ := ix.Node(agentLabeler)
 	if !IsAgent(lab) || AgentConfirmed(lab) || AgentFixes(lab) != nil {
