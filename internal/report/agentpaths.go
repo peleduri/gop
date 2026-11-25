@@ -291,7 +291,11 @@ func agentPathFor(ix *graph.Index, n graph.Node) agentPath {
 				}
 			}
 		case graph.CanAssume:
-			roles = append(roles, strings.TrimPrefix(e.To, "cloud_target:"))
+			name := strings.TrimPrefix(e.To, "cloud:")
+			if t, ok := ix.Node(e.To); ok && t.Name != "" {
+				name = t.Name
+			}
+			roles = append(roles, name)
 			roleEv = append(roleEv, e.Evidence)
 		}
 	}
@@ -342,8 +346,12 @@ func agentPathFor(ix *graph.Index, n graph.Node) agentPath {
 	if len(roles) > 0 {
 		sort.Strings(roles)
 		ev := bestEvidence(roleEv)
-		set(hopRole, pathHop{Kind: "Cloud reach", Title: "Assume " + strings.Join(roles, ", "), Short: firstPart(roles[0]), ShortSub: plural(len(roles), "role", "roles"),
-			Detail: "A supplied trust policy accepts this workflow's token.", Risk: "Cloud role", Ev: evClass(ev), EvLabel: evLabel(ev)})
+		short := make([]string, len(roles))
+		for i, r := range roles {
+			short[i] = lastPart(r)
+		}
+		set(hopRole, pathHop{Kind: "Cloud reach", Title: "Assume " + strings.Join(short, ", "), Short: short[0], ShortSub: plural(len(roles), "cloud role", "cloud roles"),
+			Detail: "A trust policy accepts this workflow's token: " + strings.Join(roles, ", ") + ".", Risk: "Cloud role", Ev: evClass(ev), EvLabel: evLabel(ev)})
 	}
 
 	// a fork's pull_request run gets none of the job's write scopes or secrets
@@ -383,10 +391,19 @@ func agentPathFor(ix *graph.Index, n graph.Node) agentPath {
 		p.Edges = append(p.Edges, pathEdge{From: a.N, To: b.N, D: fmt.Sprintf("M%d,%d C%d,%d %d,%d %d,%d", a.CX, a.CY, c, a.CY, c, b.CY, b.CX, b.CY)})
 	}
 	var evs []string
-	for _, k := range []string{"live", "audit", "inferred", "supplied", "not visible"} {
+	for _, k := range []string{"live", "audit", "inferred", "supplied file", "not visible"} {
 		if evc[k] > 0 {
 			evs = append(evs, fmt.Sprintf("%s %d", k, evc[k]))
+			delete(evc, k)
 		}
+	}
+	var rest []string
+	for k := range evc {
+		rest = append(rest, k)
+	}
+	sort.Strings(rest)
+	for _, k := range rest {
+		evs = append(evs, fmt.Sprintf("%s %d", k, evc[k]))
 	}
 	p.EvCount = strings.Join(evs, ", ")
 	last := p.Present[len(p.Present)-1]

@@ -2,6 +2,7 @@ package report
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -63,6 +64,22 @@ func TestAgentPathsRankAndHops(t *testing.T) {
 	}
 	if f := fix["token"]; f.Chain || f.CutsAttr != "7" {
 		t.Errorf("token fix = %+v", f)
+	}
+	total := 0
+	for _, part := range strings.Split(p.EvCount, ", ") {
+		var k string
+		var n int
+		if i := strings.LastIndex(part, " "); i > 0 {
+			k = part[:i]
+			fmt.Sscan(part[i+1:], &n)
+		}
+		if k == "" {
+			t.Errorf("bad evidence count %q", part)
+		}
+		total += n
+	}
+	if total != len(p.Present) {
+		t.Errorf("evidence counts %q cover %d of %d hops", p.EvCount, total, len(p.Present))
 	}
 	if !strings.Contains(p.Banner, "in dangerous mode") {
 		t.Errorf("banner = %q", p.Banner)

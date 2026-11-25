@@ -83,10 +83,12 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 
 ## Agent paths
 
-2 agent paths; 1 in dangerous mode, 2 that people without push access can start.
+4 agent paths; 3 in dangerous mode, 3 that people without push access can start.
 
-1. Anyone on GitHub → claude-code-action (dangerous mode: dangerously\_skip\_permissions) in acme-app/docs/.github/workflows/claude.yml → Push to acme-app/docs. Evidence: live 6, inferred 1.
-2. Anyone on GitHub → claude-cli in acme-app/web/.github/workflows/ai-review.yml → Merge to the default branch of acme-app/web. Evidence: live 6, inferred 1.
+1. Anyone on GitHub → claude-code-action (dangerous mode: dangerously\_skip\_permissions) in acme-app/api/.github/workflows/claude-fix.yml → Assume acme-prod-deploy. Evidence: live 7, inferred 1, supplied file 1.
+2. Anyone on GitHub → claude-code-action (dangerous mode: dangerously\_skip\_permissions) in acme-app/docs/.github/workflows/claude.yml → Push to acme-app/docs. Evidence: live 6, inferred 1.
+3. Anyone on GitHub → claude-cli in acme-app/web/.github/workflows/ai-review.yml → Merge to the default branch of acme-app/web. Evidence: live 6, inferred 1.
+4. Maintainers with write access → codex-cli (dangerous mode: full\_auto) in acme-secure/infra/.github/workflows/codex.yml → Commands on the runner. Evidence: live 3, inferred 1.
 
 The HTML report steps through each path and shows where a fix cuts it.
 
