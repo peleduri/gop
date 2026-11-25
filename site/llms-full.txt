@@ -1,4 +1,4 @@
-# gop: who can make code run where in a GitHub Enterprise
+# gop: which AI agents and people can make code run where
 
 Site: https://peleduri.github.io/gop/
 Source: https://github.com/peleduri/gop (Apache-2.0)

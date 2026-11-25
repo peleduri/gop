@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.peleduri/gop",
-  "title": "gop: who can make code run where",
-  "description": "Read-only evidence graph of who can make code run where in a GitHub Enterprise.",
+  "title": "gop: which AI agents and people can make code run where",
+  "description": "Read-only evidence graph of which AI agents and people can make code run where.",
   "repository": {
     "url": "https://github.com/peleduri/gop",
     "source": "github",

@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"image/png"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,6 +15,8 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"gopkg.in/yaml.v3"
+
+	"github.com/peleduri/gop/brand/logo"
 )
 
 // schema compiles a vendored JSON Schema from testdata (see testdata/README.md).
@@ -257,8 +261,23 @@ func TestWriteBundle(t *testing.T) {
 	for _, f := range zr.File {
 		files[f.Name] = f
 	}
-	if len(files) != 2 || files["manifest.json"] == nil || files["server/gop.exe"] == nil {
+	if len(files) != 4 || files["manifest.json"] == nil || files["server/gop.exe"] == nil {
 		t.Fatalf("bundle entries %v", files)
+	}
+	for _, ic := range bundleIcons {
+		f := files[ic.Src]
+		if f == nil {
+			t.Fatalf("bundle lacks icon %s", ic.Src)
+		}
+		r, err := f.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := png.DecodeConfig(r)
+		_ = r.Close()
+		if err != nil || fmt.Sprintf("%dx%d", cfg.Width, cfg.Height) != ic.Size {
+			t.Errorf("icon %s: %dx%d (%v), want %s", ic.Src, cfg.Width, cfg.Height, err, ic.Size)
+		}
 	}
 	if files["server/gop.exe"].Mode()&0o111 == 0 {
 		t.Error("server binary is not executable")
@@ -273,6 +292,9 @@ func TestWriteBundle(t *testing.T) {
 	var m Manifest
 	if err := json.Unmarshal(mj, &m); err != nil {
 		t.Fatal(err)
+	}
+	if len(m.Icons) != 2 || m.Icon != m.Icons[0].Src || files[m.Icon] == nil {
+		t.Errorf("manifest icon %q, icons %+v", m.Icon, m.Icons)
 	}
 	if m.Version != "0.7.0" || m.Server.EntryPoint != "server/gop.exe" {
 		t.Errorf("manifest %+v", m)
@@ -450,5 +472,29 @@ func TestPluginVersionsAgree(t *testing.T) {
 		if p.Version != want {
 			t.Errorf("marketplace plugin %s: version %q, want %q", p.Name, p.Version, want)
 		}
+	}
+}
+
+// TestBrandListing keeps the plugin icons on the brand mark (the 1024 PNG in
+// brand/logo/png) and every listing title on the brand display name.
+func TestBrandListing(t *testing.T) {
+	for _, f := range []string{".claude-plugin/icon.png", ".cursor-plugin/logo.png"} {
+		if !bytes.Equal(readRepo(t, f), logo.Mark1024) {
+			t.Errorf("%s differs from brand/logo/png/gop-mark-1024.png; copy it", f)
+		}
+	}
+	var p claudePlugin
+	strictJSON(t, readRepo(t, ".claude-plugin/plugin.json"), &p, "plugin.json")
+	if p.DisplayName != displayName {
+		t.Errorf("plugin.json displayName %q, want %q", p.DisplayName, displayName)
+	}
+	var sj struct {
+		Title string `json:"title"`
+	}
+	if err := json.Unmarshal(readRepo(t, "server.json"), &sj); err != nil {
+		t.Fatal(err)
+	}
+	if sj.Title != displayName {
+		t.Errorf("server.json title %q, want %q", sj.Title, displayName)
 	}
 }

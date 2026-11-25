@@ -1,6 +1,6 @@
 # Threat model
 
-gop maps who can make code run where in a GitHub Enterprise. That makes its input (a privileged token) and its output (the graph) both sensitive. This document says what gop touches and how to handle both.
+gop shows which AI agents and people can make code run where in a GitHub Enterprise. That makes its input (a privileged token) and its output (the graph) both sensitive. This document says what gop touches and how to handle both.
 
 ## What gop reads
 

@@ -1,14 +1,15 @@
 name: gop posture scan
 description: >-
-  Build gop's read-only evidence graph of a GitHub Enterprise (who can make code
-  run where) and upload graph.json plus an HTML report as a workflow artifact.
+  Which AI agents and people can make code run where. Builds gop's read-only
+  evidence graph of a GitHub Enterprise and uploads graph.json plus an HTML
+  report as a workflow artifact.
   WARNING: artifacts are readable by anyone with read access to the repository
   running this Action. graph.json and the report are an attack map of your
   enterprise. Run this Action only in a PRIVATE repository.
 author: peleduri
 branding:
-  icon: shield
-  color: gray-dark
+  icon: share-2
+  color: purple
 
 inputs:
   enterprise:

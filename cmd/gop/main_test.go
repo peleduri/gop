@@ -42,8 +42,23 @@ func runApp(t *testing.T, env map[string]string, c collector, args ...string) re
 
 func TestVersion(t *testing.T) {
 	r := runApp(t, nil, nil, "version")
-	if r.code != 0 || r.stdout != "gop dev (commit dev, built dev)\n" {
+	if r.code != 0 || r.stdout != "gop dev (commit dev, built dev)\nWhich AI agents and people can make code run where.\n" {
 		t.Fatalf("version: %+v", r)
+	}
+}
+
+// TestUsageBrand: gop with no arguments and gop help open with the brand
+// sentence (BRAND.md, the lowercase form of the tagline) and use no em dash.
+func TestUsageBrand(t *testing.T) {
+	const first = "gop shows which AI agents and people can make code run where in a GitHub Enterprise.\n"
+	if r := runApp(t, nil, nil); r.code != exitUsage || !strings.HasPrefix(r.stderr, first) {
+		t.Errorf("gop with no args: %d %q", r.code, r.stderr[:min(len(r.stderr), 120)])
+	}
+	if r := runApp(t, nil, nil, "help"); r.code != 0 || !strings.HasPrefix(r.stdout, first) {
+		t.Errorf("gop help: %d %q", r.code, r.stdout[:min(len(r.stdout), 120)])
+	}
+	if strings.ContainsRune(usage, '\u2014') {
+		t.Error("usage has an em dash")
 	}
 }
 

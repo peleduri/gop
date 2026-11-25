@@ -1,4 +1,5 @@
-// Command gop maps who can make code run where in a GitHub Enterprise.
+// Command gop shows which AI agents and people can make code run where in a
+// GitHub Enterprise.
 package main
 
 import (
@@ -18,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/peleduri/gop/brand"
 	"github.com/peleduri/gop/internal/advisory"
 	"github.com/peleduri/gop/internal/collect"
 	"github.com/peleduri/gop/internal/demo"
@@ -45,7 +47,10 @@ const (
 	exitPartial = 3
 )
 
-const usage = `gop maps who can make code run where in a GitHub Enterprise.
+const usage = `gop shows which AI agents and people can make code run where in a GitHub Enterprise.
+It reads the enterprise read-only, names the evidence for every hop (live,
+inferred, audit, supplied or not_visible) and ranks the fixes that remove the
+most reach.
 
 Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH [--parallel N]]
@@ -269,11 +274,11 @@ func (a *app) run(args []string) int {
 	case "advisories":
 		err = a.cmdAdvisories(rest)
 	case "version", "--version", "-version":
-		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n", version, commit, date)
+		fmt.Fprintf(a.stdout, "gop %s (commit %s, built %s)\n%s\n", version, commit, date, brand.MustLoad().Tagline)
 	case "help", "-h", "--help", "-help":
 		fmt.Fprint(a.stdout, usage)
 	default:
-		err = usagef("unknown command %q", cmd)
+		err = usagef("unknown command %q: run gop help to list the commands", cmd)
 	}
 	var (
 		ue usageError

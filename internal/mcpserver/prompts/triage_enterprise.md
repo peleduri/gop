@@ -1,4 +1,4 @@
-Triage the GitHub Enterprise "{{.Enterprise}}" with the gop tools: who can make code run where, and what to fix first.
+Triage the GitHub Enterprise "{{.Enterprise}}" with the gop tools: which AI agents and people can make code run where, and what to fix first.
 {{- if ne .Focus "all"}}
 Focus on {{.FocusLabel}}: rank the findings and fixes that reach them first.
 {{- end}}

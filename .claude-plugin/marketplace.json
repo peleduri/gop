@@ -1,6 +1,6 @@
 {
   "name": "gop",
-  "description": "gop: a read-only evidence graph of who can make code run where in a GitHub Enterprise, as an MCP server and agent skill.",
+  "description": "gop reads a GitHub Enterprise read-only and shows which AI agents and people can make code run where, with evidence per hop and fixes ranked. The gop MCP server and triage skill, as a Claude Code plugin.",
   "owner": {
     "name": "gop contributors",
     "url": "https://github.com/peleduri/gop"
@@ -9,7 +9,7 @@
     {
       "name": "gop",
       "source": "./",
-      "description": "The gop MCP server over your graph.json and the gop triage skill. Read-only.",
+      "description": "The gop MCP server over your graph.json and the gop triage skill. Read-only. Every fact names its evidence level; confirmed and possible reach stay apart.",
       "category": "security",
       "tags": [
         "github",
