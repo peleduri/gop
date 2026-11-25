@@ -112,6 +112,8 @@ flags may change in minor releases.
   docs/github-app-token.md (`recommendation` in `--format json`).
   docs/github-app-token.md explains the speed-up for large enterprises.
 
+- `NOTICE` file: the copyright line, the attribution that redistributions must keep (Apache-2.0 section 4(d)), and a note that the license grants no rights to the gop name or logo (section 6). Release archives include it.
+
 - One-step installs in AI assistants (#163). The repository is a Claude Code
   plugin marketplace: `/plugin marketplace add peleduri/gop` and
   `/plugin install gop@gop` add the MCP server (asking for the graph.json

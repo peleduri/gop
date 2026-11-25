@@ -59,6 +59,7 @@ archives:
         formats: [zip]
     files:
       - LICENSE
+      - NOTICE
       - README.md
   - id: gh-gop
     ids: [gh-gop]
