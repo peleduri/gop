@@ -1,0 +1,8 @@
+# Synthetic fixture: Amp execute mode.
+name: CI doctor
+on: workflow_run
+jobs:
+  doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - run: amp -x "Investigate why the latest CI run on main failed"

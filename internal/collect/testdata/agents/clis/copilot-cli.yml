@@ -1,0 +1,14 @@
+# Synthetic fixture: GitHub Copilot CLI in programmatic mode with every
+# approval prompt skipped.
+name: Copilot triage
+on: issues
+permissions:
+  issues: write
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm install -g @github/copilot
+      - env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.ACME_COPILOT_PAT }}
+        run: copilot -p "Label issue ${{ github.event.issue.number }}" --allow-all-tools

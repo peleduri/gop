@@ -56,6 +56,9 @@ var agentActions = []agentAction{
 	{kind: "gemini-cli-action", repos: []string{"google-github-actions/run-gemini-cli"}, gate: graph.GateUnknown, args: []string{"settings"}},
 	{kind: "pr-agent", repos: []string{"qodo-ai/pr-agent", "codium-ai/pr-agent", "the-pr-agent/pr-agent"}, gate: graph.GateUnknown},
 	{kind: "opencode-action", repos: []string{"sst/opencode/github", "anomalyco/opencode/github"}, gate: graph.GateUnknown},
+	// QwenLM/qwen-code-action (action.yml, github.com/QwenLM/qwen-code-action,
+	// November 2026): prompt, settings; no documented actor check.
+	{kind: "qwen-code-action", repos: []string{"qwenlm/qwen-code-action"}, gate: graph.GateUnknown, args: []string{"settings"}},
 }
 
 // copilotSetupJob is the job id GitHub requires in
@@ -110,6 +113,45 @@ var agentCLIs = []agentCLI{
 	// agentrun doctor, stop and workflows validate are not runs.
 	{kind: "agentrun-cli", bins: []string{"agentrun", "@parcha/agentrun"},
 		subs: [][2]string{{"runs", "start"}, {"template", "eval"}}},
+	// GitHub Copilot CLI (docs.github.com/en/copilot/how-tos/copilot-cli/
+	// automate-copilot-cli/run-cli-programmatically and
+	// docs.github.com/en/copilot/reference/cli-command-reference, November
+	// 2026): npm @github/copilot, copilot -p "..." / --prompt runs one
+	// prompt and exits. --allow-all-tools, --allow-all (tools, paths and
+	// URLs) and --yolo skip the approval prompts; --allow-tool='shell(npm:*)'
+	// allows a list. AWS's unrelated copilot CLI (copilot svc deploy) takes
+	// no -p.
+	{kind: "copilot-cli", bins: []string{"copilot", "@github/copilot"}, markers: []string{"-p", "--prompt"}},
+	// Qwen Code (github.com/QwenLM/qwen-code README and
+	// docs/users/features/headless.md, November 2026): npm
+	// @qwen-code/qwen-code, qwen -p "..." is headless; --yolo / -y or
+	// --approval-mode yolo approve every tool call.
+	{kind: "qwen-cli", bins: []string{"qwen", "@qwen-code/qwen-code"}, markers: []string{"-p", "--prompt"}},
+	// goose (github.com/block/goose documentation/docs/guides/
+	// goose-cli-commands.md and environment-variables.md, November 2026):
+	// goose run -t "..." / -i file / --recipe runs headless. GOOSE_MODE
+	// defaults to auto (no approval prompts). The unrelated goose database
+	// migration tool has no run subcommand.
+	{kind: "goose-cli", bins: []string{"goose"}, markers: []string{"run"}},
+	// Crush (github.com/charmbracelet/crush README and internal/cmd/run.go,
+	// November 2026): npm @charmland/crush, crush run "..." runs one
+	// non-interactive prompt; --yolo skips every permission prompt.
+	{kind: "crush-cli", bins: []string{"crush", "@charmland/crush"}, markers: []string{"run"}},
+	// Cline CLI (docs.cline.bot/cline-cli/overview, November 2026): npm
+	// cline, cline "task" runs a task, headless with --json, piped stdin or
+	// redirected stdout. --auto-approve defaults to true.
+	{kind: "cline-cli", bins: []string{"cline"}, markers: []string{"--json"}, quoted: true},
+	// Continue CLI (github.com/continuedev/continue extensions/cli/README.md,
+	// November 2026): npm @continuedev/cli, cn -p "..." is headless mode.
+	// cn ls, cn login and cn serve are not agent runs.
+	{kind: "continue-cli", bins: []string{"cn", "@continuedev/cli"}, markers: []string{"-p"}},
+	// Amp (ampcode.com/docs/cli/execute-mode, November 2026): amp -x "..." /
+	// --execute sends one message, waits for the turn to end and exits.
+	{kind: "amp-cli", bins: []string{"amp"}, markers: []string{"-x", "--execute"}},
+	// OpenHands CLI (docs.openhands.dev/openhands/usage/cli/headless,
+	// November 2026): openhands --headless -t "..." / -f task.txt. Headless
+	// mode always runs in always-approve mode.
+	{kind: "openhands-cli", bins: []string{"openhands"}, markers: []string{"--headless"}},
 }
 
 // agentImage is a known agent platform container image, matched by name
@@ -139,6 +181,12 @@ var agentToolFlags = []struct{ match, flag string }{
 	{"--allowedtools", "allowed_tools"},
 	{"--allowed-tools", "allowed_tools"},
 	{"allowedtools", "allowed_tools"},
+	{"--allow-tool", "allowed_tools"}, // copilot --allow-tool='shell(npm:*)'
+	// copilot --allow-all-tools and --allow-all (tools, paths and URLs).
+	{"--allow-all", "allow_all"},
+	// qwen and gemini --approval-mode yolo (or =yolo).
+	{"--approval-mode=yolo", "yolo"},
+	{"--approval-mode yolo", "yolo"},
 }
 
 // agentNameWords are the weak name signals (agent_confidence=name_only),

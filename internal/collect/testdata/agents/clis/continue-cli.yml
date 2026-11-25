@@ -1,0 +1,8 @@
+# Synthetic fixture: Continue CLI headless mode.
+name: Commit message
+on: push
+jobs:
+  msg:
+    runs-on: ubuntu-latest
+    steps:
+      - run: cn -p "Generate a conventional commit name for the current git changes."

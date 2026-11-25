@@ -1,0 +1,16 @@
+# Synthetic fixture: commands that look like the agent CLIs but are not
+# agent runs. None of them is an agent.
+name: Deploy
+on: push
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: copilot svc deploy --name api --env prod
+      - run: goose -dir db/migrations postgres "$DATABASE_URL" up
+      - run: cn ls --json
+      - run: amp --version
+      - run: echo "try qwen -p or crush run locally"
+      - run: openhands --version
+      - run: npm install -g cline @github/copilot @qwen-code/qwen-code
+      - run: ./scripts/raider --message "not aider"

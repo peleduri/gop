@@ -1,0 +1,8 @@
+# Synthetic fixture: Cline CLI headless with JSON output.
+name: Cline review
+on: pull_request
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - run: git diff origin/main | cline --json "review these changes"

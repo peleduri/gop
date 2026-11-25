@@ -1,0 +1,13 @@
+# Synthetic fixture: Qwen Code headless with approval mode yolo.
+name: Qwen fix
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          OPENAI_API_KEY: ${{ secrets.ACME_QWEN_KEY }}
+        run: npx @qwen-code/qwen-code -p "Fix the failing tests" --approval-mode yolo
