@@ -342,3 +342,40 @@ func TestMergeKeepsPartial(t *testing.T) {
 		t.Errorf("merged: partial %v reason %q, want the partial re-collection's", merged.Partial, merged.PartialReason)
 	}
 }
+
+// TestMergeIntoStoppedKeepsOtherOrgs stops a MergeInto run early: Collect
+// returns the partial merged graph, which keeps every fact of the orgs it
+// did not re-collect and says what the re-collected org is missing.
+func TestMergeIntoStoppedKeepsOtherOrgs(t *testing.T) {
+	base, _ := fullRunRequests(t, Config{})
+	f := newFakeGitHub(t)
+	merged, err := Collect(context.Background(), Config{Enterprise: "acme", Client: f.client(t),
+		Orgs: []string{"acme-app"}, MergeInto: base, MaxRequests: 5})
+	wantPartial(t, merged, err, graph.PartialMaxRequests)
+	ids := map[string]bool{}
+	for _, n := range merged.Nodes {
+		ids[n.ID] = true
+	}
+	kept := 0
+	for _, n := range base.Nodes {
+		if o := nodeOrg(n.ID); o != "" && o != "acme-app" {
+			kept++
+			if !ids[n.ID] {
+				t.Errorf("the partial merge dropped %s of an org it did not re-collect", n.ID)
+			}
+		}
+	}
+	if kept == 0 {
+		t.Fatal("fixture: base should hold nodes of other orgs")
+	}
+	gap := false
+	for _, c := range merged.Coverage {
+		gap = gap || (c.Scope == "org:acme-app" && strings.HasPrefix(c.Fact, "phase:"))
+	}
+	if !gap {
+		t.Error("the partial merge does not list the phases acme-app missed in coverage")
+	}
+	if err := validateMerged(merged); err != nil {
+		t.Error(err)
+	}
+}

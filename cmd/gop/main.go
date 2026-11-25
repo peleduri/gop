@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -50,6 +51,7 @@ Usage:
   gop collect --enterprise <slug> --out graph.json [--orgs a,b] [--app-id N --app-key-file PATH [--parallel N]]
               [--oidc-trust <files>] [--github-url URL] [--verbose] [--advisories <zip|dir> | --advisories-live]
               [--cache-dir DIR [--resume] [--incremental [--full-every DAYS]]] [--max-requests N] [--reserve N] [--priority a,b]
+              [--merge-into graph.json --orgs a,b [--merge-force]]
   gop enrich  --graph graph.json [--oidc-trust <file|dir>[,...]] [--cartography export.json] [--poutine report.json]
               [--advisories <zip|dir> | --advisories-live] --out graph2.json
   gop advisories update [--out PATH]
@@ -94,6 +96,13 @@ not_visible and listed in coverage by org and phase, and exits 3. With
 first, then orgs by member count, largest first. --reserve N keeps N
 requests of the hourly rate limit unspent for other jobs on the same token
 (collect waits for the reset instead).
+--merge-into graph.json with --orgs re-collects only those orgs and merges
+them into the earlier graph of the same enterprise: their facts are replaced,
+every other org's are kept with their coverage, and cross-org paths survive.
+The earlier graph is only read (--out may name the same file). The merged
+graph is validated before it is written; a stopped run writes a partial
+merged graph. --merge-force merges across token modes (one token could read
+the enterprise and the other could not).
 GitHub App mode (--app-id and --app-key-file, or GOP_APP_ID and
 GOP_APP_PRIVATE_KEY with the PEM contents) mints a read-only installation
 token per org instead; it excludes GITHUB_TOKEN. The key stays in memory and
@@ -323,6 +332,10 @@ func (a *app) cmdCollect(args []string) error {
 		"records; org-level reads are always repeated")
 	fullEvery := fs.Int("full-every", 7, "with --incremental, do a full run when the last one is at least this many days old")
 	parallel := addParallelFlag(fs)
+	mergeInto := fs.String("merge-into", "", "earlier graph.json of the same enterprise: re-collect only --orgs and merge them into it "+
+		"(their facts are replaced, every other org's are kept); the file is only read")
+	mergeForce := fs.Bool("merge-force", false, "with --merge-into, merge graphs collected in different token modes "+
+		"(one token could read the enterprise and the other could not); not supported")
 	verbose := fs.Bool("verbose", false, "log every per-repository not-visible error (for example collaborators the token "+
 		"cannot list) instead of one summary line per org (or set GOP_VERBOSE=1)")
 	var trusts trustFlag
@@ -353,6 +366,10 @@ func (a *app) cmdCollect(args []string) error {
 		return usagef("collect: --full-every must be at least 1 (days)")
 	}
 	if err := checkParallel("collect", *parallel); err != nil {
+		return err
+	}
+	base, err := loadMergeBase(*mergeInto, *mergeForce, *ent, splitList(*orgs))
+	if err != nil {
 		return err
 	}
 	ep, err := uf.resolve(a.getenv)
@@ -386,6 +403,8 @@ func (a *app) cmdCollect(args []string) error {
 		Incremental:      *incremental,
 		FullEvery:        time.Duration(*fullEvery) * 24 * time.Hour,
 		Parallel:         *parallel,
+		MergeInto:        base,
+		MergeForce:       *mergeForce,
 		Verbose:          *verbose || envTrue(a.getenv("GOP_VERBOSE")),
 		Logf:             func(format string, args ...any) { fmt.Fprintf(a.stderr, "gop collect: "+format+"\n", args...) },
 	}
@@ -407,8 +426,19 @@ func (a *app) cmdCollect(args []string) error {
 		}
 	}
 	a.applyAdvisories(ctx, "collect", g, adv)
-	if err := a.writeFile(*out, func(w io.Writer) error { return collect.WriteGraph(w, g) }); err != nil {
+	write := func(w io.Writer) error { return collect.WriteGraph(w, g) }
+	if base != nil {
+		data, err := validMerged(g)
+		if err != nil {
+			return err
+		}
+		write = func(w io.Writer) error { _, err := w.Write(data); return err }
+	}
+	if err := a.writeFile(*out, write); err != nil {
 		return err
+	}
+	if base != nil {
+		fmt.Fprintf(a.stderr, "gop collect: merged %s into %s, wrote %s\n", strings.Join(splitList(*orgs), ", "), *mergeInto, *out)
 	}
 	if partial == nil {
 		return nil
@@ -419,6 +449,50 @@ func (a *app) cmdCollect(args []string) error {
 	}
 	return codeError{exitPartial, errors.New(cr.redact(fmt.Sprintf("stopped early (%s): wrote a partial graph to %s; %s: %v",
 		partial.Reason, *out, next, partial.Err)))}
+}
+
+// loadMergeBase reads the --merge-into graph, or returns nil when path is
+// empty. It refuses, before any request, a merge that cannot work: no --orgs,
+// --merge-force alone, an unreadable graph or one of another enterprise.
+func loadMergeBase(path string, force bool, ent string, orgs []string) (*graph.Graph, error) {
+	if strings.TrimSpace(path) == "" {
+		if force {
+			return nil, usagef("collect: --merge-force needs --merge-into")
+		}
+		return nil, nil
+	}
+	if len(orgs) == 0 {
+		return nil, usagef("collect: --merge-into needs --orgs, the orgs to re-collect")
+	}
+	if path == "-" {
+		return nil, usagef("collect: --merge-into needs a file, not stdin")
+	}
+	base, err := graph.LoadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("collect: --merge-into: %w", err)
+	}
+	if !strings.EqualFold(base.Enterprise, ent) {
+		return nil, usagef("collect: --merge-into %s is a graph of enterprise %q, not %q", path, base.Enterprise, ent)
+	}
+	return base, nil
+}
+
+// validMerged encodes a merged graph and checks it against the published
+// JSON Schema (and that every edge endpoint is a node), so a merge never
+// writes a graph gop validate would reject.
+func validMerged(g *graph.Graph) ([]byte, error) {
+	var buf bytes.Buffer
+	if err := collect.WriteGraph(&buf, g); err != nil {
+		return nil, err
+	}
+	res, err := schema.Validate(buf.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	if !res.Valid {
+		return nil, fmt.Errorf("collect: the merged graph is invalid (%d errors, first: %s); nothing was written", len(res.Errors), res.Errors[0])
+	}
+	return buf.Bytes(), nil
 }
 
 // envTrue reports whether an environment value turns a switch on: "1",
