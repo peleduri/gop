@@ -222,7 +222,7 @@ func demoNumbers(t *testing.T) map[string]string {
 			got[k] = m[i+1]
 		}
 	}
-	find(`(?m)^\| members:acme-actions \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|`,
+	find(`(?m)^\| members:acme-actions \| (\d+) \| (\d+) \| (?:\d+ \| )?(\d+) \| (\d+) \| (\d+) \|`, // optional Cloud roles column
 		"reach.repos", "reach.orgs", "reach.oidc", "reach.secrets", "reach.runners")
 	find(`(?m)^\d+ workflows? runs? an AI coding agent; (\d+) can be started by people without push access`, "agents.exposed")
 	find(`(?m)^\| 1 \| Remove standing org ownership from (\d+) accounts that own 5 or more orgs \(keep at least 2 owners per org\) \| \d+ \| (\d+)% \|`, "fix1.accounts", "fix1.pct")

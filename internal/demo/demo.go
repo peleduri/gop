@@ -3,8 +3,8 @@
 // only synthetic names (enterprise acme, orgs acme-*, users alice, bob,
 // carol, dave, erin, user-NNN), and marks itself as demo data: the enterprise
 // node carries demo=true and every edge's source_api (and every node's
-// source_api attr) is "demo:<generator rule>", so nobody mistakes it for
-// collected data.
+// source_api attr) is "demo:<generator rule>" (story 11's supplied cloud trust
+// edge uses "supplied:demo/<file>"), so nobody mistakes it for collected data.
 //
 // Every size plants the same core story on top of seeded filler:
 //
@@ -40,6 +40,16 @@
 //  10. Branch protection notes on a top path: acme-actions/deploy needs one
 //     approval to reach main, acme-actions/setup is not protected, so a
 //     push reaches its default branch directly.
+//  11. An AI agent in dangerous mode, end to end: acme-app/api is public and
+//     runs claude-code-action@main on issue_comment with no author check and
+//     --dangerously-skip-permissions, a token that can push, id-token: write
+//     and two secrets. The agent's App opens the pull request and an
+//     auto-merge workflow merges it with the same App, a bypass actor on
+//     main (CAN_MERGE_VIA_BOT). AGENTS.md has no CODEOWNERS entry, and a
+//     supplied AWS trust lets the workflow assume acme-prod-deploy (sub
+//     repo:acme-app/*). The contrast, acme-secure/infra, runs codex exec
+//     --full-auto on a label only members with write access can add, with
+//     no secrets, a read-only token and one human review on main.
 package demo
 
 import (
@@ -127,6 +137,7 @@ const (
 	ruleOwner      = "planted-org-owner"
 	ruleBotMerge   = "planted-bot-self-merge"
 	ruleProtection = "planted-branch-protection"
+	ruleDanger     = "planted-agent-dangerous-mode"
 )
 
 // The planted AI agent workflow (story 7).
@@ -138,6 +149,16 @@ const (
 	ReviewWorkflow = "workflow:acme-app/web/.github/workflows/ai-review.yml"
 	MergeWorkflow  = "workflow:acme-app/web/.github/workflows/ai-merge.yml"
 	MergeScript    = "tools/merge.py"
+)
+
+// The planted AI agent in dangerous mode (story 11) and its contrast.
+const (
+	DangerRepo      = "repo:acme-app/api"
+	DangerWorkflow  = "workflow:acme-app/api/.github/workflows/claude-fix.yml"
+	DangerMerge     = "workflow:acme-app/api/.github/workflows/auto-merge.yml"
+	DangerRole      = "cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy"
+	ContrastRepo    = "repo:acme-secure/infra"
+	ContrastAgentWF = "workflow:acme-secure/infra/.github/workflows/codex.yml"
 )
 
 // The accounts that own most orgs (story 8). erin owns every visible org
@@ -502,6 +523,7 @@ func (g *gen) plant() []string {
 	g.edge(agent, graph.CanPush, "repo:acme-app/docs", graph.Live, ruleAgent, map[string]string{graph.AttrVia: graph.ViaTokenWrite, graph.AttrJobs: "claude"})
 
 	g.botMerge()
+	g.dangerAgent()
 	// (10) Branch protection on the shared actions' repos: deploy needs an
 	// approval, setup is not protected, release is protected.
 	g.protect(deploy, map[string]string{graph.AttrBranchProtected: "true", graph.AttrBranchReviews: "1",
@@ -618,6 +640,100 @@ func (g *gen) botMerge() {
 	g.edge("external:anyone", graph.CanMergeViaBot, BotMergeRepo, graph.Live, ruleBotMerge, map[string]string{
 		graph.AttrMergeWorkflow: merge, graph.AttrApproveWorkflows: review, graph.AttrReviewBypassReason: graph.ReviewBypassApp,
 		"trigger": "issue_comment", graph.AttrFile: mergeFile, graph.AttrLine: "24"})
+}
+
+// dangerAgent plants story 11: an AI agent in dangerous mode that anyone can
+// start, which reaches main with no human review and a production cloud role,
+// next to a safer agent that only maintainers can start.
+func (g *gen) dangerAgent() {
+	const (
+		fixFile   = ".github/workflows/claude-fix.yml"
+		mergeFile = ".github/workflows/auto-merge.yml"
+		secret    = "secret:acme-app/api"
+		oidc      = "oidc:acme-app/api"
+		agentApp  = "91" // the App the agent and the auto-merge mint tokens for, a bypass actor on main
+	)
+	g.protect(DangerRepo, map[string]string{graph.AttrBranchProtected: "true", graph.AttrBranchReviews: "1",
+		graph.AttrBranchBypassActors: "1", graph.AttrBranchAppBypass: "true", graph.AttrBranchSources: "ruleset:58",
+		graph.AttrBranchValueSources: "required_reviews=ruleset:58,app_bypass=ruleset:58",
+		graph.AttrBranchBypassApps:   agentApp + ":acme-agent-bot"})
+	api := g.nodes[DangerRepo]
+	for k, v := range map[string]string{
+		graph.AttrVisibility: "public", graph.AttrReviewBypass: graph.ReviewBypassBotSelfMerge,
+		graph.AttrReviewBypassReason: graph.ReviewBypassApp, graph.AttrReviewBypassApprove: fixFile,
+		graph.AttrReviewBypassMerge: mergeFile, graph.AttrAgentHoldsMergeKey: "true",
+		graph.AttrAgentMergeKeyWorkflows: fixFile, graph.AttrBotMergeApps: agentApp,
+		graph.AttrReviewBypassAppMatch: graph.AppMatched,
+		graph.AttrPolicyFiles:          "AGENTS.md", graph.AttrPolicyFilesUnowned: "AGENTS.md",
+	} {
+		api.Attrs[k] = v
+	}
+	g.nodes[DangerRepo] = api
+
+	fix := g.workflow("acme-app", "api", "claude-fix.yml", graph.Live, ruleDanger)
+	fn := g.nodes[fix]
+	for k, v := range map[string]string{
+		graph.AttrAgent: "claude-code-action", graph.AttrAgentSource: "uses", graph.AttrAgentConfidence: graph.AgentAction,
+		graph.AttrAgentJobs: "agent", graph.AttrAgentGate: graph.GateAnyone, graph.AttrAgentExposure: graph.ExposureOutsiders,
+		graph.AttrAgentPerms: "contents:write,id-token:write,pull-requests:write", graph.AttrAgentSecrets: "2",
+		graph.AttrAgentRunner: "hosted", graph.AttrAgentTools: "dangerously_skip_permissions",
+		graph.AttrAgentRefKind: "branch", "risky_triggers": "issue_comment",
+	} {
+		fn.Attrs[k] = v
+	}
+	g.nodes[fix] = fn
+	merge := g.workflow("acme-app", "api", "auto-merge.yml", graph.Live, ruleDanger)
+	mn := g.nodes[merge]
+	for k, v := range map[string]string{
+		graph.AttrBotMerges: "true", graph.AttrBotMergeToken: graph.BotTokenApp, graph.AttrBotMergeJobs: "merge",
+		graph.AttrBotMergeStart: graph.StarterPROpeners, graph.AttrBotMergeGate: graph.BotGateNone,
+		graph.AttrBotMergeTriggers: "pull_request_target", graph.AttrBotMergeApps: agentApp,
+		"risky_triggers": "pull_request_target",
+	} {
+		mn.Attrs[k] = v
+	}
+	g.nodes[merge] = mn
+
+	g.node(secret, graph.KindSecret, afterColon(secret), graph.Live, ruleDanger, nil)
+	g.node(oidc, graph.KindOIDC, afterColon(oidc), graph.Live, ruleDanger, nil)
+	g.edge(fix, graph.ExecutesWith, secret, graph.Live, ruleDanger, map[string]string{"secrets": "ANTHROPIC_API_KEY,NPM_TOKEN"})
+	g.edge(fix, graph.ExecutesWith, oidc, graph.Live, ruleDanger, nil)
+	g.edge(fix, graph.CanPush, DangerRepo, graph.Live, ruleDanger, map[string]string{graph.AttrVia: graph.ViaTokenWrite, graph.AttrJobs: "agent"})
+	g.node("external:anyone", graph.KindExternal, "anyone on the internet", graph.Live, ruleAgent, nil)
+	g.edge("external:anyone", graph.CanTrigger, fix, graph.Live, ruleDanger, map[string]string{
+		"trigger": "issue_comment", "exec": "agent", "job": "agent", "detail": "claude-code-action",
+		graph.AttrFile: fixFile, graph.AttrLine: "18"})
+	g.edge("external:anyone", graph.CanMergeViaBot, DangerRepo, graph.Live, ruleDanger, map[string]string{
+		graph.AttrMergeWorkflow: merge, graph.AttrApproveWorkflows: fix, graph.AttrReviewBypassReason: graph.ReviewBypassApp,
+		"trigger": "issue_comment", graph.AttrFile: mergeFile, graph.AttrLine: "21"})
+
+	// The supplied AWS trust: the same shape gop enrich writes.
+	g.node(DangerRole, graph.KindCloudTarget, "aws:arn:aws:iam::111111111111:role/acme-prod-deploy", graph.Supplied, ruleDanger,
+		map[string]string{graph.AttrProvider: "aws", graph.AttrAccount: "111111111111", graph.AttrRole: "acme-prod-deploy"})
+	// A supplied edge's source_api must name its file; the demo/ prefix keeps
+	// it marked as demo data.
+	const trustFile = "demo/trust/aws/acme-prod-deploy.json"
+	assume := graph.Edge{From: fix, To: DangerRole, Kind: graph.CanAssume, Evidence: graph.Supplied,
+		SourceAPI: graph.SourceSupplied + trustFile, ObservedAt: CollectedAt, Attrs: map[string]string{
+			graph.AttrFile: trustFile, graph.AttrProvider: "aws", graph.AttrOIDC: oidc, graph.AttrMatchedSub: "repo:acme-app/*"}}
+	g.edges[assume.From+"\x00"+string(assume.Kind)+"\x00"+assume.To+"\x00"+assume.SourceAPI] = assume
+
+	// The contrast: codex in full-auto, only maintainers can start it.
+	g.repo("acme-secure", "infra", graph.Live, ruleDanger)
+	g.protect(ContrastRepo, map[string]string{graph.AttrBranchProtected: "true", graph.AttrBranchReviews: "1",
+		graph.AttrBranchSources: "ruleset:59", graph.AttrBranchValueSources: "required_reviews=ruleset:59",
+		graph.AttrPolicyFiles: "none"})
+	codex := g.workflow("acme-secure", "infra", "codex.yml", graph.Live, ruleDanger)
+	cn := g.nodes[codex]
+	for k, v := range map[string]string{
+		graph.AttrAgent: "codex-cli", graph.AttrAgentSource: "run", graph.AttrAgentConfidence: graph.AgentCLI,
+		graph.AttrAgentJobs: "codex", graph.AttrAgentGate: graph.GateWriteAccess, graph.AttrAgentExposure: graph.ExposureMaintainer,
+		graph.AttrAgentPerms: "contents:read", graph.AttrAgentSecrets: "0", graph.AttrAgentRunner: "hosted",
+		graph.AttrAgentTools: "full_auto",
+	} {
+		cn.Attrs[k] = v
+	}
+	g.nodes[codex] = cn
 }
 
 func (g *gen) graph() *graph.Graph {

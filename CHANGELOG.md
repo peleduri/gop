@@ -6,15 +6,18 @@ All notable changes to this project are documented here. The format follows
 flags may change in minor releases.
 
 ## [Unreleased]
-### Fixed
-- `gop serve` now answers requests that arrive just before its input closes.
-  A client that wrote its requests and closed stdin at once
-  (`echo '...' | gop serve`, scripts, CI) got no replies and exit 0, because
-  the session ended on EOF while replies were still being computed. The
-  server now holds the end of input until every request read has a reply
-  (at most 30 seconds).
-
 ### Added
+- The demo plants an AI agent in dangerous mode end to end (story 11).
+  The public `acme-app/api` runs `claude-code-action@main` on
+  `issue_comment` with no author check and `--dangerously-skip-permissions`,
+  a token that can push, `id-token: write` and two secrets. Its App merges
+  the pull request to `main` with no human review, `AGENTS.md` has no code
+  owner, and a supplied AWS trust (`sub: repo:acme-app/*`) lets it assume
+  `acme-prod-deploy`. A safer contrast, `acme-secure/infra`, runs
+  `codex exec --full-auto` on a trigger only maintainers can start, with no
+  secrets and one human review. Demo numbers change: 8 non-human actors, 2
+  can merge with no human, 3 agent workflows anyone can start, and the top
+  risks table gains a Cloud roles column.
 - Detect the agentrun agent platform (github.com/Parcha-ai/agentrun) in
   workflows: `agentrun runs start` and `agentrun template eval` in `run:`
   steps (also through `npx @parcha/agentrun`) as `agentrun-cli`, and its
@@ -180,44 +183,14 @@ flags may change in minor releases.
   `actions/checkout`. `harden_trigger` titles now say the kind: "Harden
   <workflow> (untrusted code runs on <triggers>)" or "(untrusted text
   reaches an AI step on <triggers>)", in fix-plan, the report and MCP.
-### Changed
-- Direct collaborators are read in batched GraphQL queries (#177): one
-  `collaborators(affiliation: DIRECT)` query per 25 repositories of an org
-  replaces one REST `GET /repos/{o}/{r}/collaborators` per repository. A
-  repository falls back to REST when its alias fails (no push access, not
-  found), when it has more than 100 direct collaborators, or when a
-  collaborator's role may be a custom or organization role, which only REST
-  names; batching off (`DisableGraphQLBatch`) or an older GHES schema uses
-  REST throughout. Both paths give the same graph, coverage and not-visible
-  summary. On the test fixture REST requests drop from 67 to 55.
-  Default-branch protection was already batched (#133); the other per-repo
-  REST reads (Actions workflow permissions and access level) have no GraphQL
-  equivalent. `gop collect` progress lines show the GraphQL points spent
-  (each query's `rateLimit { cost }`, else 1), and the `gop doctor` estimate
-  splits requests into REST requests, GraphQL queries and GraphQL points
-  (new JSON fields `rest_requests`, `graphql_queries`, `graphql_points`;
-  `requests` is their total) and checks the points against the GraphQL
-  budget.
-
-### Changed
-- The demo graph shows the newer features (#167). `gop demo` and
-  `gop report --demo` now plant three more stories: carol, dave and erin own
-  five or more orgs each while every org keeps two local owners, so their
-  risk row is grouped by cause and the first suggested fix is
-  `reduce_owners`; the public `acme-app/web` has an AI approve + self-merge
-  chain (`ai-review.yml` approves with an App token, `ai-merge.yml` merges in
-  `tools/merge.py` with App `77`, a bypass actor of the rules on `main`), so anyone
-  who can open a pull request lands code on `main` with web's OIDC trust; and
-  `acme-actions/deploy` (one approval) and `acme-actions/setup` (not
-  protected) carry branch protection notes on the top paths. The small size
-  is now 7 orgs and about 65 repos (was 5 and about 60), and `acme-secure`
-  keeps only its two planted repos at every size. Demo goldens, the site
-  figures and every report screenshot in `docs/assets` are regenerated from
-  it, plus a new `report-agents.png` of the AI agents and AI approve +
-  self-merge sections. Demo numbers changed: the widest confirmed reach is now the three
-  owners (54 to 55 repos), and the top fix removes 42% of confirmed reach.
 
 ### Fixed
+- `gop serve` now answers requests that arrive just before its input closes.
+  A client that wrote its requests and closed stdin at once
+  (`echo '...' | gop serve`, scripts, CI) got no replies and exit 0, because
+  the session ended on EOF while replies were still being computed. The
+  server now holds the end of input until every request read has a reply
+  (at most 30 seconds).
 - Consistency fixes (#166). `gop fix-plan --format text` escapes names the
   way the markdown checklist does (control, bidi and zero-width characters
   as visible `\n`, `\u202E`, ...). `sanitize.NoAutolink`, and so the
@@ -236,6 +209,41 @@ flags may change in minor releases.
   cut at the first page.
 - skills/gop/README.md installed the skill for Codex into `~/.codex/skills`;
   Codex loads user skills from `~/.agents/skills`.
+
+### Changed
+- Direct collaborators are read in batched GraphQL queries (#177): one
+  `collaborators(affiliation: DIRECT)` query per 25 repositories of an org
+  replaces one REST `GET /repos/{o}/{r}/collaborators` per repository. A
+  repository falls back to REST when its alias fails (no push access, not
+  found), when it has more than 100 direct collaborators, or when a
+  collaborator's role may be a custom or organization role, which only REST
+  names; batching off (`DisableGraphQLBatch`) or an older GHES schema uses
+  REST throughout. Both paths give the same graph, coverage and not-visible
+  summary. On the test fixture REST requests drop from 67 to 55.
+  Default-branch protection was already batched (#133); the other per-repo
+  REST reads (Actions workflow permissions and access level) have no GraphQL
+  equivalent. `gop collect` progress lines show the GraphQL points spent
+  (each query's `rateLimit { cost }`, else 1), and the `gop doctor` estimate
+  splits requests into REST requests, GraphQL queries and GraphQL points
+  (new JSON fields `rest_requests`, `graphql_queries`, `graphql_points`;
+  `requests` is their total) and checks the points against the GraphQL
+  budget.
+- The demo graph shows the newer features (#167). `gop demo` and
+  `gop report --demo` now plant three more stories: carol, dave and erin own
+  five or more orgs each while every org keeps two local owners, so their
+  risk row is grouped by cause and the first suggested fix is
+  `reduce_owners`; the public `acme-app/web` has an AI approve + self-merge
+  chain (`ai-review.yml` approves with an App token, `ai-merge.yml` merges in
+  `tools/merge.py` with App `77`, a bypass actor of the rules on `main`), so anyone
+  who can open a pull request lands code on `main` with web's OIDC trust; and
+  `acme-actions/deploy` (one approval) and `acme-actions/setup` (not
+  protected) carry branch protection notes on the top paths. The small size
+  is now 7 orgs and about 65 repos (was 5 and about 60), and `acme-secure`
+  keeps only its two planted repos at every size. Demo goldens, the site
+  figures and every report screenshot in `docs/assets` are regenerated from
+  it, plus a new `report-agents.png` of the AI agents and AI approve +
+  self-merge sections. Demo numbers changed: the widest confirmed reach is now the three
+  owners (54 to 55 repos), and the top fix removes 42% of confirmed reach.
 
 ## [0.6.0] - 2026-11-24
 ### Added

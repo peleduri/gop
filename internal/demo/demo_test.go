@@ -51,7 +51,8 @@ func TestLoadsAndMarksDemo(t *testing.T) {
 		t.Errorf("collected_at = %v", g.CollectedAt)
 	}
 	for _, e := range g.Edges {
-		if !strings.HasPrefix(e.SourceAPI, "demo:") || e.Evidence == "" {
+		demoSrc := strings.HasPrefix(e.SourceAPI, "demo:") || (e.Evidence == graph.Supplied && strings.HasPrefix(e.SourceAPI, graph.SourceSupplied+"demo/"))
+		if !demoSrc || e.Evidence == "" {
 			t.Errorf("edge %s %s %s: source_api %q evidence %q", e.From, e.Kind, e.To, e.SourceAPI, e.Evidence)
 		}
 	}
@@ -316,18 +317,68 @@ func TestBotMergeStory(t *testing.T) {
 		n.Attrs[graph.AttrReviewBypassAppMatch] != graph.AppMatched || graph.BotMergeApp(n) == "" {
 		t.Fatalf("web review bypass attrs = %v", n.Attrs)
 	}
-	if got := ix.BotMergeRepos(); len(got) != 1 || got[0] != BotMergeRepo {
-		t.Errorf("BotMergeRepos = %v", got)
+	if got := ix.BotMergeRepos(); len(got) != 2 || got[0] != DangerRepo || got[1] != BotMergeRepo {
+		t.Errorf("BotMergeRepos = %v, want story 11's %s and story 9's %s", got, DangerRepo, BotMergeRepo)
 	}
 	if !confirmed(ix, "external:anyone", "oidc:acme-app/web") {
 		t.Error("external:anyone does not reach oidc:acme-app/web")
 	}
-	if s := ix.BlastRadius("external:anyone"); s.BotSelfMerge != 1 {
+	if s := ix.BlastRadius("external:anyone"); s.BotSelfMerge != 2 { // web (story 9) and api (story 11)
 		t.Errorf("external:anyone bot_self_merge = %d", s.BotSelfMerge)
 	}
 	if !confirmed(ix, ActionsMembers, "oidc:acme-app/web", graph.BlockBotMerge{Repo: BotMergeRepo}) ||
 		confirmed(ix, "external:anyone", "oidc:acme-app/web", graph.BlockBotMerge{Repo: BotMergeRepo}) {
 		t.Error("block_bot_merge on web does not cut only the bot merge path")
+	}
+}
+
+// TestDangerAgentStory (story 11): anyone can start an AI agent in dangerous
+// mode on the public acme-app/api; it holds write, secrets and id-token, its
+// App merges to main with no human, AGENTS.md has no code owner, and a
+// supplied AWS trust reaches acme-prod-deploy. The contrast agent on
+// acme-secure/infra runs in full-auto but only maintainers can start it.
+func TestDangerAgentStory(t *testing.T) {
+	g := small(t)
+	ix := graph.NewIndex(g)
+	wf, ok := ix.Node(DangerWorkflow)
+	if !ok {
+		t.Fatal("no claude-fix.yml workflow")
+	}
+	if wf.Attrs[graph.AttrAgentTools] != "dangerously_skip_permissions" || wf.Attrs[graph.AttrAgentExposure] != graph.ExposureOutsiders ||
+		wf.Attrs[graph.AttrAgentGate] != graph.GateAnyone || wf.Attrs[graph.AttrAgentRefKind] != "branch" ||
+		!strings.Contains(wf.Attrs[graph.AttrAgentPerms], "id-token:write") || wf.Attrs[graph.AttrAgentSecrets] != "2" {
+		t.Errorf("claude-fix.yml agent attrs = %v", wf.Attrs)
+	}
+	var trigger, assume bool
+	for _, e := range g.Edges {
+		if e.From == "external:anyone" && e.To == DangerWorkflow && e.Kind == graph.CanTrigger && e.Attrs["trigger"] == "issue_comment" && e.Evidence == graph.Live {
+			trigger = true
+		}
+		if e.From == DangerWorkflow && e.To == DangerRole && e.Kind == graph.CanAssume && e.Evidence == graph.Supplied &&
+			e.Attrs[graph.AttrMatchedSub] == "repo:acme-app/*" {
+			assume = true
+		}
+	}
+	if !trigger || !assume {
+		t.Errorf("outsider trigger edge %v, supplied CAN_ASSUME edge %v", trigger, assume)
+	}
+	repo, _ := ix.Node(DangerRepo)
+	if !graph.ReviewBypassConfirmed(repo) || repo.Attrs[graph.AttrPolicyFilesUnowned] != "AGENTS.md" {
+		t.Errorf("api repo attrs = %v", repo.Attrs)
+	}
+	if !confirmed(ix, "external:anyone", DangerRole) {
+		t.Error("external:anyone does not reach acme-prod-deploy")
+	}
+	if !confirmed(ix, "external:anyone", "oidc:acme-app/api") {
+		t.Error("external:anyone does not reach oidc:acme-app/api")
+	}
+	c, ok := ix.Node(ContrastAgentWF)
+	if !ok || c.Attrs[graph.AttrAgentTools] != "full_auto" || c.Attrs[graph.AttrAgentExposure] != graph.ExposureMaintainer ||
+		c.Attrs[graph.AttrAgentSecrets] != "0" {
+		t.Errorf("contrast codex.yml attrs = %v", c.Attrs)
+	}
+	if confirmed(ix, "external:anyone", ContrastRepo) {
+		t.Error("external:anyone reaches the contrast repo")
 	}
 }
 
