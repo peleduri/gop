@@ -310,7 +310,7 @@ func TestDemoPipeToReport(t *testing.T) {
 	if piped.stdout != direct.stdout {
 		t.Error("gop demo | gop report --graph - differs from gop report --demo")
 	}
-	for _, want := range []string{"# [demo data] gop:", "Pinning is not enough", "## Pinned, still reachable",
+	for _, want := range []string{"# [demo data] Which AI agents", "Pinning is not enough", "## Pinned, still reachable",
 		"acme-actions/setup@main", "org:acme-legacy"} {
 		if !strings.Contains(piped.stdout, want) {
 			t.Errorf("report missing %q", want)

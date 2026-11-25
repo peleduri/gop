@@ -75,7 +75,8 @@ func withoutSVGNS(s string) string {
 func TestRenderMarkdown(t *testing.T) {
 	out := render(t, loadAcme(t), "md")
 	for _, want := range []string{
-		"# gop: who can make code run where",
+		"# Which AI agents and people can make code run where.",
+		"gop report: enterprise **acme**",
 		"| members:acme-actions | 12 | 2 |",
 		"not visible",
 		"Treat it as sensitive.",
@@ -133,13 +134,13 @@ func TestRenderEmptyAndBadFormat(t *testing.T) {
 func TestRenderDemo(t *testing.T) {
 	g := demo.Generate(demo.Options{Seed: 1})
 	html := render(t, g, "html")
-	for _, want := range []string{"<title>[demo data] gop report", "<h1>[demo data] gop:", "Pinned, still reachable",
+	for _, want := range []string{"<title>[demo data] gop report", "<h1>[demo data] Which AI agents", "Pinned, still reachable",
 		"acme-actions/setup@main", "Pinning is not enough: 1 action pinned to a commit SHA still runs"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("html missing %q", want)
 		}
 	}
-	if md := render(t, g, "md"); !strings.HasPrefix(md, "# [demo data] gop:") {
+	if md := render(t, g, "md"); !strings.HasPrefix(md, "# [demo data] Which AI agents") {
 		t.Errorf("md title: %q", md[:60])
 	}
 	for _, f := range []string{"html", "md"} {

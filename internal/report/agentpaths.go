@@ -2,6 +2,7 @@ package report
 
 import (
 	"fmt"
+	"html/template"
 	"sort"
 	"strconv"
 	"strings"
@@ -59,6 +60,8 @@ type pathHop struct {
 	Danger, Red     bool // dangerous-mode agent; attacker-controlled from here on
 	X, Y, CX, CY    int  // node box and center
 	Short, ShortSub string
+	Shape           string // graph-language shape of the node kind (brand/tokens.json nodes)
+	Tone            string // shape color: fg, muted, accent, target or danger
 }
 
 // pathFix is a what-if toggle: Chain cuts its hop and everything after it;
@@ -75,6 +78,8 @@ type pathFix struct {
 type pathEdge struct {
 	D        string // SVG path data
 	From, To int    // 1-based hop numbers
+	Ev       string // evidence class of the hop it leads to: sets the dash
+	MX, MY   int    // the cut mark: centered on the curve midpoint (MY is its text baseline)
 }
 
 // agentPath is one agent workflow's chain.
@@ -369,12 +374,13 @@ func agentPathFor(ix *graph.Index, n graph.Node) agentPath {
 		h := &hops[s]
 		h.X, h.Y = hopLayout[s].X, hopLayout[s].Y
 		h.CX, h.CY = h.X+80, h.Y+25
+		h.Shape, h.Tone = hopShape(s, exposure)
 		if !h.Present {
 			h.Short = slotName[s]
 			h.ShortSub = firstOr(h.ShortSub, "not held")
 			continue
 		}
-		h.Short, h.ShortSub = clip(h.Short, 20), clip(h.ShortSub, 24)
+		h.Short, h.ShortSub = clip(h.Short, 18), clip(h.ShortSub, 22)
 		num++
 		h.N = num
 		if untrusted && s > hopAgent {
@@ -388,7 +394,8 @@ func agentPathFor(ix *graph.Index, n graph.Node) agentPath {
 	for i := 1; i < len(p.Present); i++ {
 		a, b := p.Present[i-1], p.Present[i]
 		c := (a.CX + b.CX) / 2
-		p.Edges = append(p.Edges, pathEdge{From: a.N, To: b.N, D: fmt.Sprintf("M%d,%d C%d,%d %d,%d %d,%d", a.CX, a.CY, c, a.CY, c, b.CY, b.CX, b.CY)})
+		p.Edges = append(p.Edges, pathEdge{From: a.N, To: b.N, Ev: b.Ev, MX: c, MY: (a.CY+b.CY)/2 + 6,
+			D: fmt.Sprintf("M%d,%d C%d,%d %d,%d %d,%d", a.CX, a.CY, c, a.CY, c, b.CY, b.CX, b.CY)})
 	}
 	var evs []string
 	for _, k := range []string{"live", "audit", "inferred", "supplied file", "not visible"} {
@@ -481,6 +488,56 @@ func agentPathFor(ix *graph.Index, n graph.Node) agentPath {
 	}
 	return p
 }
+
+// hopShape is the graph-language node kind of a hop slot (BRAND.md, Graph
+// visual language): who starts it is a person (an attacker-controlled
+// ringed circle when people without push access can), code is angular,
+// targets are tinted target.
+func hopShape(slot int, exposure string) (shape, tone string) {
+	switch slot {
+	case hopWho:
+		switch exposure {
+		case graph.ExposureOutsiders, graph.ExposureForkRO:
+			return "ringed-circle", "danger"
+		case graph.ExposureListed:
+			return "circle", "fg"
+		}
+		return "double-circle", "fg"
+	case hopInput:
+		return "ringed-circle", "danger"
+	case hopWorkflow:
+		return "diamond", "muted"
+	case hopAgent:
+		return "diamond-dot", "accent"
+	case hopCode:
+		return "barred-square", "target"
+	case hopSecrets:
+		return "square", "target"
+	case hopMerge:
+		return "rounded-rect", "muted"
+	case hopOIDC:
+		return "shield", "target"
+	}
+	return "stadium", "target"
+}
+
+// shapeSVG is the markup of a graph-language shape on a 24-unit grid
+// (brand/graph-language.svg). Classes: f is filled, o is an outline, h is
+// a hole in the surface color.
+var shapeSVG = map[string]template.HTML{
+	"circle":        `<circle class="f" cx="12" cy="12" r="10"/>`,
+	"double-circle": `<circle class="o" cx="12" cy="12" r="10.5"/><circle class="f" cx="12" cy="12" r="6"/>`,
+	"ringed-circle": `<circle class="f" cx="12" cy="12" r="6"/><circle class="o" cx="12" cy="12" r="10.5"/>`,
+	"diamond":       `<path class="f" d="M12 0L24 12L12 24L0 12Z"/>`,
+	"diamond-dot":   `<path class="f" d="M12 0L24 12L12 24L0 12Z"/><circle class="h" cx="12" cy="12" r="4"/>`,
+	"rounded-rect":  `<rect class="f" x="1" y="4" width="22" height="16" rx="4"/>`,
+	"square":        `<rect class="f" x="2" y="2" width="20" height="20" rx="2"/>`,
+	"barred-square": `<rect class="f" x="2" y="2" width="20" height="20" rx="2"/><rect class="h" x="5" y="14" width="14" height="3"/>`,
+	"shield":        `<path class="f" d="M2 2H22V12C22 18 17 22 12 24C7 22 2 18 2 12Z"/>`,
+	"stadium":       `<rect class="f" x="0" y="5" width="24" height="14" rx="7"/>`,
+}
+
+func nodeShape(shape string) template.HTML { return shapeSVG[shape] }
 
 var slotName = [hopCount]string{"Who", "Input", "Workflow", "Agent", "Code runs", "Secrets", "Write", "OIDC", "Cloud role"}
 

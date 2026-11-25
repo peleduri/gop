@@ -278,8 +278,11 @@ func TestHopChainEvidence(t *testing.T) {
 // embedded graph data. It was 129483 before the redesign (budget 1.5x); it
 // was measured again when the demo graph gained the multi-org owners, the AI
 // approve + self-merge chain and the branch protection notes, which add
-// reach, and so embedded paths, rather than markup. The budget is 1.2x.
-const demoBaselineBytes = 452657
+// reach, and so embedded paths, rather than markup. It was measured again
+// (528532 before) when the report took the brand: the inline mark, a
+// graph-language shape in every agent path hop, the cut mark on each agent
+// path edge and the line key. The budget is 1.2x.
+const demoBaselineBytes = 543095
 
 func TestDemoSizeBudget(t *testing.T) {
 	var buf bytes.Buffer

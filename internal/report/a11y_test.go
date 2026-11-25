@@ -155,8 +155,12 @@ func TestA11yStructure(t *testing.T) {
 			// Any SVG needs a name and a text alternative listing what it
 			// draws. The Graph tab's SVG is built by the script (checked in
 			// TestScriptRendersAccessibleMarkup and TestInlineScriptInNode);
-			// a server-rendered one must meet the same bar.
+			// a server-rendered one must meet the same bar. A decorative SVG
+			// (the mark, a line key next to its words) is aria-hidden.
 			for _, svg := range elements(doc, "svg") {
+				if h, _ := attr(svg, "aria-hidden"); h == "true" {
+					continue
+				}
 				role, _ := attr(svg, "role")
 				label, _ := attr(svg, "aria-label")
 				desc, _ := attr(svg, "aria-describedby")
@@ -244,7 +248,7 @@ func TestScriptRendersAccessibleMarkup(t *testing.T) {
 }
 
 var (
-	cssVar   = regexp.MustCompile(`--([a-z-]+):(#[0-9a-f]{3,6})`)
+	cssVar   = regexp.MustCompile(`--([a-z0-9-]+):(#[0-9a-f]{3,6}|var\(--[a-z0-9-]+\))`)
 	darkPart = "@media screen and (prefers-color-scheme: dark)"
 )
 
@@ -252,6 +256,25 @@ func parseVars(s string) map[string]string {
 	out := map[string]string{}
 	for _, m := range cssVar.FindAllStringSubmatch(s, -1) {
 		out[m[1]] = m[2]
+	}
+	return out
+}
+
+// resolveVars replaces each var(--x) value with the color --x resolves to
+// in the same theme, so the report's aliases of the brand tokens are
+// checked with the token values.
+func resolveVars(t *testing.T, m map[string]string) map[string]string {
+	t.Helper()
+	out := map[string]string{}
+	for k := range m {
+		v := m[k]
+		for i := 0; strings.HasPrefix(v, "var(--"); i++ {
+			if i > 8 {
+				t.Fatalf("--%s: var() chain too deep", k)
+			}
+			v = m[strings.TrimSuffix(strings.TrimPrefix(v, "var(--"), ")")]
+		}
+		out[k] = v
 	}
 	return out
 }
@@ -311,11 +334,11 @@ func mediaBlock(t *testing.T, css, marker string) string {
 // against WCAG AA (4.5:1 for normal text), in the light and dark themes and
 // the print theme.
 func TestContrastAA(t *testing.T) {
-	i := strings.Index(styleCSS, darkPart)
-	if i < 0 {
-		t.Fatal("no dark theme")
-	}
-	light := parseVars(styleCSS[:i])
+	dark := mediaBlock(t, styleCSS, darkPart)
+	prt := mediaBlock(t, styleCSS, "@media print")
+	// Light is every declaration outside the dark and print blocks: the
+	// brand tokens on :root and the report's aliases of them.
+	light := parseVars(strings.Replace(strings.Replace(styleCSS, dark, "", 1), prt, "", 1))
 	theme := func(block string) map[string]string {
 		m := map[string]string{}
 		for k, v := range light {
@@ -324,19 +347,21 @@ func TestContrastAA(t *testing.T) {
 		for k, v := range parseVars(block) {
 			m[k] = v
 		}
-		return m
+		return resolveVars(t, m)
 	}
 	pairs := [][2]string{
 		{"fg", "bg"}, {"fg", "card"}, {"muted", "bg"}, {"muted", "card"}, {"accent", "bg"}, {"accent", "card"},
 		{"live", "live-bg"}, {"audit", "audit-bg"}, {"nv", "nv-bg"}, {"nv", "card"}, {"accent", "accent-bg"},
 		{"crit-fg", "crit-bg"}, {"high-fg", "high-bg"}, {"med-fg", "med-bg"}, {"low-fg", "low-bg"},
 		{"good", "good-bg"}, {"good", "good-tint"}, {"weak", "weak-bg"}, {"weak", "weak-tint"}, {"fg", "nv-bg"},
-		{"card", "fg"}, {"card", "accent"},
+		{"card", "fg"}, {"on-accent", "accent"}, {"on-crit", "crit-solid"}, {"inf", "inf-bg"}, {"sup", "sup-bg"},
+		{"sup", "card"}, {"poss", "poss-bg"}, {"poss", "card"}, {"tgt", "tgt-bg"}, {"crit", "card"}, {"accent", "accent-bg"},
+		{"crit-fg", "crit-bg"}, {"good", "card"},
 	}
 	themes := map[string]map[string]string{
-		"light": light,
-		"dark":  theme(mediaBlock(t, styleCSS, darkPart)),
-		"print": theme(mediaBlock(t, styleCSS, "@media print")),
+		"light": theme(""),
+		"dark":  theme(dark),
+		"print": theme(prt),
 	}
 	for name, vars := range themes {
 		for _, p := range pairs {
@@ -349,7 +374,7 @@ func TestContrastAA(t *testing.T) {
 			}
 		}
 	}
-	if themes["dark"]["bg"] == light["bg"] {
+	if themes["dark"]["bg"] == themes["light"]["bg"] {
 		t.Error("dark theme does not override --bg")
 	}
 }

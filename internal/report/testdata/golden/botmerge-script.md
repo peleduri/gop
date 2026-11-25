@@ -1,6 +1,6 @@
-# gop: who can make code run where
+# Which AI agents and people can make code run where.
 
-Enterprise **acme**, collected 2026-11-24T12:00:00Z
+gop report: enterprise **acme**, collected 2026-11-24T12:00:00Z
 
 **AI agents and bots:** 4 non-human actors; 1 can merge to a default branch without a human (1 confirmed, 0 possible).
 
@@ -10,7 +10,7 @@ Enterprise **acme**, collected 2026-11-24T12:00:00Z
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
-Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.
+Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks
 
@@ -105,201 +105,201 @@ A bot approves a pull request its author can steer, and a workflow the author ca
 
 A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:
 
-- **acme-actions/deploy@0123456789abcdef0123456789abcdef01234567** (used by 3 workflows) runs **acme-actions/setup@main**. identity:alice can change it (confirmed):
-  1. identity:alice → repo:acme-actions/setup, CAN\_PUSH, **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
+- **acme-actions/deploy@0123456789abcdef0123456789abcdef01234567** (used by 3 workflows) runs **acme-actions/setup@main**. identity:alice can change it (✓ confirmed):
+  1. identity:alice → repo:acme-actions/setup, CAN\_PUSH, ≈ **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
      note: push reaches the default branch directly
-  2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/setup@main → action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}?ref={ref}
+  2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/setup@main → action:acme-actions/deploy@0123456789abcdef0123456789abcdef01234567, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}?ref={ref}
 
 ## Top paths
 
 ### identity:alice
 
-- **confirmed** to oidc:acme-app/billing
+- **✓ confirmed** to oidc:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:alice → repo:acme-app/billing, CAN\_PUSH, **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
-  2. repo:acme-app/billing → workflow:acme-app/billing/.github/workflows/deploy.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to oidc:acme-app/search
+  1. identity:alice → repo:acme-app/billing, CAN\_PUSH, ≈ **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
+  2. repo:acme-app/billing → workflow:acme-app/billing/.github/workflows/deploy.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to oidc:acme-app/search
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:alice → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
-  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/search/.github/workflows/index.yaml → oidc:acme-app/search, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/docs
+  1. identity:alice → repo:acme-app/search, CAN\_PUSH, ≈ **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → oidc:acme-app/search, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/docs
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:alice → repo:acme-app/docs, CAN\_PUSH, **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
-  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **possible: a hop is not visible** to runner:acme-app/search
+  1. identity:alice → repo:acme-app/docs, CAN\_PUSH, ≈ **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
+  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **? possible: a hop is not visible** to runner:acme-app/search
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:alice → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
-  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/search/.github/workflows/index.yaml → runner:acme-app/search, EXECUTES\_WITH, **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  1. identity:alice → repo:acme-app/search, CAN\_PUSH, ≈ **inferred**, rest:GET /enterprises/{enterprise}/consumed-licenses
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → runner:acme-app/search, EXECUTES\_WITH, ? **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ### members:acme-actions
 
-- **confirmed** to oidc:acme-app/billing
+- **✓ confirmed** to oidc:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/mobile
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/mobile
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/web
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/web
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
      note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
-  5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ### team:acme-actions/platform, one of 2 principals (team:acme-actions/platform)
 
-- **confirmed** to oidc:acme-app/billing
+- **✓ confirmed** to oidc:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. team:acme-actions/platform → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
+  1. team:acme-actions/platform → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/mobile
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/mobile
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. team:acme-actions/platform → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
+  1. team:acme-actions/platform → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/web
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/web
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. team:acme-actions/platform → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
+  1. team:acme-actions/platform → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
      note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
-  5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ### identity:bob
 
-- **confirmed** to oidc:acme-app/billing
+- **✓ confirmed** to oidc:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/mobile
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/mobile
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/web
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/web
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:bob → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
+  1. identity:bob → repo:acme-app/web, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
      note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
-  2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **possible: a hop is not visible** to repo:acme-secure/vault-proxy
-  1. identity:bob → members:acme-legacy, MEMBER\_OF, **live**, rest:GET /enterprises/{enterprise}/consumed-licenses
-  2. members:acme-legacy → repo:acme-legacy/hidden-tool, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
-  3. repo:acme-legacy/hidden-tool → action:acme-legacy/hidden-tool@v2, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  4. action:acme-legacy/hidden-tool@v2 → workflow:acme-secure/vault-proxy/.github/workflows/ci.yml, USES (reversed), **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  5. workflow:acme-secure/vault-proxy/.github/workflows/ci.yml → repo:acme-secure/vault-proxy, DEFINED\_IN, **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **? possible: a hop is not visible** to repo:acme-secure/vault-proxy
+  1. identity:bob → members:acme-legacy, MEMBER\_OF, ✓ **live**, rest:GET /enterprises/{enterprise}/consumed-licenses
+  2. members:acme-legacy → repo:acme-legacy/hidden-tool, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+  3. repo:acme-legacy/hidden-tool → action:acme-legacy/hidden-tool@v2, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  4. action:acme-legacy/hidden-tool@v2 → workflow:acme-secure/vault-proxy/.github/workflows/ci.yml, USES (reversed), ? **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  5. workflow:acme-secure/vault-proxy/.github/workflows/ci.yml → repo:acme-secure/vault-proxy, DEFINED\_IN, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
 
 ### identity:acme-ai-reviewer\[bot\]
 
-- **confirmed** to oidc:acme-app/billing
+- **✓ confirmed** to oidc:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/billing, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
-  2. repo:acme-app/billing → workflow:acme-app/billing/.github/workflows/deploy.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to oidc:acme-app/search
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/billing, CAN\_PUSH, ≈ **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/billing → workflow:acme-app/billing/.github/workflows/deploy.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to oidc:acme-app/search
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
-  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/search/.github/workflows/index.yaml → oidc:acme-app/search, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/docs
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, ≈ **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → oidc:acme-app/search, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/docs
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/docs, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
-  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **possible: a hop is not visible** to runner:acme-app/search
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/docs, CAN\_PUSH, ≈ **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **? possible: a hop is not visible** to runner:acme-app/search
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, **inferred**, rest:GET /orgs/{org}/installations
-  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/search/.github/workflows/index.yaml → runner:acme-app/search, EXECUTES\_WITH, **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  1. identity:acme-ai-reviewer\[bot\] → repo:acme-app/search, CAN\_PUSH, ≈ **inferred**, rest:GET /orgs/{org}/installations
+  2. repo:acme-app/search → workflow:acme-app/search/.github/workflows/index.yaml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/search/.github/workflows/index.yaml → runner:acme-app/search, EXECUTES\_WITH, ? **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ### identity:erin
 
-- **confirmed** to oidc:acme-app/billing
+- **✓ confirmed** to oidc:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
+  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/mobile
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/deploy.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/billing/.github/workflows/deploy.yml → oidc:acme-app/billing, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/mobile
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
+  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-- **confirmed** to secret:acme-app/web
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/mobile/.github/workflows/release.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/mobile/.github/workflows/release.yml → secret:acme-app/mobile, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+- **✓ confirmed** to secret:acme-app/web
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
+  1. identity:erin → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/collaborators?affiliation=direct
      note: push reaches the default branch directly
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-app/web/.github/workflows/ci.yml → repo:acme-app/web, CAN\_PUSH, ✓ **live**, rest:GET /repos/{owner}/{repo}/actions/permissions/workflow
      note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the script re-counts approvals GitHub dismissed, so the approval may not cover the merged code (suspected, heuristic: the rules dismiss stale reviews on push and the merge script counts DISMISSED reviews)
-  5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  5. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ai-merge.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  6. workflow:acme-app/web/.github/workflows/ai-merge.yml → secret:acme-app/web, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ### team:acme-app/release
 
-- **confirmed** to secret:acme-app/docs
+- **✓ confirmed** to secret:acme-app/docs
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. team:acme-app/release → repo:acme-app/docs, CAN\_PUSH, **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
-  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
-  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  1. team:acme-app/release → repo:acme-app/docs, CAN\_PUSH, ✓ **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
+  2. repo:acme-app/docs → workflow:acme-app/docs/.github/workflows/build.yml, DEFINED\_IN (reversed), ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  3. workflow:acme-app/docs/.github/workflows/build.yml → secret:acme-app/docs, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ### external:anyone
 
-- **confirmed** to secret:acme-app/web
+- **✓ confirmed** to secret:acme-app/web
   _Context, not part of the score: target org acme-app: SSO not enforced (configured), IP allow list off_
-  1. external:anyone → workflow:acme-app/web/.github/workflows/ai-review.yml, CAN\_TRIGGER, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  2. workflow:acme-app/web/.github/workflows/ai-review.yml → secret:acme-app/web, EXECUTES\_WITH, **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  1. external:anyone → workflow:acme-app/web/.github/workflows/ai-review.yml, CAN\_TRIGGER, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  2. workflow:acme-app/web/.github/workflows/ai-review.yml → secret:acme-app/web, EXECUTES\_WITH, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/{path}
 
 ### members:acme-legacy
 
-- **confirmed** to repo:acme-legacy/hidden-tool
+- **✓ confirmed** to repo:acme-legacy/hidden-tool
   _Context, not part of the score: target org acme-legacy: SSO enforced, IP allow list unknown_
-  1. members:acme-legacy → repo:acme-legacy/hidden-tool, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
-- **possible: a hop is not visible** to repo:acme-secure/vault-proxy
-  1. members:acme-legacy → repo:acme-legacy/hidden-tool, CAN\_PUSH, **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
-  2. repo:acme-legacy/hidden-tool → action:acme-legacy/hidden-tool@v2, RESOLVES\_TO (reversed), **live**, derived:workflow.uses+graphql:enterprise.organizations
-  3. action:acme-legacy/hidden-tool@v2 → workflow:acme-secure/vault-proxy/.github/workflows/ci.yml, USES (reversed), **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
-  4. workflow:acme-secure/vault-proxy/.github/workflows/ci.yml → repo:acme-secure/vault-proxy, DEFINED\_IN, **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
+  1. members:acme-legacy → repo:acme-legacy/hidden-tool, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+- **? possible: a hop is not visible** to repo:acme-secure/vault-proxy
+  1. members:acme-legacy → repo:acme-legacy/hidden-tool, CAN\_PUSH, ≈ **inferred**, graphql:enterprise.ownerInfo.defaultRepositoryPermissionSettingOrganizations
+  2. repo:acme-legacy/hidden-tool → action:acme-legacy/hidden-tool@v2, RESOLVES\_TO (reversed), ✓ **live**, derived:workflow.uses+graphql:enterprise.organizations
+  3. action:acme-legacy/hidden-tool@v2 → workflow:acme-secure/vault-proxy/.github/workflows/ci.yml, USES (reversed), ? **not visible**, rest:GET /repos/{owner}/{repo}/contents/{path}
+  4. workflow:acme-secure/vault-proxy/.github/workflows/ci.yml → repo:acme-secure/vault-proxy, DEFINED\_IN, ✓ **live**, rest:GET /repos/{owner}/{repo}/contents/.github/workflows
 
 ### team:acme-legacy/legacy-vTESTs
 
-- **confirmed** to repo:acme-legacy/old-site
+- **✓ confirmed** to repo:acme-legacy/old-site
   _Context, not part of the score: target org acme-legacy: SSO enforced, IP allow list unknown_
-  1. team:acme-legacy/legacy-vTESTs → repo:acme-legacy/old-site, CAN\_PUSH, **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
+  1. team:acme-legacy/legacy-vTESTs → repo:acme-legacy/old-site, CAN\_PUSH, ✓ **live**, rest:GET /orgs/{org}/teams/{team\_slug}/repos
 
 ## Org settings
 

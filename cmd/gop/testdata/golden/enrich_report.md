@@ -1,6 +1,6 @@
-# gop: who can make code run where
+# Which AI agents and people can make code run where.
 
-Enterprise **acme**, collected 2026-11-20T10:00:00Z
+gop report: enterprise **acme**, collected 2026-11-20T10:00:00Z
 
 **AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
 
@@ -8,7 +8,7 @@ Enterprise **acme**, collected 2026-11-20T10:00:00Z
 >
 > Pin acme-actions/deploy@main to a commit SHA in every workflow that uses it to remove 75% of confirmed reach.
 
-Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry, or (a cloud hop) from a supplied file: a cloud trust policy you supplied, not read from the cloud. Possible means at least one hop is not visible to the token: unknown, not absent.
+Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺), or (a cloud hop) from a supplied file (≡): a cloud trust policy you supplied, not read from the cloud. Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks
 
@@ -32,77 +32,77 @@ Score counts confirmed reach only.
 
 ### identity:bob
 
-- **confirmed** to cloud:aws:arn:aws:iam::111111111111:role/deploy
+- **✓ confirmed** to cloud:aws:arn:aws:iam::111111111111:role/deploy
   _cloud hop from supplied trust file testdata/acme/trust/aws/deploy.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
-- **confirmed** to oidc:acme-app/web
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, ≡ **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
+- **✓ confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-app/billing
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **possible: a hop is not visible** to cloud:azure:app:11111111-1111-1111-1111-111111111111
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **? possible: a hop is not visible** to cloud:azure:app:11111111-1111-1111-1111-111111111111
   _cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/web/.github/workflows/ci.yml → cloud:azure:app:11111111-1111-1111-1111-111111111111, CAN\_ASSUME, **not visible**, supplied:testdata/acme/trust/azure/web-main.json
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/web/.github/workflows/ci.yml → cloud:azure:app:11111111-1111-1111-1111-111111111111, CAN\_ASSUME, ? **not visible**, supplied:testdata/acme/trust/azure/web-main.json
      undecided: the ref in sub is not known: gop does not read workflow triggers, so a branch-, tag- or pull\_request-scoped sub may or may not match
 
 ### members:acme-actions
 
-- **confirmed** to cloud:aws:arn:aws:iam::111111111111:role/deploy
+- **✓ confirmed** to cloud:aws:arn:aws:iam::111111111111:role/deploy
   _cloud hop from supplied trust file testdata/acme/trust/aws/deploy.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
-- **confirmed** to oidc:acme-app/web
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/release.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/web/.github/workflows/release.yml → cloud:aws:arn:aws:iam::111111111111:role/deploy, CAN\_ASSUME, ≡ **supplied file**, supplied:testdata/acme/trust/aws/deploy.json
+- **✓ confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **confirmed** to secret:acme-app/billing
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **✓ confirmed** to secret:acme-app/billing
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, **live**, contents:.github/workflows
-- **possible: a hop is not visible** to cloud:azure:app:11111111-1111-1111-1111-111111111111
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/billing/.github/workflows/ci.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/billing/.github/workflows/ci.yml → secret:acme-app/billing, EXECUTES\_WITH, ✓ **live**, contents:.github/workflows
+- **? possible: a hop is not visible** to cloud:azure:app:11111111-1111-1111-1111-111111111111
   _cloud hop from supplied trust file testdata/acme/trust/azure/web-main.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, rest:/orgs/{org}
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, rest:/orgs/{org}
      note: push needs 1 approval to reach \`main\` + CODEOWNERS on workflows
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, contents:.github/workflows
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, contents:.github/workflows
-  4. workflow:acme-app/web/.github/workflows/ci.yml → cloud:azure:app:11111111-1111-1111-1111-111111111111, CAN\_ASSUME, **not visible**, supplied:testdata/acme/trust/azure/web-main.json
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, contents:.github/workflows
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, contents:.github/workflows
+  4. workflow:acme-app/web/.github/workflows/ci.yml → cloud:azure:app:11111111-1111-1111-1111-111111111111, CAN\_ASSUME, ? **not visible**, supplied:testdata/acme/trust/azure/web-main.json
      undecided: the ref in sub is not known: gop does not read workflow triggers, so a branch-, tag- or pull\_request-scoped sub may or may not match
 
 ### identity:alice
 
-- **confirmed** to repo:acme-app/infra
+- **✓ confirmed** to repo:acme-app/infra
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list unknown_
-  1. identity:alice → repo:acme-app/infra, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+  1. identity:alice → repo:acme-app/infra, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
 
 ## Org settings
 

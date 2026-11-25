@@ -1,6 +1,6 @@
-# [demo data] gop: who can make code run where
+# [demo data] Which AI agents and people can make code run where.
 
-Enterprise **acme**, collected 2026-01-01T00:00:00Z
+gop report: enterprise **acme**, collected 2026-01-01T00:00:00Z
 
 **AI agents and bots:** 8 non-human actors; 2 can merge to a default branch without a human (2 confirmed, 0 possible).
 
@@ -10,7 +10,7 @@ Enterprise **acme**, collected 2026-01-01T00:00:00Z
 >
 > Pinning is not enough: 1 action pinned to a commit SHA still runs a mutable ref that someone can push to.
 
-Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry, or (a cloud hop) from a supplied file: a cloud trust policy you supplied, not read from the cloud. Possible means at least one hop is not visible to the token: unknown, not absent.
+Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺), or (a cloud hop) from a supplied file (≡): a cloud trust policy you supplied, not read from the cloud. Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks
 
@@ -85,10 +85,10 @@ Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only m
 
 4 agent paths; 3 in dangerous mode, 3 that people without push access can start.
 
-1. Anyone on GitHub → claude-code-action (dangerous mode: dangerously\_skip\_permissions) in acme-app/api/.github/workflows/claude-fix.yml → Assume acme-prod-deploy. Evidence: live 7, inferred 1, supplied file 1.
-2. Anyone on GitHub → claude-code-action (dangerous mode: dangerously\_skip\_permissions) in acme-app/docs/.github/workflows/claude.yml → Push to acme-app/docs. Evidence: live 6, inferred 1.
+1. Anyone on GitHub → claude-code-action (▲ dangerous mode: dangerously\_skip\_permissions) in acme-app/api/.github/workflows/claude-fix.yml → Assume acme-prod-deploy. Evidence: live 7, inferred 1, supplied file 1.
+2. Anyone on GitHub → claude-code-action (▲ dangerous mode: dangerously\_skip\_permissions) in acme-app/docs/.github/workflows/claude.yml → Push to acme-app/docs. Evidence: live 6, inferred 1.
 3. Anyone on GitHub → claude-cli in acme-app/web/.github/workflows/ai-review.yml → Merge to the default branch of acme-app/web. Evidence: live 6, inferred 1.
-4. Maintainers with write access → codex-cli (dangerous mode: full\_auto) in acme-secure/infra/.github/workflows/codex.yml → Commands on the runner. Evidence: live 3, inferred 1.
+4. Maintainers with write access → codex-cli (▲ dangerous mode: full\_auto) in acme-secure/infra/.github/workflows/codex.yml → Commands on the runner. Evidence: live 3, inferred 1.
 
 The HTML report steps through each path and shows where a fix cuts it.
 
@@ -155,197 +155,197 @@ A bot approves a pull request its author can steer, and a workflow the author ca
 
 A SHA pin blocks a path only when everything the pinned action runs is pinned too. These pinned actions run a nested branch or tag ref:
 
-- **acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5** (used by 3 workflows) runs **acme-actions/setup@main**. identity:carol can change it (confirmed):
-  1. identity:carol → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:planted-org-owner
+- **acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5** (used by 3 workflows) runs **acme-actions/setup@main**. identity:carol can change it (✓ confirmed):
+  1. identity:carol → repo:acme-actions/setup, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
      note: push reaches the default branch directly
-  2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
+  2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), ✓ **live**, demo:action-host
+  3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), ✓ **live**, demo:planted-nested-action
 
 ## Top paths
 
 ### action:acme-oss/checkout-ish@v2
 
-- **confirmed** to secret:acme-app/docs
+- **✓ confirmed** to secret:acme-app/docs
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. action:acme-oss/checkout-ish@v2 → workflow:acme-app/docs/.github/workflows/preview.yml, USES (reversed), **live**, demo:planted-advisory
-  2. workflow:acme-app/docs/.github/workflows/preview.yml → secret:acme-app/docs, EXECUTES\_WITH, **live**, demo:planted-advisory
+  1. action:acme-oss/checkout-ish@v2 → workflow:acme-app/docs/.github/workflows/preview.yml, USES (reversed), ✓ **live**, demo:planted-advisory
+  2. workflow:acme-app/docs/.github/workflows/preview.yml → secret:acme-app/docs, EXECUTES\_WITH, ✓ **live**, demo:planted-advisory
 
 ### external:anyone
 
-- **confirmed** to cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
+- **✓ confirmed** to cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
   _cloud hop from supplied trust file demo/trust/aws/acme-prod-deploy.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. external:anyone → workflow:acme-app/api/.github/workflows/claude-fix.yml, CAN\_TRIGGER, **live**, demo:planted-agent-dangerous-mode
-  2. workflow:acme-app/api/.github/workflows/claude-fix.yml → cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy, CAN\_ASSUME, **supplied file**, supplied:demo/trust/aws/acme-prod-deploy.json
-- **confirmed** to oidc:acme-app/api
+  1. external:anyone → workflow:acme-app/api/.github/workflows/claude-fix.yml, CAN\_TRIGGER, ✓ **live**, demo:planted-agent-dangerous-mode
+  2. workflow:acme-app/api/.github/workflows/claude-fix.yml → cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy, CAN\_ASSUME, ≡ **supplied file**, supplied:demo/trust/aws/acme-prod-deploy.json
+- **✓ confirmed** to oidc:acme-app/api
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. external:anyone → workflow:acme-app/api/.github/workflows/claude-fix.yml, CAN\_TRIGGER, **live**, demo:planted-agent-dangerous-mode
-  2. workflow:acme-app/api/.github/workflows/claude-fix.yml → oidc:acme-app/api, EXECUTES\_WITH, **live**, demo:planted-agent-dangerous-mode
-- **confirmed** to oidc:acme-app/web
+  1. external:anyone → workflow:acme-app/api/.github/workflows/claude-fix.yml, CAN\_TRIGGER, ✓ **live**, demo:planted-agent-dangerous-mode
+  2. workflow:acme-app/api/.github/workflows/claude-fix.yml → oidc:acme-app/api, EXECUTES\_WITH, ✓ **live**, demo:planted-agent-dangerous-mode
+- **✓ confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. external:anyone → repo:acme-app/web, CAN\_MERGE\_VIA\_BOT, **live**, demo:planted-bot-self-merge
+  1. external:anyone → repo:acme-app/web, CAN\_MERGE\_VIA\_BOT, ✓ **live**, demo:planted-bot-self-merge
      note: a PR author can get code onto \`main\` without human review: \`ai-review.yml\` + \`ai-merge.yml\` (merges in \`tools/merge.py\`); the approval may not cover the merged code (suspected, heuristic: the merge counts older approvals and the review does not re-run on push)
-  2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:planted-cross-org
-  3. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
+  2. repo:acme-app/web → workflow:acme-app/web/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-cross-org
+  3. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, ✓ **live**, demo:planted-cross-org
 
 ### identity:carol, one of 3 owners of 5 to 6 orgs
 
-- **confirmed** to cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
+- **✓ confirmed** to cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
   _cloud hop from supplied trust file demo/trust/aws/acme-prod-deploy.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:carol → repo:acme-app/api, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  1. identity:carol → repo:acme-app/api, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
      note: a PR author can get code onto \`main\` without human review: \`claude-fix.yml\` + \`auto-merge.yml\`
-  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), **live**, demo:planted-agent-dangerous-mode
-  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy, CAN\_ASSUME, **supplied file**, supplied:demo/trust/aws/acme-prod-deploy.json
-- **confirmed** to oidc:acme-app/api
+  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-agent-dangerous-mode
+  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy, CAN\_ASSUME, ≡ **supplied file**, supplied:demo/trust/aws/acme-prod-deploy.json
+- **✓ confirmed** to oidc:acme-app/api
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:carol → repo:acme-app/api, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  1. identity:carol → repo:acme-app/api, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
      note: a PR author can get code onto \`main\` without human review: \`claude-fix.yml\` + \`auto-merge.yml\`
-  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), **live**, demo:planted-agent-dangerous-mode
-  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → oidc:acme-app/api, EXECUTES\_WITH, **live**, demo:planted-agent-dangerous-mode
-- **confirmed** to oidc:acme-app/payments
+  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-agent-dangerous-mode
+  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → oidc:acme-app/api, EXECUTES\_WITH, ✓ **live**, demo:planted-agent-dangerous-mode
+- **✓ confirmed** to oidc:acme-app/payments
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:carol → repo:acme-app/payments, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-app/payments → workflow:acme-app/payments/.github/workflows/release.yml, DEFINED\_IN (reversed), **live**, demo:planted-nested-action
-  3. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
+  1. identity:carol → repo:acme-app/payments, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-app/payments → workflow:acme-app/payments/.github/workflows/release.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-nested-action
+  3. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, ✓ **live**, demo:planted-nested-action
 
 ### identity:bob, one of 3 principals (identical reach)
 
-- **confirmed** to oidc:acme-app/payments
+- **✓ confirmed** to oidc:acme-app/payments
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:bob → members:acme-actions, MEMBER\_OF, **live**, demo:membership
-  2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
+  1. identity:bob → members:acme-actions, MEMBER\_OF, ✓ **live**, demo:membership
+  2. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, ≈ **inferred**, demo:default-perm
      note: push reaches the default branch directly
-  3. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  4. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
-  5. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
-  6. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
-- **confirmed** to oidc:acme-app/web
+  3. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), ✓ **live**, demo:action-host
+  4. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), ✓ **live**, demo:planted-nested-action
+  5. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), ✓ **live**, demo:planted-nested-action
+  6. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, ✓ **live**, demo:planted-nested-action
+- **✓ confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, demo:collaborator
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, demo:collaborator
      note: push needs 1 approval to reach \`main\`
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, demo:planted-cross-org
-  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
-- **confirmed** to oidc:acme-org-01/svc-007
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, demo:action-host
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, demo:planted-cross-org
+  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, ✓ **live**, demo:planted-cross-org
+- **✓ confirmed** to oidc:acme-org-01/svc-007
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, demo:collaborator
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, demo:collaborator
      note: push needs 1 approval to reach \`main\`
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  3. action:acme-actions/deploy@main → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, USES (reversed), **live**, demo:uses
-  4. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, demo:action-host
+  3. action:acme-actions/deploy@main → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, USES (reversed), ✓ **live**, demo:uses
+  4. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, ✓ **live**, demo:id-token-write
 
 ### members:acme-actions
 
-- **confirmed** to oidc:acme-app/payments
+- **✓ confirmed** to oidc:acme-app/payments
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, **inferred**, demo:default-perm
+  1. members:acme-actions → repo:acme-actions/setup, CAN\_PUSH, ≈ **inferred**, demo:default-perm
      note: push reaches the default branch directly
-  2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), **live**, demo:planted-nested-action
-  4. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), **live**, demo:planted-nested-action
-  5. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
-- **confirmed** to oidc:acme-app/web
+  2. repo:acme-actions/setup → action:acme-actions/setup@main, RESOLVES\_TO (reversed), ✓ **live**, demo:action-host
+  3. action:acme-actions/setup@main → action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, USES (reversed), ✓ **live**, demo:planted-nested-action
+  4. action:acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 → workflow:acme-app/payments/.github/workflows/release.yml, USES (reversed), ✓ **live**, demo:planted-nested-action
+  5. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, ✓ **live**, demo:planted-nested-action
+- **✓ confirmed** to oidc:acme-app/web
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, demo:default-perm
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, demo:default-perm
      note: push needs 1 approval to reach \`main\`
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), **live**, demo:planted-cross-org
-  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, **live**, demo:planted-cross-org
-- **confirmed** to oidc:acme-org-01/svc-007
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, demo:action-host
+  3. action:acme-actions/deploy@main → workflow:acme-app/web/.github/workflows/ci.yml, USES (reversed), ✓ **live**, demo:planted-cross-org
+  4. workflow:acme-app/web/.github/workflows/ci.yml → oidc:acme-app/web, EXECUTES\_WITH, ✓ **live**, demo:planted-cross-org
+- **✓ confirmed** to oidc:acme-org-01/svc-007
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, **inferred**, demo:default-perm
+  1. members:acme-actions → repo:acme-actions/deploy, CAN\_PUSH, ≈ **inferred**, demo:default-perm
      note: push needs 1 approval to reach \`main\`
-  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), **live**, demo:action-host
-  3. action:acme-actions/deploy@main → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, USES (reversed), **live**, demo:uses
-  4. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
+  2. repo:acme-actions/deploy → action:acme-actions/deploy@main, RESOLVES\_TO (reversed), ✓ **live**, demo:action-host
+  3. action:acme-actions/deploy@main → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, USES (reversed), ✓ **live**, demo:uses
+  4. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, ✓ **live**, demo:id-token-write
 
 ### identity:user-004, one of 2 owners of 1 org
 
-- **confirmed** to cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
+- **✓ confirmed** to cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy
   _cloud hop from supplied trust file demo/trust/aws/acme-prod-deploy.json, not read from the cloud_
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:user-004 → repo:acme-app/api, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  1. identity:user-004 → repo:acme-app/api, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
      note: a PR author can get code onto \`main\` without human review: \`claude-fix.yml\` + \`auto-merge.yml\`
-  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), **live**, demo:planted-agent-dangerous-mode
-  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy, CAN\_ASSUME, **supplied file**, supplied:demo/trust/aws/acme-prod-deploy.json
-- **confirmed** to oidc:acme-app/api
+  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-agent-dangerous-mode
+  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → cloud:aws:arn:aws:iam::111111111111:role/acme-prod-deploy, CAN\_ASSUME, ≡ **supplied file**, supplied:demo/trust/aws/acme-prod-deploy.json
+- **✓ confirmed** to oidc:acme-app/api
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:user-004 → repo:acme-app/api, CAN\_PUSH, **inferred**, demo:planted-org-owner
+  1. identity:user-004 → repo:acme-app/api, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
      note: a PR author can get code onto \`main\` without human review: \`claude-fix.yml\` + \`auto-merge.yml\`
-  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), **live**, demo:planted-agent-dangerous-mode
-  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → oidc:acme-app/api, EXECUTES\_WITH, **live**, demo:planted-agent-dangerous-mode
-- **confirmed** to oidc:acme-app/payments
+  2. repo:acme-app/api → workflow:acme-app/api/.github/workflows/claude-fix.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-agent-dangerous-mode
+  3. workflow:acme-app/api/.github/workflows/claude-fix.yml → oidc:acme-app/api, EXECUTES\_WITH, ✓ **live**, demo:planted-agent-dangerous-mode
+- **✓ confirmed** to oidc:acme-app/payments
   _Context, not part of the score: target org acme-app: SSO enforced, IP allow list off_
-  1. identity:user-004 → repo:acme-app/payments, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-app/payments → workflow:acme-app/payments/.github/workflows/release.yml, DEFINED\_IN (reversed), **live**, demo:planted-nested-action
-  3. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, **live**, demo:planted-nested-action
+  1. identity:user-004 → repo:acme-app/payments, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-app/payments → workflow:acme-app/payments/.github/workflows/release.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-nested-action
+  3. workflow:acme-app/payments/.github/workflows/release.yml → oidc:acme-app/payments, EXECUTES\_WITH, ✓ **live**, demo:planted-nested-action
 
 ### identity:user-007, one of 2 principals (org owners of acme-org-01)
 
-- **confirmed** to oidc:acme-org-01/svc-007
+- **✓ confirmed** to oidc:acme-org-01/svc-007
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. identity:user-007 → repo:acme-org-01/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-01/svc-007 → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
-- **confirmed** to secret:acme-org-01/svc-001
+  1. identity:user-007 → repo:acme-org-01/svc-007, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-01/svc-007 → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → oidc:acme-org-01/svc-007, EXECUTES\_WITH, ✓ **live**, demo:id-token-write
+- **✓ confirmed** to secret:acme-org-01/svc-001
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. identity:user-007 → repo:acme-org-01/svc-001, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-01/svc-001 → workflow:acme-org-01/svc-001/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-01/svc-001/.github/workflows/ci.yml → secret:acme-org-01/svc-001, EXECUTES\_WITH, **live**, demo:secrets
-- **confirmed** to secret:acme-org-01/svc-007
+  1. identity:user-007 → repo:acme-org-01/svc-001, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-01/svc-001 → workflow:acme-org-01/svc-001/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-01/svc-001/.github/workflows/ci.yml → secret:acme-org-01/svc-001, EXECUTES\_WITH, ✓ **live**, demo:secrets
+- **✓ confirmed** to secret:acme-org-01/svc-007
   _Context, not part of the score: target org acme-org-01: SSO enforced, IP allow list off_
-  1. identity:user-007 → repo:acme-org-01/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-01/svc-007 → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → secret:acme-org-01/svc-007, EXECUTES\_WITH, **live**, demo:secrets
+  1. identity:user-007 → repo:acme-org-01/svc-007, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-01/svc-007 → workflow:acme-org-01/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-01/svc-007/.github/workflows/ci.yml → secret:acme-org-01/svc-007, EXECUTES\_WITH, ✓ **live**, demo:secrets
 
 ### identity:user-012
 
-- **confirmed** to oidc:acme-org-03/svc-007
+- **✓ confirmed** to oidc:acme-org-03/svc-007
   _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
-  1. identity:user-012 → repo:acme-org-03/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → oidc:acme-org-03/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
-- **confirmed** to oidc:acme-org-03/svc-008
+  1. identity:user-012 → repo:acme-org-03/svc-007, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → oidc:acme-org-03/svc-007, EXECUTES\_WITH, ✓ **live**, demo:id-token-write
+- **✓ confirmed** to oidc:acme-org-03/svc-008
   _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
-  1. identity:user-012 → repo:acme-org-03/svc-008, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-03/svc-008 → workflow:acme-org-03/svc-008/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-03/svc-008/.github/workflows/ci.yml → oidc:acme-org-03/svc-008, EXECUTES\_WITH, **live**, demo:id-token-write
-- **confirmed** to secret:acme-org-03/svc-007
+  1. identity:user-012 → repo:acme-org-03/svc-008, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-008 → workflow:acme-org-03/svc-008/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-03/svc-008/.github/workflows/ci.yml → oidc:acme-org-03/svc-008, EXECUTES\_WITH, ✓ **live**, demo:id-token-write
+- **✓ confirmed** to secret:acme-org-03/svc-007
   _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
-  1. identity:user-012 → repo:acme-org-03/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → secret:acme-org-03/svc-007, EXECUTES\_WITH, **live**, demo:secrets
+  1. identity:user-012 → repo:acme-org-03/svc-007, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → secret:acme-org-03/svc-007, EXECUTES\_WITH, ✓ **live**, demo:secrets
 
 ### identity:user-011
 
-- **confirmed** to oidc:acme-org-03/svc-007
+- **✓ confirmed** to oidc:acme-org-03/svc-007
   _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
-  1. identity:user-011 → repo:acme-org-03/svc-007, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → oidc:acme-org-03/svc-007, EXECUTES\_WITH, **live**, demo:id-token-write
-- **confirmed** to oidc:acme-org-03/svc-008
+  1. identity:user-011 → repo:acme-org-03/svc-007, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-007 → workflow:acme-org-03/svc-007/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-03/svc-007/.github/workflows/ci.yml → oidc:acme-org-03/svc-007, EXECUTES\_WITH, ✓ **live**, demo:id-token-write
+- **✓ confirmed** to oidc:acme-org-03/svc-008
   _Context, not part of the score: target org acme-org-03: SSO enforced, IP allow list off_
-  1. identity:user-011 → repo:acme-org-03/svc-008, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-03/svc-008 → workflow:acme-org-03/svc-008/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-03/svc-008/.github/workflows/ci.yml → oidc:acme-org-03/svc-008, EXECUTES\_WITH, **live**, demo:id-token-write
-- **confirmed** to oidc:acme-secure/vault
-  1. identity:user-011 → repo:acme-secure/vault, CAN\_PUSH, **live**, demo:collaborator
-  2. repo:acme-secure/vault → workflow:acme-secure/vault/.github/workflows/release.yml, DEFINED\_IN (reversed), **live**, demo:planted-sha-pin
-  3. workflow:acme-secure/vault/.github/workflows/release.yml → oidc:acme-secure/vault, EXECUTES\_WITH, **live**, demo:planted-sha-pin
+  1. identity:user-011 → repo:acme-org-03/svc-008, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-03/svc-008 → workflow:acme-org-03/svc-008/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-03/svc-008/.github/workflows/ci.yml → oidc:acme-org-03/svc-008, EXECUTES\_WITH, ✓ **live**, demo:id-token-write
+- **✓ confirmed** to oidc:acme-secure/vault
+  1. identity:user-011 → repo:acme-secure/vault, CAN\_PUSH, ✓ **live**, demo:collaborator
+  2. repo:acme-secure/vault → workflow:acme-secure/vault/.github/workflows/release.yml, DEFINED\_IN (reversed), ✓ **live**, demo:planted-sha-pin
+  3. workflow:acme-secure/vault/.github/workflows/release.yml → oidc:acme-secure/vault, EXECUTES\_WITH, ✓ **live**, demo:planted-sha-pin
 
 ### identity:user-009
 
-- **confirmed** to secret:acme-org-02/svc-001
+- **✓ confirmed** to secret:acme-org-02/svc-001
   _Context, not part of the score: target org acme-org-02: SSO enforced, IP allow list off_
-  1. identity:user-009 → repo:acme-org-02/svc-001, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-02/svc-001 → workflow:acme-org-02/svc-001/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-02/svc-001/.github/workflows/ci.yml → secret:acme-org-02/svc-001, EXECUTES\_WITH, **live**, demo:secrets
-- **confirmed** to secret:acme-org-02/svc-009
+  1. identity:user-009 → repo:acme-org-02/svc-001, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-02/svc-001 → workflow:acme-org-02/svc-001/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-02/svc-001/.github/workflows/ci.yml → secret:acme-org-02/svc-001, EXECUTES\_WITH, ✓ **live**, demo:secrets
+- **✓ confirmed** to secret:acme-org-02/svc-009
   _Context, not part of the score: target org acme-org-02: SSO enforced, IP allow list off_
-  1. identity:user-009 → repo:acme-org-02/svc-009, CAN\_PUSH, **inferred**, demo:planted-org-owner
-  2. repo:acme-org-02/svc-009 → workflow:acme-org-02/svc-009/.github/workflows/ci.yml, DEFINED\_IN (reversed), **live**, demo:workflow
-  3. workflow:acme-org-02/svc-009/.github/workflows/ci.yml → secret:acme-org-02/svc-009, EXECUTES\_WITH, **live**, demo:secrets
+  1. identity:user-009 → repo:acme-org-02/svc-009, CAN\_PUSH, ≈ **inferred**, demo:planted-org-owner
+  2. repo:acme-org-02/svc-009 → workflow:acme-org-02/svc-009/.github/workflows/ci.yml, DEFINED\_IN (reversed), ✓ **live**, demo:workflow
+  3. workflow:acme-org-02/svc-009/.github/workflows/ci.yml → secret:acme-org-02/svc-009, EXECUTES\_WITH, ✓ **live**, demo:secrets
 
 ## Org settings
 

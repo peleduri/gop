@@ -130,7 +130,7 @@ func writeMDBotMerge(p func(string, ...any), d data) {
 		p("- %s\n", md(r.Note))
 		switch {
 		case r.Who != "" && r.WhoPossible:
-			p("- Who: possible: %s\n", md(r.Who))
+			p("- Who: ? possible: %s\n", md(r.Who))
 		case r.Who != "":
 			p("- Who: %s\n", md(r.Who))
 		}

@@ -1,12 +1,12 @@
-# gop: who can make code run where
+# Which AI agents and people can make code run where.
 
-Enterprise **acme**, collected 2026-11-20T10:00:00Z
+gop report: enterprise **acme**, collected 2026-11-20T10:00:00Z
 
 **AI agents and bots:** No non-human actors (AI agents, bot merges, bot accounts) in this graph.
 
 > identity:alice can push code that runs in 2 repos across 2 orgs (confirmed). 1 repo more possible through facts gop could not see.
 
-Confirmed means every hop was read live, inferred from other observed facts by a documented rule, or read from a recent audit log entry. Possible means at least one hop is not visible to the token: unknown, not absent.
+Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
 ## Top risks
 
@@ -29,30 +29,30 @@ No candidate fix removes confirmed reach.
 
 ### identity:alice
 
-- **confirmed** to repo:acme-actions/deploy
+- **✓ confirmed** to repo:acme-actions/deploy
   _Context, not part of the score: target org acme-actions: SSO not enforced (configured), IP allow list off_
-  1. identity:alice → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
-- **possible: a hop is not visible** to repo:acme-legacy/old-api
+  1. identity:alice → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
+- **? possible: a hop is not visible** to repo:acme-legacy/old-api
   _Context, not part of the score: target org acme-legacy: SSO not enforced (none), IP allow list unknown_
-  1. identity:alice → members:acme-legacy, MEMBER\_OF, **live**, rest:GET /orgs/{org}/members
-  2. members:acme-legacy → repo:acme-legacy/old-api, CAN\_PUSH, **not visible**, rest:/orgs/{org}
+  1. identity:alice → members:acme-legacy, MEMBER\_OF, ✓ **live**, rest:GET /orgs/{org}/members
+  2. members:acme-legacy → repo:acme-legacy/old-api, CAN\_PUSH, ? **not visible**, rest:/orgs/{org}
 
 ### identity:bob
 
-- **confirmed** to repo:acme-actions/deploy
+- **✓ confirmed** to repo:acme-actions/deploy
   _Context, not part of the score: target org acme-actions: SSO not enforced (configured), IP allow list off_
-  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+  1. identity:bob → repo:acme-actions/deploy, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
 
 ### identity:carol
 
-- **confirmed** to repo:acme-app/web
-  1. identity:carol → repo:acme-app/web, CAN\_PUSH, **live**, rest:/repos/{owner}/{repo}/collaborators
+- **✓ confirmed** to repo:acme-app/web
+  1. identity:carol → repo:acme-app/web, CAN\_PUSH, ✓ **live**, rest:/repos/{owner}/{repo}/collaborators
 
 ### members:acme-legacy
 
-- **possible: a hop is not visible** to repo:acme-legacy/old-api
+- **? possible: a hop is not visible** to repo:acme-legacy/old-api
   _Context, not part of the score: target org acme-legacy: SSO not enforced (none), IP allow list unknown_
-  1. members:acme-legacy → repo:acme-legacy/old-api, CAN\_PUSH, **not visible**, rest:/orgs/{org}
+  1. members:acme-legacy → repo:acme-legacy/old-api, CAN\_PUSH, ? **not visible**, rest:/orgs/{org}
 
 ## Org settings
 
