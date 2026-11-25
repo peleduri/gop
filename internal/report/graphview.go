@@ -323,16 +323,16 @@ func whatIfPaths(ix *graph.Index, paths []embPath, fixes []graph.FixSuggestion) 
 		kind, node := fixTarget(f.Fix)
 		_, desc := mcpserver.DescribeFix(ix, f.Fix)
 		w := embWhatIf{Fix: f.FixID, Kind: kind, Node: node, Desc: desc, Removed: []int{}}
-		for _, pr := range order {
-			after := ix.Reach(pr, graph.Options{Fixes: []graph.Fix{f.Fix}})
-			for _, i := range byPrincipal[pr] {
+		// A principal the fix cannot change keeps every path.
+		ix.ReachEachChanged(order, graph.Options{Fixes: []graph.Fix{f.Fix}}, func(after graph.Result) {
+			for _, i := range byPrincipal[after.From] {
 				p := paths[i]
 				ap, ok := after.Paths[p.To]
 				if !ok || (p.Ev == "confirmed" && ap.Unverified) {
 					w.Removed = append(w.Removed, i)
 				}
 			}
-		}
+		})
 		sort.Ints(w.Removed)
 		out = append(out, w)
 	}

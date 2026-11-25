@@ -1,6 +1,9 @@
 package graph
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // Counts are headline numbers for one reach set.
 type Counts struct {
@@ -194,7 +197,7 @@ func TopPaths(g *Graph, n int) []Score { return NewIndex(g).TopPaths(n) }
 
 // TopPaths on a prebuilt index.
 func (ix *Index) TopPaths(n int) []Score {
-	out := append(ix.allScores(ix.base), ix.advisoryScores(ix.base)...)
+	out := append(slices.Clone(ix.baseScores()), ix.advisoryScores(ix.base)...)
 	sort.SliceStable(out, func(i, j int) bool { return RanksAbove(out[i], out[j]) })
 	if n > 0 && n < len(out) {
 		out = out[:n]

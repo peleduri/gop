@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -70,6 +71,12 @@ type Index struct {
 	// gate note (envgate.go); nil when no edge is gated.
 	oidcGate map[string]string
 
+	scoresOnce sync.Once
+	scores     []Score // allScores(base), built on first use (fix.go)
+
+	revOnce sync.Once
+	baseRev map[string][]string // reverse adjacency of base, built on first use (reach.go)
+
 	fastOnce sync.Once
 	fastIx   *fastIndex // interned base control graph and fix overlay, built on first use (fast.go)
 
@@ -82,6 +89,14 @@ type Index struct {
 	envOnce   sync.Once
 	envAny    bool // some EXECUTES_WITH edge is environment-gated (envgate.go)
 }
+
+// controlBuilds counts control graph builds, for ControlBuilds.
+var controlBuilds atomic.Int64
+
+// ControlBuilds returns how many control graphs this process has built (one
+// per NewIndex, one for the fast index, one per fix set walked). Tests and
+// benchmarks use it to keep the number of builds per command bounded.
+func ControlBuilds() int64 { return controlBuilds.Load() }
 
 // NewIndex builds adjacency lookups. Edge lists are sorted (kind, to/from, source_api)
 // so every traversal is deterministic. A nil graph is treated as empty.
