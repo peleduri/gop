@@ -15,7 +15,7 @@ import (
 
 // siteColorFiles are the site's own files that carry colors, plus the social
 // preview the page points og:image at.
-var siteColorFiles = []string{"index.html", "brand.css", "favicon.svg", "architecture.svg", "architecture-narrow.svg",
+var siteColorFiles = []string{"../docs/assets/architecture.svg", "index.html", "brand.css", "favicon.svg", "architecture.svg", "architecture-narrow.svg",
 	filepath.Join("..", "brand", "social-preview.svg")}
 
 var (
