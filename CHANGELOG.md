@@ -18,6 +18,16 @@ flags may change in minor releases.
   path; hops the agent does not have are drawn dimmed. Built from the
   existing graph, no new collection; works offline under the report's CSP,
   respects reduced motion. The Markdown report lists one line per path.
+- Re-collect some orgs into an existing graph from the CLI (#198):
+  `gop collect --enterprise acme --orgs acme-actions --merge-into graph.json
+  --out graph2.json`. The re-collected orgs' facts and coverage are
+  replaced, every other org's are kept, cross-org paths survive, and
+  `org_collected_at` records when each org was last read. The earlier graph
+  is only read (`--out` may name the same file). The merged graph is checked
+  against the JSON Schema before it is written; a stopped run writes a
+  partial merged graph and exits 3. `--merge-force` merges graphs from
+  different token modes (not supported). `--merge-into` needs `--orgs` and a
+  graph of the same enterprise, checked before any request.
 - The demo plants an AI agent in dangerous mode end to end (story 11).
   The public `acme-app/api` runs `claude-code-action@main` on
   `issue_comment` with no author check and `--dangerously-skip-permissions`,

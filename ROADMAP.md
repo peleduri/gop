@@ -6,7 +6,7 @@ The roadmap is kept by the maintainers under [GOVERNANCE.md](GOVERNANCE.md#decis
 
 ## Where gop is today
 
-gop is alpha (v0.x). Since the first release it has grown from a cross-org Actions and OIDC reach graph into a tool that finds AI coding agents in CI that untrusted users can start, follows one level of composite actions, reusable workflows and scripts, explains bot self-merge review bypasses, and ships as a signed CLI, container image, GitHub Action and MCP server with installs for several AI assistants. The graph schema is `gop.graph/v2`; it and the CLI flags may still change before v1.0.
+gop is alpha (v0.x). Since the first release it has grown from a cross-org Actions and OIDC reach graph into a tool that finds AI coding agents in CI that untrusted users can start, follows one level of composite actions, reusable workflows and scripts, explains bot self-merge review bypasses, and ships as a signed CLI, container image, GitHub Action and MCP server with installs for several AI assistants. Collection now scales: parallel App-mode orgs, incremental runs, partial graphs under a request budget, batched GraphQL and re-collecting some orgs into an existing graph (theme 1, shipped in Unreleased). The graph schema is `gop.graph/v2`; it and the CLI flags may still change before v1.0.
 
 ## Themes
 
@@ -14,11 +14,13 @@ gop is alpha (v0.x). Since the first release it has grown from a cross-org Actio
 
 A full collection of a large enterprise takes many more requests than one token's hourly rate limit allows. The goal is a first run that finishes in hours, not days, and cheap daily runs after that, without losing the evidence guarantees.
 
+Shipped in Unreleased (see [CHANGELOG.md](CHANGELOG.md)):
+
 - Parallel collection across orgs, with a separate budget per GitHub App installation, and a `gop doctor` recommendation to use App mode when a token-mode run would be slow ([#174](https://github.com/peleduri/gop/issues/174)).
 - Incremental collection: re-read only what changed since the previous graph, with periodic full re-reads ([#175](https://github.com/peleduri/gop/issues/175)).
 - A partial graph on stop or budget exhaustion, with `--max-requests`, `--priority` and `--reserve`, so a capped run covers the most important orgs first and says clearly what it did not read ([#176](https://github.com/peleduri/gop/issues/176)).
 - Batched GraphQL for per-repo collaborators and branch protection, to cut REST requests ([#177](https://github.com/peleduri/gop/issues/177)).
-- A CLI flag to re-collect some orgs into an existing graph (the collector API does it today).
+- `gop collect --orgs a,b --merge-into graph.json` re-collects some orgs into an existing graph ([#198](https://github.com/peleduri/gop/issues/198)).
 
 ### 2. AI agent detection
 
