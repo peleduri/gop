@@ -25,6 +25,16 @@ gop report: enterprise **acme**, collected 2026-11-24T12:00:00Z
 
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
+## Issues
+
+3 issues where facts gop read combine into a path to act on: 1 critical, 2 high, 0 medium. 3 confirmed, 0 possible; the two are never added up.
+
+| # | Severity | Issue | Risk factors | Evidence | Where | Fix |
+|---:|---|---|---|---|---|---|
+| 1 | critical | Bot approval lands code on the default branch with no human review; an AI step holds the merge key | No human review, AI holds merge key | ✓ confirmed | acme-app/web (repo in acme-app) | Require a human approval that bots cannot give: require CODEOWNERS review on main with human owners (or a team), so a bot approval never satisfies the rule. |
+| 2 | high | Outsiders can start an AI agent holding secrets | Outsiders can start, Secrets | ✓ confirmed | acme-app/web/.github/workflows/ai-review.yml (workflow in acme-app) | Restrict who can start it: the agent has no actor check of its own, so move it off issue\_comment or pull\_request\_target, check the actor's repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers). |
+| 3 | high | SHA-pinned action still runs a mutable ref and reaches OIDC, secrets and self-hosted runners | Mutable ref, Secrets, OIDC, Self-hosted runner | ✓ confirmed | acme-actions/deploy@0123456789abcdef0123456789abcdef01234567 (action in acme-actions) | Pin acme-actions/setup@main to a commit SHA inside acme-actions/deploy@0123456789abcdef0123456789abcdef01234567, or replace the action. |
+
 ## Top risks
 
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |

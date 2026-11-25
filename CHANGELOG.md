@@ -7,6 +7,17 @@ flags may change in minor releases.
 
 ## [Unreleased]
 ### Added
+- `gop report` gets an Issues view and a navigation rail. Issues lists one
+  row per actionable combination gop already detects (an AI agent outsiders
+  can start while it holds write, secrets or OIDC; a bot merge with no human
+  review; an action with a known advisory reaching secrets, runners, OIDC or
+  a cloud role; a SHA-pinned action that still runs a mutable ref) with its
+  severity, risk-factor chips, evidence (confirmed and possible apart) and
+  place. Rows filter by severity, risk factor and evidence, and open a side
+  drawer with the hop-by-hop path, the fix steps and copyable `gop fix-plan`
+  commands; without JavaScript they expand in place. The rail groups the
+  sections and becomes a top menu on narrow screens. The Markdown report
+  gets the Issues table.
 - `gop report` opens with an AI agents funnel under the headline: workflows
   that look like an AI agent, agents found by a known action or CLI, those
   people without push access can start, those whose agent holds write,

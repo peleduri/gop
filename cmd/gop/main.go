@@ -657,7 +657,7 @@ func (a *app) cmdReport(args []string) error {
 	top := fs.Int("top", 10, "principals in the risks table and paths section")
 	prev := fs.String("previous", "", "older graph.json: open the report with what changed since it (gop diff)")
 	ownerT := fs.Int("owner-threshold", graph.DefaultOwnerThreshold, "the suggested reduce_owners fix removes standing ownership from accounts that own this many orgs or more")
-	rows := fs.Int("rows", report.DefaultRows, "rows in each long section (AI agents in CI, pinned actions, repos on the top paths); 0 lists every row")
+	rows := fs.Int("rows", report.DefaultRows, "rows in each long section (issues, AI agents in CI, pinned actions, repos on the top paths); 0 lists every row")
 	useDemo := demoFlag(fs)
 	if err := parse(fs, args); err != nil {
 		return err

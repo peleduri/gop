@@ -99,6 +99,7 @@ func writeMarkdown(w io.Writer, d data) error {
 		p("\nConfirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.\n\n")
 	}
 
+	writeMDIssues(p, d)
 	p("## Top risks\n\n")
 	if len(d.Risks) == 0 {
 		p("The graph has no principals.\n\n")
@@ -429,4 +430,36 @@ func writeMDFunnel(p func(string, ...any), d data) {
 	if len(parts) > 0 {
 		p("\n**Also:** %s.\n", strings.Join(parts, "; "))
 	}
+}
+
+// writeMDIssues writes the Issues table: one row per actionable combination
+// (issues.go), most severe first, with its risk factors, evidence, place
+// and first fix.
+func writeMDIssues(p func(string, ...any), d data) {
+	p("## Issues\n\n")
+	if len(d.Issues) == 0 {
+		p("No issue: no AI agent outsiders can start with write, secrets or OIDC, no bot merge without human review, no advisory action reaching secrets or runners, and no pinned action running a mutable ref.\n\n")
+		return
+	}
+	p("%s\n\n", md(d.IssuesLine))
+	p("| # | Severity | Issue | Risk factors | Evidence | Where | Fix |\n|---:|---|---|---|---|---|---|\n")
+	for i, r := range d.Issues {
+		labels := make([]string, len(r.Factors))
+		for k, f := range r.Factors {
+			labels[k] = f.Label
+		}
+		ev := "✓ confirmed"
+		if !r.Confirmed {
+			ev = "? possible"
+		}
+		fix := ""
+		if len(r.Fixes) > 0 {
+			fix = strings.ReplaceAll(r.Fixes[0], "`", "")
+		}
+		p("| %d | %s | %s | %s | %s | %s (%s in %s) | %s |\n", i+1, r.Sev, md(r.Title), md(strings.Join(labels, ", ")), ev, md(r.Where), r.WhereKind, md(r.Org), md(fix))
+	}
+	if d.IssuesMoreLine != "" {
+		p("\n%s\n", md(d.IssuesMoreLine))
+	}
+	p("\n")
 }

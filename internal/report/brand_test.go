@@ -101,27 +101,37 @@ func TestReportNoYellow(t *testing.T) {
 func yellow(r, g, b float64) bool { return brand.IsYellow(uint8(r), uint8(g), uint8(b)) }
 
 // TestNoHorizontalScroll390: at a 390px viewport the page must not be wider
-// than the screen. The section nav is the widest row (every link on one
-// line), so it scrolls inside itself and its intrinsic width must not reach
-// the page; and no fixed width in the report's rules may exceed the 358px
-// content column (390px less two 16px gutters).
+// than the screen. Below 900px the navigation rail turns into a top menu
+// with every group on one line, the widest row, so it scrolls inside itself
+// and its intrinsic width must not reach the page; and no fixed width in the
+// report's rules may exceed the 358px content column (390px less two 16px
+// gutters).
 func TestNoHorizontalScroll390(t *testing.T) {
-	rule := func(sel string) string {
-		i := strings.Index(reportCSS, "\n"+sel+"{")
-		if i < 0 {
+	const narrow = "@media screen and (max-width:900px){"
+	i := strings.Index(reportCSS, narrow)
+	if i < 0 {
+		t.Fatal("no narrow-screen block for the navigation rail")
+	}
+	block := reportCSS[i+len(narrow):]
+	rule := func(css, sel string) string {
+		j := strings.Index(css, "\n"+sel+"{")
+		if j < 0 {
 			t.Fatalf("no %s rule", sel)
 		}
-		r := reportCSS[i+1:]
+		r := css[j+1:]
 		return r[:strings.Index(r, "}")]
 	}
-	ul := rule("nav ul")
+	menu := rule(block, ".rail-in")
 	for _, want := range []string{"overflow-x:auto", "min-width:0", "max-width:100%", "contain:inline-size"} {
-		if !strings.Contains(ul, want) {
-			t.Errorf("nav ul rule lacks %s: %s", want, ul)
+		if !strings.Contains(menu, want) {
+			t.Errorf("narrow .rail-in rule lacks %s: %s", want, menu)
 		}
 	}
-	if !strings.Contains(rule("nav .wrap"), "min-width:0") {
-		t.Error("nav .wrap must allow shrinking (min-width:0)")
+	if !strings.Contains(rule(reportCSS, ".rail"), "min-width:0") {
+		t.Error(".rail must allow shrinking (min-width:0)")
+	}
+	if !strings.Contains(block, ".shell{display:block") {
+		t.Error("the rail and content grid must stack below 900px")
 	}
 	screen := reportCSS[:strings.Index(reportCSS, "@media print")]
 	for _, m := range regexp.MustCompile(`(?:^|[;{])((?:min-)?width):(\d+)px`).FindAllStringSubmatch(screen, -1) {

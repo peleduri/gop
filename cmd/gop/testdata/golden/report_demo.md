@@ -25,6 +25,20 @@ gop report: enterprise **acme**, collected 2026-01-01T00:00:00Z
 
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺), or (a cloud hop) from a supplied file (≡): a cloud trust policy you supplied, not read from the cloud. Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
+## Issues
+
+7 issues where facts gop read combine into a path to act on: 5 critical, 2 high, 0 medium. 7 confirmed, 0 possible; the two are never added up.
+
+| # | Severity | Issue | Risk factors | Evidence | Where | Fix |
+|---:|---|---|---|---|---|---|
+| 1 | critical | Outsiders can start an AI agent holding a write token, OIDC and secrets, in dangerous mode | Outsiders can start, Dangerous mode, Write token, Secrets, OIDC | ✓ confirmed | acme-app/api/.github/workflows/claude-fix.yml (workflow in acme-app) | Restrict who can start it: remove allowed\_non\_write\_users / allow-users (or allowed\_bots) so the action's write-access check applies, or move it off issue\_comment, or require approval for outside contributors (an environment with required reviewers). |
+| 2 | critical | Outsiders can start an AI agent holding a write token and secrets, in dangerous mode | Outsiders can start, Dangerous mode, Write token, Secrets | ✓ confirmed | acme-app/docs/.github/workflows/claude.yml (workflow in acme-app) | Restrict who can start it: remove allowed\_non\_write\_users / allow-users (or allowed\_bots) so the action's write-access check applies, or move it off issue\_comment, or require approval for outside contributors (an environment with required reviewers). |
+| 3 | critical | Bot approval lands code on the default branch with no human review; an AI step holds the merge key | No human review, AI holds merge key, Self-editable policy | ✓ confirmed | acme-app/api (repo in acme-app) | Require a human approval that bots cannot give: require CODEOWNERS review on main with human owners (or a team), so a bot approval never satisfies the rule. |
+| 4 | critical | Bot approval lands code on the default branch with no human review; an AI step holds the merge key | No human review, AI holds merge key | ✓ confirmed | acme-app/web (repo in acme-app) | Require a human approval that bots cannot give: require CODEOWNERS review on main with human owners (or a team), so a bot approval never satisfies the rule. |
+| 5 | critical | Action with a known advisory reaches secrets | Known advisory, Mutable ref, Secrets | ✓ confirmed | acme-oss/checkout-ish@v2 (action in acme-oss) | Move every workflow off acme-oss/checkout-ish@v2 to a fixed version and pin it to that commit SHA. |
+| 6 | high | Outsiders can start an AI agent holding secrets | Outsiders can start, Secrets | ✓ confirmed | acme-app/web/.github/workflows/ai-review.yml (workflow in acme-app) | Restrict who can start it: the agent has no actor check of its own, so move it off pull\_request\_target, check the actor's repository permission in a step before the agent runs, or require approval for outside contributors (an environment with required reviewers). |
+| 7 | high | SHA-pinned action still runs a mutable ref and reaches OIDC and secrets | Mutable ref, Secrets, OIDC | ✓ confirmed | acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5 (action in acme-actions) | Pin acme-actions/setup@main to a commit SHA inside acme-actions/release@9b8a7c6d5e4f30211a2b3c4d5e6f708192a3b4c5, or replace the action. |
+
 ## Top risks
 
 | Principal | Confirmed repos | Orgs | Cloud roles | OIDC | Secrets | Runners | Possible | Score |

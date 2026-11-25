@@ -12,6 +12,10 @@ gop report: enterprise **acme**, collected 2026-11-20T10:00:00Z
 
 Confirmed (✓) means every hop was read live (✓), inferred (≈) from other observed facts by a documented rule, or read from a recent audit log entry (↺). Possible (?) means at least one hop is not visible to the token: unknown, not absent.
 
+## Issues
+
+No issue: no AI agent outsiders can start with write, secrets or OIDC, no bot merge without human review, no advisory action reaching secrets or runners, and no pinned action running a mutable ref.
+
 ## Top risks
 
 | Principal | Confirmed repos | Orgs | OIDC | Secrets | Runners | Possible | Score |
