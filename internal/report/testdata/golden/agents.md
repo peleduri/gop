@@ -79,6 +79,16 @@ Score counts confirmed reach only.
 
 Agents are found by known actions and CLIs (docs/agents-in-ci.md). A name-only match is listed but never ranked. An action whose actor check gop does not know counts as possible, never as closed.
 
+## Agent paths
+
+3 agent paths; 2 in dangerous mode, 2 that people without push access can start.
+
+1. Anyone on GitHub → claude-code-action (dangerous mode: dangerously\_skip\_permissions) in acme-app/docs/.github/workflows/claude.yml → Push to acme-app/docs. Evidence: live 6, inferred 1.
+2. People without push access → codex-cli (dangerous mode: full\_auto) in acme-actions/setup/.github/workflows/codex-review.yml → 1 secret in the agent job. Evidence: live 5, inferred 1.
+3. Anyone, from a fork → gemini-cli-action in acme-app/docs/.github/workflows/gemini-review.yml → gemini-cli-action. Evidence: live 3.
+
+The HTML report steps through each path and shows where a fix cuts it.
+
 ## Org ownership
 
 11% of confirmed reach depends on standing org ownership: removing every org owner grant would remove 7 of 62 confirmed (principal, repo) pairs.
